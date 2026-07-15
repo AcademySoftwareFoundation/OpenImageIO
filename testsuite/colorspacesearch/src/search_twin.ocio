@@ -1,0 +1,19 @@
+ocio_profile_version: 2.3
+roles:
+  default: reference
+  scene_linear: reference
+file_rules:
+  - !<Rule> {name: Default, colorspace: reference}
+colorspaces:
+  - !<ColorSpace>
+    name: reference
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: theatrical_output
+    encoding: sdr-video
+    interop_id: g26_p3d65_display
+    from_scene_reference: !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+  - !<ColorSpace>
+    name: plain_video
+    encoding: sdr-video
+    from_scene_reference: !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}

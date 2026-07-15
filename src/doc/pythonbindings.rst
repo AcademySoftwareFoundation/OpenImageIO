@@ -4048,7 +4048,7 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.1.
 
 
-.. py:method:: find_color_spaces (chromaticities=[], transfer_function=[], encoding=[], image_state=[], include_inactive=False, include_context_sensitive=False, exhaustive=False, context={})
+.. py:method:: find_color_spaces (chromaticities=[], transfer_function=[], encoding=[], image_state=[], include_inactive=False, include_context_sensitive=False, exhaustive=False, strict=False, context={})
 
     Return the names of the config's color spaces whose derivable
     characteristics match a partial description, ordered deterministically.
@@ -4072,6 +4072,13 @@ is provided for minimal color support.
         # Which spaces have the Rec.709 gamut but are not scene-linear?
         names = colorconfig.find_color_spaces(chromaticities="rec709",
                                               encoding="-scene-linear")
+
+    On the encoding axis a candidate characterizes as its authored encoding
+    and, additionally, as the encoding of its interop-identity twin (a LUT
+    space tagged ``g26_p3d65_display`` but authored ``sdr-video`` matches
+    searches for both ``sdr-video`` and ``sdr-cinema``); a candidate with no
+    authored encoding adopts the twin's outright. ``strict=True`` limits the
+    encoding axis to authored encodings only.
 
     The chromaticity derivation is single-hypothesis (D65 + Bradford) and
     registry-side gamuts come only from a reserved chromaticity table, so a

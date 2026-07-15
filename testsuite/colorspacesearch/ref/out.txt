@@ -42,4 +42,10 @@ Python find_color_spaces: escape grammar
   encoding='\\' raised ValueError
   encoding='\\foo' raised ValueError
 
+Python find_color_spaces: twin encoding and strict
+  encoding='sdr-cinema'              = ['theatrical_output']
+  encoding='sdr-video'               = ['plain_video', 'theatrical_output']
+  encoding='theatrical_output'       = ['plain_video', 'theatrical_output']
+  encoding='sdr-cinema', strict=True = []
+
 Done.

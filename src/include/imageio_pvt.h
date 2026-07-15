@@ -763,6 +763,13 @@ struct FindColorSpacesOptions {
     bool include_inactive          = false;
     bool include_context_sensitive = false;
     bool exhaustive                = false;
+    // strict limits encoding characterization to explicitly authored
+    // encoding attributes.  The default additionally lets a candidate match
+    // through the encoding of its interop-identity twin — both as the
+    // fallback for an unset attribute and as a second acceptable value
+    // alongside an authored one.  Hint-by-example resolution always reads
+    // the named space's own effective encoding.
+    bool strict = false;
     std::map<std::string, std::string> context;
 };
 

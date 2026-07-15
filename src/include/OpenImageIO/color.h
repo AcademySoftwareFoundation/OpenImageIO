@@ -469,6 +469,14 @@ public:
     /// transforms. `context` applies OCIO context-variable overrides scoped to
     /// this call only.
     ///
+    /// On the encoding axis a candidate characterizes as its authored
+    /// encoding attribute and, additionally, as the encoding of its
+    /// interop-identity twin (so a LUT space tagged with a theatrical
+    /// interop ID but authored `sdr-video` matches searches for both
+    /// `sdr-video` and `sdr-cinema`); a candidate with no authored encoding
+    /// adopts the twin's outright. `strict` limits the encoding axis to
+    /// authored attributes only.
+    ///
     /// Current limitations (each a documented behavior, not a defect):
     /// probe-derived chromaticities assume a single D65 + Bradford hypothesis,
     /// so a non-D65 or log-curve space whose gamut is not in the reserved
@@ -485,7 +493,7 @@ public:
         cspan<std::string> transfer_function = {},
         cspan<std::string> encoding = {}, cspan<std::string> image_state = {},
         bool include_inactive = false, bool include_context_sensitive = false,
-        bool exhaustive                                    = false,
+        bool exhaustive = false, bool strict = false,
         const std::map<std::string, std::string>& context = {}) const;
 
     /// Return a filename or other identifier for the config we're using.

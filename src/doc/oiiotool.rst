@@ -4556,6 +4556,15 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       spaces, its context-sensitive spaces, and complex (non-simple) spaces
       whose transforms are inspected exhaustively. All default to 0.
 
+    - `strict=` *val* :
+
+      When nonzero, the encoding axis matches only encodings authored in the
+      config. By default a candidate also matches through the encoding of
+      its interop-identity twin — both alongside an authored encoding and in
+      place of a missing one — so a LUT space tagged with a theatrical
+      interop ID but authored `sdr-video` matches searches for both
+      `sdr-video` and `sdr-cinema`. Defaults to 0.
+
     Because a term may not contain a comma or a colon (the latter being
     :program:`oiiotool`'s own option delimiter), color interop IDs that
     contain a colon (such as `custom:*` or `icc:*`) cannot be passed through

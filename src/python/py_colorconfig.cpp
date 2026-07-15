@@ -229,7 +229,7 @@ declare_colorconfig(py::module& m)
             [](const ColorConfig& self, const py::object& chromaticities,
                const py::object& transfer_function, const py::object& encoding,
                const py::object& image_state, bool include_inactive,
-               bool include_context_sensitive, bool exhaustive,
+               bool include_context_sensitive, bool exhaustive, bool strict,
                const std::map<std::string, std::string>& context_vars) {
                 auto chrom = parse_hint_terms(chromaticities, "chromaticities");
                 auto tf    = parse_hint_terms(transfer_function,
@@ -239,12 +239,14 @@ declare_colorconfig(py::module& m)
                 return self.find_color_spaces(chrom, tf, enc, state,
                                               include_inactive,
                                               include_context_sensitive,
-                                              exhaustive, context_vars);
+                                              exhaustive, strict,
+                                              context_vars);
             },
             "chromaticities"_a = "", "transfer_function"_a = "",
             "encoding"_a = "", "image_state"_a = "", py::kw_only(),
             "include_inactive"_a = false,
             "include_context_sensitive"_a = false, "exhaustive"_a = false,
+            "strict"_a = false,
             "context_vars"_a = std::map<std::string, std::string>())
         .def("configname", &ColorConfig::configname)
         .def_static("default_colorconfig", []() -> const ColorConfig& {

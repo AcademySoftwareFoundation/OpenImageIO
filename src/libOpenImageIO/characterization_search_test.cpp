@@ -249,6 +249,79 @@ test_universe_and_visibility()
 }
 
 
+// A space whose authored encoding (sdr-video) disagrees with its
+// interop-identity twin's (g26_p3d65_display -> sdr-cinema): the encoding
+// axis accepts both values unless strict.
+constexpr const char* kTwinEncodingConfig = R"OCIO(ocio_profile_version: 2.3
+roles:
+  default: reference
+  scene_linear: reference
+file_rules:
+  - !<Rule> {name: Default, colorspace: reference}
+colorspaces:
+  - !<ColorSpace>
+    name: reference
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: theatrical_output
+    encoding: sdr-video
+    interop_id: g26_p3d65_display
+    from_scene_reference: !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+  - !<ColorSpace>
+    name: plain_video
+    encoding: sdr-video
+    from_scene_reference: !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+)OCIO";
+
+
+void
+test_encoding_twin_inference_and_strict()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "twin.ocio",
+                                          kTwinEncodingConfig);
+
+    // Inferred: authored sdr-video, but the g26_p3d65_display twin carries
+    // sdr-cinema -- the candidate matches both values.
+    pvt::FindColorSpacesOptions opt;
+    opt.encodings = { "sdr-cinema" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                      == std::vector<std::string>({ "theatrical_output" }));
+
+    opt.encodings = { "sdr-video" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                      == std::vector<std::string>(
+                          { "plain_video", "theatrical_output" }));
+
+    // Hint-by-example reads the named space's own effective encoding
+    // (sdr-video), not its twin's.
+    opt.encodings = { "theatrical_output" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                      == std::vector<std::string>(
+                          { "plain_video", "theatrical_output" }));
+
+    // Exclusion removes a proven (inferred) match; inverse requires a proven
+    // difference on every characterized value.
+    opt.encodings = { "-sdr-cinema" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                      == std::vector<std::string>(
+                          { "plain_video", "reference" }));
+    opt.encodings = { "~sdr-cinema" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                      == std::vector<std::string>(
+                          { "plain_video", "reference" }));
+
+    // strict: authored attributes only -- the twin's encoding never enters.
+    opt.strict    = true;
+    opt.encodings = { "sdr-cinema" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt).empty());
+    opt.encodings = { "sdr-video" };
+    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                      == std::vector<std::string>(
+                          { "plain_video", "theatrical_output" }));
+}
+
+
 void
 test_encoding_three_valued_split()
 {
@@ -554,6 +627,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_parse_search_term();
     test_three_valued_axis();
     test_universe_and_visibility();
+    test_encoding_twin_inference_and_strict();
     test_encoding_three_valued_split();
     test_escapes_and_sequences();
     test_non_simple_and_hint_source();

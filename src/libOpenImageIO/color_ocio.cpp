@@ -3520,7 +3520,7 @@ ColorConfig::find_color_spaces(
     cspan<std::string> chromaticities, cspan<std::string> transfer_function,
     cspan<std::string> encoding, cspan<std::string> image_state,
     bool include_inactive, bool include_context_sensitive, bool exhaustive,
-    const std::map<std::string, std::string>& context) const
+    bool strict, const std::map<std::string, std::string>& context) const
 {
     // Thin public adapter: fill the internal option set (the active-space
     // toggle has no public counterpart -- the public API always searches
@@ -3535,6 +3535,7 @@ ColorConfig::find_color_spaces(
     options.include_inactive          = include_inactive;
     options.include_context_sensitive = include_context_sensitive;
     options.exhaustive                = exhaustive;
+    options.strict                    = strict;
     options.context                   = context;
     return OIIO::pvt::find_color_spaces(*this, options);
 }
@@ -4286,6 +4287,32 @@ build_interop_identities_config()
             // aliases. Reconfirm which the studio config carries before OCIO
             // >= 2.5 becomes OIIO's minimum, when the embedded config can
             // shrink to just the "oiio:" delta.
+            //
+            // The embedded registry's cinema encoding tags override the
+            // studio config's, even where the studio definition supplies the
+            // (superior) transforms: sdr-cinema (gamma-2.6 theatrical family,
+            // 48 cd/m² calibration white) and hdr-cinema (PQ cinema masters)
+            // are OIIO-side classifications that OCIO's builtin config tags
+            // plain sdr-video / hdr-video.
+            for (int i = 0, n = embedded->getNumColorSpaces(); i < n; ++i) {
+                const char* name = embedded->getColorSpaceNameByIndex(i);
+                auto ecs         = embedded->getColorSpace(name);
+                const char* enc  = ecs ? ecs->getEncoding() : nullptr;
+                if (!enc
+                    || (!Strutil::iequals(enc, "sdr-cinema")
+                        && !Strutil::iequals(enc, "hdr-cinema")))
+                    continue;
+                auto existing = config->getColorSpace(name);
+                if (!existing
+                    || Strutil::iequals(existing->getEncoding()
+                                            ? existing->getEncoding()
+                                            : "",
+                                        enc))
+                    continue;
+                auto retagged = existing->createEditableCopy();
+                retagged->setEncoding(enc);
+                config->addColorSpace(retagged);  // replaces by name
+            }
             return config;
 #else
             return embedded;
@@ -5205,6 +5232,27 @@ string_axis_accepts(const std::vector<ResolvedStringTerm>& terms,
         });
 }
 
+// Set-valued variant for axes where a candidate legitimately carries more
+// than one value (the encoding axis: authored attribute + interop-identity
+// twin). A term matches when any value matches; the property is known when
+// the set is non-empty.
+bool
+string_set_axis_accepts(const std::vector<ResolvedStringTerm>& terms,
+                        const std::vector<std::string>& values)
+{
+    return evaluate_axis(
+        terms, values,
+        [](const ResolvedStringTerm& term,
+           const std::vector<std::string>& vals) {
+            for (const std::string& v : vals)
+                if (std::find(term.values.begin(), term.values.end(), v)
+                    != term.values.end())
+                    return true;
+            return false;
+        },
+        [](const std::vector<std::string>& vals) { return !vals.empty(); });
+}
+
 bool
 chromaticity_axis_accepts(const std::vector<ResolvedChromaticityTerm>& terms,
                           const std::optional<spvt::Chromaticities>& property)
@@ -5439,11 +5487,29 @@ ColorConfig::Impl::find_color_spaces(
                                : "scene");
     };
 
+    // The interop-identity twin's encoding for a candidate (empty when the
+    // space has no identity or the identity has no registry entry).
+    auto twin_encoding = [&](const std::string& name) -> std::string {
+        std::string id(m_self->get_color_interop_id(name));
+        if (id.empty() || !registry)
+            return {};
+        auto ics = registry->getColorSpace(id.c_str());
+        if (ics && ics->getEncoding() && ics->getEncoding()[0])
+            return Strutil::lower(ics->getEncoding());
+        return {};
+    };
+
     auto resolve_encoding
         = [&](const std::string& raw) -> std::vector<std::string> {
         if (auto local = local_space(raw)) {
-            std::string encoding = Strutil::lower(
-                effectiveEncoding(local->getName()));
+            // Hint-by-example reads the space's own effective encoding
+            // (authored, else twin-adopted); strict reads authored only.
+            std::string encoding
+                = options.strict
+                      ? (local->getEncoding()
+                             ? Strutil::lower(local->getEncoding())
+                             : std::string())
+                      : Strutil::lower(effectiveEncoding(local->getName()));
             if (encoding.empty())
                 throw std::invalid_argument(
                     "encoding hint has no derivable encoding: " + raw);
@@ -5774,13 +5840,26 @@ ColorConfig::Impl::find_color_spaces(
 
         // Per-candidate probes are wrapped so any derivation failure yields an
         // "unknown" property (three-valued), never an abort.
-        std::optional<std::string> encoding;
+        //
+        // Encoding characterizes as up to two values: the authored attribute
+        // plus — non-strict — the interop-identity twin's encoding (which is
+        // also the adopted value when no attribute is authored). A LUT space
+        // tagged g26_p3d65_display with encoding sdr-video matches both
+        // "sdr-video" and "sdr-cinema".
+        std::vector<std::string> encoding_values;
         if (!encoding_terms.empty()) {
-            std::string enc = Strutil::lower(effectiveEncoding(name));
-            if (!enc.empty())
-                encoding = std::move(enc);
+            std::string literal = cs->getEncoding()
+                                      ? Strutil::lower(cs->getEncoding())
+                                      : std::string();
+            if (!literal.empty())
+                encoding_values.push_back(literal);
+            if (!options.strict) {
+                std::string twin = twin_encoding(name);
+                if (!twin.empty() && twin != literal)
+                    encoding_values.push_back(std::move(twin));
+            }
         }
-        if (!string_axis_accepts(encoding_terms, encoding))
+        if (!string_set_axis_accepts(encoding_terms, encoding_values))
             continue;
 
         const std::optional<std::string> state { reference_state(cs) };

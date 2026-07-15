@@ -50,6 +50,21 @@ try:
             print("  encoding={!r} did not raise".format(bad))
         except ValueError:
             print("  encoding={!r} raised ValueError".format(bad))
+
+    # Twin-encoding inference and the strict gate: theatrical_output authors
+    # sdr-video but is tagged interop_id g26_p3d65_display, whose registry
+    # twin carries sdr-cinema -- it matches both values unless strict.
+    twin = oiio.ColorConfig(str(SRC / "search_twin.ocio"))
+    print("")
+    print("Python find_color_spaces: twin encoding and strict")
+    print("  encoding='sdr-cinema'              =",
+          twin.find_color_spaces(encoding="sdr-cinema"))
+    print("  encoding='sdr-video'               =",
+          twin.find_color_spaces(encoding="sdr-video"))
+    print("  encoding='theatrical_output'       =",
+          twin.find_color_spaces(encoding="theatrical_output"))
+    print("  encoding='sdr-cinema', strict=True =",
+          twin.find_color_spaces(encoding="sdr-cinema", strict=True))
     print("")
     print("Done.")
 

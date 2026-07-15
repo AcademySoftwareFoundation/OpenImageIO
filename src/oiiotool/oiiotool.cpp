@@ -2386,7 +2386,8 @@ set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 // Query the color config for color spaces matching a partial characterization
 // and print their names, one per line. Each axis is given as a comma-separated
 // list of terms via the modifier options chromaticities=, transfer=, encoding=,
-// state=; the inclusion toggles inactive=, contextsensitive=, exhaustive=.
+// state=; the inclusion toggles inactive=, contextsensitive=, exhaustive=,
+// strict= (authored encodings only, no interop-identity twin inference).
 static void
 colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
 {
@@ -2415,7 +2416,7 @@ colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
         std::vector<std::string> results = ot.colorconfig().find_color_spaces(
             chromaticities, transfer, encoding, image_state,
             options.get_int("inactive"), options.get_int("contextsensitive"),
-            options.get_int("exhaustive"));
+            options.get_int("exhaustive"), options.get_int("strict"));
         for (auto& name : results)
             Strutil::print("{}\n", name);
     } catch (const std::exception& e) {
@@ -7477,7 +7478,7 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--colorspacesearch")
       .help("Print the color spaces matching a partial characterization "
             "(options: chromaticities=, transfer=, encoding=, state=, "
-            "inactive=, contextsensitive=, exhaustive=)")
+            "inactive=, contextsensitive=, exhaustive=, strict=)")
       .OTACTION(colorspacesearch);
     ap.arg("--iscolorspace %s:COLORSPACE")
       .help("Set the assumed color space (without altering pixels)")
