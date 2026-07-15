@@ -509,6 +509,42 @@ test_transfer_axis()
                       == std::vector<std::string>({ "odd_encoded" }));
 }
 
+
+// The public ColorConfig::find_color_spaces thin adapter: it must fill the
+// internal option set and forward to the pvt core, always searching active
+// spaces (there is no include_active toggle on the public shape), and it must
+// surface the core's fail-fast throw.
+void
+test_public_adapter()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "search.ocio", kSearchConfig);
+
+    // A hint through the public method returns the same result as the core.
+    std::vector<std::string> enc = { "-scene-linear" };
+    pvt::FindColorSpacesOptions core;
+    core.encodings = enc;
+    OIIO_CHECK_ASSERT(config.find_color_spaces({}, {}, enc, {})
+                      == pvt::find_color_spaces(config, core));
+
+    // Default (all axes empty) exposes the active/simple universe.
+    OIIO_CHECK_ASSERT(
+        config.find_color_spaces()
+        == std::vector<std::string>({ "active_simple", "display_simple",
+                                      "unknown_encoding" }));
+
+    // include_inactive flows through the adapter.
+    OIIO_CHECK_ASSERT(
+        config.find_color_spaces({}, {}, {}, {}, /*include_inactive=*/true)
+        == std::vector<std::string>({ "active_simple", "display_simple",
+                                      "unknown_encoding", "inactive_simple" }));
+
+    // Fail-fast on an unresolvable hint is surfaced by the public method.
+    std::vector<std::string> bad = { "bogus" };
+    OIIO_CHECK_ASSERT(throws_invalid_argument(
+        [&] { (void)config.find_color_spaces({}, {}, {}, bad); }));
+}
+
 }  // namespace
 
 
@@ -523,5 +559,6 @@ main(int /*argc*/, char* /*argv*/[])
     test_non_simple_and_hint_source();
     test_exhaustive_realize_clean_gate();
     test_transfer_axis();
+    test_public_adapter();
     return unit_test_failures;
 }

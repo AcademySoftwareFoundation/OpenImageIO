@@ -3515,6 +3515,31 @@ ColorConfig::get_cicp(string_view colorspace) const
 }
 
 
+std::vector<std::string>
+ColorConfig::find_color_spaces(
+    cspan<std::string> chromaticities, cspan<std::string> transfer_function,
+    cspan<std::string> encoding, cspan<std::string> image_state,
+    bool include_inactive, bool include_context_sensitive, bool exhaustive,
+    const std::map<std::string, std::string>& context) const
+{
+    // Thin public adapter: fill the internal option set (the active-space
+    // toggle has no public counterpart -- the public API always searches
+    // active spaces) and forward to the pvt search core.
+    OIIO::pvt::FindColorSpacesOptions options;
+    options.chromaticities.assign(chromaticities.begin(),
+                                  chromaticities.end());
+    options.transfer_functions.assign(transfer_function.begin(),
+                                      transfer_function.end());
+    options.encodings.assign(encoding.begin(), encoding.end());
+    options.image_states.assign(image_state.begin(), image_state.end());
+    options.include_inactive          = include_inactive;
+    options.include_context_sensitive = include_context_sensitive;
+    options.exhaustive                = exhaustive;
+    options.context                   = context;
+    return OIIO::pvt::find_color_spaces(*this, options);
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // Image Processing Implementations
