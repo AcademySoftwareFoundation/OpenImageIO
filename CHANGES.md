@@ -46,6 +46,7 @@ Release 3.2 (target: Sept 2026?) -- compared to 3.1
   - *jpeg-xl*: CICP read and write support for JPEG-XL [#4968](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4968) (by Brecht Van Lommel) (3.2.0.0, 3.1.9.0)
   - *jpeg-xl*: ICC read and write for JPEG-XL files (issue 4649) [#4905](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4905) (by shanesmith-dwa) (3.0.14.0, 3.2.0.0)
   - *color mgmt*: For OCIO built-in configs, replace the default file rules with more sensible ones that avoid spurious matches (e.g., no longer assumes all `.exr` files use ACES2065-1 primaries). [#5194](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5194) (3.2.0.3, 3.1.14.0)
+  - *color mgmt*: Map the CICP Rec.709 primaries + sRGB-transfer tuple to display-referred sRGB (`srgb_rec709_display`) rather than the scene-referred entry, so CICP-tagged reads resolve to the intended display encoding. [#XXXX](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/XXXX) (3.2.0.4)
 * Other notable new feature:
   - *tiff*: Support for GPS metadata fields (latitude, longitude, altitude, timestamp, and related EXIF GPS fields) when using libTIFF 4.2+. [#5050](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5050) (3.2.0.1, 3.1.12.0)
   - *heif*: Add IOProxy support for both input and output [#5017](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5017) (by Brecht Van Lommel) (3.2.0.0, 3.1.10.0)
