@@ -312,6 +312,39 @@ interop_identities_config_names();
 
 
 // ---------------------------------------------------------------------------
+// Curve-family normalization -- reduce a transfer-function ("curve") named
+// transform's name to a reference-space-agnostic family so two spaces sharing
+// a transfer curve compare equal regardless of the state suffix the name
+// carries (`_tx` pass-through / bare mirror in current configs; legacy
+// `_scene` / `_display` still supported). Pure, stateless, no OCIO. For
+// internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Family token for a curve name: strip a leading `crv_`, then strip at most
+/// one trailing state suffix (`_scene`, `_display`, or `_tx`). A name that is
+/// a bare suffix (`"_tx"`) or is empty passes through unchanged. E.g.
+/// `crv_g24_tx`, `crv_g24`, and `crv_g24_display` all yield `g24`.
+OIIO_API std::string
+family_token(string_view name);
+
+/// Like family_token but keeps the `crv_` prefix -- for comparing two matched
+/// catalog names for family equality (`crv_srgb_tx` == `crv_srgb`).
+OIIO_API std::string
+family_name(string_view name);
+
+/// True if `name` is the pass-through variant of a curve family (ends with
+/// `_scene` or `_tx`, and is strictly longer than that suffix).
+OIIO_API bool
+curve_is_passthrough(string_view name);
+
+/// True if `name` is the mirror variant of a curve family: it ends with the
+/// legacy `_display` suffix, OR its `_tx` pass-through twin is present in
+/// `catalog_names` (the current suffixless-mirror convention).
+OIIO_API bool
+curve_is_mirror(string_view name, cspan<std::string> catalog_names);
+
+
+// ---------------------------------------------------------------------------
 // Color-space classification -- how ColorConfig internally classifies a
 // color space for interop matching (the "simple" transform allowlist and
 // related properties). For internal/test use only.
