@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <regex>
@@ -348,10 +349,13 @@ private:
     image_span<std::byte> m_bufspan;   // Bounded buffer for local pixels
     typedef std::recursive_mutex mutex_t;
     typedef std::unique_lock<mutex_t> lock_t;
-    mutable mutex_t m_mutex;              // Thread safety for this ImageBuf
-    mutable bool m_spec_valid   = false;  // Is the spec valid
-    mutable bool m_pixels_valid = false;  // Image is valid
-    mutable bool m_pixels_read = false;  // Is file already in the local pixels?
+    mutable mutex_t m_mutex;  // Thread safety for this ImageBuf
+    // N.B. These three flags are atomic because each is read lock-free by
+    // some caller. The atomicity guarantees that a thread seeing `true` also
+    // sees all the data (spec fields, pixel buffer) correctly.
+    mutable std::atomic<bool> m_spec_valid   = false;  // spec is valid?
+    mutable std::atomic<bool> m_pixels_valid = false;  // Image is valid?
+    mutable std::atomic<bool> m_pixels_read  = false;  // local pixels loaded?
     bool m_readonly            = true;   // The bufspan is read-only
     bool m_badfile             = false;  // File not found
     float m_pixelaspect        = 1.0f;   // Pixel aspect ratio of the image
@@ -529,9 +533,9 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
 // NO -- copy ctr does not transfer proxy   , m_rioproxy(src.m_rioproxy)
 // NO -- copy ctr does not transfer proxy   , m_wioproxy(src.m_wioproxy)
 {
-    m_spec_valid   = src.m_spec_valid;
-    m_pixels_valid = src.m_pixels_valid;
-    m_pixels_read  = src.m_pixels_read;
+    m_spec_valid   = src.m_spec_valid.load();
+    m_pixels_valid = src.m_pixels_valid.load();
+    m_pixels_read  = src.m_pixels_read.load();
     if (src.localpixels()) {
         // Source had the image fully in memory (no cache)
         if (m_storage == ImageBuf::APPBUFFER) {
@@ -1069,8 +1073,10 @@ ImageBufImpl::realloc()
                         0);
     // NB make it big enough for SSE
     if (m_allocated_size) {
-        m_pixels_valid = true;
-        m_storage      = ImageBuf::LOCALBUFFER;
+        // Don't set m_pixels_valid yet -- the buffer is allocated but not
+        // necessarily populated yet (e.g. a pending read() will fill it). The
+        // caller sets m_pixels_valid once the pixel data is actually ready.
+        m_storage = ImageBuf::LOCALBUFFER;
     }
     if (m_spec.deep) {
         m_deepdata.init(m_spec);
@@ -1103,6 +1109,8 @@ ImageBufImpl::alloc(const ImageSpec& spec, const ImageSpec* nativespec)
     realloc();
     // N.B. realloc sets m_bufspan
     m_spec_valid = true;
+    if (m_allocated_size)
+        m_pixels_valid = true;  // no pending read; buffer is ready as-is
 }
 
 
@@ -1268,7 +1276,6 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
             return false;
         }
         m_badfile    = false;
-        m_spec_valid = true;
         m_fileformat = ustring(input->format_name());
         m_nativespec = m_spec;
         set_bufspan(nullptr);
@@ -1291,6 +1298,9 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_current_miplevel = miplevel;
         m_pixelaspect = m_spec.get_float_attribute("pixelaspectratio", 1.0f);
         atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
+        // Set last, after every field above is written -- see the comment
+        // on m_spec_valid's declaration.
+        m_spec_valid = true;
     }
     return !m_badfile;
 }
