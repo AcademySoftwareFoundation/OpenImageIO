@@ -417,6 +417,13 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     m_processor->imgdata.params.user_flip
         = config.get_int_attribute("raw:user_flip", -1);
 
+    const ParamValue* bad_pixels_attr = config.find_attribute("raw:bad_pixels",
+                                                              TypeDesc::STRING);
+    if (bad_pixels_attr) {
+        m_processor->imgdata.params.bad_pixels
+            = (char*)bad_pixels_attr->get_ustring().c_str();
+    }
+
 #ifdef _WIN32
     // Convert to wide chars, just on Windows.
     int ret = m_processor->open_file(
