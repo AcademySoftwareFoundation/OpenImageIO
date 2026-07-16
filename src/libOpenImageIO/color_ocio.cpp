@@ -8,6 +8,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -5440,6 +5441,26 @@ interop_identities_config_names()
     for (int i = 0; i < n; ++i)
         names.emplace_back(config->getColorSpaceNameByIndex(i));
     return names;
+}
+
+
+std::vector<std::string>
+embedded_interop_identities_ids()
+{
+    // Line-scan the embedded registry YAML for `interop_id: <token>` -- the
+    // same token scan gen_color_interop_ids.py performs on the source file,
+    // so this is byte-for-byte the set the generated ColorInteropIDs
+    // constants were emitted from, independent of the linked OCIO version
+    // (the parsed composite config's declared names diverge from the
+    // canonical id set with OCIO >= 2.5's studio-config overlay).
+    std::set<std::string> ids;
+    string_view yaml(kInteropIdentitiesConfig);  // array is NUL-terminated
+    for (string_view line : Strutil::splitsv(yaml, "\n")) {
+        line = Strutil::strip(line);
+        if (Strutil::parse_prefix(line, "interop_id:"))
+            ids.emplace(Strutil::strip(line));
+    }
+    return { ids.begin(), ids.end() };
 }
 
 

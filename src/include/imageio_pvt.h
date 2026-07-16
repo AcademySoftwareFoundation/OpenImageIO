@@ -310,6 +310,19 @@ interop_identities_config_resolves(string_view interop_id);
 OIIO_API std::vector<std::string>
 interop_identities_config_names();
 
+/// Every distinct `interop_id:` value declared in the EMBEDDED interop
+/// identities config source (the compiled-in OCIO-2.3 YAML the registry is
+/// built from), sorted -- regardless of which composite config
+/// interop_identities_config_names() reports at the linked OCIO version
+/// (with OCIO >= 2.5 that composite is the studio config plus OIIO's
+/// additions, whose declared names are not the canonical id set). This is
+/// the canonical CIID set, gathered by the same `interop_id:` token scan the
+/// gen_color_interop_ids.py generator performs on the source file, and
+/// exists so a unit test can assert the generated OIIO::ColorInteropIDs
+/// constants are in exact sync with it. For internal/test use only.
+OIIO_API std::vector<std::string>
+embedded_interop_identities_ids();
+
 
 // ---------------------------------------------------------------------------
 // Color-space classification -- how ColorConfig internally classifies a

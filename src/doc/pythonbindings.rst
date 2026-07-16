@@ -4048,6 +4048,28 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.1.
 
 
+.. py:class:: ColorInteropID
+
+    A ``str`` enum (members compare equal to, and may be passed anywhere as,
+    a plain string) with one member per canonical Color Interop Forum id
+    that OpenImageIO's built-in interop identities registry declares -- the
+    same set as the C++ ``OIIO::ColorInteropIDs::*`` constants
+    (``<OpenImageIO/color_interop_ids.h>``). Member names are the canonical
+    id, upper-cased, with any namespace ``:`` replaced by ``_`` (e.g. id
+    ``"ocio:acescc_ap1_scene"`` is member ``OCIO_ACESCC_AP1_SCENE``).
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        cid = oiio.ColorInteropID.SRGB_REC709_DISPLAY
+        assert cid == "srgb_rec709_display"
+        interop_id = colorconfig.get_color_interop_id(cid)
+
+    This class was added in OpenImageIO 3.2.
+
+
 .. _sec-pythonmiscapi:
 
 Miscellaneous Utilities

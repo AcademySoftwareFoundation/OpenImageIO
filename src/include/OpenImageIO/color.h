@@ -480,6 +480,13 @@ public:
     /// @version 3.1
     OIIO_NODISCARD string_view get_color_interop_id(const int cicp[4]) const;
 
+    // See <OpenImageIO/color_interop_ids.h> for `OIIO::ColorInteropIDs::*`, a
+    // set of `constexpr string_view` constants -- one per canonical Color
+    // Interop Forum id -- usable anywhere a `string_view` CIID is accepted
+    // above (e.g. as the argument to resolve() or equivalent(), or compared
+    // against get_color_interop_id()'s return value). The Python binding
+    // exposes the same set as `OpenImageIO.ColorInteropID`, a str enum.
+
     /// Return a filename or other identifier for the config we're using.
     OIIO_NODISCARD std::string configname() const;
 
