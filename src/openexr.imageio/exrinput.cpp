@@ -1353,6 +1353,9 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     size_t pixelbytes = m_spec.pixel_bytes(chbegin, chend, true);
     int firstxtile    = (xbegin - m_spec.x) / m_spec.tile_width;
     int firstytile    = (ybegin - m_spec.y) / m_spec.tile_height;
+    // Caller's buffer is sized for [xbegin, xend) before clamping below; that
+    // width, not the clamped one, is the destination row stride.
+    int requested_xend = xend;
     // clamp to the image edge
     xend = std::min(xend, m_spec.x + m_spec.width);
     yend = std::min(yend, m_spec.y + m_spec.height);
@@ -1396,10 +1399,15 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
             return false;
         }
         if (data != origdata) {
-            stride_t user_scanline_bytes = (xend - xbegin) * pixelbytes;
+            // Source rows (temp buffer) are spaced by the padded whole-tile
+            // stride; destination rows (caller's buffer) are spaced by the
+            // requested width. Only the valid, clamped columns are copied.
+            stride_t user_scanline_bytes  = (xend - xbegin) * pixelbytes;
+            stride_t dest_scanline_stride = (requested_xend - xbegin)
+                                            * pixelbytes;
             stride_t scanline_stride = nxtiles * m_spec.tile_width * pixelbytes;
             for (int y = ybegin; y < yend; ++y)
-                memcpy((char*)origdata + (y - ybegin) * scanline_stride,
+                memcpy((char*)origdata + (y - ybegin) * dest_scanline_stride,
                        (char*)data + (y - ybegin) * scanline_stride,
                        user_scanline_bytes);
         }

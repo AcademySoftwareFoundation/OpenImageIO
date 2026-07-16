@@ -304,6 +304,9 @@ macro (oiio_add_all_tests)
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
+    # Regression test (compiles its own helper and generates its own image)
+    # for a partial edge-tile heap overflow in the OpenEXR readers.
+    oiio_add_tests (openexr-partialtile)
     # if (NOT DEFINED ENV{${PROJECT_NAME}_CI})
     #     oiio_add_tests (openexr-damaged
     #                     IMAGEDIR openexr-images
