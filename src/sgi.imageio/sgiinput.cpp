@@ -267,7 +267,7 @@ SgiInput::uncompress_rle_channel(int64_t scanline_off, int64_t scanline_len,
     int i     = 0;
     int iout  = 0;
     if (bpc == 1) {
-        // 1 bit per channel
+        // 1 byte per channel
         while (i < scanline_len) {
             // Read a byte, it is the count.
             unsigned char value = rle_scanline[i++];
@@ -300,9 +300,13 @@ SgiInput::uncompress_rle_channel(int64_t scanline_off, int64_t scanline_len,
             }
         }
     } else if (bpc == 2) {
-        // 2 bits per channel
+        // 2 bytes per channel
         while (i < scanline_len) {
-            // Read a byte, it is the count.
+            // Read two bytes, it is the count.
+            if ((i + 1) >= scanline_len) {
+                errorfmt("Corrupt RLE data");
+                return false;
+            }
             unsigned short value = (rle_scanline[i] << 8) | rle_scanline[i + 1];
             i += 2;
             int count = value & 0x7F;
@@ -323,6 +327,10 @@ SgiInput::uncompress_rle_channel(int64_t scanline_off, int64_t scanline_len,
             }
             // If the high bit is zero, we copy the NEXT value, count times
             else {
+                if ((i + 1) >= scanline_len) {
+                    errorfmt("Corrupt RLE data");
+                    return false;
+                }
                 while (count--) {
                     if (limit <= 0) {
                         errorfmt("Corrupt RLE data");
