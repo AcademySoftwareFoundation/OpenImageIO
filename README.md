@@ -105,6 +105,7 @@ Additional resources:
 
 - [User quick start](docs/QuickStart.md) is a quick example of using
   OpenImageIO in Python, C++, and the command line.
+- [Releases](https://github.com/AcademySoftwareFoundation/OpenImageIO/releases) -- see this for the latest release notes, also found in the [CHANGES.md](CHANGES.md) file.
 
 
 👷 Building and installing OpenImageIO
@@ -133,8 +134,8 @@ be discussed publicly until a patch is ready, please file a GitHub [security
 advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/new).
 
 If confidentiality precludes a public question or issue, you may contact us
-privately at [info@openimageio.org](info@openimageio.org), or for
-security-related issues [security@openimageio.org](security@openimageio.org).
+privately at [info@openimageio.org](mailto:info@openimageio.org), or for
+security-related issues [security@openimageio.org](mailto:security@openimageio.org).
 
 
 🔧 Contributing and developer documentation
