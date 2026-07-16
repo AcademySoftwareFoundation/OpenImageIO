@@ -44,3 +44,8 @@ src/broken04.sgi :   64 x   49, 3 channel, uint16 sgi
     channel list: R, G, B
     compression: "rle"
 iinfo ERROR: "src/broken04.sgi" : Corrupt RLE offset/length table
+src/broken_rle16_len1.sgi :    1 x    1, 1 channel, uint16 sgi
+    SHA-1: Corrupt RLE data
+    channel list: Y
+    compression: "rle"
+iinfo ERROR: "src/broken_rle16_len1.sgi" : Corrupt RLE data

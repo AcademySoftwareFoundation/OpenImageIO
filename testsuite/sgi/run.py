@@ -25,3 +25,6 @@ command += info_command ("--stats src/broken03.sgi",
                          info_program="iinfo", failureok=True)
 command += info_command ("--stats src/broken04.sgi",
                          info_program="iinfo", failureok=True)
+# broken_rle16_len1.sgi tests a 16 bit RLE file that has an odd byte count.
+command += info_command ("--stats src/broken_rle16_len1.sgi",
+                         info_program="iinfo", failureok=True)
