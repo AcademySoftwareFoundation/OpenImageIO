@@ -278,6 +278,7 @@ macro (oiio_add_all_tests)
                 python-roi
                 python-texturesys
                 python-typedesc
+                sourceprovenance
                 filters
                 ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
