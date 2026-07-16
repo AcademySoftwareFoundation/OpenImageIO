@@ -300,7 +300,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
                                               m->data_length - 6),
                                   m_spec);
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
-                errorfmt("Corrupted Exif data");
+                errorfmt("Could not decode Exif");
                 return false;
             }
         } else if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 28

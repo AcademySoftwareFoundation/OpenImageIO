@@ -210,7 +210,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
         if (webp_exif_payload_has_tiff_header(exif_span)) {
             bool ok = decode_exif(exif_span, m_spec);
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
-                errorfmt("Corrupted Exif data");
+                errorfmt("Could not decode Exif");
                 return false;
             }
         }
