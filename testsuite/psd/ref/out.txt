@@ -2090,7 +2090,7 @@ src/Layers_32bit_RGB.psd :   48 x   27, 3 channel, float psd
     stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
     stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
     stEvt:when: "2024-04-01T19:35:16+02:00"
-oiiotool ERROR: read : Failed to decode Exif data
+oiiotool ERROR: read : Could not decode Exif
 failed to open "src/crash-psd-exif-1632.psd": failed load_resources
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-psd-exif-1632.psd
