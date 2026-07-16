@@ -259,7 +259,7 @@ private:
     void bit_convert(int n, const unsigned char* in, int inbits, void* out,
                      int outbits);
 
-    void invert_photometric(int n, void* data);
+    void invert_photometric(imagesize_t n, void* data);
 
     const TIFFField* find_field(int tifftag, TIFFDataType tifftype = TIFF_ANY)
     {
@@ -1023,6 +1023,28 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         if (!check_open(m_spec,
                         { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
             return false;
+
+        // Guard against decompression bombs / corrupt headers. check_open's
+        // absolute size limit (limits:imagesize_MB) does not catch a bogus
+        // resolution that happens to land under the limit -- a tiny file
+        // claiming a multi-gigabyte image, which would then make the strip/
+        // scanline readers below allocate and attempt to fill gigabytes of
+        // pixel data. A real TIFF that decodes to a large image is itself
+        // large (even with compression), so this does not reject genuine
+        // files; it only trips on tiny files claiming enormous resolutions.
+        {
+            const imagesize_t bomb_ratio = 10000;
+            imagesize_t uncompressed     = m_spec.image_bytes(true);
+            int64_t filesize             = ioproxy() ? ioproxy()->size()
+                                                     : Filesystem::file_size(m_filename);
+            if (uncompressed > (imagesize_t(1) << 30) && filesize > 0
+                && uncompressed > imagesize_t(filesize) * bomb_ratio) {
+                errorfmt("TIFF header claims a {} MB image from a {} byte file; "
+                         "probably a corrupt or malicious header",
+                         uncompressed >> 20, filesize);
+                return false;
+            }
+        }
         m_subimage = orig_subimage;
         m_miplevel = miplevel;
         return true;
@@ -1862,12 +1884,12 @@ TIFFInput::bit_convert(int n, const unsigned char* in, int inbits, void* out,
 
 
 void
-TIFFInput::invert_photometric(int n, void* data)
+TIFFInput::invert_photometric(imagesize_t n, void* data)
 {
     switch (m_spec.format.basetype) {
     case TypeDesc::UINT8: {
         unsigned char* d = (unsigned char*)data;
-        for (int i = 0; i < n; ++i)
+        for (imagesize_t i = 0; i < n; ++i)
             d[i] = 255 - d[i];
         break;
     }
@@ -2241,8 +2263,9 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     int stripchans = m_separate ? 1 : m_spec.nchannels;  // chans in each strip
     int planes     = m_separate ? m_spec.nchannels : 1;  // color planes
     // N.B. "separate" planarconfig stores only one channel in a strip
-    int stripvals = m_spec.width * stripchans
-                    * m_rowsperstrip;  // values in a strip
+    // Be careful of 32 bit overflow.
+    imagesize_t stripvals = imagesize_t(m_spec.width) * stripchans
+                            * m_rowsperstrip;  // values in a strip
     imagesize_t strip_bytes = stripvals * m_spec.format.size();
     size_t cbound           = compressBound((uLong)strip_bytes);
     std::unique_ptr<char[]> compressed_scratch;
@@ -2297,9 +2320,10 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         int strips_in_file = (m_spec.height + m_rowsperstrip - 1)
                              / m_rowsperstrip;
         for (size_t stripidx = 0; y < yend; y += m_rowsperstrip, ++stripidx) {
-            int myrps       = std::min(yend - y, m_rowsperstrip);
-            int strip_endy  = std::min(y + m_rowsperstrip, yend);
-            int mystripvals = m_spec.width * stripchans * (strip_endy - y);
+            int myrps               = std::min(yend - y, m_rowsperstrip);
+            int strip_endy          = std::min(y + m_rowsperstrip, yend);
+            imagesize_t mystripvals = imagesize_t(m_spec.width) * stripchans
+                                      * (strip_endy - y);
             imagesize_t mystrip_bytes = mystripvals * m_spec.format.size();
             for (int c = 0; c < planes; ++c) {
                 tstrip_t stripnum = ((y - m_spec.y) / m_rowsperstrip)
