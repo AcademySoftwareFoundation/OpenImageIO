@@ -6,6 +6,8 @@
 
 #include "texture_device_decl.h"
 
+#include <OpenImageIO/dassert.h>
+
 #include <algorithm>
 #include <cstring>
 
@@ -258,7 +260,7 @@ DTS::lookup(OIIO::ustringhash name, float u, float v, Vec2 du, Vec2 dv,
                 // Experimental path: stochastic mip choice collapses trilinear
                 // blending to one selected mip for this lookup.
                 const float blend = filter.mips.mip_blend;
-                assert(0 <= rnd && rnd < 1);
+                OIIO_CONTRACT_ASSERT(0 <= rnd && rnd < 1);
                 unsigned selected = rnd < blend ? 0 : 1;
                 rnd = selected ? (rnd - blend) / (1 - blend) : rnd / blend;
                 filter.mips.mip_levels[0] = filter.mips.mip_levels[selected];

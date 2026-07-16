@@ -9,8 +9,8 @@
 
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
 
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -69,13 +69,13 @@ main(int argc, char* argv[])
       .help("Output EXR filename");
     // clang-format on
     if (ap.parse(argc, (const char**)argv) < 0) {
-        std::cout << "texture-device: " << ap.geterror() << "\n";
+        OIIO::print("texture-device: {}\n", ap.geterror());
         ap.print_help();
         return 2;
     }
 
     if (!run_device_unit_tests()) {
-        std::cout << "texture-device: unit-tests-failed\n";
+        OIIO::print("texture-device: unit-tests-failed\n");
         return 2;
     }
 
@@ -149,7 +149,7 @@ main(int argc, char* argv[])
     }
 
     if (!converged)
-        std::cout << "texture-device: retry-limit-hit\n";
+        OIIO::print("texture-device: retry-limit-hit\n");
 
     device.copy_from(tagged_ptr<void>(output.data(), Host::mem_tag()),
                      device_output, output_bytes);
@@ -159,13 +159,12 @@ main(int argc, char* argv[])
     device.free(device_op);
     device.free(device_output);
 
-    std::cout << "texture-device: mode="
-              << (NullArena::use_unified_memory ? "unified" : "non-unified")
-              << "\n";
-    std::cout << "texture-device: startup-ok\n";
-    std::cout << "texture-device: passes=" << completed_passes << "\n";
-    std::cout << "texture-device: requests=" << textures.request_queue().size()
-              << "\n";
-    std::cout << "texture-device: wrote " << output_filename << "\n";
+    OIIO::print("texture-device: mode={}\n",
+                NullArena::use_unified_memory ? "unified" : "non-unified");
+    OIIO::print("texture-device: startup-ok\n");
+    OIIO::print("texture-device: passes={}\n", completed_passes);
+    OIIO::print("texture-device: requests={}\n",
+                textures.request_queue().size());
+    OIIO::print("texture-device: wrote {}\n", output_filename);
     return 0;
 }

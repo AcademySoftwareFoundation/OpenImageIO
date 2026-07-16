@@ -4,8 +4,9 @@
 
 #pragma once
 
+#include <OpenImageIO/dassert.h>
+
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <utility>
 
@@ -28,13 +29,13 @@ template<class T, size_t N> struct vector_lite : public std::array<T, N> {
 
     void push_back(const T& value)
     {
-        assert(m_size < N);
+        OIIO_CONTRACT_ASSERT(m_size < N);
         (*this)[m_size++] = value;
     }
 
     void push_back(T&& value)
     {
-        assert(m_size < N);
+        OIIO_CONTRACT_ASSERT(m_size < N);
         (*this)[m_size++] = std::move(value);
     }
 

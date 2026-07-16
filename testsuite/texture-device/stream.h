@@ -4,9 +4,10 @@
 
 #pragma once
 
+#include <OpenImageIO/dassert.h>
+
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
@@ -39,10 +40,10 @@ public:
     OPT_FUNCT(!IsManager, T&)
     operator[](uint32_t i)
     {
-        assert(i < m_size);
+        OIIO_CONTRACT_ASSERT(i < m_size);
         const uint32_t page_index = i / kPageSize;
         const uint32_t off        = i % kPageSize;
-        assert(page_index < num_pages());
+        OIIO_CONTRACT_ASSERT(page_index < num_pages());
         tagged_ptr<Page> page = m_pages[page_index];
         return (*page)[off];
     }
@@ -50,10 +51,10 @@ public:
     OPT_FUNCT(!IsManager, const T&)
     operator[](uint32_t i) const
     {
-        assert(i < m_size);
+        OIIO_CONTRACT_ASSERT(i < m_size);
         const uint32_t page_index = i / kPageSize;
         const uint32_t off        = i % kPageSize;
-        assert(page_index < num_pages());
+        OIIO_CONTRACT_ASSERT(page_index < num_pages());
         tagged_ptr<Page> page = m_pages[page_index];
         return (*page)[off];
     }
@@ -126,7 +127,7 @@ public:
             if constexpr (IsManager) {
                 for (uint32_t i = 0, end = num_pages(); i < end; ++i)
                     m_managed.m_arena->free(m_pages[i]);
-                assert(!m_managed.m_owner);
+                OIIO_CONTRACT_ASSERT(!m_managed.m_owner);
                 m_managed.m_arena->free(m_managed.m_pages);
                 m_managed.m_pages = nullptr;
                 m_arena->free(m_staging_page);
@@ -265,7 +266,7 @@ private:
         if (m_size == 0)
             return;
         const uint32_t last_page = (m_size - 1) / kPageSize;
-        assert(last_page < num_pages());
+        OIIO_CONTRACT_ASSERT(last_page < num_pages());
         // The staging page mirrors the current tail page and is copied as a
         // whole page for simplicity.
         m_managed.m_arena->copy_to(m_pages[last_page], m_staging_page,

@@ -5,10 +5,10 @@
 #include "texture_loader.h"
 
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
 
 #include <algorithm>
 #include <filesystem>
-#include <iostream>
 
 namespace texture_device {
 
@@ -16,7 +16,7 @@ namespace {
 
     bool loader_error(const std::string& msg)
     {
-        std::cerr << "texture-device: " << msg << "\n";
+        OIIO::print(stderr, "texture-device: {}\n", msg);
         return false;
     }
 
@@ -74,19 +74,18 @@ TextureLoader::query_texture_info(const std::string& filename, int& width,
     }
     if (spec.nchannels != 3 && spec.nchannels != 4) {
         in->close();
-        return loader_error("unsupported channel count for " + filename
-                            + " got " + std::to_string(spec.nchannels)
-                            + " expected 3 or 4");
+        return loader_error(OIIO::Strutil::format(
+            "unsupported channel count for {} got {} expected 3 or 4", filename,
+            spec.nchannels));
     }
 
     if (spec.tile_width != int(TileRecord::kTileWidth)
         || spec.tile_height != int(TileRecord::kTileHeight)) {
         in->close();
-        return loader_error("unsupported tile size for " + filename + " got "
-                            + std::to_string(spec.tile_width) + "x"
-                            + std::to_string(spec.tile_height) + " expected "
-                            + std::to_string(TileRecord::kTileWidth) + "x"
-                            + std::to_string(TileRecord::kTileHeight));
+        return loader_error(OIIO::Strutil::format(
+            "unsupported tile size for {} got {}x{} expected {}x{}", filename,
+            spec.tile_width, spec.tile_height, TileRecord::kTileWidth,
+            TileRecord::kTileHeight));
     }
 
     width  = spec.width;
@@ -114,18 +113,18 @@ TextureLoader::load_tile_payload(const std::string& filename, TileCoords tile,
     const int mip        = std::max(0u, unsigned(tile.mip));
     if (!in->seek_subimage(0, mip)) {
         in->close();
-        return loader_error("failed to seek mip " + std::to_string(mip)
-                            + " for " + filename);
+        return loader_error(
+            OIIO::Strutil::format("failed to seek mip {} for {}", mip,
+                                  filename));
     }
     const OIIO::ImageSpec mipspec = in->spec();
 
     if (mipspec.tile_width != tile_w || mipspec.tile_height != tile_h) {
         in->close();
-        return loader_error(
-            "unsupported mip tile size for " + filename + " mip "
-            + std::to_string(mip) + " got " + std::to_string(mipspec.tile_width)
-            + "x" + std::to_string(mipspec.tile_height) + " expected "
-            + std::to_string(tile_w) + "x" + std::to_string(tile_h));
+        return loader_error(OIIO::Strutil::format(
+            "unsupported mip tile size for {} mip {} got {}x{} expected {}x{}",
+            filename, mip, mipspec.tile_width, mipspec.tile_height, tile_w,
+            tile_h));
     }
 
     const int tile_x    = mipspec.x + tile.x * tile_w;
@@ -133,9 +132,9 @@ TextureLoader::load_tile_payload(const std::string& filename, TileCoords tile,
     const int nchannels = std::max(1, mipspec.nchannels);
     if (nchannels != 3 && nchannels != 4) {
         in->close();
-        return loader_error("unsupported channel count for " + filename
-                            + " mip " + std::to_string(mip) + " got "
-                            + std::to_string(nchannels) + " expected 3 or 4");
+        return loader_error(OIIO::Strutil::format(
+            "unsupported channel count for {} mip {} got {} expected 3 or 4",
+            filename, mip, nchannels));
     }
 
     std::vector<float> raw(size_t(tile_w) * size_t(tile_h) * size_t(nchannels),

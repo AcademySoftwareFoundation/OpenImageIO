@@ -28,14 +28,14 @@ namespace {
         if (allocated.empty())
             return;
 
-        std::fprintf(stderr,
-                     "texture-device: %s leak check failed (%zu allocations)\n",
-                     owner, allocated.size());
+        OIIO::print(stderr,
+                    "texture-device: {} leak check failed ({} allocations)\n",
+                    owner, allocated.size());
         for (const auto& it : allocated) {
             const auto& rec = it.second;
-            std::fprintf(stderr, "  leak ptr=%p bytes=%zu purpose=%s\n",
-                         it.first, rec.bytes,
-                         rec.purpose ? rec.purpose : "(null purpose)");
+            OIIO::print(stderr, "  leak ptr={:p} bytes={} purpose={}\n",
+                        it.first, rec.bytes,
+                        rec.purpose ? rec.purpose : "(null purpose)");
         }
         std::abort();
     }
@@ -49,9 +49,9 @@ namespace {
 
         auto it = allocated.find(p.get());
         if (it == allocated.end()) {
-            std::fprintf(
+            OIIO::print(
                 stderr,
-                "texture-device: invalid free ptr=%p (not allocated by %s::alloc)\n",
+                "texture-device: invalid free ptr={:p} (not allocated by {}::alloc)\n",
                 p.get(), owner);
             std::abort();
         }
@@ -274,16 +274,16 @@ CudaArena::free(tagged_ptr<void> p)
         return;
     auto it = m_allocated.find(p.get());
     if (it == m_allocated.end()) {
-        std::fprintf(
+        OIIO::print(
             stderr,
-            "texture-device: invalid free ptr=%p (not allocated by CudaArena::alloc)\n",
+            "texture-device: invalid free ptr={:p} (not allocated by CudaArena::alloc)\n",
             p.get());
         std::abort();
     }
     if (cudaFree(p.get()) != cudaSuccess) {
-        std::fprintf(
+        OIIO::print(
             stderr,
-            "texture-device: cudaFree failed in CudaArena::free ptr=%p\n",
+            "texture-device: cudaFree failed in CudaArena::free ptr={:p}\n",
             p.get());
         std::abort();
     }

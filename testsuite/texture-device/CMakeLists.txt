@@ -59,6 +59,10 @@ add_executable (texture-device-devicecheck
     device_tests.cpp
     devicecheck_main.cpp
 )
+# Use contract checks without requiring OpenImageIO::contract_violation_handler,
+# since this target intentionally avoids linking OIIO libraries.
+target_compile_definitions (texture-device-devicecheck
+    PRIVATE OIIO_ASSERTION_RESPONSE_DEFAULT=OIIO_ASSERTION_RESPONSE_QUICK_ENFORCE)
 if (MSVC)
     target_compile_options (texture-device-devicecheck PRIVATE /utf-8)
     # devicecheck intentionally does not link OIIO libs; avoid dllimport on
