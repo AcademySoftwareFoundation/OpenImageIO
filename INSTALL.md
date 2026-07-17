@@ -19,15 +19,15 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        CMake configuration flag: `-DCMAKE_CXX_STANDARD=20`, etc.
      * Note that no matter which version you compile with internally,
        OIIO's public APIs only require C++17 features.
- * Compilers: gcc 9.3 - 15.2, clang 10 - 22, MSVS 2017 - 2026 (v19.14
+ * Compilers: gcc 9.3 - 16, clang 10 - 22, MSVS 2017 - 2026 (v19.14
    and up), Intel OneAPI C++ compiler 2022+.
- * CMake >= 3.18.2 (tested through 4.3)
+ * CMake >= 3.18.2 (tested through 4.4)
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
  * libTIFF >= 4.0 (tested through 4.7 and master)
  * OpenColorIO >= 2.3 (tested through 2.5 and main)
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
-   through 3.1)
+   through 3.2)
  * zlib >= 1.2.7 (tested through 1.3.2)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.2 and master).
    If not found at build time, this will be automatically downloaded and built.
@@ -41,7 +41,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.11)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
-     * Python >= 3.9 (tested through 3.13).
+     * Python >= 3.9 (tested through 3.14).
      * pybind11 >= 2.7 (tested through 3.0)
      * NumPy (tested through 2.4.4)
      * If you enable the optional nanobind (WIP) backend for source/CMake
@@ -49,9 +49,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
          * nanobind discoverable by CMake, or installed in the active Python
            environment so `python -m nanobind --cmake_dir` works
  * If you want support for PNG files:
-     * libPNG >= 1.6.0 (tested though 1.6.56)
+     * libPNG >= 1.6.0 (tested though 1.6.58)
  * If you want support for camera "RAW" formats:
-     * LibRaw >= 0.20 (tested though 0.22.0 and master)
+     * LibRaw >= 0.20 (tested though 0.22.2 and master)
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 4.0 (tested through 8.1)
  * If you want support for jpeg 2000 images:
@@ -60,15 +60,15 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for OpenVDB files:
      * OpenVDB >= 9.0 (tested through 13.0).
  * If you want to use TBB as the thread pool:
-     * TBB >= 2018 (tested through 2021 and OneTBB)
+     * TBB >= 2018 (tested through 2021 and OneTBB 2023.1)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
      * OpenCV 4.x or 5.x (tested through 5.0)
  * If you want support for GIF images:
-     * giflib >= 5.0 (tested through 6.1.2)
+     * giflib >= 5.0 (tested through 6.1.3)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support and
-       1.17 required for monochrome HEIC support; tested through 1.22.0)
+       1.17 required for monochrome HEIC support; tested through 1.23.1)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.1 (tested through 3.7.0)
