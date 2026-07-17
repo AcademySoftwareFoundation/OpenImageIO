@@ -374,6 +374,44 @@ identify_icc_profile(const ColorConfig& config, cspan<uint8_t> iccdata);
 
 
 // ---------------------------------------------------------------------------
+// Mastering display volume (SMPTE ST 2086) derivation.
+// ---------------------------------------------------------------------------
+
+/// A mastering display colour volume: the reference monitor a picture
+/// graded through a (display, view) pair was mastered on. Describes the
+/// MASTERING MONITOR, not the container encoding (that is CICP territory).
+struct MasteringDisplayVolume {
+    /// Limiting-gamut primaries + whitepoint as CIE xy, in R, G, B, W
+    /// order.
+    float primaries[4][2] = {};
+    /// Peak luminance, cd/m^2 (snapped to the nominal mastering targets).
+    double max_luminance = 0.0;
+    /// Minimum luminance, cd/m^2. Probe-honest (may be exactly 0.0); wire
+    /// encoders wanting the conventional 0.0001 floor clamp at encode time.
+    double min_luminance = 0.0;
+    /// Provenance: the matched ACES-OUTPUT style, the DISPLAY builtin
+    /// style, or the interop id that supplied the decode; empty for a
+    /// plain interchange probe.
+    std::string style;
+};
+
+/// Derive the ST 2086 mastering display volume for a (display, view) pair
+/// of `config`, via a five-tier first-hit-wins ladder: ACES-OUTPUT style
+/// table, then a shared numeric probe over three decode constructions
+/// (display-interchange CST / inverse DISPLAY builtin / registry-identity
+/// decode), then no record. Empty display/view resolve to the config
+/// defaults. Returns false -- leaving `volume` untouched by contract of
+/// interest -- when no tier fires (unresolvable display/view, an untagged
+/// unmatched LUT-only view, or a config with no display interchange to
+/// probe): the ladder honestly yields nothing rather than guess. Content
+/// light levels (MaxCLL/MaxFALL) are out of scope by design -- they need a
+/// pixel scan, not a transform inspection. Never throws.
+OIIO_API bool
+derive_mastering_volume(const ColorConfig& config, string_view display,
+                        string_view view, MasteringDisplayVolume& volume);
+
+
+// ---------------------------------------------------------------------------
 // Color-space classification -- how ColorConfig internally classifies a
 // color space for interop matching (the "simple" transform allowlist and
 // related properties). For internal/test use only.

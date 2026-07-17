@@ -1652,6 +1652,374 @@ test_identify_icc()
 
 
 static void
+test_mastering_volume()
+{
+    using OIIO::pvt::derive_mastering_volume;
+    using OIIO::pvt::MasteringDisplayVolume;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // The fixture declares interop_id attributes (OCIO >= 2.5) and 2.5
+    // builtin styles.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02050000)
+        return;
+
+    Strutil::print("Testing mastering display volume derivation\n");
+
+    // Identity 3D LUT for the pure-LUT ODT fixtures.
+    std::string lut_path = Filesystem::temp_directory_path()
+                           + "/oiio_mdcv_identity.spi3d";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(lut_path,
+                                                  "SPILUT 1.0\n"
+                                                  "3 3\n"
+                                                  "2 2 2\n"
+                                                  "0 0 0 0.0 0.0 0.0\n"
+                                                  "0 0 1 0.0 0.0 1.0\n"
+                                                  "0 1 0 0.0 1.0 0.0\n"
+                                                  "0 1 1 0.0 1.0 1.0\n"
+                                                  "1 0 0 1.0 0.0 0.0\n"
+                                                  "1 0 1 1.0 0.0 1.0\n"
+                                                  "1 1 0 1.0 1.0 0.0\n"
+                                                  "1 1 1 1.0 1.0 1.0\n"));
+
+    // mDCV fixture (ported from the proven POC): ACES builtin HDR/SDR
+    // views, custom RangeTransform views for the probe path, v1-style
+    // colorspace-based views with GroupTransform nesting, gamma-2.6
+    // theatrical and PQ-DCDM flavors for the cinema-anchor cases, and
+    // pure-LUT ODTs (tagged and untagged) for the identity tier.
+    static const char* mdcv_yaml = R"(ocio_profile_version: 2.5
+name: mdcv-fixture
+search_path: .
+roles:
+  aces_interchange: ACES2065-1
+  cie_xyz_d65_interchange: CIE-XYZ-D65
+  default: ACES2065-1
+  scene_linear: ACES2065-1
+file_rules:
+  - !<Rule> {name: Default, colorspace: default}
+displays:
+  Rec2100PQ:
+    - !<View> {name: HDR 1000 nit P3 lim, view_transform: HDR-1000-P3lim, display_colorspace: ST2084-P3-D65}
+    - !<View> {name: SDR Video, view_transform: SDR-Video, display_colorspace: sRGB - Display}
+    - !<View> {name: Custom Clamp SDRish, view_transform: Custom-Clamp-1, display_colorspace: ST2084-P3-D65}
+    - !<View> {name: Custom Clamp HDRish, view_transform: Custom-Clamp-10, display_colorspace: ST2084-P3-D65}
+  LegacyHDR:
+    - !<View> {name: Output HDR Video, colorspace: Output - HDR Video 2020}
+  LegacySDR:
+    - !<View> {name: Output sRGB, colorspace: Output - SDR Video}
+  LegacyCinema:
+    - !<View> {name: Output DCI, colorspace: Output - SDR Cinema DCI}
+    - !<View> {name: Output D60, colorspace: Output - SDR Cinema D60}
+  DCDMPQ:
+    - !<View> {name: PQ DCDM Clamp, view_transform: Custom-Clamp-10, display_colorspace: ST2084-DCDM}
+  CinemaVT:
+    - !<View> {name: DCI VT, view_transform: SDR-Cinema-DCI-VT, display_colorspace: G2.6-P3-DCI}
+  LegacyLUT:
+    - !<View> {name: Film LUT, colorspace: Output - Film LUT}
+    - !<View> {name: Mystery LUT, colorspace: Output - Mystery LUT}
+    - !<View> {name: Lin P3DCI LUT, colorspace: Output - Lin P3DCI LUT}
+default_view_transform: SDR-Video
+view_transforms:
+  - !<ViewTransform>
+    name: HDR-1000-P3lim
+    from_scene_reference: !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - HDR-VIDEO-1000nit-15nit-P3lim_1.1}
+  - !<ViewTransform>
+    name: SDR-Video
+    from_scene_reference: !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0}
+  - !<ViewTransform>
+    name: Custom-Clamp-1
+    from_scene_reference: !<RangeTransform> {min_in_value: 0., max_in_value: 1., min_out_value: 0., max_out_value: 1.}
+  - !<ViewTransform>
+    name: Custom-Clamp-10
+    from_scene_reference: !<RangeTransform> {min_in_value: 0., max_in_value: 10., min_out_value: 0., max_out_value: 10.}
+  - !<ViewTransform>
+    name: SDR-Cinema-DCI-VT
+    from_scene_reference: !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-CINEMA-D60sim-DCI_1.0}
+display_colorspaces:
+  - !<ColorSpace>
+    name: CIE-XYZ-D65
+    encoding: display-linear
+    isdata: false
+  - !<ColorSpace>
+    name: ST2084-P3-D65
+    encoding: hdr-video
+    isdata: false
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_ST2084-P3-D65}
+  - !<ColorSpace>
+    name: sRGB - Display
+    encoding: sdr-video
+    isdata: false
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_sRGB}
+  - !<ColorSpace>
+    name: G2.6-P3-DCI
+    encoding: sdr-video
+    isdata: false
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-DCI-BFD}
+  - !<ColorSpace>
+    name: ST2084-DCDM
+    encoding: hdr-video
+    isdata: false
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_ST2084-DCDM-D65}
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+    encoding: scene-linear
+    isdata: false
+  - !<ColorSpace>
+    name: Output - HDR Video 2020
+    encoding: hdr-video
+    isdata: false
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - HDR-VIDEO-1000nit-15nit-REC2020lim_1.1}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_REC.2100-PQ}
+  - !<ColorSpace>
+    name: Output - SDR Video
+    encoding: sdr-video
+    isdata: false
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_sRGB}
+  - !<ColorSpace>
+    name: Output - Film LUT
+    encoding: sdr-video
+    isdata: false
+    interop_id: srgb_rec709_display
+    from_scene_reference: !<FileTransform> {src: oiio_mdcv_identity.spi3d, interpolation: best}
+  - !<ColorSpace>
+    name: Output - Mystery LUT
+    encoding: sdr-video
+    isdata: false
+    from_scene_reference: !<FileTransform> {src: oiio_mdcv_identity.spi3d, interpolation: best}
+  - !<ColorSpace>
+    name: Output - Lin P3DCI LUT
+    encoding: sdr-video
+    isdata: false
+    interop_id: oiio:lin_p3dci_display
+    from_scene_reference: !<FileTransform> {src: oiio_mdcv_identity.spi3d, interpolation: best}
+  - !<ColorSpace>
+    name: Output - SDR Cinema DCI
+    encoding: sdr-video
+    isdata: false
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-CINEMA-D60sim-DCI_1.0}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-DCI-BFD}
+  - !<ColorSpace>
+    name: Output - SDR Cinema D60
+    encoding: sdr-video
+    isdata: false
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-CINEMA-D60sim-DCI_1.0}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-D60-BFD}
+)";
+    std::string config_path      = Filesystem::temp_directory_path()
+                              + "/oiio_mdcv_fixture.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(config_path, mdcv_yaml));
+    ColorConfig config(config_path);
+    OIIO_CHECK_ASSERT(!config.has_error());
+
+    static const float kRec709[4][2]  = { { 0.64f, 0.33f },
+                                          { 0.30f, 0.60f },
+                                          { 0.15f, 0.06f },
+                                          { 0.3127f, 0.329f } };
+    static const float kP3D65[4][2]   = { { 0.68f, 0.32f },
+                                          { 0.265f, 0.69f },
+                                          { 0.15f, 0.06f },
+                                          { 0.3127f, 0.329f } };
+    static const float kRec2020[4][2] = { { 0.708f, 0.292f },
+                                          { 0.170f, 0.797f },
+                                          { 0.131f, 0.046f },
+                                          { 0.3127f, 0.329f } };
+    auto check_primaries              = [](const MasteringDisplayVolume& vol,
+                              const float want[4][2], float tol) {
+        for (int i = 0; i < 4; ++i) {
+            OIIO_CHECK_EQUAL_THRESH(vol.primaries[i][0], want[i][0], tol);
+            OIIO_CHECK_EQUAL_THRESH(vol.primaries[i][1], want[i][1], tol);
+        }
+    };
+
+    // Tier 1, view_transform-based: nominal peak + limiting gamut from the
+    // ACES-OUTPUT style table.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "Rec2100PQ",
+                                                  "HDR 1000 nit P3 lim", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        OIIO_CHECK_EQUAL(vol.min_luminance, 0.0);
+        OIIO_CHECK_ASSERT(Strutil::contains(vol.style, "P3lim"));
+        check_primaries(vol, kP3D65, 1e-6f);
+    }
+
+    // Tier 1, v1-style with the builtin nested inside a GroupTransform.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "LegacyHDR",
+                                                  "Output HDR Video", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        OIIO_CHECK_ASSERT(Strutil::contains(vol.style, "REC2020lim"));
+        check_primaries(vol, kRec2020, 1e-6f);
+    }
+
+    // Tier 1, tokenless SDR-VIDEO: ACES defines it as Rec.709 / 100 nit,
+    // in both the view_transform-based and v1-style flavors.
+    for (auto&& [d, v] :
+         { std::pair<const char*, const char*> { "Rec2100PQ", "SDR Video" },
+           { "LegacySDR", "Output sRGB" } }) {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, d, v, vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 100.0);
+        OIIO_CHECK_EQUAL(vol.min_luminance, 0.0);
+        check_primaries(vol, kRec709, 1e-6f);
+    }
+
+    // Tier 2 probe, SDR-ish clamp (XYZ Y=1 -> 100 nits): primaries are the
+    // display ENCODING gamut; provenance style is empty (no ACES builtin
+    // anywhere in the custom view).
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "Rec2100PQ",
+                                                  "Custom Clamp SDRish", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 100.0);
+        OIIO_CHECK_ASSERT(vol.min_luminance < 1e-6);
+        OIIO_CHECK_EQUAL(vol.style, "");
+        check_primaries(vol, kP3D65, 1e-4f);
+    }
+
+    // Tier 2 probe, HDR-ish clamp (Y=10 -> 1000 nits, snapped to nominal).
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "Rec2100PQ",
+                                                  "Custom Clamp HDRish", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        check_primaries(vol, kP3D65, 1e-4f);
+    }
+
+    // Tier 3, v1-style DCI: the ACES style parses no gamut (DCI white has
+    // no table entry), so the DISPLAY tail decodes INVERSE. The BFD builtin
+    // bakes a Bradford DCI->D65 adaptation (white lands at D65) and the
+    // gamma-2.6 family anchors at the 48-nit projector calibration white:
+    // the D60sim white sits at Y_rel 0.883 -> ~42.4 cd/m^2, between
+    // nominals so reported raw.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "LegacyCinema", "Output DCI", vol));
+        OIIO_CHECK_EQUAL_THRESH(vol.max_luminance, 0.8828 * 48.0, 0.05);
+        OIIO_CHECK_ASSERT(vol.min_luminance < 1e-5);
+        OIIO_CHECK_EQUAL(vol.style, "DISPLAY - CIE-XYZ-D65_to_G2.6-P3-DCI-BFD");
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][0], 0.3127f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][1], 0.329f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[0][0], 0.68f, 0.01f);
+    }
+
+    // Tier 3, same shape re-encoded with the G2.6-P3-D60-BFD tail: a
+    // 48-nit theatrical encoding whose style carries NO DCI/DCDM token.
+    // The anchor is classified from the leading encoding family
+    // (G2.6-P3-*), not device-token matching -- the same ~42.4 cd/m^2, not
+    // a 2x-overstated 88.3.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "LegacyCinema", "Output D60", vol));
+        OIIO_CHECK_EQUAL_THRESH(vol.max_luminance, 0.8828 * 48.0, 0.05);
+        OIIO_CHECK_EQUAL(vol.style, "DISPLAY - CIE-XYZ-D65_to_G2.6-P3-D60-BFD");
+    }
+
+    // Tier 2, PQ in the DCDM XYZ container: pure PQ decodes to absolute
+    // nits/100 -- the "DCDM" token must NOT drag it to the 48-nit cinema
+    // anchor (which would understate luminance 2.08x). Clamp at Y=10 ->
+    // 1000 nits on the nominal; encoding gamut is the raw XYZ container
+    // axes with white at illuminant E.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "DCDMPQ", "PQ DCDM Clamp", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        OIIO_CHECK_ASSERT(vol.min_luminance < 1e-5);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][0], 1.0f / 3.0f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][1], 1.0f / 3.0f, 1e-4f);
+    }
+
+    // Tier 2, view_transform-based DCI cinema: the ACES style parses a
+    // 48-nit peak but no gamut token, so it falls to the CST probe. Cinema
+    // is detected from the display colorspace's structural evidence (its
+    // DCI DISPLAY-builtin tail), anchoring at 48: the CST exactly cancels
+    // the display colorspace's forward builtin, so the measured peak is
+    // the raw ACES SDR-CINEMA-D60sim-DCI output, ~42.375 cd/m^2. The
+    // provenance is the unparseable ACES style tier 1 found.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "CinemaVT", "DCI VT", vol));
+        OIIO_CHECK_EQUAL_THRESH(vol.max_luminance, 42.375443, 1e-3);
+        OIIO_CHECK_ASSERT(vol.min_luminance < 1e-5);
+        OIIO_CHECK_ASSERT(
+            Strutil::contains(vol.style, "SDR-CINEMA-D60sim-DCI"));
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][0], 0.3127f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[0][0], 0.68f, 0.01f);
+    }
+
+    // Tier 4, pure-LUT ODT tagged with a LINEAR P3DCI display identity:
+    // the decode comes from the REGISTRY definition of the id. The 1e5
+    // drive saturates the identity LUT to code (1,1,1); decoded as linear
+    // P3DCI that is the display white at relative luminance 1.0, and the
+    // display-linear + p3dci identity anchors at the 48-nit cinema peak.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "LegacyLUT", "Lin P3DCI LUT", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 48.0);
+        OIIO_CHECK_EQUAL(vol.min_luminance, 0.0);
+        OIIO_CHECK_EQUAL(vol.style, "oiio:lin_p3dci_display");
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][0], 0.3127f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[0][0], 0.68f, 0.01f);
+    }
+
+    // Tier 4, pure-LUT ODT tagged srgb_rec709_display: registry decode,
+    // video anchor.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "LegacyLUT", "Film LUT", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 100.0);
+        OIIO_CHECK_EQUAL(vol.min_luminance, 0.0);
+        OIIO_CHECK_EQUAL(vol.style, "srgb_rec709_display");
+        check_primaries(vol, kRec709, 1e-4f);
+    }
+
+    // Tier 5: same LUT with no identity, no DISPLAY tail, no parseable
+    // style -- code->nits is underdetermined; honestly no record.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_FALSE(
+            derive_mastering_volume(config, "LegacyLUT", "Mystery LUT", vol));
+    }
+
+    // Defaults: no display/view resolves to the first declared display and
+    // its default view (the 1000-nit P3-limited volume).
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "", "", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        check_primaries(vol, kP3D65, 1e-6f);
+    }
+
+    // Unknown display or view: no record.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_FALSE(derive_mastering_volume(config, "NoSuchDisplay",
+                                                 "NoSuchView", vol));
+        OIIO_CHECK_FALSE(
+            derive_mastering_volume(config, "Rec2100PQ", "NoSuchView", vol));
+    }
+}
+
+
+
+static void
 test_interop_derive()
 {
     using OIIO::pvt::sanitize_id_token;
@@ -1966,6 +2334,7 @@ main(int argc, char* argv[])
     test_interop_resolve();
     test_icc_utils();
     test_identify_icc();
+    test_mastering_volume();
     test_interop_derive();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run

@@ -1,6 +1,6 @@
 ocio_profile_version: 2.3  # Keep in sync with OpenImageIO minimum OCIO version
 
-name: interop-identities-config-v3.2.0.2
+name: interop-identities-config-v3.2.0.3
 
 description: |
   OpenImageIO Reference Interop Identities
@@ -142,7 +142,7 @@ display_colorspaces:
   - !<ColorSpace>
     name: g26_xyzd65_display
     interop_id: g26_xyzd65_display
-    encoding: sdr-video
+    encoding: sdr-cinema
     from_display_reference: !<GroupTransform>
       children:
         - !<RangeTransform> {name: dci_white_headroom_scaling, min_in_value: 0, max_in_value: 1, min_out_value: 0, max_out_value: 0.916555279740309, style: noClamp}
@@ -151,13 +151,13 @@ display_colorspaces:
   - !<ColorSpace>
     name: pq_xyzd65_display
     interop_id: pq_xyzd65_display
-    encoding: hdr-video
+    encoding: hdr-cinema
     from_display_reference: !<BuiltinTransform> {style: CURVE - LINEAR_to_ST-2084}
 
   - !<ColorSpace>
     name: g26_p3d65_display
     interop_id: g26_p3d65_display
-    encoding: sdr-video
+    encoding: sdr-cinema
     from_display_reference: !<GroupTransform>
       children:
         - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
@@ -280,7 +280,7 @@ display_colorspaces:
     name: oiio:g26_p3dci_display
     aliases: [g26_p3dci_display]
     interop_id: oiio:g26_p3dci_display
-    encoding: sdr-video
+    encoding: sdr-cinema
     from_display_reference: !<GroupTransform>
       children:
         - !<MatrixTransform> {matrix: [2.690225911625597, -1.094001937366136, -0.4250823476747523, 0, -0.820082184273491, 1.750480908292057, 0.02660195421220572, 0, 0.03624575465400463, -0.07858083680558862, 0.9587469936609856, 0, 0, 0, 0, 1]}
@@ -290,7 +290,7 @@ display_colorspaces:
     name: oiio:g26_p3d60_display
     aliases: [g26_p3d60_display]
     interop_id: oiio:g26_p3d60_display
-    encoding: sdr-video
+    encoding: sdr-cinema
     from_display_reference: !<GroupTransform>
       children:
         - !<MatrixTransform> {matrix: [2.428254486659579, -0.8829845365909165, -0.3902128535864839, 0, -0.8298796755579264, 1.761010282177743, 0.02548420795558374, 0, 0.0357496871967511, -0.07725558667884613, 0.9579630500444209, 0, 0, 0, 0, 1]}
@@ -952,7 +952,7 @@ named_transforms:
 
   - !<NamedTransform>
     name: crv_dcdm_display
-    encoding: sdr-video
+    encoding: sdr-cinema
     inverse_transform: !<GroupTransform>
       name: Gamma 2.6 (DCI Headroom scaling)
       children:
