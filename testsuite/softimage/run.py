@@ -13,3 +13,9 @@ for f in files:
 # Regression testing of error handling and corrupt files
 command += info_command ("--stats src/broken01.pic",
                          info_program="iinfo", failureok=True)
+# A file whose channel packets use different bit depths (here a 16-bit R
+# packet and an 8-bit G packet): narrower channels get promoted to the
+# widest depth present. This used to overrun the scanline buffer because a
+# single bit depth was assumed for all channels.
+command += info_command ("--stats src/mixed-bitdepth.pic",
+                         info_program="iinfo", failureok=True)
