@@ -571,24 +571,59 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
         || has_error()) {
         if (!has_error())
             errorfmt("Could not read Jpeg2000 header");
-    }
-    if (!has_error()) {
-        if (!opj_decode(m_codec, m_stream, m_image)) {
-            if (!has_error())
-                errorfmt("Could not decode Jpeg2000 data");
-        }
-    }
-
-    destroy_decompressor();
-    destroy_stream();
-
-    if (has_error()) {
         close();
         return false;
     }
-    OIIO_ASSERT(m_image != nullptr);
 
-    // we support only one, three or four components in image
+    // Check the header-claimed size before the expensive opj_decode. Channel
+    // count can still grow during decode (palette expansion), but that only
+    // makes the image larger, so this is a safe lower-bound estimate.
+    {
+        int w = (m_image->x1 > m_image->x0) ? int(m_image->x1 - m_image->x0)
+                                            : 0;
+        int h = (m_image->y1 > m_image->y0) ? int(m_image->y1 - m_image->y0)
+                                            : 0;
+        uint32_t prov_prec = 0;
+        for (uint32_t c = 0; c < m_image->numcomps; ++c)
+            prov_prec = std::max(prov_prec, m_image->comps[c].prec);
+        ImageSpec provspec(w, h, int(m_image->numcomps),
+                           prov_prec <= 8 ? TypeDesc::UINT8 : TypeDesc::UINT16);
+        provspec.full_width  = m_image->x1;
+        provspec.full_height = m_image->y1;
+        if (!check_open(provspec,
+                        { 0, std::numeric_limits<int>::max(), 0,
+                          std::numeric_limits<int>::max(), 0, 1, 0, 16384 })) {
+            close();
+            return false;
+        }
+
+        // Also guard against decompression bombs: a tiny codestream claiming
+        // an implausibly large uncompressed size, still under the absolute
+        // limit above.
+        const imagesize_t bomb_ratio = 10000;
+        imagesize_t uncompressed     = provspec.image_bytes(true);
+        int64_t filesize             = ioproxy() ? ioproxy()->size() : 0;
+        if (uncompressed > (imagesize_t(1) << 30) && filesize > 0
+            && uncompressed > imagesize_t(filesize) * bomb_ratio) {
+            errorfmt("JPEG2000 header claims a {} MB image from a {} byte file; "
+                     "probably a corrupt or malicious header",
+                     uncompressed >> 20, filesize);
+            close();
+            return false;
+        }
+    }
+
+    if (!opj_decode(m_codec, m_stream, m_image) || has_error()) {
+        if (!has_error())
+            errorfmt("Could not decode Jpeg2000 data");
+        close();
+        return false;
+    }
+    destroy_decompressor();
+    destroy_stream();
+
+    // we support only one, three or four components in image (final only
+    // after decode, since palette expansion can change it)
     const int channelCount = m_image->numcomps;
     if (channelCount != 1 && channelCount != 3 && channelCount != 4) {
         errorfmt(
@@ -633,7 +668,6 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     ROI datawindow;
     m_bpp.clear();
     m_bpp.reserve(channelCount);
-    std::vector<TypeDesc> chantypes(channelCount, TypeDesc::UINT8);
     for (int i = 0; i < channelCount; i++) {
         const opj_image_comp_t& comp(m_image->comps[i]);
         m_bpp.push_back(comp.prec);
@@ -641,17 +675,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
         ROI roichan(comp.x0, comp.x0 + comp.w * comp.dx, comp.y0,
                     comp.y0 + comp.h * comp.dy);
         datawindow = roi_union(datawindow, roichan);
-        // std::cout << "  chan " << i << "\n";
-        // std::cout << "     dx=" << comp.dx << " dy=" << comp.dy
-        //           << " x0=" << comp.x0 << " y0=" << comp.y0
-        //           << " w=" << comp.w << " h=" << comp.h
-        //           << " prec=" << comp.prec << " bpp=" << comp.bpp << "\n";
-        // std::cout << "     sgnd=" << comp.sgnd << " resno_decoded=" << comp.resno_decoded << " factor=" << comp.factor << "\n";
-        // std::cout << "     roichan=" << roichan << "\n";
     }
-    // std::cout << "overall x0=" << m_image->x0 << " y0=" << m_image->y0
-    //           << " x1=" << m_image->x1 << " y1=" << m_image->y1 << "\n";
-    // std::cout << "color_space=" << m_image->color_space << "\n";
     TypeDesc format = (maxPrecision <= 8) ? TypeDesc::UINT8 : TypeDesc::UINT16;
     m_spec   = ImageSpec(datawindow.width(), datawindow.height(), channelCount,
                          format);
@@ -662,7 +686,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
     m_spec.full_width  = m_image->x1;
     m_spec.full_height = m_image->y1;
 
-    // Validation of resolution
+    // Validation of resolution, now authoritative with the final channel count
     if (!check_open(m_spec,
                     { 0, std::numeric_limits<int>::max(), 0,
                       std::numeric_limits<int>::max(), 0, 1, 0, 16384 })) {
