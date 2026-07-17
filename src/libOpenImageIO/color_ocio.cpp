@@ -3391,6 +3391,13 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "lin_adobergb_scene" },
     { "lin_ciexyzd65_scene", CICPPrimaries::XYZD65, CICPTransfer::Linear,
       CICPMatrix::Unspecified },
+    // Rec.709 primaries + transfer 13 (IEC 61966-2-1, the sRGB OETF) is
+    // display-referred sRGB, not scene-referred: CICP describes the
+    // encoding of the actual (already display-referred) pixel values, per
+    // ITU-T H.273. Listed here, ahead of srgb_rec709_scene, so it wins the
+    // first-match lookup in get_color_interop_id(const int cicp[4]).
+    { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
+      CICPMatrix::BT709 },
     { "srgb_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::sRGB,
       CICPMatrix::BT709 },
     { "g22_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Gamma22,
@@ -3404,9 +3411,8 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "data" },
     { "unknown" },
 
-    // Display referred interop IDs.
-    { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
+    // Display referred interop IDs. (srgb_rec709_display is listed above,
+    // ahead of srgb_rec709_scene, so it resolves first on read.)
     { "g24_rec709_display", CICPPrimaries::Rec709, CICPTransfer::BT709,
       CICPMatrix::BT709 },
     { "srgb_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
