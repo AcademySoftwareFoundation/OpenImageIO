@@ -429,8 +429,10 @@ public:
     ///     color space names/aliases when "<config>" matches this config's name;
     ///   - an id equal to a color space's explicit `interop_id` attribute, or to
     ///     it with exactly one side's namespace stripped (OCIO 2.5+);
-    ///   - the utility tokens "data" and "bypass" resolve to a ranked data color
-    ///     space (while "unknown" only matches a literal color space name/alias).
+    ///   - the utility token "data" (and, as an OpenImageIO extension not
+    ///     defined by the CIF recommendation, "bypass") resolves to a ranked
+    ///     data color space (while "unknown" only matches a literal color
+    ///     space name/alias).
     /// If none of these recognize the name, the name is returned unchanged.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
