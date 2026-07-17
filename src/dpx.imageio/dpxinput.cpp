@@ -21,6 +21,9 @@
 // ago and are probably the sole maintainers of this code, and just allow
 // ourselves to diverge from the original.
 
+// DPX is documented in these SMPTE documents: https://pub.smpte.org/doc/268/
+// (now free!)
+
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 #include "libdpx/DPXHeader.h"

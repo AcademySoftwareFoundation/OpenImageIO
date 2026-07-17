@@ -267,6 +267,7 @@ DPX (Digital Picture Exchange) is an image file format used for
 motion picture film scanning, output, and digital intermediates.
 DPX files use the file extension :file:`.dpx`.
 
+Full specs can be found at https://pub.smpte.org/doc/268/
 
 **Configuration settings for DPX input**
 
