@@ -175,6 +175,9 @@ Color information
     - `[2]` : matrix coefficients
     - `[3]` : full range flag
 
+    See :ref:`chap-colorinterop` for how CICP relates to color interop IDs
+    and how individual format plugins read and write it.
+
 .. option:: "ICCProfile" : uint8[]
             "ICCProfile:...various..." : ...various types...
 
