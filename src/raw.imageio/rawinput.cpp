@@ -449,21 +449,16 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     // unpack(). LibRaw's own caps (65535/dimension, max_raw_memory_mb) are
     // far larger than this and miss a bogus-but-plausible resolution from
     // a truncated/fuzzed file; unpack() would then spend a long time
-    // decoding garbage instead of erroring out. Real raw sensor data
-    // never compresses anywhere near this ratio, so genuine files pass.
+    // decoding garbage instead of erroring out.
     {
-        int64_t raw_width        = m_processor->imgdata.sizes.raw_width;
-        int64_t raw_height       = m_processor->imgdata.sizes.raw_height;
-        int64_t raw_bps          = m_processor->imgdata.rawdata.color.raw_bps;
-        int64_t declared_bytes   = raw_width * raw_height * raw_bps / 8;
-        int64_t filesize         = Filesystem::file_size(name);
-        const int64_t bomb_ratio = 10000;
-        if (filesize > 0 && declared_bytes > filesize * bomb_ratio) {
-            errorfmt("Raw header for \"{}\" claims a {} MB image from a {} "
-                     "byte file; probably a corrupt or truncated file",
-                     m_filename, declared_bytes >> 20, filesize);
+        int64_t raw_width          = m_processor->imgdata.sizes.raw_width;
+        int64_t raw_height         = m_processor->imgdata.sizes.raw_height;
+        int64_t raw_bps            = m_processor->imgdata.rawdata.color.raw_bps;
+        imagesize_t declared_bytes = imagesize_t(raw_width) * raw_height
+                                     * raw_bps / 8;
+        imagesize_t filesize = Filesystem::file_size(name);
+        if (!check_compression_ratio(declared_bytes, filesize))
             return false;
-        }
     }
 
     OIIO_ASSERT(!m_unpacked);
