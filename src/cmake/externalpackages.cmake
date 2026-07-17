@@ -145,7 +145,8 @@ if (NOT OPENCOLORIO_INCLUDES)
 endif ()
 include_directories(BEFORE ${OPENCOLORIO_INCLUDES})
 
-checked_find_package (OpenCV 4.0
+checked_find_package (OpenCV VERSION_MIN 4.0
+                      PREFER_CONFIG
                       DEFINITIONS USE_OPENCV=1)
 
 # Intel TBB
