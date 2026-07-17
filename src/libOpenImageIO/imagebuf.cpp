@@ -1270,6 +1270,7 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_badfile    = false;
         m_spec_valid = true;
         m_fileformat = ustring(input->format_name());
+        OIIO::pvt::set_source_provenance(m_spec, m_fileformat, filename);
         m_nativespec = m_spec;
         set_bufspan(nullptr);
         m_blackpixel.resize(

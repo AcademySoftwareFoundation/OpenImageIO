@@ -1,0 +1,13 @@
+ok   plain ImageBuf: oiio:SourceFormat == 'tiff'
+ok   plain ImageBuf: oiio:SourcePath == filename
+ok   plain ImageBuf: matches live file_format_name()
+ok   plain ImageBuf: matches live name
+ok   ImageCache: oiio:SourceFormat == 'tiff'
+ok   ImageCache: oiio:SourcePath == filename
+ok   cache-backed ImageBuf: oiio:SourceFormat == 'tiff'
+ok   cache-backed ImageBuf: oiio:SourcePath == filename
+ok   post-IBA: oiio:SourceFormat survives IBA op
+ok   post-IBA: oiio:SourcePath survives IBA op
+ok   post-IBA: the result's own file_format_name is NOT set (would be if this were duplicating a live accessor instead of filling the gap)
+ok   written EXR: oiio:SourcePath is stripped by default
+done.

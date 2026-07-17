@@ -139,6 +139,20 @@ parallel_convert_from_float(const float* src, void* dst, size_t nvals,
 OIIO_API bool
 check_texture_metadata_sanity(ImageSpec& spec);
 
+/// Deposit source-provenance attributes ("oiio:SourceFormat",
+/// "oiio:SourcePath") onto a freshly-read ImageSpec. ImageBuf::name() and
+/// ImageBuf::file_format_name() already answer this live for a directly
+/// held ImageBuf, but that instance state doesn't survive IBA ops,
+/// ImageCache round-trips, or serialization -- these spec attributes fill
+/// exactly that gap. See stdmetadata.rst.
+inline void
+set_source_provenance(ImageSpec& spec, string_view format_name,
+                      string_view filename)
+{
+    spec.attribute("oiio:SourceFormat", format_name);
+    spec.attribute("oiio:SourcePath", filename);
+}
+
 /// Get the timing report from log_time entries.
 OIIO_API std::string
 timing_report();

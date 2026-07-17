@@ -214,6 +214,28 @@ Disk file format info/hints
     unassociated with the color (i.e., color not "premultiplied" by the
     alpha coverage value).
 
+.. option:: "oiio:SourceFormat" : string
+
+    The name of the file format plugin (as returned by
+    `ImageInput::format_name()`) that read the pixels, e.g. `"openexr"` or
+    `"png"`. Deposited by the reader so that this information survives
+    `ImageBufAlgo` operations and `ImageCache` round-trips -- unlike
+    `ImageBuf::file_format_name()`, which only answers for the `ImageBuf`
+    instance that did the reading. Contains no private information, but
+    like other internal `"oiio:*"` metadata it is (currently) suppressed
+    by output plugins by default, so it does not yet round-trip through a
+    write; a future write-policy attribute may offer to preserve it.
+
+.. option:: "oiio:SourcePath" : string
+
+    The filename or path that was opened to read the pixels. Deposited by
+    the reader for the same reason as `"oiio:SourceFormat"`, but unlike that
+    attribute, this one can reveal an absolute local filesystem path. It is
+    **not** written to output files by default (suppressed the same way
+    other internal `"oiio:*"` metadata is), so that writing an image never
+    silently leaks the path of a file that contributed to it. A future
+    write-policy attribute may offer an opt-in to preserve it.
+
 .. option:: "planarconfig" : string
 
     `contig` indicates that the file has contiguous pixels (RGB RGB RGB...),
