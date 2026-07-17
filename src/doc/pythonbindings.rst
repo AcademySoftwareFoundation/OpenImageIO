@@ -4063,6 +4063,15 @@ is provided for minimal color support.
     ``display`` / ``all``). A candidate whose property cannot be derived is
     treated as *unknown*, never an error; a malformed term, an unresolvable
     hint, or a hint element that is not a string raises ``ValueError``.
+.. py:class:: ColorInteropID
+
+    A ``str`` enum (members compare equal to, and may be passed anywhere as,
+    a plain string) with one member per canonical Color Interop Forum id
+    that OpenImageIO's built-in interop identities registry declares -- the
+    same set as the C++ ``OIIO::ColorInteropIDs::*`` constants
+    (``<OpenImageIO/color_interop_ids.h>``). Member names are the canonical
+    id, upper-cased, with any namespace ``:`` replaced by ``_`` (e.g. id
+    ``"ocio:acescc_ap1_scene"`` is member ``OCIO_ACESCC_AP1_SCENE``).
 
     Example:
 
@@ -4085,6 +4094,11 @@ is provided for minimal color support.
     space whose gamut is neither derivable under that hypothesis nor present
     in the table resolves as unknown. This function was added in OpenImageIO
     3.2.
+        cid = oiio.ColorInteropID.SRGB_REC709_DISPLAY
+        assert cid == "srgb_rec709_display"
+        interop_id = colorconfig.get_color_interop_id(cid)
+
+    This class was added in OpenImageIO 3.2.
 
 
 .. _sec-pythonmiscapi:

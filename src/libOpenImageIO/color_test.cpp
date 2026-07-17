@@ -14,6 +14,7 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/color_interop_ids.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
@@ -430,6 +431,85 @@ test_registry_round_trip()
                              std::string("g24_rec709_scene"));
         }
     }
+}
+
+
+
+// P11 (ADR-0017): the generated OIIO::ColorInteropIDs::* constants
+// (src/include/OpenImageIO/color_interop_ids.h) must be an exact-set match
+// for the canonical `interop_id:` set declared in the embedded interop
+// identities registry source (NOT the composite parsed config, whose
+// declared names diverge from the canonical id set under OCIO >= 2.5's
+// studio-config overlay) -- the header is a checked-in generated artifact,
+// not hand-maintained, and this is its drift guard (run `python
+// src/build-scripts/gen_color_interop_ids.py` and commit the result if the
+// registry has changed and this fails).
+static void
+test_color_interop_id_constants_sync()
+{
+    using OIIO::pvt::embedded_interop_identities_ids;
+
+    std::vector<std::string> registry = embedded_interop_identities_ids();
+    OIIO_CHECK_GT(registry.size(), size_t(0));
+
+    std::unordered_set<std::string> registry_set(registry.begin(),
+                                                 registry.end());
+    std::unordered_set<std::string> constants_set;
+    for (string_view id : ColorInteropIDs::all)
+        constants_set.emplace(id);
+
+    OIIO_CHECK_EQUAL(constants_set.size(), registry_set.size());
+    for (const auto& id : registry_set) {
+        if (constants_set.count(id) != 1)
+            Strutil::print("  registry id missing from constants: {}\n", id);
+        OIIO_CHECK_ASSERT(constants_set.count(id) == 1);
+    }
+    for (const auto& id : constants_set) {
+        if (registry_set.count(id) != 1)
+            Strutil::print("  constant not in registry: {}\n", id);
+        OIIO_CHECK_ASSERT(registry_set.count(id) == 1);
+    }
+}
+
+
+
+// P4 consolidation (mainline-restart.md): the legacy static CICP/interop-id
+// table (color_ocio.cpp's `color_interop_ids[]`) must not drift from the
+// registry that is now its single source of truth for id spelling. Every
+// table entry is built from a generated ColorInteropIDs::* constant already
+// (a rename shows up as a compile error), except the "unknown" utility
+// token, which the registry deliberately omits -- this test is the runtime
+// half of that guarantee, over the table's own accessor rather than the
+// source literals, so it also catches a future hand-edit that reintroduces a
+// raw (mistyped) string literal.
+static void
+test_legacy_table_registry_sync()
+{
+    using OIIO::pvt::embedded_interop_identities_ids;
+    using OIIO::pvt::legacy_interop_id_table_names;
+
+    std::vector<std::string> registry = embedded_interop_identities_ids();
+    OIIO_CHECK_GT(registry.size(), size_t(0));
+    std::unordered_set<std::string> registry_set(registry.begin(),
+                                                 registry.end());
+
+    std::vector<std::string> table = legacy_interop_id_table_names();
+    OIIO_CHECK_GT(table.size(), size_t(0));
+    int unknown_count = 0;
+    for (const auto& id : table) {
+        // "unknown" is the one table entry the registry deliberately does
+        // not declare (utility token, not an identity). "data" is also a
+        // utility token but IS a registry entry, so it takes the normal
+        // registry-membership path below.
+        if (id == "unknown") {
+            ++unknown_count;
+            continue;
+        }
+        if (registry_set.count(id) != 1)
+            Strutil::print("  table id not in registry: {}\n", id);
+        OIIO_CHECK_ASSERT(registry_set.count(id) == 1);
+    }
+    OIIO_CHECK_EQUAL(unknown_count, 1);
 }
 
 
@@ -2173,6 +2253,8 @@ main(int argc, char* argv[])
     test_interop_id_grammar();
     test_registry_invariants();
     test_registry_round_trip();
+    test_color_interop_id_constants_sync();
+    test_legacy_table_registry_sync();
     test_color_space_classification();
     test_color_space_fingerprint();
     test_config_interoperability();

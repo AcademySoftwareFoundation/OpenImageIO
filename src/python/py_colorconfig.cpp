@@ -5,10 +5,14 @@
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
 #include <map>
+#include <OpenImageIO/color_interop_ids.h>
+#include <cctype>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include <pybind11/eval.h>
 
 namespace PyOpenImageIO {
 
@@ -255,6 +259,33 @@ declare_colorconfig(py::module& m)
 
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
     m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();
+
+    // ColorInteropID: a Python str enum (ADR-0017 in the color-interop hub)
+    // of every canonical Color Interop Forum id OIIO's built-in interop
+    // identities registry declares -- the same set as the generated C++
+    // OIIO::ColorInteropIDs::* constants (color_interop_ids.h), one member
+    // per id. Defined via a `class ColorInteropID(str, enum.Enum)` source
+    // string rather than enum's functional API so it can override __str__ to
+    // return the plain value (matching stdlib enum.StrEnum's behavior, which
+    // isn't available before Python 3.11 -- this project's floor is 3.9):
+    // members compare equal to, print as, and are accepted anywhere as plain
+    // str, so every existing string-taking API above (including
+    // get_color_interop_id) takes a member unchanged.
+    {
+        std::string src = "import enum\n"
+                          "class ColorInteropID(str, enum.Enum):\n";
+        for (string_view id : ColorInteropIDs::all) {
+            std::string name(id);
+            for (char& c : name)
+                c = (c == ':') ? '_' : char(std::toupper((unsigned char)c));
+            src += "    " + name + " = \"" + std::string(id) + "\"\n";
+        }
+        src += "    def __str__(self):\n"
+               "        return self.value\n";
+        py::dict ns;
+        py::exec(src, py::globals(), ns);
+        m.attr("ColorInteropID") = ns["ColorInteropID"];
+    }
 }
 
 }  // namespace PyOpenImageIO
