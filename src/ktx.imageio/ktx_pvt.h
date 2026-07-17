@@ -16,36 +16,26 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
-enum class TextureKind : uint32_t {
-    SINGLE_TEXTURE_1D,
-    SINGLE_TEXTURE_2D,
-    SINGLE_TEXTURE_3D,
-    CUBEMAP_TEXTURE,
-    ARRAY_TEXTURE_1D,
-    ARRAY_TEXTURE_2D,
-    ARRAY_TEXTURE_3D,
-    ARRAY_TEXTURE_CUBEMAP,
-};
-
-
+#define DBG if (1)
 
 enum class BlockCompression : uint8_t {
-    NONE        = 0,
-    BC1         = 1,  ///< aka DXT1
-    BC2         = 2,  ///< aka DXT3
-    BC3         = 3,  ///< aka DXT5
-    BC4         = 4,
-    BC5         = 5,
-    BC6HU       = 6,
-    BC6HS       = 7,
-    BC7         = 8,
-    ETC1        = 9,
-    ETC2_RGB    = 10,
-    ETC2_RGB_A1 = 11,
-    ETC2_RGBA   = 12,
-    EAC_R11     = 13,
-    EAC_RG11    = 14,
-    ASTC        = 15,
+    NONE        = 0u,
+    BC1         = 1u,  ///< aka DXT1
+    BC1A        = 2u,
+    BC2         = 3u,  ///< aka DXT3
+    BC3         = 4u,  ///< aka DXT5
+    BC4         = 5u,
+    BC5         = 6u,
+    BC6HU       = 7u,
+    BC6HS       = 8u,
+    BC7         = 9u,
+    ETC1        = 10u,
+    ETC2_RGB    = 11u,
+    ETC2_RGB_A1 = 12u,
+    ETC2_RGBA   = 13u,
+    EAC_R11     = 14u,
+    EAC_RG11    = 15u,
+    ASTC        = 16u,
 };
 
 
@@ -56,6 +46,7 @@ block_compression_name(BlockCompression cmp)
     switch (cmp) {
     case BlockCompression::NONE: return "NONE";
     case BlockCompression::BC1: return "BC1";
+    case BlockCompression::BC1A: return "BC1A";
     case BlockCompression::BC2: return "BC2";
     case BlockCompression::BC3: return "BC3";
     case BlockCompression::BC4: return "BC4";
@@ -381,18 +372,8 @@ struct FormatInfo {
     int nbrchannels;
     TypeDesc typedesc;
     BlockCompression compression { BlockCompression::NONE };
-    VkFormat decompressed_format { VK_FORMAT_UNDEFINED };
+    VkFormat uncompressed_format { VK_FORMAT_UNDEFINED };
 };
-
-
-
-/// Wrapper around ktxTexture_Destroy (which is a macro) to be passed as a
-/// deleter to smart pointers
-static void
-ktxTexture_Deleter(ktxTexture2* tex)
-{
-    ktxTexture_Destroy((ktxTexture*)tex);
-}
 
 
 

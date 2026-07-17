@@ -545,7 +545,7 @@ function (oiio_setup_test_data)
   # TODO: revert this after accepting OpenImageIO-images PR and before merging (just so that the CI passes)
     oiio_get_test_data (oiio-images
                         REPO https://github.com/walcht/OpenImageIO-images.git
-                        BRANCH main)
+                        BRANCH add-ktx2-images)
     oiio_get_test_data (openexr-images
                         REPO https://github.com/AcademySoftwareFoundation/openexr-images.git
                         BRANCH main)

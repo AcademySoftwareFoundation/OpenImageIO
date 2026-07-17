@@ -5,9 +5,9 @@
 set_cache (Ktx_BUILD_VERSION main "Ktx version for local builds")
 set       (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git")
 set_cache (Ktx_GIT_TAG "${Ktx_BUILD_VERSION}" "Git branch or tag")
-set_cache (Ktx_GIT_COMMIT "2ca7d54109f4c23298a969f22b68769e94138de5"
+set_cache (Ktx_GIT_COMMIT "0082055d7147f558f241e531d85af5c39d9c09dc"
               "commit hash to verify tag/branch against")
-set_cache (Ktx_BUILD_SHARED_LIBS OFF ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
+set_cache (Ktx_BUILD_SHARED_LIBS OFF #${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
               DOC "Should a local Ktx build, if necessary, build shared libraries" ADVANCED)
 
 # TODO: if libktx is built as a shared library, astcenc have to be linked-against.
@@ -112,19 +112,11 @@ endif()
 
 # Set some things up that we'll need for a subsequent find_package to work
 set (Ktx_ROOT ${Ktx_LOCAL_INSTALL_DIR})
-set (Ktx_DIR ${Ktx_LOCAL_INSTALL_DIR}/lib/cmake/ktx)
 
 # Signal to caller that we need to find again at the installed location
-# set (Ktx_REFIND TRUE)
-# set (Ktx_REFIND_ARGS CONFIG)
-
-find_package (Ktx CONFIG REQUIRED
-             HINTS 
-                    ${Ktx_LOCAL_INSTALL_DIR}/lib/cmake/ktx/
-                    ${Ktx_LOCAL_INSTALL_DIR}
-             )
+set (Ktx_REFIND TRUE)
+set (Ktx_REFIND_ARGS CONFIG)
 
 if (Ktx_BUILD_SHARED_LIBS)
-  # install_local_dependency_libs (pkgname libname)
     install_local_dependency_libs (Ktx ktx) # notice libname is lowercase
 endif ()
