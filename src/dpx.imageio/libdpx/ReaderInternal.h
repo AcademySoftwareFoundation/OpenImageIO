@@ -172,7 +172,8 @@ namespace dpx
 			BUF *obuf = data + bufoff;
 			int index = (block.x1 * sizeof(U32)) % numberOfComponents;
 
-			for (int count = (block.x2 - block.x1 + 1) * numberOfComponents - 1; count >= 0; count--)
+			const int total = (block.x2 - block.x1 + 1) * numberOfComponents;
+			for (int count = total - 1; count >= 0; count--)
 			{
 				// unpacking the buffer backwards
 				U16 d1 = U16(readBuf[(count + index) / 3] >> ((2 - (count + index) % 3) * 10 + PADDINGBITS) & 0x3ff);
@@ -181,7 +182,10 @@ namespace dpx
 				BaseTypeConverter(d1, obuf[count]);
 
 				// work-around for 1-channel DPX images - to swap the outlying pixels, otherwise the columns are in the wrong order
-				if (numberOfComponents == 1 && count % 3 == 0)
+				// Only when a full group of 3 remains in bounds -- a short trailing
+				// group (when total isn't a multiple of 3) has no third datum to
+				// swap with, and obuf[count + 2] would be out of bounds.
+				if (numberOfComponents == 1 && count % 3 == 0 && count + 2 < total)
 					std::swap(obuf[count], obuf[count + 2]);
 			}
 #endif		
