@@ -312,6 +312,41 @@ interop_identities_config_names();
 
 
 // ---------------------------------------------------------------------------
+// ICC profile identification primitives -- cheap, OCIO-free byte-level
+// inspection of an embedded ICC profile blob (e.g. the "ICCProfile" spec
+// attribute), used by the color-interop ICC identification path.
+// ---------------------------------------------------------------------------
+
+/// Whether `iccdata` is structurally an ICC profile: at least 132 bytes
+/// (fixed header + tag count) with the mandatory 'acsp' signature at byte
+/// offset 36. This is the sole gate separating "an ICC profile" from
+/// arbitrary bytes; deeper malformations are handled downstream.
+OIIO_API bool
+is_icc_profile(cspan<uint8_t> iccdata);
+
+/// Process-local content identifier for an ICC profile, as lowercase hex:
+/// a v4 profile's non-zero embedded Profile ID field (bytes 84-99,
+/// ICC.1:2022 section 7.2.18) taken verbatim (32 hex chars); otherwise
+/// XXH64 over the raw, unmodified profile bytes (16 hex chars). Returns
+/// the empty string when `iccdata` is not an ICC profile (is_icc_profile).
+/// The identifier is used for internal cache keys and "icc:<id>" synthetic
+/// tokens only -- it never leaves the process and must not be written as
+/// portable metadata. (If that need ever arises, switch to recomputing the
+/// ICC-mandated normalized MD5 rather than trusting the embedded field.)
+OIIO_API std::string
+icc_profile_identifier(cspan<uint8_t> iccdata);
+
+/// Read an ICC.1:2022 `cicpTag` from a v4 profile into `cicp` as
+/// { color_primaries, transfer_characteristics, matrix_coefficients,
+/// video_full_range_flag } (ITU-T H.273 code points). Returns false --
+/// without touching `cicp` -- when the profile is not ICC, not v4, has no
+/// cicp tag, or the tag is malformed (wrong size, non-zero reserved bytes,
+/// out-of-bounds offsets, or a range flag greater than 1). Never throws.
+OIIO_API bool
+icc_embedded_cicp(cspan<uint8_t> iccdata, int cicp[4]);
+
+
+// ---------------------------------------------------------------------------
 // Color-space classification -- how ColorConfig internally classifies a
 // color space for interop matching (the "simple" transform allowlist and
 // related properties). For internal/test use only.

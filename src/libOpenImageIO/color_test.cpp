@@ -1257,6 +1257,117 @@ colorspaces:
 // fixture configs isolate each step so one config's setup can't accidentally
 // satisfy a different step's assertion.
 static void
+test_icc_utils()
+{
+    using OIIO::pvt::icc_embedded_cicp;
+    using OIIO::pvt::icc_profile_identifier;
+    using OIIO::pvt::is_icc_profile;
+
+    Strutil::print("Testing ICC identification primitives\n");
+
+    // Build a minimal structurally-valid ICC blob: 128-byte header with the
+    // 'acsp' signature at byte 36 and `version` in header byte 8, a
+    // big-endian tag count at 128, then `tagcount` 12-byte tag entries.
+    auto make_icc = [](uint8_t version, uint32_t tagcount) {
+        std::vector<uint8_t> blob(132 + size_t(tagcount) * 12, 0);
+        memcpy(blob.data() + 36, "acsp", 4);
+        blob[8]   = version;
+        blob[131] = uint8_t(tagcount);  // BE tag count (< 256 here)
+        return blob;
+    };
+
+    // ---- is_icc_profile: the sole header gate ----------------------------
+    OIIO_CHECK_ASSERT(!is_icc_profile(cspan<uint8_t>()));
+    std::vector<uint8_t> junk(200, 0x42);
+    OIIO_CHECK_ASSERT(!is_icc_profile(junk));
+    std::vector<uint8_t> tiny(make_icc(2, 0));
+    tiny.resize(131);  // one byte short of header + tag count
+    OIIO_CHECK_ASSERT(!is_icc_profile(tiny));
+    OIIO_CHECK_ASSERT(is_icc_profile(make_icc(2, 0)));
+    OIIO_CHECK_EQUAL(icc_profile_identifier(junk), "");
+
+    // ---- identifier, v2: XXH64 over raw bytes, 16 lowercase hex.
+    // Bytes 84-99 are reserved in v2, so even a non-zero Profile ID field
+    // must NOT be trusted -- but raw-byte hashing means changing those bytes
+    // still changes the identifier (trust-embedded contract, tamper polarity
+    // included). ----------------------------------------------------------
+    auto v2                = make_icc(2, 0);
+    const std::string v2id = icc_profile_identifier(v2);
+    OIIO_CHECK_EQUAL(v2id.size(), 16);
+    OIIO_CHECK_EQUAL(icc_profile_identifier(v2), v2id);  // deterministic
+    auto v2tampered = v2;
+    for (size_t i = 84; i < 100; ++i)
+        v2tampered[i] = 0xAB;
+    const std::string v2tamperedid = icc_profile_identifier(v2tampered);
+    OIIO_CHECK_EQUAL(v2tamperedid.size(), 16);  // still XXH64: v2 never trusts
+    OIIO_CHECK_ASSERT(v2tamperedid != v2id);  // raw bytes differ -> id differs
+
+    // ---- identifier, v4: non-zero embedded Profile ID taken verbatim (32
+    // hex chars); all-zero ID falls back to XXH64. -------------------------
+    auto v4 = make_icc(4, 0);
+    OIIO_CHECK_EQUAL(icc_profile_identifier(v4).size(),
+                     16);  // zero ID -> XXH64
+    for (size_t i = 84; i < 100; ++i)
+        v4[i] = uint8_t(i - 84);
+    const std::string v4id = icc_profile_identifier(v4);
+    OIIO_CHECK_EQUAL(v4id, "000102030405060708090a0b0c0d0e0f");
+    // Trust-embedded: a body change leaves a v4 identifier alone as long as
+    // the embedded ID field is unchanged.
+    auto v4body = v4;
+    v4body[100] = 0x7F;
+    OIIO_CHECK_EQUAL(icc_profile_identifier(v4body), v4id);
+
+    // ---- embedded cicpTag reader ----------------------------------------
+    // Well-formed v4 cicp tag: entry at 132, tag data at 144 = 'cicp' + 4
+    // reserved zero bytes + (P,T,M,R).
+    auto make_cicp_icc = [&](uint8_t p, uint8_t t, uint8_t m, uint8_t r) {
+        auto blob = make_icc(4, 1);
+        blob.resize(156, 0);
+        memcpy(blob.data() + 132, "cicp", 4);
+        blob[139] = 144;  // BE tag offset
+        blob[143] = 12;   // BE tag size
+        memcpy(blob.data() + 144, "cicp", 4);
+        blob[152] = p;
+        blob[153] = t;
+        blob[154] = m;
+        blob[155] = r;
+        return blob;
+    };
+    int cicp[4] = { -1, -1, -1, -1 };
+    OIIO_CHECK_ASSERT(icc_embedded_cicp(make_cicp_icc(1, 13, 0, 1), cicp));
+    OIIO_CHECK_EQUAL(cicp[0], 1);
+    OIIO_CHECK_EQUAL(cicp[1], 13);
+    OIIO_CHECK_EQUAL(cicp[2], 0);
+    OIIO_CHECK_EQUAL(cicp[3], 1);
+
+    // No cicp tag; v2 profile; junk: all false, cicp untouched.
+    int untouched[4] = { -1, -1, -1, -1 };
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(make_icc(4, 0), untouched));
+    auto v2cicp = make_cicp_icc(1, 13, 0, 1);
+    v2cicp[8]   = 2;  // v2: cicpTag is an ICC.1:2022 (v4) construct
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(v2cicp, untouched));
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(junk, untouched));
+
+    // Malformed flavors: wrong tag size, non-zero reserved bytes, range
+    // flag > 1, out-of-bounds offset.
+    auto badsize = make_cicp_icc(1, 13, 0, 1);
+    badsize[143] = 16;  // size != 12
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(badsize, untouched));
+    auto badresv = make_cicp_icc(1, 13, 0, 1);
+    badresv[148] = 1;  // reserved must be zero
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(badresv, untouched));
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(make_cicp_icc(1, 13, 0, 2),
+                                         untouched));  // range > 1
+    auto badoffset = make_cicp_icc(1, 13, 0, 1);
+    badoffset[139] = 200;  // tag data beyond the blob
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(badoffset, untouched));
+    for (int v : untouched)
+        OIIO_CHECK_EQUAL(v, -1);
+}
+
+
+
+static void
 test_interop_derive()
 {
     using OIIO::pvt::sanitize_id_token;
@@ -1569,6 +1680,7 @@ main(int argc, char* argv[])
     test_config_interoperability();
     test_color_space_fingerprint_cache();
     test_interop_resolve();
+    test_icc_utils();
     test_interop_derive();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
