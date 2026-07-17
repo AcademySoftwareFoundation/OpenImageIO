@@ -59,7 +59,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 4.x (tested through 4.13)
+     * OpenCV 4.x or 5.x (tested through 5.0)
  * If you want support for GIF images:
      * giflib >= 5.0 (tested through 6.1.2)
  * If you want support for HEIF/HEIC or AVIF images:

@@ -294,6 +294,8 @@ macro (oiio_add_all_tests)
                     URL http://www.itu.int/net/ITU-T/sigdb/speimage/ImageForm-s.aspx?val=10100803)
     oiio_add_tests (jxl
                     FOUNDVAR JXL_FOUND)
+    oiio_add_tests (imagebufalgo-opencv
+                    FOUNDVAR OpenCV_FOUND)
     set (all_openexr_tests
          openexr-suite openexr-multires openexr-chroma openexr-decreasingy
          openexr-v2 openexr-window perchannel oiiotool-deep)
