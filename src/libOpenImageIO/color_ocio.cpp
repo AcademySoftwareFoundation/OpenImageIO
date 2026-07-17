@@ -45,6 +45,23 @@ namespace {
 static const int n_test_colors = 5;
 static const Imath::C3f test_colors[n_test_colors]
     = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 }, { 1, 1, 1 }, { 0.5, 0.5, 0.5 } };
+
+// Make an editable copy of `config`, working around an OCIO bug (fixed in
+// 2.3.1) where createEditableCopy() drops the default view transform name.
+static OCIO::ConfigRcPtr
+copy_config(const OCIO::ConstConfigRcPtr& config)
+{
+    auto copy = config->createEditableCopy();
+#if OCIO_VERSION_HEX < 0x02030100
+    // OCIO before 2.3.1 loses the default view transform name when copying a
+    // config; restore it.
+    std::string default_vt = config->getDefaultViewTransformName();
+    if (!default_vt.empty()
+        && default_vt != copy->getDefaultViewTransformName())
+        copy->setDefaultViewTransformName(default_vt.c_str());
+#endif
+    return copy;
+}
 }  // namespace
 
 
@@ -1079,7 +1096,7 @@ ColorConfig::Impl::init(string_view filename)
     try {
         auto cfg = OCIO::Config::CreateFromFile("ocio://default");
         OIIO_CONTRACT_ASSERT(cfg);
-        builtinconfig_ = cfg->createEditableCopy();
+        builtinconfig_ = copy_config(cfg);
         fix_config_file_rules(builtinconfig_);
     } catch (OCIO::Exception& e) {
         error("Error making OCIO built-in config: {}", e.what());
@@ -1100,7 +1117,7 @@ ColorConfig::Impl::init(string_view filename)
             auto cfg = OCIO::Config::CreateFromFile(
                 std::string(filename).c_str());
             if (cfg)
-                config_ = cfg->createEditableCopy();
+                config_ = copy_config(cfg);
             if (config_ && Strutil::istarts_with(filename, "ocio://"))
                 fix_config_file_rules(config_);
         } catch (OCIO::Exception& e) {
@@ -4779,7 +4796,7 @@ interopify_config(const OCIO::ConstConfigRcPtr& config)
     // Build the repaired copy OUTSIDE the lock.
     OCIO::ConstConfigRcPtr result;
     try {
-        OCIO::ConfigRcPtr editable = config->createEditableCopy();
+        OCIO::ConfigRcPtr editable = copy_config(config);
         std::string interchange = discover_scene_interchange(editable);
         if (!interchange.empty()) {
             // Config carries the interchange space; bind the role to it if the
