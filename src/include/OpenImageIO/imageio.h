@@ -2311,6 +2311,56 @@ protected:
         // Reserved for future use
     };
 
+    /// Helper: guard against "decompression bomb" headers -- files that are
+    /// tiny on disk but declare an implausibly large uncompressed pixel data
+    /// size, whether due to corruption or malicious crafting. This is a
+    /// narrower, format-specific companion to check_open()'s absolute
+    /// `"limits:imagesize_MB"` check: a bogus resolution can easily land
+    /// under that absolute limit while still being wildly disproportionate to
+    /// the bytes actually available to produce it, and attempting to allocate
+    /// for or decode such a claim can hang or exhaust memory before any other
+    /// check has a chance to fire. Real compressed image data for any current
+    /// format does not approach these ratios, so genuine files are
+    /// unaffected.
+    ///
+    /// @param declared_bytes
+    ///     The uncompressed pixel data size implied by the file's header
+    ///     (for example, `spec.image_bytes(true)`).
+    ///
+    /// @param filesize
+    ///     The size in bytes of the input file or stream. If this is not
+    ///     known (i.e. is 0), no check is performed (this method returns
+    ///     `true`).
+    ///
+    /// @param max_ratio
+    ///     The largest declared:file size ratio considered plausible for
+    ///     this format. Callers should pick the smallest value that doesn't
+    ///     produce false positives for genuine files; 10000 is a reasonable
+    ///     default shared by most formats.
+    ///
+    /// @param min_declared_bytes
+    ///     Claims below this absolute size (default 1 GB) are never rejected,
+    ///     regardless of ratio -- small files are cheap to decode even if
+    ///     the ratio looks unusual, so there's no need to risk a false
+    ///     positive.
+    ///
+    /// @returns
+    ///     Return `true` if the claimed size is plausible (or can't be
+    ///     checked), otherwise return `false` and make an appropriate call
+    ///     to `this->errorfmt()` to record the error.
+    ///
+    bool check_compression_ratio(imagesize_t declared_bytes,
+                                 imagesize_t filesize,
+                                 imagesize_t max_ratio = 10000,
+                                 imagesize_t min_declared_bytes = (1ULL << 30));
+
+    /// Convenience overload of check_compression_ratio() that computes the
+    /// declared uncompressed size from an ImageSpec (via
+    /// `spec.image_bytes(true)`).
+    bool check_compression_ratio(const ImageSpec& spec, imagesize_t filesize,
+                                 imagesize_t max_ratio = 10000,
+                                 imagesize_t min_declared_bytes = (1ULL << 30));
+
     /// Helper method: Validate that a `[chbegin, chend)` X `[xbegin, xend)` X
     /// `[ybegin, yend)` X `[zbegin, zend)` slab of native channel data types
     /// (according to the ImageSpec) can fit into the amount of contiguous
