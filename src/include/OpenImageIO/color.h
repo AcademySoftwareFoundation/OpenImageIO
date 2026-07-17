@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <map>
 #include <memory>
 
 #include <OpenImageIO/export.h>
@@ -415,10 +416,27 @@ public:
 
     /// Turn the name, which could be a color space, an alias, a role, or
     /// an OIIO-understood universal name (like "sRGB") into a canonical
-    /// color space name. If the name is not recognized, return "".
+    /// color space name.
+    ///
+    /// When a direct color space / role / alias lookup does not recognize the
+    /// name, resolve() additionally understands several syntactic forms of a
+    /// Color Interop ID (see the Color Interop Forum recommendation "An ID for
+    /// Color Interop", https://github.com/AcademySoftwareFoundation/ColorInterop/wiki),
+    /// tried in this order:
+    ///   - a namespaced id (e.g. "studio:acescg") is retried with one leading
+    ///     namespace stripped;
+    ///   - a "<config>:local:<space>" id resolves against this config's own
+    ///     color space names/aliases when "<config>" matches this config's name;
+    ///   - an id equal to a color space's explicit `interop_id` attribute, or to
+    ///     it with exactly one side's namespace stripped (OCIO 2.5+);
+    ///   - the utility tokens "data" and "bypass" resolve to a ranked data color
+    ///     space (while "unknown" only matches a literal color space name/alias).
+    /// If none of these recognize the name, the name is returned unchanged.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
-    /// Are the two color space names/aliases/roles equivalent?
+    /// Are the two color space names/aliases/roles equivalent? Each name is
+    /// resolve()d first, so color interop IDs and aliases participate on either
+    /// side.
     OIIO_NODISCARD bool equivalent(string_view color_space,
                                    string_view other_color_space) const;
 
@@ -428,7 +446,29 @@ public:
     /// @version 3.1
     OIIO_NODISCARD cspan<int> get_cicp(string_view colorspace) const;
 
-    /// Find color interop ID for the given colorspace.
+    /// Find the Color Interop ID for the given colorspace (see the Color
+    /// Interop Forum recommendation "An ID for Color Interop",
+    /// https://github.com/AcademySoftwareFoundation/ColorInterop/wiki). The
+    /// write-side derivation tries four steps in order and returns the first id
+    /// it produces:
+    ///   1. an author-declared `interop_id` attribute on the space is returned
+    ///      verbatim and is unconditionally authoritative (OCIO 2.5+); a data
+    ///      space with no declared token yields "data" here, before any
+    ///      fingerprint match;
+    ///   2. a space definitionally equal (by fingerprint) to a built-in
+    ///      registry identity yields THAT registry identity's id, not the
+    ///      query's own name;
+    ///   3. a config-local id "<config>:local:<space>" when this config has a
+    ///      name and the query resolves to a real space (both segments
+    ///      sanitized per the CIF grammar);
+    ///   4. otherwise an empty string -- an unidentified space is never given a
+    ///      guessed default.
+    /// Two behaviors are deliberate: (a) the legacy static id/CICP table is
+    /// consulted only as a syntactic fallback after step 2's real fingerprint
+    /// match and before steps 3-4, so it can never act as a guessed default
+    /// (and get_cicp(), which shares that table, is unchanged); (b) step 3
+    /// always attempts -- this overload takes no opt-in flag, and its two
+    /// natural preconditions already keep it from firing on a genuine miss.
     /// Returns empty string if not found.
     ///
     /// @version 3.1
@@ -440,6 +480,60 @@ public:
     ///
     /// @version 3.1
     OIIO_NODISCARD string_view get_color_interop_id(const int cicp[4]) const;
+
+    /// Search the config for color spaces matching a partial color-space
+    /// characterization, and return their names ordered deterministically by
+    /// (context-invariant, active, simple, name).
+    ///
+    /// Each of the four hint axes -- `chromaticities`, `transfer_function`,
+    /// `encoding`, and `image_state` -- is a list of terms; an empty axis is
+    /// unconstrained. Within an axis a term is by default an *include*, a
+    /// leading `-` makes it an *exclude*, and a leading `~` makes it an
+    /// *inverse* (match only spaces proven to have the opposite property); a
+    /// backslash escapes a leading operator (`\-`, `\~`, `\\`). A returned
+    /// space passes every non-empty axis. Each term is resolved with the
+    /// precedence: exact local color space name or alias, then known interop
+    /// ID, then an axis-specific fallback (a gamut component fragment such as
+    /// `rec709`; a named transform or transfer triple; a literal encoding; the
+    /// image state `scene`, `display`, or `all`). A candidate whose property
+    /// cannot be derived is treated as *unknown*, never an error. A malformed
+    /// term or an unresolvable hint throws `std::invalid_argument`, before any
+    /// candidate is examined.
+    ///
+    /// By default the search considers the config's active, simple color
+    /// spaces. `include_inactive` also considers inactive spaces;
+    /// `include_context_sensitive` also considers spaces whose transforms
+    /// depend on context variables; `exhaustive` also considers complex
+    /// (non-simple) spaces by inspecting their authored and realized
+    /// transforms. `context` applies OCIO context-variable overrides scoped to
+    /// this call only.
+    ///
+    /// On the encoding axis a candidate characterizes as its authored
+    /// encoding attribute and, additionally, as the encoding of its
+    /// interop-identity twin (so a LUT space tagged with a theatrical
+    /// interop ID but authored `sdr-video` matches searches for both
+    /// `sdr-video` and `sdr-cinema`); a candidate with no authored encoding
+    /// adopts the twin's outright. `strict` limits the encoding axis to
+    /// authored attributes only.
+    ///
+    /// Current limitations (each a documented behavior, not a defect):
+    /// probe-derived chromaticities assume a single D65 + Bradford hypothesis,
+    /// so a non-D65 or log-curve space whose gamut is not in the reserved
+    /// chromaticity table may resolve as unknown; registry-side gamuts are
+    /// taken from that reserved table only, so a gamut absent from it (e.g.
+    /// `ciexyzd65`) is not yet resolvable. Interop IDs that contain a colon
+    /// (such as `custom:*` or `icc:*`) are usable as hints through this API but
+    /// not through the `oiiotool --colorspacesearch` flag, whose comma- and
+    /// colon-delimited option syntax cannot carry them.
+    ///
+    /// @version 3.1
+    OIIO_NODISCARD std::vector<std::string> find_color_spaces(
+        cspan<std::string> chromaticities = {},
+        cspan<std::string> transfer_function = {},
+        cspan<std::string> encoding = {}, cspan<std::string> image_state = {},
+        bool include_inactive = false, bool include_context_sensitive = false,
+        bool exhaustive = false, bool strict = false,
+        const std::map<std::string, std::string>& context = {}) const;
 
     /// Return a filename or other identifier for the config we're using.
     OIIO_NODISCARD std::string configname() const;

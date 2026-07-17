@@ -45,6 +45,23 @@ namespace {
 static const int n_test_colors = 5;
 static const Imath::C3f test_colors[n_test_colors]
     = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 }, { 1, 1, 1 }, { 0.5, 0.5, 0.5 } };
+
+// Make an editable copy of `config`, working around an OCIO bug (fixed in
+// 2.3.1) where createEditableCopy() drops the default view transform name.
+static OCIO::ConfigRcPtr
+copy_config(const OCIO::ConstConfigRcPtr& config)
+{
+    auto copy = config->createEditableCopy();
+#if OCIO_VERSION_HEX < 0x02030100
+    // OCIO before 2.3.1 loses the default view transform name when copying a
+    // config; restore it.
+    std::string default_vt = config->getDefaultViewTransformName();
+    if (!default_vt.empty()
+        && default_vt != copy->getDefaultViewTransformName())
+        copy->setDefaultViewTransformName(default_vt.c_str());
+#endif
+    return copy;
+}
 }  // namespace
 
 
@@ -451,6 +468,30 @@ public:
     // the config's active colorspace enumeration.
     int analysisFlags(string_view name, bool* active = nullptr);
 
+    // Classification flags for `name` computed directly (no CSInfo cache),
+    // for color spaces outside the active inventory (e.g. inactive spaces the
+    // characterization search examines). `active` receives active-enumeration
+    // membership. Mirrors analyze()'s body.
+    int compute_analysis_flags(const std::string& name, bool& active) const;
+
+    // The internal characterization search (see pvt::find_color_spaces). Lives
+    // on Impl because it needs the config, the classification flags, the
+    // interop registry, and the probe producers below.
+    std::vector<std::string>
+    find_color_spaces(const OIIO::pvt::FindColorSpacesOptions& options);
+
+    // Probe producers for the search axes -- each drives an OCIO processor to
+    // derive a candidate's characteristic, then hands the raw samples to the
+    // pure pvt:: primitives. The effective (declared, else registry-inferred)
+    // OCIO encoding; the chromaticities (reserved table, else AP0-probe
+    // derivation); and the behavioral transfer signature (neutral-axis probe
+    // run in the encode direction).
+    std::string effectiveEncoding(string_view name) const;
+    std::optional<OIIO::pvt::Chromaticities>
+    deriveChromaticities(string_view name) const;
+    std::optional<OIIO::pvt::TransferFunctionSignature>
+    deriveTransferSignature(string_view name) const;
+
     // Compute the color space fingerprint for `name` (transform the fixed
     // probe from the reference role to the space). Builds the probe config
     // lazily on first use. Returns nullopt if the space is unknown or can't be
@@ -474,6 +515,18 @@ public:
     // process-global flyweight cache. Returns how many were fingerprinted (the
     // deterministic bulk "warm" pass; see fingerprintSimpleColorSpaces()).
     std::size_t fingerprintWarm();
+
+    // Step 2 of ColorConfig::get_color_interop_id(): the write-side analog of
+    // resolve_registry_equivalence(). Given a color space name that already
+    // resolves to a real space in this config, fingerprint it and return the
+    // built-in registry identity it is definitionally equal to -- i.e. the
+    // REGISTRY space's own interop id, not the query's name. Empty on no match.
+    // Gated to skip data / config-unique / skip-matching spaces (a data space is
+    // already answered by step 1). Non-const: it populates the logically-const
+    // lazy classification and fingerprint caches, and lazily builds the
+    // process-global registry fingerprint index on first use. Called by
+    // ColorConfig via getImpl(), so it lives in the public section.
+    string_view deriveRegistryInteropId(string_view resolved_name);
 
     // Interoperability assertion/bootstrap queries (each triggers the lazy
     // bootstrap, except interopComputed(), which must NOT, so callers can
@@ -564,6 +617,24 @@ private:
     }
 
     void inventory();
+
+    // Tier 1a of resolve(): a direct OCIO color space / role / alias lookup,
+    // then OIIO's informal universal-name aliases (sRGB, lin_srgb, ACEScg,
+    // scene_linear, Rec709). Returns a stable view of the resolved name, or an
+    // empty string_view if the name matched none of them (resolve() layers the
+    // interop-ID tiers and the input-name passthrough on top of this).
+    string_view resolve_name_tier1a(string_view name) const;
+
+    // Tier 2 of resolve(): registry equivalence. Returns this config's OWN
+    // simple color space that is definitionally the same color as the built-in
+    // interop identity `name` names -- matched by a cheap explicit-interop-id
+    // compare, then a tolerance-gated fingerprint match -- or empty on no
+    // match. It only ever returns a name; it never builds a cross-config
+    // processor. Fingerprints the query config and builds the process-global
+    // registry fingerprint index lazily on first use (utility tokens are an
+    // automatic miss and never reach a fingerprint compare). Non-const: it
+    // populates the logically-const lazy classification and fingerprint caches.
+    string_view resolve_registry_equivalence(string_view name);
 
     // Set the flags for the given color space and canonical name, if we can
     // make a guess based on the name. This is very inexpensive. This should
@@ -1091,7 +1162,7 @@ ColorConfig::Impl::init(string_view filename)
     try {
         auto cfg = OCIO::Config::CreateFromFile("ocio://default");
         OIIO_CONTRACT_ASSERT(cfg);
-        builtinconfig_ = cfg->createEditableCopy();
+        builtinconfig_ = copy_config(cfg);
         fix_config_file_rules(builtinconfig_);
     } catch (OCIO::Exception& e) {
         error("Error making OCIO built-in config: {}", e.what());
@@ -1112,7 +1183,7 @@ ColorConfig::Impl::init(string_view filename)
             auto cfg = OCIO::Config::CreateFromFile(
                 std::string(filename).c_str());
             if (cfg)
-                config_ = cfg->createEditableCopy();
+                config_ = copy_config(cfg);
             if (config_ && Strutil::istarts_with(filename, "ocio://"))
                 fix_config_file_rules(config_);
         } catch (OCIO::Exception& e) {
@@ -1727,8 +1798,220 @@ ColorConfig::resolve(string_view name) const
 
 
 
+namespace {
+
+// Helpers for the interop-ID resolution tiers layered onto resolve(). They
+// only read the OCIO config and the pure grammar/sanitization functions from
+// imageio_pvt.h; none of them touch the interoperability bootstrap or the
+// fingerprint engine. Every string_view they return is backed by an OCIO-owned
+// color space name (stable for the life of the config), never a temporary.
+
+// Tier 1a'' -- the config-local form "<config>:local:<base>". Resolves only
+// when the id parses as outer:local:base and `outer` sanitizes to this config's
+// own name; then it matches `base` against every color space's sanitized name
+// or alias (across all reference types and visibilities). Deliberately never
+// consults a color space's interop_id attribute -- that is tier 1c's job.
 string_view
-ColorConfig::Impl::resolve(string_view name) const
+resolve_local_namespace(const OCIO::ConstConfigRcPtr& config, string_view name)
+{
+    OIIO::pvt::InteropIdParts parts
+        = OIIO::pvt::parse_interop_id(std::string(name));
+    if (parts.form != OIIO::pvt::InteropIdForm::OUTER_INNER_BASE
+        || parts.inner != "local")
+        return {};
+    const char* cfgname = config->getName();
+    if (!cfgname || !*cfgname)
+        return {};
+    if (OIIO::pvt::sanitize_id_token(cfgname) != parts.outer)
+        return {};
+    int n = 0;
+    try {
+        n = config->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                      OCIO::COLORSPACE_ALL);
+    } catch (...) {
+        return {};
+    }
+    for (int i = 0; i < n; ++i) {
+        const char* nm
+            = config->getColorSpaceNameByIndex(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                               OCIO::COLORSPACE_ALL, i);
+        if (!nm || !*nm)
+            continue;
+        OCIO::ConstColorSpaceRcPtr cs;
+        try {
+            cs = config->getColorSpace(nm);
+        } catch (...) {
+            continue;
+        }
+        if (!cs)
+            continue;
+        if (OIIO::pvt::sanitize_id_token(cs->getName()) == parts.base)
+            return cs->getName();
+        for (int a = 0, ae = cs->getNumAliases(); a < ae; ++a)
+            if (OIIO::pvt::sanitize_id_token(cs->getAlias(a)) == parts.base)
+                return cs->getName();
+    }
+    return {};
+}
+
+// Tier 1c -- match `name` against a color space's explicit interop_id attribute
+// (OCIO 2.5+). A match requires the attribute to equal the query exactly, or to
+// match with exactly ONE side's leftmost namespace stripped (never both -- so
+// "oiio:x" does not false-match a query for "ocio:x" just because both strip to
+// "x"). Utility tokens (data/unknown/bypass) are excluded from this lookup
+// entirely: declaring interop_id: bypass must not make a space reachable by
+// querying "bypass".
+string_view
+resolve_explicit_interop_id(const OCIO::ConstConfigRcPtr& config,
+                            string_view name)
+{
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+    std::string id(name);
+    std::string id_stripped = OIIO::pvt::strip_leftmost_namespace(id);
+    // Linear scan over the catalog; add a cached inverted map if this tier gets hot.
+    // only fires when the direct/stripped/local tiers all miss (a rare path),
+    // so a per-query scan is cheaper than maintaining a cache. Build the map if
+    // this ever shows up hot.
+    int n = 0;
+    try {
+        n = config->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                      OCIO::COLORSPACE_ALL);
+    } catch (...) {
+        return {};
+    }
+    for (int i = 0; i < n; ++i) {
+        const char* nm
+            = config->getColorSpaceNameByIndex(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                               OCIO::COLORSPACE_ALL, i);
+        if (!nm || !*nm)
+            continue;
+        OCIO::ConstColorSpaceRcPtr cs;
+        try {
+            cs = config->getColorSpace(nm);
+        } catch (...) {
+            continue;
+        }
+        if (!cs)
+            continue;
+        const char* iid = cs->getInteropID();
+        if (!iid || !*iid)
+            continue;
+        std::string attr(iid);
+        if (OIIO::pvt::is_utility_interop_id(attr))
+            continue;
+        if (attr == id || attr == id_stripped
+            || OIIO::pvt::strip_leftmost_namespace(attr) == id)
+            return cs->getName();
+    }
+#else
+    (void)config;
+    (void)name;
+#endif
+    return {};
+}
+
+// The color space name that `token` (a name, alias, or role) resolves to in
+// `config`, or empty if it resolves to nothing.
+std::string
+resolve_token_colorspace_name(const OCIO::ConstConfigRcPtr& config,
+                              const char* token)
+{
+    try {
+        OCIO::ConstColorSpaceRcPtr c = config->getColorSpace(token);
+        return c ? std::string(c->getName()) : std::string();
+    } catch (...) {
+        return std::string();
+    }
+}
+
+// Whether a data color space `cs` (name `nm`) identifies as `token` -- either
+// via its explicit interop_id attribute (OCIO 2.5+), or because `token`'s
+// name/alias/role resolution (precomputed as `token_target`) lands on it.
+bool
+data_space_identifies_as(const OCIO::ConstColorSpaceRcPtr& cs, const char* nm,
+                         string_view token, const std::string& token_target)
+{
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+    const char* iid = cs->getInteropID();
+    if (iid && *iid && token == string_view(iid))
+        return true;
+#endif
+    return !token_target.empty() && token_target == nm;
+}
+
+// Utility-token preference for the literal queries "data" and "bypass": rank
+// every data color space and return the lowest-ranked one. rank 0 = identifies
+// as the requested token, rank 1 = plain data space (no identity), rank 2 =
+// identifies as the other token (data<->bypass), rank 3 = identifies as
+// "unknown"; lowest rank wins and a rank-0 hit short-circuits. ("unknown" is
+// intentionally not routed here -- it only ever resolves as a literal
+// name/alias, handled by tier 1a.)
+string_view
+resolve_data_utility(const OCIO::ConstConfigRcPtr& config, string_view requested)
+{
+    const char* req         = requested == "data" ? "data" : "bypass";
+    const char* other       = requested == "data" ? "bypass" : "data";
+    std::string req_target  = resolve_token_colorspace_name(config, req);
+    std::string other_target = resolve_token_colorspace_name(config, other);
+    std::string unk_target  = resolve_token_colorspace_name(config, "unknown");
+
+    const char* best = nullptr;
+    int best_rank    = 4;  // worse than any real rank (0..3)
+    int n            = 0;
+    try {
+        n = config->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                      OCIO::COLORSPACE_ALL);
+    } catch (...) {
+        return {};
+    }
+    for (int i = 0; i < n; ++i) {
+        const char* nm
+            = config->getColorSpaceNameByIndex(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                               OCIO::COLORSPACE_ALL, i);
+        if (!nm || !*nm)
+            continue;
+        OCIO::ConstColorSpaceRcPtr cs;
+        try {
+            cs = config->getColorSpace(nm);
+        } catch (...) {
+            continue;
+        }
+        if (!cs || !cs->isData())
+            continue;
+        // A one-space OCIO::Config::CreateRaw() config is nothing but a
+        // synthetic data space named "raw". Skip that space so an empty/raw
+        // config does not spuriously resolve "data"/"bypass" to it -- but key
+        // the skip on the config's single-colorspace shape (n == 1), not the
+        // name alone: a real config may legitimately hold a data space named
+        // "Raw" alongside others, and that one is a valid target. A role
+        // explicitly naming the requested token still wins.
+        if (n == 1 && Strutil::iequals(nm, "raw") && req_target != nm)
+            continue;
+        int rank;
+        if (data_space_identifies_as(cs, nm, req, req_target))
+            rank = 0;
+        else if (data_space_identifies_as(cs, nm, other, other_target))
+            rank = 2;
+        else if (data_space_identifies_as(cs, nm, "unknown", unk_target))
+            rank = 3;
+        else
+            rank = 1;  // plain data space, no identity
+        if (rank < best_rank) {
+            best_rank = rank;
+            best      = cs->getName();
+            if (rank == 0)
+                break;
+        }
+    }
+    return best ? string_view(best) : string_view();
+}
+
+}  // namespace
+
+
+
+string_view
+ColorConfig::Impl::resolve_name_tier1a(string_view name) const
 {
     OCIO::ConstConfigRcPtr config = config_;
     if (config && !disable_ocio) {
@@ -1764,6 +2047,67 @@ ColorConfig::Impl::resolve(string_view name) const
     if (Strutil::iequals(name, "Rec709") && Rec709_alias.size())
         return Rec709_alias;
 
+    return {};
+}
+
+
+
+string_view
+ColorConfig::Impl::resolve(string_view name) const
+{
+    // Tier 1a: direct OCIO color space / role / alias, then informal aliases.
+    if (string_view r = resolve_name_tier1a(name); !r.empty())
+        return r;
+
+    // Tier 1a': stripped-namespace retry. Only meaningful when the name carries
+    // a namespace to strip. strip_leftmost_namespace() consumes exactly one
+    // leading "<ns>:"; note "my-studio::srgb" strips to ":srgb" (the blank inner
+    // colon survives), which deliberately will NOT match "srgb".
+    if (name.find(':') != string_view::npos) {
+        std::string stripped
+            = OIIO::pvt::strip_leftmost_namespace(std::string(name));
+        if (string_view r = resolve_name_tier1a(stripped); !r.empty())
+            return r;
+    }
+
+    // The remaining tiers all consult the OCIO config directly.
+    if (config_ && !disable_ocio) {
+        // Tier 1a'': config-local form "<config>:local:<space>".
+        if (string_view r = resolve_local_namespace(config_, name); !r.empty())
+            return r;
+
+        // Tier 1c: a color space's explicit interop_id attribute (OCIO 2.5+).
+        if (string_view r = resolve_explicit_interop_id(config_, name);
+            !r.empty())
+            return r;
+
+        // Utility tokens: "data"/"bypass" resolve to a ranked data color space.
+        // "unknown" is intentionally not ranked -- it only ever resolves via the
+        // literal name/alias match already attempted in tier 1a.
+        if (name == "data" || name == "bypass")
+            if (string_view r = resolve_data_utility(config_, name); !r.empty())
+                return r;
+
+        // Tier 2: registry equivalence (fingerprint match). Canonicalize the id
+        // through the built-in interop identities registry and return this
+        // config's OWN equivalent simple color space -- the user's own space
+        // wins over building any cross-config processor (that is a later,
+        // separate feature; this tier returns only names). Utility tokens have
+        // no registry fingerprint and miss automatically. This is the first tier
+        // that fingerprints, so it lazily builds the process-global registry
+        // index and this config's probe/bootstrap state on first use; every
+        // earlier tier -- and ColorConfig construction -- stays fingerprint-free.
+        // The const_cast reaches the memoizing (logically-const) fingerprint
+        // caches, mirroring getImpl()'s non-const handle onto a const config.
+        if (string_view r
+            = const_cast<ColorConfig::Impl*>(this)->resolve_registry_equivalence(
+                name);
+            !r.empty())
+            return r;
+    }
+
+    // Total miss: preserve OIIO's historical passthrough -- return the input
+    // name unchanged so callers that assumed identity resolution keep working.
     return name;
 }
 
@@ -3510,27 +3854,82 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
 {
     if (colorspace.empty())
         return "";
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+
+    // Four-step Color Interop Forum write-side derivation (see the doc comment
+    // in color.h for the full order and the two documented decisions). The first
+    // step to produce an id wins; nothing here runs at construction time, and
+    // step 2's fingerprint engine only wakes on the first query that reaches it.
+
+    std::string resolved;
+    bool resolves_to_real_space = false;
     if (getImpl()->config_ && !disable_ocio) {
-        const char* interop_id = nullptr;
+        resolved = std::string(resolve(colorspace));
+        OCIO::ConstColorSpaceRcPtr c;
         try {
-            OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
-                std::string(resolve(colorspace)).c_str());
-            if (c)
-                interop_id = c->getInteropID();
+            c = getImpl()->config_->getColorSpace(resolved.c_str());
         } catch (...) {
-            interop_id = nullptr;
+            c = nullptr;
         }
-        if (interop_id) {
-            return interop_id;
-        }
-    }
+        if (c) {
+            resolves_to_real_space = true;
+            // Step 1: an author-declared interop_id on the space is
+            // unconditionally authoritative -- it wins over fingerprinting and
+            // over any strict/unknown handling (OCIO 2.5+). A non-empty value is
+            // what "declared" means; an unset attribute (empty string) falls
+            // through to the tiers below rather than short-circuiting to empty.
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+            if (const char* iid = c->getInteropID(); iid && *iid)
+                return iid;
 #endif
-    for (const ColorInteropID& interop : color_interop_ids) {
-        if (equivalent(colorspace, interop.interop_id)) {
-            return interop.interop_id;
+            // Step 1, utility sub-case: a data space with no explicit token
+            // resolves to "data" HERE -- before any fingerprint tier -- never
+            // "unknown" or empty. (isData() is available on all OCIO 2.x.)
+            if (c->isData())
+                return "data";
         }
     }
+
+    // Step 2: definitional equivalence to a built-in registry identity, by
+    // fingerprint. Returns THAT registry identity's id (a process-global-stable
+    // string), not the query's own name. Only meaningful once the query resolves
+    // to a real space to fingerprint.
+    if (resolves_to_real_space) {
+        if (string_view r = getImpl()->deriveRegistryInteropId(resolved);
+            !r.empty())
+            return r;
+    }
+
+    // Step 2.5 (legacy syntactic fallback -- DECISION a): the static CICP /
+    // interop-id table matched by name/alias/flag equivalence. Kept AFTER the
+    // real fingerprint match (so a genuine fingerprint match is always
+    // preferred); retiring it would change get_cicp(), which consults this same
+    // table to map an id back to a CICP tuple. It is never the final-resort
+    // match -- steps 3 and 4 always follow -- so it can never act as a guessed
+    // default. Its literals live in static storage, so the returned view is
+    // stable.
+    for (const ColorInteropID& interop : color_interop_ids) {
+        if (equivalent(colorspace, interop.interop_id))
+            return interop.interop_id;
+    }
+
+    // Step 3 (DECISION b): a named config plus a query that resolves to a real
+    // space yields a config-local id "<config>:local:<space>", both segments
+    // sanitized independently per the CIF grammar. This ALWAYS attempts -- it is
+    // not gated behind an opt-in knob (the string_view overload can gain no such
+    // parameter) -- because its two natural preconditions, a non-empty config
+    // name AND a resolvable query, already keep it from firing on a genuine
+    // miss. The generated std::string is interned via ustring so the returned
+    // view outlives this call (the local literals and OCIO-owned strings the
+    // earlier steps return are already stable).
+    if (resolves_to_real_space) {
+        const char* cfgname = getImpl()->config_->getName();
+        if (cfgname && *cfgname)
+            return ustring(OIIO::pvt::sanitize_id_token(cfgname) + ":local:"
+                           + OIIO::pvt::sanitize_id_token(resolved));
+    }
+
+    // Step 4: nothing identified the space -- return empty, never a guessed
+    // default (a wrong id costs trust in the whole system).
     return "";
 }
 
@@ -3558,6 +3957,32 @@ ColorConfig::get_cicp(string_view colorspace) const
         }
     }
     return cspan<int>();
+}
+
+
+std::vector<std::string>
+ColorConfig::find_color_spaces(
+    cspan<std::string> chromaticities, cspan<std::string> transfer_function,
+    cspan<std::string> encoding, cspan<std::string> image_state,
+    bool include_inactive, bool include_context_sensitive, bool exhaustive,
+    bool strict, const std::map<std::string, std::string>& context) const
+{
+    // Thin public adapter: fill the internal option set (the active-space
+    // toggle has no public counterpart -- the public API always searches
+    // active spaces) and forward to the pvt search core.
+    OIIO::pvt::FindColorSpacesOptions options;
+    options.chromaticities.assign(chromaticities.begin(),
+                                  chromaticities.end());
+    options.transfer_functions.assign(transfer_function.begin(),
+                                      transfer_function.end());
+    options.encodings.assign(encoding.begin(), encoding.end());
+    options.image_states.assign(image_state.begin(), image_state.end());
+    options.include_inactive          = include_inactive;
+    options.include_context_sensitive = include_context_sensitive;
+    options.exhaustive                = exhaustive;
+    options.strict                    = strict;
+    options.context                   = context;
+    return OIIO::pvt::find_color_spaces(*this, options);
 }
 
 
@@ -4338,6 +4763,32 @@ build_interop_identities_config()
             // aliases. Reconfirm which the studio config carries before OCIO
             // >= 2.5 becomes OIIO's minimum, when the embedded config can
             // shrink to just the "oiio:" delta.
+            //
+            // The embedded registry's cinema encoding tags override the
+            // studio config's, even where the studio definition supplies the
+            // (superior) transforms: sdr-cinema (gamma-2.6 theatrical family,
+            // 48 cd/m² calibration white) and hdr-cinema (PQ cinema masters)
+            // are OIIO-side classifications that OCIO's builtin config tags
+            // plain sdr-video / hdr-video.
+            for (int i = 0, n = embedded->getNumColorSpaces(); i < n; ++i) {
+                const char* name = embedded->getColorSpaceNameByIndex(i);
+                auto ecs         = embedded->getColorSpace(name);
+                const char* enc  = ecs ? ecs->getEncoding() : nullptr;
+                if (!enc
+                    || (!Strutil::iequals(enc, "sdr-cinema")
+                        && !Strutil::iequals(enc, "hdr-cinema")))
+                    continue;
+                auto existing = config->getColorSpace(name);
+                if (!existing
+                    || Strutil::iequals(existing->getEncoding()
+                                            ? existing->getEncoding()
+                                            : "",
+                                        enc))
+                    continue;
+                auto retagged = existing->createEditableCopy();
+                retagged->setEncoding(enc);
+                config->addColorSpace(retagged);  // replaces by name
+            }
             return config;
 #else
             return embedded;
@@ -4635,10 +5086,7 @@ interopify_config(const OCIO::ConstConfigRcPtr& config)
     // Build the repaired copy OUTSIDE the lock.
     OCIO::ConstConfigRcPtr result;
     try {
-        OCIO::ConfigRcPtr editable = config->createEditableCopy();
-#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 3, 1)
-        preserve_default_view_transform(config, editable);
-#endif
+        OCIO::ConfigRcPtr editable = copy_config(config);
         std::string interchange = discover_scene_interchange(editable);
         if (!interchange.empty()) {
             // Config carries the interchange space; bind the role to it if the
@@ -4855,6 +5303,140 @@ display_processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
         errmsg = e.what();
     } catch (...) {
         errmsg = "Unknown error in OpenColorIO GetProcessorFromConfigs (display)";
+    }
+    return {};
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Registry fingerprint index: the one genuinely new primitive the read-side
+// registry-equivalence tier (and the write-side derivation that shares this
+// file) needs. It fingerprints the built-in interop identities config's own
+// simple color spaces so a query config's spaces can be matched against them by
+// value. Everything else it uses -- the registry config, the interopified probe
+// copy, the probe protocol, the fingerprint compute and match -- is reused from
+// the foundation above.
+
+// Each entry pairs a registry color space name (which, for the identities OIIO
+// recognizes, equals its interop id) with that space's fingerprint, computed
+// through the SAME interopified / PROCESSOR_CACHE_OFF probe path the query side
+// uses, so registry and query fingerprints are directly comparable. Sorted by
+// name for binary-search lookup.
+struct RegistryFingerprintIndex {
+    OCIO::ConstConfigRcPtr config;  // interopified registry (the probe source)
+    std::vector<std::pair<std::string, OIIO::pvt::ColorSpaceFingerprint>> entries;
+};
+
+// Build (once, lazily) and return the process-global registry fingerprint
+// index. Nothing here runs until the first resolve() query reaches the
+// registry-equivalence tier; ColorConfig construction never touches it. The
+// index is immutable for the life of the process -- the registry config is a
+// process-global constant, so entries are content-addressed and never
+// invalidated or evicted. The C++11 magic-static guard makes the one-time build
+// thread-safe (same idiom as build_interop_identities_config()). The write-side
+// derivation fingerprints the same registry the same way and reuses this exact
+// builder.
+const RegistryFingerprintIndex&
+registry_fingerprint_index()
+{
+    static const RegistryFingerprintIndex s_index =
+        []() -> RegistryFingerprintIndex {
+        RegistryFingerprintIndex idx;
+        OCIO::ConstConfigRcPtr registry = build_interop_identities_config();
+        if (!registry)
+            return idx;
+        idx.config = interopify_config(registry);
+        if (!idx.config)
+            return idx;
+        try {
+            OCIO::ConstContextRcPtr context = idx.config->getCurrentContext();
+            ProbeValues probes = initialize_probe_values(idx.config, context);
+            for (const auto& name : get_simple_color_spaces(idx.config)) {
+                auto cs = idx.config->getColorSpace(name.c_str());
+                auto fp = compute_fingerprint(idx.config, cs, context, probes);
+                if (fp)
+                    idx.entries.emplace_back(name, std::move(*fp));
+            }
+        } catch (...) {
+            idx.entries.clear();
+        }
+        std::sort(idx.entries.begin(), idx.entries.end(),
+                  [](const auto& a, const auto& b) { return a.first < b.first; });
+        return idx;
+    }();
+    return s_index;
+}
+
+// Map a query interop id to its registry entry's fingerprint. Resolves the id
+// against the registry by name or alias (utility tokens name no registry space
+// and so miss here) to the canonical registry space, then finds that space's
+// fingerprint in the sorted index. On a hit, `canonical_id_out` receives the
+// registry space's own interop id (its interop_id attribute on OCIO >= 2.5,
+// else its name) for the cheap direct-id compare on the query side. Returns
+// null when the id resolves to no registry space, or to one with no fingerprint
+// (e.g. a non-simple registry space).
+const OIIO::pvt::ColorSpaceFingerprint*
+registry_fingerprint_for_id(const RegistryFingerprintIndex& index,
+                            string_view id, std::string& canonical_id_out)
+{
+    canonical_id_out.clear();
+    if (!index.config || id.empty())
+        return nullptr;
+    OCIO::ConstColorSpaceRcPtr cs;
+    try {
+        cs = index.config->getColorSpace(std::string(id).c_str());
+    } catch (...) {
+        return nullptr;
+    }
+    if (!cs)
+        return nullptr;
+    const std::string name = cs->getName();
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+    if (const char* iid = cs->getInteropID(); iid && *iid)
+        canonical_id_out = iid;
+#endif
+    if (canonical_id_out.empty())
+        canonical_id_out = name;
+    auto it = std::lower_bound(index.entries.begin(), index.entries.end(), name,
+                               [](const auto& e, const std::string& key) {
+                                   return e.first < key;
+                               });
+    if (it != index.entries.end() && it->first == name)
+        return &it->second;
+    return nullptr;
+}
+
+// Reverse of registry_fingerprint_for_id (the write-side direction): given a
+// query space's fingerprint, return the built-in registry identity whose
+// fingerprint matches it within tolerance, walking the index's sorted
+// deterministic order so first-match is stable. The returned view is the
+// registry identity's own interop id -- its interop_id attribute (OCIO >= 2.5,
+// where the registry is the studio config whose space names, e.g. "ACEScg",
+// differ from the CIF ids, e.g. "lin_ap1_scene"), else its name (the embedded
+// config, where name == interop_id). This mirrors registry_fingerprint_for_id's
+// canonicalization. Both strings are owned by the process-global registry
+// config/index, so the view is stable for the life of the process. Empty when
+// nothing matches.
+string_view
+registry_id_for_fingerprint(const RegistryFingerprintIndex& index,
+                            const OIIO::pvt::ColorSpaceFingerprint& query_fp)
+{
+    for (const auto& entry : index.entries) {
+        if (!fingerprints_match(query_fp, entry.second))
+            continue;
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+        if (index.config) {
+            try {
+                if (auto cs = index.config->getColorSpace(entry.first.c_str()))
+                    if (const char* iid = cs->getInteropID(); iid && *iid)
+                        return iid;
+            } catch (...) {
+            }
+        }
+#endif
+        return entry.first;
     }
     return {};
 }
@@ -5442,6 +6024,79 @@ ColorConfig::Impl::fingerprintCached(string_view name)
 
 
 
+string_view
+ColorConfig::Impl::resolve_registry_equivalence(string_view name)
+{
+    // Utility tokens (data/unknown/bypass) name a color STATE, not a color;
+    // they have no registry fingerprint and must never reach a fingerprint
+    // compare. (data/bypass were already offered to resolve_data_utility above;
+    // this also covers unknown and any residual data/bypass that found no
+    // space.)
+    if (OIIO::pvt::is_utility_interop_id(std::string(name)))
+        return {};
+
+    // Canonicalize the id through the registry and fetch its fingerprint. A miss
+    // here (an id that names no registry space, or a non-fingerprintable one)
+    // ends the tier -- resolve() falls through to the input-name passthrough.
+    const RegistryFingerprintIndex& index = registry_fingerprint_index();
+    std::string canonical_id;
+    const OIIO::pvt::ColorSpaceFingerprint* registry_fp
+        = registry_fingerprint_for_id(index, name, canonical_id);
+    if (!registry_fp)
+        return {};
+
+    // Walk this config's simple spaces in the classification's sorted,
+    // deterministic order. For each: a cheap explicit-interop-id compare first
+    // (OCIO >= 2.5), then a tolerance-gated fingerprint match through the
+    // process-global cached path. First match in order wins; the returned view
+    // is backed by the persistent simple-space cache. Only names are returned.
+    for (const std::string& cs_name : getSimpleColorSpaces()) {
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+        if (!canonical_id.empty() && config_ && !disable_ocio) {
+            try {
+                if (auto qcs = config_->getColorSpace(cs_name.c_str())) {
+                    const char* qid = qcs->getInteropID();
+                    if (qid && *qid && canonical_id == qid)
+                        return cs_name;
+                }
+            } catch (...) {
+            }
+        }
+#endif
+        auto fp = fingerprintCached(cs_name);
+        if (fp && fingerprints_match(*fp, *registry_fp))
+            return cs_name;
+    }
+    return {};
+}
+
+
+
+string_view
+ColorConfig::Impl::deriveRegistryInteropId(string_view resolved_name)
+{
+    if (resolved_name.empty())
+        return {};
+    // Gate (mirrors the read-side equivalence tier eligibility): a data
+    // space is already answered by step 1's utility sub-case; a config-unique
+    // space or one flagged skip-matching is never a fingerprint candidate.
+    const int flags = analysisFlags(resolved_name);
+    if (flags
+        & (CSInfo::is_data | CSInfo::is_unique | CSInfo::should_skip_matching))
+        return {};
+    // Fingerprint the query space through the process-global cached path, then
+    // match it against the built-in registry index. The returned id is the
+    // registry identity's own (process-global-stable) string, not this query's
+    // name. Lazy: this is the first place the write side touches the fingerprint
+    // engine or the registry index.
+    auto fp = fingerprintCached(resolved_name);
+    if (!fp)
+        return {};
+    return registry_id_for_fingerprint(registry_fingerprint_index(), *fp);
+}
+
+
+
 std::size_t
 ColorConfig::Impl::fingerprintWarm()
 {
@@ -5465,6 +6120,996 @@ ColorConfig::Impl::fingerprintWarm()
         ++count;
     }
     return count;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Color-space search by characterization (pvt::find_color_spaces): resolve a
+// set of partial-characterization hints, then walk the config in index order
+// keeping every color space whose derivable gamut / transfer / encoding /
+// image-state satisfies each hinted axis under the three-valued filter
+// (pvt::three_valued_axis). The term grammar and axis combination are pure
+// (characterization_search.cpp); everything here needs the live config.
+
+// The pure search primitives and shared types are declared in the library's
+// non-versioned pvt namespace (imageio_pvt.h); alias it so this versioned
+// block reaches them without colliding with the local v3_x::pvt (which holds
+// the classification peek).
+namespace spvt = OIIO::pvt;
+
+namespace {
+using namespace OCIO;
+
+// Drop a leading "namespace:" from an interop id ("ocio:lin_ap1_scene" ->
+// "lin_ap1_scene"). Unchanged when there is no colon.
+std::string
+search_strip_namespace(string_view id)
+{
+    const size_t colon = id.find(':');
+    if (colon != string_view::npos)
+        id.remove_prefix(colon + 1);
+    return std::string(id);
+}
+
+// The complete gamut component of an interop id: strip the namespace and a
+// trailing _scene/_display, then take everything after the last '_'
+// ("lin_awg3_scene" -> "awg3"). Empty when no '_' remains. Only a *complete*
+// component matches a chromaticity hint; an arbitrary fragment ("p3") does not.
+std::string
+gamut_component(string_view interop_id)
+{
+    std::string base = search_strip_namespace(interop_id);
+    for (string_view suffix : { "_scene", "_display" }) {
+        if (base.size() > suffix.size() && Strutil::ends_with(base, suffix)) {
+            base.resize(base.size() - suffix.size());
+            break;
+        }
+    }
+    const size_t sep = base.rfind('_');
+    return sep == std::string::npos ? std::string() : base.substr(sep + 1);
+}
+
+// The curve-only transfer family of an interop id or crv_ named-transform name
+// ("srgb_rec709_scene" -> "srgb", "crv_srgb_tx" -> "srgb"): the family token
+// (spvt::family_token strips a crv_ prefix and one state suffix) reduced to the
+// leading component. This is what lets a crv_ hint and an interop-identified
+// candidate agree on the same transfer vocabulary. Assumes the transfer token
+// never contains '_', which holds for all current registry ids.
+std::string
+tf_curve_family(string_view id)
+{
+    std::string family = spvt::family_token(search_strip_namespace(id));
+    const size_t sep = family.find('_');
+    if (sep != std::string::npos)
+        family.resize(sep);
+    return family;
+}
+
+// A context carrying this query's per-call variable overrides, layered on the
+// config's current context. Overrides are scoped to the one search.
+ConstContextRcPtr
+make_context_with_overrides(const ConstConfigRcPtr& config,
+                            const std::map<std::string, std::string>& vars)
+{
+    if (!config)
+        return nullptr;
+    ConstContextRcPtr context = config->getCurrentContext();
+    if (!vars.empty()) {
+        ContextRcPtr ctx = context->createEditableCopy();
+        for (const auto& kv : vars)
+            ctx->setStringVar(kv.first.c_str(), kv.second.c_str());
+        context = ctx;
+    }
+    return context;
+}
+
+// Run the fixed neutral-axis probe set through a realized CPU processor (encode
+// direction) and reduce it to a behavioral transfer signature. This is the one
+// config-driving step the pure tf_signature_from_probes() left to its caller.
+std::optional<spvt::TransferFunctionSignature>
+probe_signature_over(const ConstCPUProcessorRcPtr& cpu)
+{
+    if (!cpu)
+        return {};
+    const cspan<double> axis = spvt::tf_probe_axis();
+    std::vector<double> outputs;
+    outputs.reserve(axis.size());
+    try {
+        for (double v : axis) {
+            float rgb[3] = { float(v), float(v), float(v) };
+            cpu->applyRGB(rgb);
+            outputs.push_back(
+                (double(rgb[0]) + double(rgb[1]) + double(rgb[2])) / 3.0);
+        }
+    } catch (...) {
+        return {};
+    }
+    return spvt::tf_signature_from_probes(outputs);
+}
+
+// Lowercased keys under which a named transform can be found as a transfer
+// hint: its name, the name minus a " - curve" suffix, and its crv_-shaped
+// name/aliases plus their curve-family forms.
+std::vector<std::string>
+named_transform_keys(const ConstNamedTransformRcPtr& nt)
+{
+    std::vector<std::string> keys;
+    if (!nt)
+        return keys;
+    const auto add = [&](std::string key) {
+        key = Strutil::lower(key);
+        if (!key.empty()
+            && std::find(keys.begin(), keys.end(), key) == keys.end())
+            keys.push_back(std::move(key));
+    };
+
+    const std::string name    = nt->getName() ? nt->getName() : "";
+    const std::string lowered = Strutil::lower(name);
+    add(name);
+    static constexpr string_view curve_suffix = " - curve";
+    if (Strutil::ends_with(lowered, curve_suffix))
+        add(lowered.substr(0, lowered.size() - curve_suffix.size()));
+    if (Strutil::starts_with(lowered, "crv_"))
+        add(spvt::family_token(lowered));
+
+    for (size_t i = 0, e = nt->getNumAliases(); i < e; ++i) {
+        const std::string alias        = nt->getAlias(i) ? nt->getAlias(i) : "";
+        const std::string lowered_alias = Strutil::lower(alias);
+        if (Strutil::starts_with(lowered_alias, "crv_")) {
+            add(alias);
+            add(spvt::family_token(lowered_alias));
+        } else if (lowered_alias.size() > 4
+                   && Strutil::ends_with(lowered_alias, "_crv")) {
+            add(alias);
+            add(lowered_alias.substr(0, lowered_alias.size() - 4));
+        }
+    }
+    return keys;
+}
+
+ConstNamedTransformRcPtr
+find_named_transform(const ConstConfigRcPtr& config, const std::string& query)
+{
+    if (!config)
+        return {};
+    const std::string wanted = Strutil::lower(query);
+    for (int i = 0, e = config->getNumNamedTransforms(); i < e; ++i) {
+        const char* name = config->getNamedTransformNameByIndex(i);
+        auto nt          = name ? config->getNamedTransform(name)
+                                : ConstNamedTransformRcPtr();
+        const auto keys  = named_transform_keys(nt);
+        if (std::find(keys.begin(), keys.end(), wanted) != keys.end())
+            return nt;
+    }
+    return {};
+}
+
+// Authored-transform inspection for the exhaustive path: every atomic
+// transform must pass the shared simple-atomic allowlist, every FileTransform
+// must reference one of the exhaustive-eligible container formats, and
+// ColorSpaceTransform references recurse (cycle-guarded by `visited`). Also
+// reports whether any FileTransform was seen at all -- the exhaustive walk
+// only revisits spaces that actually reference files.
+struct AuthoredInspection {
+    bool allowed            = true;
+    bool has_file_transform = false;
+};
+
+AuthoredInspection
+inspect_authored_transform(const ConstConfigRcPtr& config,
+                           const ConstContextRcPtr& context,
+                           const ConstTransformRcPtr& transform,
+                           std::unordered_set<std::string>& visited)
+{
+    if (!transform)
+        return {};
+    switch (transform->getTransformType()) {
+    case TRANSFORM_TYPE_GROUP: {
+        auto group = DynamicPtrCast<const GroupTransform>(transform);
+        if (!group)
+            return { false, false };
+        AuthoredInspection result;
+        for (int i = 0, e = group->getNumTransforms(); i < e; ++i) {
+            const auto child = inspect_authored_transform(
+                config, context, group->getTransform(i), visited);
+            result.allowed &= child.allowed;
+            result.has_file_transform |= child.has_file_transform;
+        }
+        return result;
+    }
+    case TRANSFORM_TYPE_FILE: {
+        auto file = DynamicPtrCast<const FileTransform>(transform);
+        if (!file || !file->getSrc())
+            return { false, true };
+        const std::string source = context
+                                       ? context->resolveStringVar(
+                                             file->getSrc())
+                                       : std::string(file->getSrc());
+        const bool allowed = Strutil::iends_with(source, ".spi1d")
+                             || Strutil::iends_with(source, ".spimtx")
+                             || Strutil::iends_with(source, ".ctf")
+                             || Strutil::iends_with(source, ".clf");
+        return { allowed, true };
+    }
+    case TRANSFORM_TYPE_COLORSPACE: {
+        auto cst = DynamicPtrCast<const ColorSpaceTransform>(transform);
+        if (!cst)
+            return { false, false };
+        AuthoredInspection result;
+        for (const char* raw : { cst->getSrc(), cst->getDst() }) {
+            std::string name = raw ? raw : "";
+            if (context)
+                name = context->resolveStringVar(name.c_str());
+            auto referenced = config->getColorSpace(name.c_str());
+            if (!referenced || !visited.insert(name).second)
+                continue;
+            ConstTransformRcPtr selected = referenced->getTransform(
+                COLORSPACE_DIR_FROM_REFERENCE);
+            if (!selected)
+                selected = referenced->getTransform(
+                    COLORSPACE_DIR_TO_REFERENCE);
+            const auto child = inspect_authored_transform(config, context,
+                                                          selected, visited);
+            result.allowed &= child.allowed;
+            result.has_file_transform |= child.has_file_transform;
+        }
+        return result;
+    }
+    default: return { isSimpleAtomicTransform(transform), false };
+    }
+}
+
+// Realized-op inspection: after OCIO realizes the transform into a processor,
+// every op in the group must pass the shared simple-atomic allowlist (file
+// transforms have been realized into LUT ops by then).
+bool
+inspect_realized_transform(const ConstTransformRcPtr& transform)
+{
+    if (!transform)
+        return true;
+    if (transform->getTransformType() == TRANSFORM_TYPE_GROUP) {
+        auto group = DynamicPtrCast<const GroupTransform>(transform);
+        if (!group)
+            return false;
+        for (int i = 0, e = group->getNumTransforms(); i < e; ++i)
+            if (!inspect_realized_transform(group->getTransform(i)))
+                return false;
+        return true;
+    }
+    return isSimpleAtomicTransform(transform);
+}
+
+// A resolved hint term on a value axis (encoding / image-state / chromaticity)
+// and on the transfer axis. Each pairs a term mode with the resolved value(s)
+// the hint denotes.
+struct ResolvedStringTerm {
+    spvt::SearchTermMode mode = spvt::SearchTermMode::include;
+    std::vector<std::string> values;
+};
+struct ResolvedChromaticityTerm {
+    spvt::SearchTermMode mode = spvt::SearchTermMode::include;
+    std::vector<spvt::Chromaticities> values;
+};
+struct ResolvedTransferTerm {
+    spvt::SearchTermMode mode = spvt::SearchTermMode::include;
+    spvt::TransferHint hint;
+};
+
+// Route every per-axis verdict through the one pure three-valued combinator:
+// build the parallel (modes, matches) spans, then combine.
+template<class Term, class Property, class Matches, class Known>
+bool
+evaluate_axis(const std::vector<Term>& terms, const Property& property,
+              Matches matches, Known known)
+{
+    std::vector<spvt::SearchTermMode> modes;
+    std::vector<unsigned char> hits;
+    modes.reserve(terms.size());
+    hits.reserve(terms.size());
+    for (const Term& term : terms) {
+        modes.push_back(term.mode);
+        hits.push_back(matches(term, property) ? 1 : 0);
+    }
+    return spvt::three_valued_axis(modes, hits, known(property));
+}
+
+bool
+string_axis_accepts(const std::vector<ResolvedStringTerm>& terms,
+                    const std::optional<std::string>& property)
+{
+    return evaluate_axis(
+        terms, property,
+        [](const ResolvedStringTerm& term,
+           const std::optional<std::string>& value) {
+            return value
+                   && std::find(term.values.begin(), term.values.end(), *value)
+                          != term.values.end();
+        },
+        [](const std::optional<std::string>& value) {
+            return value.has_value();
+        });
+}
+
+// Set-valued variant for axes where a candidate legitimately carries more
+// than one value (the encoding axis: authored attribute + interop-identity
+// twin). A term matches when any value matches; the property is known when
+// the set is non-empty.
+bool
+string_set_axis_accepts(const std::vector<ResolvedStringTerm>& terms,
+                        const std::vector<std::string>& values)
+{
+    return evaluate_axis(
+        terms, values,
+        [](const ResolvedStringTerm& term,
+           const std::vector<std::string>& vals) {
+            for (const std::string& v : vals)
+                if (std::find(term.values.begin(), term.values.end(), v)
+                    != term.values.end())
+                    return true;
+            return false;
+        },
+        [](const std::vector<std::string>& vals) { return !vals.empty(); });
+}
+
+bool
+chromaticity_axis_accepts(const std::vector<ResolvedChromaticityTerm>& terms,
+                          const std::optional<spvt::Chromaticities>& property)
+{
+    return evaluate_axis(
+        terms, property,
+        [](const ResolvedChromaticityTerm& term,
+           const std::optional<spvt::Chromaticities>& value) {
+            // Exact ==; all fuzz was absorbed at derivation by
+            // round_chromaticity_coord.
+            return value
+                   && std::find(term.values.begin(), term.values.end(), *value)
+                          != term.values.end();
+        },
+        [](const std::optional<spvt::Chromaticities>& value) {
+            return value.has_value();
+        });
+}
+
+bool
+transfer_axis_accepts(const std::vector<ResolvedTransferTerm>& terms,
+                      const spvt::TransferProperty& property)
+{
+    return evaluate_axis(
+        terms, property,
+        [](const ResolvedTransferTerm& term,
+           const spvt::TransferProperty& value) {
+            return spvt::transfer_hint_matches(term.hint, value);
+        },
+        [](const spvt::TransferProperty& value) { return value.known(); });
+}
+
+}  // namespace
+
+
+
+int
+ColorConfig::Impl::compute_analysis_flags(const std::string& name,
+                                          bool& active) const
+{
+    // Mirrors analyze() but for any name (including spaces outside the active
+    // CSInfo inventory). Gather lock-taking work before any caller lock.
+    const std::vector<std::string>& simple = getSimpleColorSpaces();
+
+    int flagval = 0;
+    active      = true;
+    if (config_ && !disable_ocio) {
+        OCIO::ConstColorSpaceRcPtr ocs = config_->getColorSpace(name.c_str());
+        if (ocs) {
+            if (ocs->isData())
+                flagval |= CSInfo::is_data;
+            if (ocs->hasCategory("is-unique"))
+                flagval |= CSInfo::is_unique;
+
+            const char* sp   = config_->getSearchPath();
+            bool sp_has_vars = sp && Strutil::contains(sp, "$");
+            if (!transformUsesContextVars(
+                    ocs->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE),
+                    sp_has_vars)
+                && !transformUsesContextVars(
+                    ocs->getTransform(OCIO::COLORSPACE_DIR_FROM_REFERENCE),
+                    sp_has_vars))
+                flagval |= CSInfo::is_context_invariant;
+
+            active      = false;
+            const int n = config_->getNumColorSpaces(
+                OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ACTIVE);
+            for (int i = 0; i < n; ++i) {
+                const char* aname = config_->getColorSpaceNameByIndex(
+                    OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ACTIVE,
+                    i);
+                if (aname && name == aname) {
+                    active = true;
+                    break;
+                }
+            }
+        }
+    }
+    if (std::binary_search(simple.begin(), simple.end(), name))
+        flagval |= CSInfo::is_simple;
+    else if (!(flagval & CSInfo::is_data))
+        flagval |= CSInfo::has_complex_transform;
+    if ((flagval & (CSInfo::is_data | CSInfo::is_unique))
+        || isLearnedComplex(name))
+        flagval |= CSInfo::should_skip_matching;
+    return flagval;
+}
+
+
+
+std::string
+ColorConfig::Impl::effectiveEncoding(string_view name) const
+{
+    if (!config_ || disable_ocio)
+        return {};
+    std::string resolved(resolve(name));
+    auto cs = config_->getColorSpace(resolved.c_str());
+    if (cs && cs->getEncoding() && cs->getEncoding()[0])
+        return cs->getEncoding();
+    // Fall back to the encoding declared by the interop-identity equivalent.
+    std::string id(m_self->get_color_interop_id(resolved));
+    if (!id.empty()) {
+        if (auto registry = build_interop_identities_config())
+            if (auto ics = registry->getColorSpace(id.c_str()))
+                if (ics->getEncoding() && ics->getEncoding()[0])
+                    return ics->getEncoding();
+    }
+    return {};
+}
+
+
+
+std::optional<spvt::Chromaticities>
+ColorConfig::Impl::deriveChromaticities(string_view name) const
+{
+    if (!config_ || disable_ocio || name.empty())
+        return {};
+    std::string resolved(resolve(name));
+    // Reserved/registry table first: a space that resolves to a known interop
+    // id uses that id's reserved primaries (single hypothesis, exact ==).
+    if (auto reserved = spvt::reserved_chromaticities_for_id(
+            std::string(m_self->get_color_interop_id(resolved))))
+        return reserved;
+
+    // Probe fallback: push pure R/G/B/W through colorspace -> the scene
+    // interchange (the config's AP0 anchor) and solve for xy. This is the
+    // config-driving step the pure chromaticities_from_ap0_probes() left to
+    // its caller. Single hypothesis (D65 whitepoint + Bradford CAT) via the
+    // CPU processor; a multi-hypothesis whitepoint/CAT sweep is a documented
+    // follow-on for non-D65 / log-curve spaces.
+    if (!interopIsInteroperable())
+        return {};
+    const std::string interchange = interopInterchangeName();
+    if (interchange.empty())
+        return {};
+    auto cs = config_->getColorSpace(resolved.c_str());
+    if (!cs || cs->isData())
+        return {};
+    float rgb[12] = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1 };
+    try {
+        auto proc = config_->getProcessor(resolved.c_str(),
+                                          interchange.c_str());
+        if (!proc)
+            return {};
+        auto cpu = proc->getDefaultCPUProcessor();
+        if (!cpu)
+            return {};
+        OCIO::PackedImageDesc desc(rgb, 4, 1, 3);
+        cpu->apply(desc);
+    } catch (...) {
+        return {};
+    }
+    return spvt::chromaticities_from_ap0_probes(cspan<float>(rgb, 12));
+}
+
+
+
+std::optional<spvt::TransferFunctionSignature>
+ColorConfig::Impl::deriveTransferSignature(string_view name) const
+{
+    if (!config_ || disable_ocio || name.empty())
+        return {};
+    std::string resolved(resolve(name));
+    auto cs = config_->getColorSpace(resolved.c_str());
+    if (!cs || cs->isData())
+        return {};
+
+    // Linear probe source: the scene interchange anchor for scene-referred
+    // spaces, the display interchange (CIE-XYZ-D65 by contract) for
+    // display-referred ones. The signature is the encode direction
+    // (linear source -> colorspace).
+    std::string source;
+    if (cs->getReferenceSpaceType() == OCIO::REFERENCE_SPACE_SCENE) {
+        if (interopIsInteroperable())
+            source = interopInterchangeName();
+    } else if (const char* disp = config_->getCanonicalName(
+                   OCIO::ROLE_INTERCHANGE_DISPLAY)) {
+        source = disp;
+    }
+    if (source.empty())
+        return {};
+
+    std::optional<spvt::TransferFunctionSignature> sig;
+    try {
+        auto proc = config_->getProcessor(source.c_str(), resolved.c_str());
+        sig       = probe_signature_over(proc ? proc->getDefaultCPUProcessor()
+                                              : OCIO::ConstCPUProcessorRcPtr());
+    } catch (...) {
+        return {};
+    }
+    if (!sig)
+        return {};
+    sig->encoding = effectiveEncoding(resolved);
+    sig->family   = tf_curve_family(m_self->get_color_interop_id(resolved));
+    return sig;
+}
+
+
+
+std::vector<std::string>
+ColorConfig::Impl::find_color_spaces(
+    const spvt::FindColorSpacesOptions& options)
+{
+    if (!options.include_active && !options.include_inactive)
+        return {};
+    if (!config_ || disable_ocio)
+        return {};
+
+    // Context overrides are scoped to this one query -- resolve and probe
+    // everything below against a context copy carrying the overrides.
+    const OCIO::ConstContextRcPtr ctx = make_context_with_overrides(
+        config_, options.context);
+    const OCIO::ConstConfigRcPtr registry = build_interop_identities_config();
+
+    // ---------------- Hint resolution (fail-fast, pre-walk) ----------------
+    // Per axis: exact local name -> known interop id -> axis-specific
+    // fallback. Every unresolvable hint throws std::invalid_argument here,
+    // before a single candidate is examined.
+
+    auto local_space = [&](const std::string& raw) {
+        return config_->getColorSpace(raw.c_str());
+    };
+    auto registry_space
+        = [&](const std::string& raw) -> OCIO::ConstColorSpaceRcPtr {
+        return registry ? registry->getColorSpace(raw.c_str())
+                        : OCIO::ConstColorSpaceRcPtr();
+    };
+    auto reference_state = [](const OCIO::ConstColorSpaceRcPtr& cs) {
+        return std::string(cs->getReferenceSpaceType()
+                                   == OCIO::REFERENCE_SPACE_DISPLAY
+                               ? "display"
+                               : "scene");
+    };
+
+    // The interop-identity twin's encoding for a candidate (empty when the
+    // space has no identity or the identity has no registry entry).
+    auto twin_encoding = [&](const std::string& name) -> std::string {
+        std::string id(m_self->get_color_interop_id(name));
+        if (id.empty() || !registry)
+            return {};
+        auto ics = registry->getColorSpace(id.c_str());
+        if (ics && ics->getEncoding() && ics->getEncoding()[0])
+            return Strutil::lower(ics->getEncoding());
+        return {};
+    };
+
+    auto resolve_encoding
+        = [&](const std::string& raw) -> std::vector<std::string> {
+        if (auto local = local_space(raw)) {
+            // Hint-by-example reads the space's own effective encoding
+            // (authored, else twin-adopted); strict reads authored only.
+            std::string encoding
+                = options.strict
+                      ? (local->getEncoding()
+                             ? Strutil::lower(local->getEncoding())
+                             : std::string())
+                      : Strutil::lower(effectiveEncoding(local->getName()));
+            if (encoding.empty())
+                throw std::invalid_argument(
+                    "encoding hint has no derivable encoding: " + raw);
+            return { std::move(encoding) };
+        }
+        if (auto rcs = registry_space(raw)) {
+            std::string encoding = rcs->getEncoding()
+                                       ? Strutil::lower(rcs->getEncoding())
+                                       : std::string();
+            if (encoding.empty())
+                throw std::invalid_argument(
+                    "encoding hint has no derivable encoding: " + raw);
+            return { std::move(encoding) };
+        }
+        // Literal fallback: must be a known encoding (authored in this config
+        // or the identities registry).
+        const std::string literal = Strutil::lower(raw);
+        std::unordered_set<std::string> known;
+        auto gather = [&](const OCIO::ConstConfigRcPtr& cfg) {
+            if (!cfg)
+                return;
+            const int nn = cfg->getNumColorSpaces(
+                OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL);
+            for (int i = 0; i < nn; ++i) {
+                const char* nm = cfg->getColorSpaceNameByIndex(
+                    OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL, i);
+                auto ccs = nm ? cfg->getColorSpace(nm)
+                              : OCIO::ConstColorSpaceRcPtr();
+                if (ccs && ccs->getEncoding() && ccs->getEncoding()[0])
+                    known.insert(Strutil::lower(ccs->getEncoding()));
+            }
+        };
+        gather(config_);
+        gather(registry);
+        if (!known.count(literal))
+            throw std::invalid_argument("unresolved encoding hint: " + raw);
+        return { literal };
+    };
+
+    auto resolve_state
+        = [&](const std::string& raw) -> std::vector<std::string> {
+        if (auto local = local_space(raw))
+            return { reference_state(local) };
+        if (auto rcs = registry_space(raw))
+            return { reference_state(rcs) };
+        const std::string literal = Strutil::lower(raw);
+        if (literal == "scene" || literal == "display")
+            return { literal };
+        if (literal == "all")
+            return { "scene", "display" };
+        throw std::invalid_argument("unresolved image-state hint: " + raw);
+    };
+
+    auto resolve_chromaticities
+        = [&](const std::string& raw) -> std::vector<spvt::Chromaticities> {
+        if (auto local = local_space(raw)) {
+            if (auto value = deriveChromaticities(local->getName()))
+                return { *value };
+            throw std::invalid_argument(
+                "chromaticities hint has no derivable value: " + raw);
+        }
+        // Registry chromaticities come from the reserved-primaries table
+        // (table-only; gamuts absent from the table, e.g. ciexyzd65, are
+        // documented as not-yet-resolvable, sharing the probe-port follow-on).
+        if (auto rcs = registry_space(raw)) {
+            if (auto value = spvt::reserved_chromaticities_for_id(rcs->getName()))
+                return { *value };
+            throw std::invalid_argument(
+                "chromaticities hint has no derivable value: " + raw);
+        }
+        // Gamut-component fragment: the complete component of some registry id.
+        const std::string component = Strutil::lower(raw);
+        std::vector<spvt::Chromaticities> values;
+        if (registry) {
+            const int nn = registry->getNumColorSpaces(
+                OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL);
+            for (int i = 0; i < nn; ++i) {
+                const char* nm = registry->getColorSpaceNameByIndex(
+                    OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL, i);
+                if (!nm || Strutil::lower(gamut_component(nm)) != component)
+                    continue;
+                auto value = spvt::reserved_chromaticities_for_id(nm);
+                if (value
+                    && std::find(values.begin(), values.end(), *value)
+                           == values.end())
+                    values.push_back(*value);
+            }
+        }
+        if (values.empty())
+            throw std::invalid_argument("unresolved chromaticities hint: "
+                                        + raw);
+        return values;
+    };
+
+    auto resolve_string_terms = [&](const std::vector<std::string>& inputs,
+                                    const auto& resolver) {
+        std::vector<ResolvedStringTerm> terms;
+        for (const std::string& input : inputs) {
+            auto [mode, value] = spvt::parse_search_term(input);
+            if (value.empty())
+                continue;
+            terms.push_back({ mode, resolver(value) });
+        }
+        return terms;
+    };
+
+    auto resolve_transfer_terms = [&]() {
+        std::vector<ResolvedTransferTerm> terms;
+        for (const std::string& input : options.transfer_functions) {
+            auto [mode, value] = spvt::parse_search_term(input);
+            if (value.empty())
+                continue;
+
+            ResolvedTransferTerm term;
+            term.mode = mode;
+            spvt::TransferHint& hint = term.hint;
+            if (auto local = local_space(value)) {
+                const std::string name = local->getName();
+                try {
+                    hint.identity = isColorSpaceLinear(name);
+                    hint.family   = tf_curve_family(
+                        m_self->get_color_interop_id(name));
+                } catch (...) {
+                }
+                if (!hint.identity)
+                    if (auto sig = deriveTransferSignature(name))
+                        hint.signatures.push_back(std::move(*sig));
+            } else if (auto rcs = registry_space(value)) {
+                // Known interop id: the registry space is an identity, so its
+                // curve behavior is exactly what the id names.
+                const std::string id = rcs->getName();
+                const std::string encoding
+                    = rcs->getEncoding() ? Strutil::lower(rcs->getEncoding())
+                                         : std::string();
+                hint.identity = encoding == "scene-linear"
+                                || encoding == "display-linear";
+                hint.family = tf_curve_family(id);
+                if (!hint.identity) {
+                    try {
+                        const char* role
+                            = rcs->getReferenceSpaceType()
+                                      == OCIO::REFERENCE_SPACE_DISPLAY
+                                  ? OCIO::ROLE_INTERCHANGE_DISPLAY
+                                  : OCIO::ROLE_INTERCHANGE_SCENE;
+                        auto proc = registry->getProcessor(role, id.c_str());
+                        if (auto sig = probe_signature_over(
+                                proc ? proc->getDefaultCPUProcessor()
+                                     : OCIO::ConstCPUProcessorRcPtr())) {
+                            sig->encoding = encoding;
+                            hint.signatures.push_back(std::move(*sig));
+                        }
+                    } catch (...) {
+                    }
+                }
+            } else {
+                // Named transforms: local config first, then the registry.
+                // The identities registry ships no crv_ named transforms, so
+                // the local-crv-must-match-registry-twin family rule finds no
+                // twin and assigns no family; such hints match by signature
+                // only until the registry grows crv_ entries.
+                auto nt            = find_named_transform(config_, value);
+                bool from_registry = false;
+                OCIO::ConstConfigRcPtr source_config = config_;
+                OCIO::ConstContextRcPtr source_ctx   = ctx;
+                if (!nt && registry) {
+                    nt            = find_named_transform(registry, value);
+                    from_registry = static_cast<bool>(nt);
+                    source_config = registry;
+                    source_ctx    = registry->getCurrentContext();
+                }
+                if (nt) {
+                    const std::string encoding
+                        = nt->getEncoding() ? Strutil::lower(nt->getEncoding())
+                                            : std::string();
+                    hint.identity = encoding == "scene-linear"
+                                    || encoding == "display-linear";
+                    const std::string transform_name
+                        = Strutil::lower(nt->getName() ? nt->getName() : "");
+                    std::optional<spvt::TransferFunctionSignature> sig;
+                    if (!hint.identity) {
+                        try {
+                            auto proc = source_config->getProcessor(
+                                source_ctx, nt, OCIO::TRANSFORM_DIR_INVERSE);
+                            sig = probe_signature_over(
+                                proc ? proc->getDefaultCPUProcessor()
+                                     : OCIO::ConstCPUProcessorRcPtr());
+                            if (sig)
+                                sig->encoding = encoding;
+                        } catch (...) {
+                        }
+                        if (sig)
+                            hint.signatures.push_back(*sig);
+                    }
+                    if (!hint.identity && sig
+                        && Strutil::starts_with(transform_name, "crv_")) {
+                        bool registry_behavior = from_registry;
+                        if (!registry_behavior && registry) {
+                            if (auto registered = find_named_transform(
+                                    registry, transform_name)) {
+                                try {
+                                    auto rproc = registry->getProcessor(
+                                        registry->getCurrentContext(),
+                                        registered,
+                                        OCIO::TRANSFORM_DIR_INVERSE);
+                                    if (auto rsig = probe_signature_over(
+                                            rproc
+                                                ? rproc->getDefaultCPUProcessor()
+                                                : OCIO::ConstCPUProcessorRcPtr()))
+                                        registry_behavior
+                                            = spvt::transfer_signatures_match(
+                                                *sig, *rsig);
+                                } catch (...) {
+                                }
+                            }
+                        }
+                        if (registry_behavior)
+                            hint.family = tf_curve_family(transform_name);
+                    }
+                }
+            }
+            if (!hint.identity && hint.signatures.empty())
+                throw std::invalid_argument(
+                    "unresolved or unprobeable transfer-function hint: "
+                    + value);
+            terms.push_back(std::move(term));
+        }
+        return terms;
+    };
+
+    std::vector<ResolvedChromaticityTerm> chromaticity_terms;
+    for (const std::string& input : options.chromaticities) {
+        auto [mode, value] = spvt::parse_search_term(input);
+        if (value.empty())
+            continue;
+        chromaticity_terms.push_back({ mode, resolve_chromaticities(value) });
+    }
+    const auto transfer_terms = resolve_transfer_terms();
+    const auto encoding_terms = resolve_string_terms(options.encodings,
+                                                     resolve_encoding);
+    const auto state_terms    = resolve_string_terms(options.image_states,
+                                                     resolve_state);
+
+    // ---------------- Candidate eligibility ----------------
+    // Default universe: simple, matchable, not data/unique/learned-complex.
+    // With exhaustive=true a non-simple, file-backed space MAY be revisited if
+    // its authored graph is exhaustive-eligible and realizes cleanly.
+    auto candidate_eligible = [&](const std::string& name, int flags) {
+        if ((flags & (CSInfo::is_data | CSInfo::is_unique))
+            || isLearnedComplex(name))
+            return false;
+        if ((flags & CSInfo::is_simple)
+            && !(flags & CSInfo::should_skip_matching))
+            return true;
+        if (!options.exhaustive)
+            return false;
+
+        auto ocs = config_->getColorSpace(name.c_str());
+        if (!ocs)
+            return false;
+        OCIO::ConstTransformRcPtr transform = ocs->getTransform(
+            OCIO::COLORSPACE_DIR_FROM_REFERENCE);
+        OCIO::TransformDirection direction = OCIO::TRANSFORM_DIR_FORWARD;
+        if (!transform) {
+            transform = ocs->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE);
+            direction = OCIO::TRANSFORM_DIR_INVERSE;
+        }
+        try {
+            std::unordered_set<std::string> visited { name };
+            const auto authored = inspect_authored_transform(config_, ctx,
+                                                             transform, visited);
+            if (!authored.allowed || !authored.has_file_transform)
+                return false;
+
+            // The exhaustive "construction succeeds" gate is a realize-clean +
+            // allowlist check -- realize the processor and require every
+            // realized op to pass the same simple-atomic allowlist. It
+            // deliberately does NOT consult the fingerprint subsystem (which
+            // carries no tolerance gate and scans nondeterministically); the
+            // allowlist realize-check is sufficient and keeps the exhaustive
+            // gate deterministic and tolerance-clean.
+            auto proc = config_->getProcessor(ctx, transform, direction);
+            if (!proc
+                || !inspect_realized_transform(proc->createGroupTransform())) {
+                markLearnedComplex(name);
+                return false;
+            }
+        } catch (...) {
+            return false;
+        }
+        return true;
+    };
+
+    // ---------------- Bounded-exhaustive walk ----------------
+    struct RankedName {
+        int invariant, active, simple;
+        std::string name;
+    };
+    std::vector<RankedName> result;
+
+    const int n = config_->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                             OCIO::COLORSPACE_ALL);
+    for (int i = 0; i < n; ++i) {
+        const char* cname = config_->getColorSpaceNameByIndex(
+            OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL, i);
+        if (!cname || !*cname)
+            continue;
+        const std::string name(cname);
+
+        bool active = true;
+        int flags   = 0;
+        if (find(name))
+            flags = analysisFlags(name, &active);
+        else
+            flags = compute_analysis_flags(name, active);  // inactive spaces
+
+        if ((active && !options.include_active)
+            || (!active && !options.include_inactive))
+            continue;
+        if (!(flags & CSInfo::is_context_invariant)
+            && !options.include_context_sensitive)
+            continue;
+        if (!candidate_eligible(name, flags))
+            continue;
+
+        auto cs = config_->getColorSpace(name.c_str());
+        if (!cs)
+            continue;
+
+        // Per-candidate probes are wrapped so any derivation failure yields an
+        // "unknown" property (three-valued), never an abort.
+        //
+        // Encoding characterizes as up to two values: the authored attribute
+        // plus — non-strict — the interop-identity twin's encoding (which is
+        // also the adopted value when no attribute is authored). A LUT space
+        // tagged g26_p3d65_display with encoding sdr-video matches both
+        // "sdr-video" and "sdr-cinema".
+        std::vector<std::string> encoding_values;
+        if (!encoding_terms.empty()) {
+            std::string literal = cs->getEncoding()
+                                      ? Strutil::lower(cs->getEncoding())
+                                      : std::string();
+            if (!literal.empty())
+                encoding_values.push_back(literal);
+            if (!options.strict) {
+                std::string twin = twin_encoding(name);
+                if (!twin.empty() && twin != literal)
+                    encoding_values.push_back(std::move(twin));
+            }
+        }
+        if (!string_set_axis_accepts(encoding_terms, encoding_values))
+            continue;
+
+        const std::optional<std::string> state { reference_state(cs) };
+        if (!string_axis_accepts(state_terms, state))
+            continue;
+
+        std::optional<spvt::Chromaticities> chromaticities;
+        if (!chromaticity_terms.empty())
+            chromaticities = deriveChromaticities(name);
+        if (!chromaticity_axis_accepts(chromaticity_terms, chromaticities))
+            continue;
+
+        spvt::TransferProperty transfer;
+        if (!transfer_terms.empty()) {
+            try {
+                transfer.identity = isColorSpaceLinear(name);
+                transfer.family   = tf_curve_family(
+                    m_self->get_color_interop_id(name));
+            } catch (...) {
+            }
+            if (!transfer.identity)
+                if (auto sig = deriveTransferSignature(name))
+                    transfer.signature = std::move(*sig);
+        }
+        if (!transfer_axis_accepts(transfer_terms, transfer))
+            continue;
+
+        result.push_back({ (flags & CSInfo::is_context_invariant) ? 0 : 1,
+                           active ? 0 : 1,
+                           (flags & CSInfo::is_simple) ? 0 : 1, name });
+    }
+
+    // ---------------- Deterministic order ----------------
+    // Determinism comes from this final sort, never the scan order:
+    // (context-invariant, active, simple, name).
+    std::sort(result.begin(), result.end(),
+              [](const RankedName& l, const RankedName& r) {
+                  if (l.invariant != r.invariant)
+                      return l.invariant < r.invariant;
+                  if (l.active != r.active)
+                      return l.active < r.active;
+                  if (l.simple != r.simple)
+                      return l.simple < r.simple;
+                  return l.name < r.name;
+              });
+    std::vector<std::string> names;
+    names.reserve(result.size());
+    for (RankedName& entry : result)
+        names.push_back(std::move(entry.name));
+    return names;
 }
 
 OIIO_NAMESPACE_END
@@ -5534,6 +7179,15 @@ color_space_analyzed(const ColorConfig& config, string_view name)
 {
     auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
     return impl ? impl->analysisComputed(name) : false;
+}
+
+
+std::vector<std::string>
+find_color_spaces(const ColorConfig& config,
+                  const FindColorSpacesOptions& options)
+{
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    return impl ? impl->find_color_spaces(options) : std::vector<std::string>{};
 }
 
 

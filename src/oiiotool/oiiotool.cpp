@@ -2382,6 +2382,51 @@ set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --colorspacesearch
+// Query the color config for color spaces matching a partial characterization
+// and print their names, one per line. Each axis is given as a comma-separated
+// list of terms via the modifier options chromaticities=, transfer=, encoding=,
+// state=; the inclusion toggles inactive=, contextsensitive=, exhaustive=,
+// strict= (authored encodings only, no interop-identity twin inference).
+static void
+colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+
+    // Comma-splits each axis into terms; a term itself may not contain a comma
+    // or colon (the latter is oiiotool's option delimiter), so colon-bearing
+    // interop IDs (custom:*, icc:*, <config>:local:*) are not reachable from
+    // this flag -- pass such hints through the C++/Python API.
+    auto terms = [](string_view s) {
+        std::vector<std::string> out;
+        for (auto& t : Strutil::splitsv(s, ","))
+            if (t.size())
+                out.emplace_back(t);
+        return out;
+    };
+    std::vector<std::string> chromaticities
+        = terms(options.get_string("chromaticities"));
+    std::vector<std::string> transfer    = terms(options.get_string("transfer"));
+    std::vector<std::string> encoding    = terms(options.get_string("encoding"));
+    std::vector<std::string> image_state = terms(options.get_string("state"));
+
+    try {
+        std::vector<std::string> results = ot.colorconfig().find_color_spaces(
+            chromaticities, transfer, encoding, image_state,
+            options.get_int("inactive"), options.get_int("contextsensitive"),
+            options.get_int("exhaustive"), options.get_int("strict"));
+        for (auto& name : results)
+            Strutil::print("{}\n", name);
+    } catch (const std::exception& e) {
+        ot.errorfmt("--colorspacesearch", "{}", e.what());
+    }
+    ot.printed_info = true;
+}
+
+
+
 // Special OiiotoolOp whose purpose is to set attributes on the top image.
 class OpSetColorSpace final : public OiiotoolOp {
 public:
@@ -7430,6 +7475,11 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--colorconfig %s:FILENAME")
       .help("Explicitly specify an OCIO configuration file")
       .OTACTION(set_colorconfig);
+    ap.arg("--colorspacesearch")
+      .help("Print the color spaces matching a partial characterization "
+            "(options: chromaticities=, transfer=, encoding=, state=, "
+            "inactive=, contextsensitive=, exhaustive=, strict=)")
+      .OTACTION(colorspacesearch);
     ap.arg("--iscolorspace %s:COLORSPACE")
       .help("Set the assumed color space (without altering pixels)")
       .OTACTION(action_iscolorspace);

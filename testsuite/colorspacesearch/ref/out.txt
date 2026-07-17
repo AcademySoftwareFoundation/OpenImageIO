@@ -1,0 +1,51 @@
+consumer: rec709 gamut, nonlinear transfer =
+Gamma 1.8 Encoded Rec.709 (sRGB)
+Gamma 2.2 Encoded Rec.709 (sRGB)
+Gamma 2.2 Rec.709 - Display
+Gamma 2.4 Encoded Rec.709 (sRGB)
+Gamma 2.6 Encoded Rec.709 (sRGB)
+Rec.1886 Rec.709 - Display
+sRGB (~2.22) - Display
+sRGB Encoded Rec.709 (sRGB)
+consumer: srgb display-referred =
+sRGB (~2.22) - Display
+consumer: default universe =
+active_simple
+display_simple
+unknown_encoding
+consumer: include inactive =
+active_simple
+display_simple
+unknown_encoding
+inactive_simple
+consumer: encoding=scene-linear =
+active_simple
+consumer: encoding=~scene-linear =
+display_simple
+consumer: encoding=-scene-linear =
+display_simple
+unknown_encoding
+consumer: state=display =
+display_simple
+Python find_color_spaces: hint coercion
+  str hint == list hint: True
+  encoding='-' raised ValueError
+  encoding='bogus_hint' raised ValueError
+  encoding=['ok', 3] raised ValueError
+  repeated query deterministic: True
+
+Python find_color_spaces: escape grammar
+  encoding='\-foo'  = ['-foo']
+  encoding='\~foo'  = ['~foo']
+  encoding='~\~foo' = ['-foo', '\\foo', 'all_encoding', 'foo']
+  encoding='\\foo'  = ['\\foo']
+  encoding='\\' raised ValueError
+  encoding='\\foo' raised ValueError
+
+Python find_color_spaces: twin encoding and strict
+  encoding='sdr-cinema'              = ['theatrical_output']
+  encoding='sdr-video'               = ['plain_video', 'theatrical_output']
+  encoding='theatrical_output'       = ['plain_video', 'theatrical_output']
+  encoding='sdr-cinema', strict=True = []
+
+Done.

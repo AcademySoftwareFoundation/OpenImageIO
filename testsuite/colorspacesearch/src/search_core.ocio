@@ -1,0 +1,28 @@
+ocio_profile_version: 2.1
+roles:
+  aces_interchange: active_simple
+  default: active_simple
+  scene_linear: active_simple
+file_rules:
+  - !<Rule> {name: Default, colorspace: active_simple}
+displays:
+  disp:
+    - !<View> {name: main, colorspace: active_simple}
+inactive_colorspaces: [inactive_simple]
+colorspaces:
+  - !<ColorSpace>
+    name: active_simple
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: inactive_simple
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: unknown_encoding
+    from_scene_reference: !<MatrixTransform> {matrix: [0.73, 0.02, 0.01, 0, 0.01, 0.91, 0.03, 0, 0.04, 0.02, 1.17, 0, 0, 0, 0, 1]}
+  - !<ColorSpace>
+    name: data_space
+    isdata: true
+display_colorspaces:
+  - !<ColorSpace>
+    name: display_simple
+    encoding: display-linear
