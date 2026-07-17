@@ -4,7 +4,7 @@
 
 // Unit tests for the read-side color-metadata reconciler (pvt), driven
 // directly through imageio_pvt.h. The vectors port a proven prototype's
-// precedence, utility-token, strict-parsing, ICC-over-CICP, and
+// precedence, utility-token, strict-parsing, CICP-over-ICC, and
 // filename-invariance cases.
 
 #include <cstdio>
@@ -168,14 +168,16 @@ test_strict_terminal(const ColorConfig& config)
 }
 
 
-// Vector 16: garbage ICC bytes are invalid and fall through to CICP.
+// Vector 16: garbage ICC bytes are invalid and fall through. (CICP now sits
+// above ICC, so the fall-through is observed on a lone garbage profile: the
+// ICC step records Invalid and no genuine metadata match results.)
 static void
 test_garbage_icc_falls_through(const ColorConfig& config)
 {
-    ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
-    f.icc_profile        = std::vector<unsigned char>(200, 0x42);
-    auto e               = resolve_color_metadata(&config, "", f, {}, {});
-    OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
+    ColorMetadataFacts f;
+    f.icc_profile = std::vector<unsigned char>(200, 0x42);
+    auto e        = resolve_color_metadata(&config, "", f, {}, {});
+    OIIO_CHECK_ASSERT(!e.has_genuine_metadata_match());
     bool icc_invalid = false;
     for (auto& s : e.steps)
         if (s.rule == ColorRule::IccProfile
@@ -212,16 +214,20 @@ test_icc_synthetic(const ColorConfig& config)
 }
 
 
-// Vector 19 crown lock: ICC sits ABOVE CICP. A decodable ICC profile plus a
-// CICP tuple resolves via ICC, not CICP.
+// Vector 19 crown lock: CICP sits ABOVE ICC, per the PNG spec's own chunk
+// precedence (cICP > iCCP) -- user decision 2026-07-17, matching the oicio
+// reference resolver. A CICP tuple plus a decodable ICC profile resolves via
+// CICP, not ICC; the ICC rule is never even visited.
 static void
-test_icc_over_cicp(const ColorConfig& config)
+test_cicp_over_icc(const ColorConfig& config)
 {
     ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
     f.icc_profile        = fake_icc_profile();
     auto e               = resolve_color_metadata(&config, "", f, {}, {});
-    OIIO_CHECK_ASSERT(Strutil::starts_with(e.resolved, "icc:"));
-    OIIO_CHECK_ASSERT(e.resolved != "srgb_rec709_display");
+    OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
+    OIIO_CHECK_ASSERT(!Strutil::starts_with(e.resolved, "icc:"));
+    for (auto& s : e.steps)
+        OIIO_CHECK_ASSERT(s.rule != ColorRule::IccProfile);
 }
 
 
@@ -314,7 +320,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_strict_terminal(config);
     test_garbage_icc_falls_through(config);
     test_icc_synthetic(config);
-    test_icc_over_cicp(config);
+    test_cicp_over_icc(config);
     test_filename_invariance(config);
 
     Filesystem::remove(cfgpath);

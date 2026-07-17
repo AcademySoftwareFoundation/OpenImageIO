@@ -570,9 +570,11 @@ resolve_color_metadata(const ColorConfig* config,
     if (apply(ColorRule::ColorInteropID,
               rule_color_interop_id(config, facts, policy, diag)))
         return expl;
-    if (apply(ColorRule::IccProfile, rule_icc(facts, policy, diag)))
-        return expl;
+    // CICP before ICC, matching the PNG spec's own chunk precedence
+    // (cICP > iCCP) and the oicio reference resolver.
     if (apply(ColorRule::Cicp, rule_cicp(config, facts, policy, diag)))
+        return expl;
+    if (apply(ColorRule::IccProfile, rule_icc(facts, policy, diag)))
         return expl;
     if (apply(ColorRule::PngSrgb, rule_png_srgb(config, facts, policy, diag)))
         return expl;

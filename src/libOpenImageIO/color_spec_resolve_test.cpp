@@ -206,8 +206,8 @@ test_config_or_registry_failover(const ColorConfig& sparse)
 
 // The inference helper: a usable hint answers; a synthetic-only answer
 // (here: chromaticities with no config match) is not usable as an IBA
-// source; a hint blocked by a higher unusable signal (decodable ICC over
-// CICP) degrades to the config-only pass and still answers.
+// source; when CICP and a decodable ICC profile are both present, CICP
+// outranks ICC (PNG chunk precedence: cICP > iCCP) and answers directly.
 static void
 test_infer_helper(const ColorConfig& config)
 {
@@ -228,8 +228,8 @@ test_infer_helper(const ColorConfig& config)
                          "");
     }
     {
-        // Decodable ICC outranks CICP and resolves to an icc: synthetic;
-        // the config-only retry lets ICC miss and CICP answer locally.
+        // CICP outranks the decodable ICC profile (cICP > iCCP) and
+        // answers on the first pass; no config-only retry is needed.
         ImageSpec spec(4, 4, 3, TypeFloat);
         auto icc = fake_icc_profile();
         spec.attribute("ICCProfile",

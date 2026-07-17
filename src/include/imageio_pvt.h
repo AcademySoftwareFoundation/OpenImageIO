@@ -934,15 +934,16 @@ struct ColorReadPolicy {
                                              = nullptr);
 };
 
-/// The 13 cascade rules, in exact tested precedence order (ICC above CICP).
+/// The 13 cascade rules, in exact tested precedence order (CICP above ICC,
+/// per the PNG spec's own chunk precedence: cICP > iCCP).
 /// STRICT_PARSING is the terminal miss diagnostic, not a 14th source rule.
 enum class ColorRule {
     ExplicitAssignment,
     AcesContainer,
     FileRulesFirst,
     ColorInteropID,
-    IccProfile,
     Cicp,
+    IccProfile,
     PngSrgb,
     ChromaticitiesAndGamma,
     Chromaticities,
