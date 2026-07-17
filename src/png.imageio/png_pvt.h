@@ -18,6 +18,8 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
+
 
 #define OIIO_LIBPNG_VERSION                                    \
     (PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 \
@@ -329,10 +331,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
             const int cicp[4] = { pri, trc, mtx, vfr };
             spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
-            const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-            string_view interop_id = colorconfig.get_color_interop_id(cicp);
-            if (!interop_id.empty())
-                spec.attribute("oiio:ColorSpace", interop_id);
+            // The CICP -> color-space override is applied centrally below.
         }
     }
 #endif
@@ -355,6 +354,12 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         spec.attribute("oiio:UnassociatedAlpha", (int)1);
 
     // FIXME -- look for an XMP packet in an iTXt chunk.
+
+    // Hand the raw color attributes just deposited to the central color-
+    // metadata reconciler, which applies the audited precedence cascade
+    // (replacing this reader's former inline CICP -> color-space override).
+    // With policy at its defaults the resolved color space is identical.
+    pvt::reconcile_color_metadata(spec, pvt::ColorReadPolicy::snapshot());
 
     return ok;
 }
@@ -751,21 +756,29 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     }
 
 #ifdef PNG_cICP_SUPPORTED
-    // Only automatically determine CICP from oiio::ColorSpace if we didn't
-    // write colorspace metadata yet.
-    const ParamValue* p = spec.find_attribute(CICP_ATTR,
-                                              TypeDesc(TypeDesc::INT, 4));
-    cspan<int> cicp     = (p) ? p->as_cspan<int>()
-                          : (!wrote_colorspace) ? colorconfig.get_cicp(colorspace)
-                                                : cspan<int>();
-    if (!cicp.empty()) {
-        png_byte vals[4];
-        for (int i = 0; i < 4; ++i)
-            vals[i] = static_cast<png_byte>(cicp[i]);
-        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
-            return "Could not set PNG cICP chunk";
-        // libpng will only write the chunk if the third byte is 0
-        png_set_cICP(sp, ip, vals[0], vals[1], (png_byte)0, vals[3]);
+    // CICP: consume the central write plan instead of deriving inline. The
+    // plan emits an author-supplied CICP tuple verbatim, or one derived from
+    // the color space. PNG only auto-derives a tuple when no other color-space
+    // chunk was already written; an explicitly authored tuple is always
+    // emitted.
+    {
+        pvt::ColorWriteCaps caps;
+        caps.cicp = true;
+        pvt::ColorMetadataPlan plan
+            = pvt::plan_color_metadata(nullptr, spec, caps,
+                                       pvt::ColorWritePolicy::snapshot());
+        const bool emit = plan.cicp.action == pvt::ColorPlanAction::Write
+                          || (plan.cicp.action == pvt::ColorPlanAction::Derive
+                              && !wrote_colorspace);
+        if (emit && plan.cicp.ints.size() == 4) {
+            png_byte vals[4];
+            for (int i = 0; i < 4; ++i)
+                vals[i] = static_cast<png_byte>(plan.cicp.ints[i]);
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG cICP chunk";
+            // libpng will only write the chunk if the third byte is 0
+            png_set_cICP(sp, ip, vals[0], vals[1], (png_byte)0, vals[3]);
+        }
     }
 #endif
 

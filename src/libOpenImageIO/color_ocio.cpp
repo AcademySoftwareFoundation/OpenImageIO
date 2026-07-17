@@ -3999,18 +3999,42 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
                            int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::colorconvert");
+    if (!colorconfig)
+        colorconfig = &ColorConfig::default_colorconfig();
+    // One locked snapshot of the read-policy state per call (only populated
+    // and consulted on the inferred-source path below).
+    OIIO::pvt::ColorReadPolicy policy;
+    bool inferred_source = false;
     if (from.empty() || from == "current") {
         from = src.spec().get_string_attribute("oiio:Colorspace",
                                                "scene_linear");
+        // A fully untagged source (no color space attribute at all): infer
+        // one from the color hints the spec carries (colorInteropID, CICP,
+        // ICC, chromaticities/gamma) before standing on the scene_linear
+        // default. An explicit `from` argument or a tagged source never
+        // reaches this, and a hintless source keeps today's default exactly.
+        if (!src.spec().find_attribute("oiio:ColorSpace", TypeString)) {
+            policy = OIIO::pvt::ColorReadPolicy::snapshot();
+            OIIO::pvt::ColorCallContext ctx;
+            ctx.filename       = std::string(src.name());
+            ctx.format         = std::string(src.file_format_name());
+            std::string hinted = OIIO::pvt::infer_color_space_from_spec(
+                colorconfig, src.spec(), ctx, policy);
+            if (!hinted.empty()) {
+                Strutil::debug("IBA::colorconvert inferred source color "
+                               "space \"{}\" from the input's color "
+                               "metadata\n",
+                               hinted);
+                from            = ustring(hinted);
+                inferred_source = true;
+            }
+        }
     }
     if (from.empty() || from == "unknown" || to.empty() || to == "unknown") {
         dst.errorfmt("Unknown color space name (from=\"{}\", to=\"{}\")", from,
                      to);
         return false;
     }
-
-    if (!colorconfig)
-        colorconfig = &ColorConfig::default_colorconfig();
 
     ColorProcessorHandle processor
         = colorconfig->createColorProcessor(colorconfig->resolve(from),
@@ -4044,6 +4068,15 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         if (colorconfig->isData(from) || lenient_passthrough)
             to = from;
         dst.specmod().set_colorspace(to);
+        // Inferred-source hygiene: the hints that named the (pre-conversion)
+        // source now describe a state the output no longer has. Scrub the
+        // ones the resolver proves determinate; leave the rest. Explicit-
+        // source calls are deliberately untouched (identical to main); a
+        // pass-through or data no-op keeps its still-true hints.
+        if (inferred_source && !lenient_passthrough
+            && !colorconfig->isData(from))
+            OIIO::pvt::scrub_color_metadata(dst.specmod(), colorconfig,
+                                            policy);
     }
     return ok;
 }
@@ -5041,27 +5074,6 @@ bootstrap_display_interchange(const OCIO::ConfigRcPtr& editable,
     }
 }
 
-#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 3, 1)
-// OCIO < 2.3.1 bug: Config::createEditableCopy() drops the source config's
-// default view transform *name* (fixed in 2.3.1). Capture it from `src`
-// before/around the copy and, if `copy` comes back with no default view
-// transform name while `src` had one, re-set it. Shared shape so a later
-// standalone fix for OIIO's own bootstrap-copy call sites can reuse it.
-void
-preserve_default_view_transform(const OCIO::ConstConfigRcPtr& src,
-                                const OCIO::ConfigRcPtr& copy)
-{
-    if (!src || !copy)
-        return;
-    const char* srcName = src->getDefaultViewTransformName();
-    if (!srcName || !*srcName)
-        return;
-    const char* copyName = copy->getDefaultViewTransformName();
-    if (!copyName || !*copyName)
-        copy->setDefaultViewTransformName(srcName);
-}
-#endif
-
 // Return the "interopified" copy of `config`: a PROCESSOR_CACHE_OFF editable
 // copy repaired to resolve a scene (and, where possible, display) interchange.
 // Memoized process-wide by structural cache id (first-writer-wins) so all
@@ -5406,6 +5418,53 @@ registry_fingerprint_for_id(const RegistryFingerprintIndex& index,
     if (it != index.entries.end() && it->first == name)
         return &it->second;
     return nullptr;
+}
+
+
+
+// The cross-config chokepoint: the single wrapper over OCIO's two-config
+// GetProcessorFromConfigs. Every cross-config color route funnels through
+// here (color-space now; a display-view sibling with the explicit-interchange
+// overload lands in a later slice), so the failure policy lives in exactly one
+// place. Both configs must expose the interchange role GetProcessorFromConfigs
+// needs (aces_interchange for scene-referred names, cie_xyz_d65_interchange
+// for display-referred) -- that is the caller's obligation, satisfied by the
+// interoperability bootstrap/repair above. With both contexts null the 4-arg
+// overload is used (OCIO takes each config's current context); otherwise the
+// context-aware overload runs, defaulting a missing side to that config's
+// current context. On any OCIO failure the processor is null and `errmsg` is
+// set from the exception -- never thrown across the boundary, never silent.
+OCIO::ConstProcessorRcPtr
+processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
+                       string_view src_name,
+                       const OCIO::ConstConfigRcPtr& dst_config,
+                       string_view dst_name, std::string& errmsg,
+                       const OCIO::ConstContextRcPtr& src_context = nullptr,
+                       const OCIO::ConstContextRcPtr& dst_context = nullptr)
+{
+    errmsg.clear();
+    if (!src_config || !dst_config) {
+        errmsg = "Cross-config processor requires two valid configs";
+        return {};
+    }
+    const std::string src(src_name);
+    const std::string dst(dst_name);
+    try {
+        if (!src_context && !dst_context)
+            return OCIO::Config::GetProcessorFromConfigs(src_config, src.c_str(),
+                                                         dst_config, dst.c_str());
+        OCIO::ConstContextRcPtr sctx = src_context ? src_context
+                                                   : src_config->getCurrentContext();
+        OCIO::ConstContextRcPtr dctx = dst_context ? dst_context
+                                                   : dst_config->getCurrentContext();
+        return OCIO::Config::GetProcessorFromConfigs(sctx, src_config, src.c_str(),
+                                                     dctx, dst_config, dst.c_str());
+    } catch (OCIO::Exception& e) {
+        errmsg = e.what();
+    } catch (...) {
+        errmsg = "Unknown error in OpenColorIO GetProcessorFromConfigs";
+    }
+    return {};
 }
 
 // Reverse of registry_fingerprint_for_id (the write-side direction): given a
