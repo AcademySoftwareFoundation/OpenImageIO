@@ -1463,6 +1463,10 @@ run_bench_phases()
     std::cout << Strutil::fmt::format(
         "construct_ms (true cold, subprocess): {:10.4f}\n",
         subprocess_construct_ms);
+}
+
+
+
 // Exercise the built-in color interop ID <-> CICP table via the public
 // ColorConfig API (the table itself is a private, static array in
 // color_ocio.cpp, so it can only be reached through get_color_interop_id()
@@ -1497,8 +1501,11 @@ test_color_interop_ids()
         OIIO_CHECK_EQUAL(cicp[0], 1);   // CICPPrimaries::Rec709
         OIIO_CHECK_EQUAL(cicp[1], 13);  // CICPTransfer::sRGB
         OIIO_CHECK_EQUAL(cicp[2], 1);   // CICPMatrix::BT709
+        // The reverse lookup matches on (primaries, transfer) alone, and
+        // srgb_rec709_display is listed ahead of srgb_rec709_scene, so the
+        // shared Rec709/sRGB tuple resolves display-referred.
         OIIO_CHECK_EQUAL(cc.get_color_interop_id(cicp.data()),
-                         "srgb_rec709_scene");
+                         "srgb_rec709_display");
     }
 
     // Entries with no CICP mapping (e.g. AP1/AP0 scene-linear, "data",
@@ -1509,12 +1516,29 @@ test_color_interop_ids()
 
     // get_color_interop_id(cicp) picks the first table match by
     // (primaries, transfer) alone -- matrix and range are not part of the
-    // lookup key. Scene-referred entries are listed first in the table, so
-    // for CICP tuples shared with a later display-referred entry (e.g.
-    // Rec709/sRGB), the scene-referred interop ID is returned.
+    // lookup key. srgb_rec709_display is listed ahead of srgb_rec709_scene,
+    // so the shared Rec709/sRGB tuple resolves display-referred.
     const int rec709_srgb_cicp[4] = { 1, 13, 1, 1 };
     OIIO_CHECK_EQUAL(cc.get_color_interop_id(rec709_srgb_cicp),
-                     "srgb_rec709_scene");
+                     "srgb_rec709_display");
+}
+
+
+
+// The CICP tuple with Rec.709 primaries (1) and the IEC 61966-2-1 / sRGB
+// transfer (13) describes display-referred sRGB. The reverse CICP -> interop-ID
+// lookup (matched on primaries + transfer) must therefore resolve it to the
+// display-referred identity, not the scene-referred one.
+static void
+test_cicp_interop_id()
+{
+    ColorConfig config;
+    const int cicp_srgb[4] = { 1, 13, 0, 1 };
+    OIIO_CHECK_EQUAL(config.get_color_interop_id(cicp_srgb),
+                     string_view("srgb_rec709_display"));
+    // Forward mapping round-trips to a Rec.709 / sRGB tuple.
+    cspan<int> cicp = config.get_cicp("srgb_rec709_display");
+    OIIO_CHECK_ASSERT(cicp.size() >= 2 && cicp[0] == 1 && cicp[1] == 13);
 }
 
 
@@ -1555,6 +1579,7 @@ main(int argc, char* argv[])
     if (bench_mode)
         run_bench_phases();
     test_color_interop_ids();
+    test_cicp_interop_id();
 
     return unit_test_failures != 0;
 }
