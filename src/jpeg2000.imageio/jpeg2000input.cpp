@@ -597,17 +597,11 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
             return false;
         }
 
-        // Also guard against decompression bombs: a tiny codestream claiming
-        // an implausibly large uncompressed size, still under the absolute
-        // limit above.
-        const imagesize_t bomb_ratio = 10000;
-        imagesize_t uncompressed     = provspec.image_bytes(true);
-        int64_t filesize             = ioproxy() ? ioproxy()->size() : 0;
-        if (uncompressed > (imagesize_t(1) << 30) && filesize > 0
-            && uncompressed > imagesize_t(filesize) * bomb_ratio) {
-            errorfmt("JPEG2000 header claims a {} MB image from a {} byte file; "
-                     "probably a corrupt or malicious header",
-                     uncompressed >> 20, filesize);
+        // Guard against decompression bombs / corrupt headers: a tiny
+        // codestream claiming a multi-gigabyte image, which opj_decode
+        // would then hang and allocate gigabytes trying to produce.
+        imagesize_t filesize = ioproxy() ? ioproxy()->size() : 0;
+        if (!check_compression_ratio(provspec, filesize)) {
             close();
             return false;
         }
