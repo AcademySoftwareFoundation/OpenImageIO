@@ -109,15 +109,16 @@ test_ciid_registry_bridge()
 
 // Vector 2: ciid="unknown" is an unusable payload -- it falls through, and
 // the CICP identity resolves instead. (OIIO's CICP table maps (1,13) to the
-// scene-referred identity; the prototype's registry preferred the display
-// twin -- OIIO's central mapping is authoritative here.)
+// display-referred identity -- CICP describes display encodings, so
+// srgb_rec709_display is listed ahead of the scene twin and wins on read;
+// OIIO's central mapping is authoritative here.)
 static void
 test_unknown_ciid_falls_through_to_cicp(const ColorConfig& config)
 {
     ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
     f.color_interop_id   = "unknown";
     auto e               = resolve_color_metadata(&config, "", f, {}, {});
-    OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
     // The interop-id rule was visited and missed; CICP matched.
     bool saw_ciid_missed = false, saw_cicp_matched = false;
     for (auto& s : e.steps) {
@@ -174,7 +175,7 @@ test_garbage_icc_falls_through(const ColorConfig& config)
     ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
     f.icc_profile        = std::vector<unsigned char>(200, 0x42);
     auto e               = resolve_color_metadata(&config, "", f, {}, {});
-    OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
     bool icc_invalid = false;
     for (auto& s : e.steps)
         if (s.rule == ColorRule::IccProfile
@@ -220,7 +221,7 @@ test_icc_over_cicp(const ColorConfig& config)
     f.icc_profile        = fake_icc_profile();
     auto e               = resolve_color_metadata(&config, "", f, {}, {});
     OIIO_CHECK_ASSERT(Strutil::starts_with(e.resolved, "icc:"));
-    OIIO_CHECK_ASSERT(e.resolved != "srgb_rec709_scene");
+    OIIO_CHECK_ASSERT(e.resolved != "srgb_rec709_display");
 }
 
 
@@ -280,14 +281,15 @@ test_reconcile_entry_point()
     }
     {
         // A CICP tuple overrides the color space with the interop id it maps
-        // to (Rec.709 primaries + sRGB transfer -> srgb_rec709_scene), and the
-        // CICP source attribute is kept in place.
+        // to (Rec.709 primaries + sRGB transfer -> srgb_rec709_display; CICP
+        // describes display encodings, so the display twin wins on read), and
+        // the CICP source attribute is kept in place.
         ImageSpec spec(4, 4, 3, TypeFloat);
         const int cicp[4] = { 1, 13, 0, 1 };
         spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
         reconcile_color_metadata(spec, ColorReadPolicy());
         OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
-                         "srgb_rec709_scene");
+                         "srgb_rec709_display");
         OIIO_CHECK_EQUAL(spec.find_attribute("CICP") != nullptr, true);
     }
 }

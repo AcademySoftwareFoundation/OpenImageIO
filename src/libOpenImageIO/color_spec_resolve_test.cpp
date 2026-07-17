@@ -25,10 +25,11 @@ using namespace OIIO;
 using namespace OIIO::pvt;
 
 
-// A small, valid OCIO config whose srgb_rec709_scene carries a real
+// A small, valid OCIO config whose srgb_rec709_display carries a real
 // (non-identity) transform, so pixel values distinguish which source space
-// a conversion actually used. CICP (1,13,*,*) maps to srgb_rec709_scene via
-// the built-in table, which this config resolves locally.
+// a conversion actually used. CICP (1,13,*,*) maps to srgb_rec709_display
+// via the built-in table (CICP describes display encodings, so the display
+// twin is listed first), which this config resolves locally.
 static std::string
 write_test_config()
 {
@@ -56,6 +57,8 @@ colorspaces:
     name: lin_ap1_scene
   - !<ColorSpace>
     name: srgb_rec709_scene
+  - !<ColorSpace>
+    name: srgb_rec709_display
     from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1.0]}
 )";
     f.close();
@@ -169,7 +172,7 @@ test_same_hints_same_answer(const ColorConfig& config)
     auto a = resolve_color_metadata(&config, "", facts, {}, {});
     auto b = resolve_color_metadata(&config, spec, {}, {});
     OIIO_CHECK_EQUAL(a.resolved, b.resolved);
-    OIIO_CHECK_EQUAL(a.resolved, "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(a.resolved, "srgb_rec709_display");
     OIIO_CHECK_EQUAL(a.steps.size(), b.steps.size());
     for (size_t i = 0; i < a.steps.size() && i < b.steps.size(); ++i) {
         OIIO_CHECK_EQUAL(int(a.steps[i].rule), int(b.steps[i].rule));
@@ -191,7 +194,7 @@ test_config_or_registry_failover(const ColorConfig& sparse)
     spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
 
     auto lenient = resolve_color_metadata(&sparse, spec, {}, {});
-    OIIO_CHECK_EQUAL(lenient.resolved, "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(lenient.resolved, "srgb_rec709_display");
     OIIO_CHECK_ASSERT(lenient.has_genuine_metadata_match());
 
     ColorReadPolicy config_only;
@@ -212,7 +215,7 @@ test_infer_helper(const ColorConfig& config)
         ImageSpec spec(4, 4, 3, TypeFloat);
         spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
         OIIO_CHECK_EQUAL(infer_color_space_from_spec(&config, spec, {}, {}),
-                         "srgb_rec709_scene");
+                         "srgb_rec709_display");
     }
     {
         // Wide-gamut chromaticities resolve only to a custom: synthetic --
@@ -233,7 +236,7 @@ test_infer_helper(const ColorConfig& config)
                        TypeDesc(TypeDesc::UINT8, int(icc.size())), icc.data());
         spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
         OIIO_CHECK_EQUAL(infer_color_space_from_spec(&config, spec, {}, {}),
-                         "srgb_rec709_scene");
+                         "srgb_rec709_display");
     }
     {
         ImageSpec spec(4, 4, 3, TypeFloat);  // no hints at all
@@ -260,7 +263,7 @@ test_iba_inference(const ColorConfig& config)
                                                    true, "", "", &config);
     OIIO_CHECK_ASSERT(!inferred.has_error());
     ImageBuf explicit_src
-        = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
+        = ImageBufAlgo::colorconvert(src, "srgb_rec709_display",
                                      "lin_test_scene", true, "", "", &config);
     OIIO_CHECK_ASSERT(!explicit_src.has_error());
     auto cmp = ImageBufAlgo::compare(inferred, explicit_src, 0.0f, 0.0f);
