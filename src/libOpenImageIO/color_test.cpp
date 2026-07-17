@@ -1367,6 +1367,290 @@ test_icc_utils()
 
 
 
+// ---------------------------------------------------------------------------
+// ICC identification fixtures, built in-memory (port of the proven POC
+// fixture generator). The rXYZ/gXYZ/bXYZ colorant matrices are the
+// primaries' NPM Bradford-adapted from D65 to the ICC PCS illuminant D50
+// (dst = the header illuminant XYZ 0.9642/1.0/0.8249, NOT xy-derived D50),
+// which is the exact inverse of the hardcoded D50->D65 adaptation OCIO's
+// ICC reader composes in on decode -- so the decoded fixture recovers its
+// nominal D65 primaries. The matrix values are precomputed s15Fixed16
+// integers; the construction math is not repeated here.
+// ---------------------------------------------------------------------------
+
+namespace icc_fixture {
+
+static void
+be16(std::vector<uint8_t>& v, uint16_t x)
+{
+    v.push_back(uint8_t(x >> 8));
+    v.push_back(uint8_t(x));
+}
+
+static void
+be32(std::vector<uint8_t>& v, uint32_t x)
+{
+    v.push_back(uint8_t(x >> 24));
+    v.push_back(uint8_t(x >> 16));
+    v.push_back(uint8_t(x >> 8));
+    v.push_back(uint8_t(x));
+}
+
+static void
+tag4(std::vector<uint8_t>& v, const char* sig)
+{
+    v.insert(v.end(), sig, sig + 4);
+}
+
+// 'XYZ ' tag from three s15Fixed16 raw integers.
+static std::vector<uint8_t>
+xyz_tag(int32_t x, int32_t y, int32_t z)
+{
+    std::vector<uint8_t> t;
+    tag4(t, "XYZ ");
+    be32(t, 0);
+    be32(t, uint32_t(x));
+    be32(t, uint32_t(y));
+    be32(t, uint32_t(z));
+    return t;
+}
+
+// 'curv' tag: gamma (one u8Fixed8 entry) or a full u16 table.
+static std::vector<uint8_t>
+curv_gamma(float g)
+{
+    std::vector<uint8_t> t;
+    tag4(t, "curv");
+    be32(t, 0);
+    be32(t, 1);
+    be16(t, uint16_t(std::lround(g * 256.0f)));
+    return t;
+}
+
+static std::vector<uint8_t>
+curv_srgb_table(int n = 1024)
+{
+    std::vector<uint8_t> t;
+    tag4(t, "curv");
+    be32(t, 0);
+    be32(t, uint32_t(n));
+    for (int i = 0; i < n; ++i) {
+        double x = double(i) / (n - 1);
+        double y = x <= 0.04045 ? x / 12.92
+                                : std::pow((x + 0.055) / 1.055, 2.4);
+        be16(t,
+             uint16_t(std::lround(std::min(std::max(y, 0.0), 1.0) * 65535.0)));
+    }
+    return t;
+}
+
+// ICC v2 'desc' (textDescription) tag, ASCII record only.
+static std::vector<uint8_t>
+desc_tag(const char* text)
+{
+    std::vector<uint8_t> t;
+    tag4(t, "desc");
+    be32(t, 0);
+    const size_t len = strlen(text) + 1;  // include NUL
+    be32(t, uint32_t(len));
+    t.insert(t.end(), text, text + len);
+    t.insert(t.end(), 8 + 3 + 67, 0);  // unicode + scriptcode + mac records
+    return t;
+}
+
+// D50 header illuminant / wtpt as s15Fixed16 (0.9642, 1.0, 0.8249).
+static const int32_t kD50[3] = { 63190, 65536, 54061 };
+
+// Assemble header + tag table + 4-byte-aligned bodies; profile_size at 0.
+static std::vector<uint8_t>
+assemble(const std::vector<std::pair<const char*, std::vector<uint8_t>>>& tags)
+{
+    std::vector<uint8_t> h(128, 0);
+    memcpy(h.data() + 4, "oici", 4);                   // CMM
+    h[8] = 2, h[9] = 0x40;                             // version 2.4
+    memcpy(h.data() + 12, "mntr", 4);                  // device class
+    memcpy(h.data() + 16, "RGB ", 4);                  // data color space
+    memcpy(h.data() + 20, "XYZ ", 4);                  // PCS
+    h[24] = 0x07, h[25] = 0xEA, h[27] = 7, h[29] = 9;  // fixed date
+    memcpy(h.data() + 36, "acsp", 4);                  // signature
+    std::vector<uint8_t> illum;
+    be32(illum, uint32_t(kD50[0]));
+    be32(illum, uint32_t(kD50[1]));
+    be32(illum, uint32_t(kD50[2]));
+    std::copy(illum.begin(), illum.end(), h.begin() + 68);
+
+    const uint32_t n = uint32_t(tags.size());
+    uint32_t offset  = 128 + 4 + 12 * n;
+    std::vector<uint8_t> table, body;
+    be32(table, n);
+    for (const auto& [sig, data] : tags) {
+        tag4(table, sig);
+        be32(table, offset);
+        be32(table, uint32_t(data.size()));
+        body.insert(body.end(), data.begin(), data.end());
+        const size_t pad = (4 - data.size() % 4) % 4;
+        body.insert(body.end(), pad, 0);
+        offset += uint32_t(data.size() + pad);
+    }
+    std::vector<uint8_t> blob = std::move(h);
+    blob.insert(blob.end(), table.begin(), table.end());
+    blob.insert(blob.end(), body.begin(), body.end());
+    blob[0] = uint8_t(blob.size() >> 24);
+    blob[1] = uint8_t(blob.size() >> 16);
+    blob[2] = uint8_t(blob.size() >> 8);
+    blob[3] = uint8_t(blob.size());
+    return blob;
+}
+
+// Standard sRGB: Rec.709 primaries / D65, Bradford-adapted to D50
+// (s15Fixed16 columns R,G,B), tabulated sRGB EOTF.
+static std::vector<uint8_t>
+srgb_profile()
+{
+    auto trc = curv_srgb_table();
+    return assemble({
+        { "desc", desc_tag("oiio sRGB v2 fixture") },
+        { "rXYZ", xyz_tag(28576, 14581, 912) },
+        { "gXYZ", xyz_tag(25239, 46983, 6361) },
+        { "bXYZ", xyz_tag(9375, 3972, 46787) },
+        { "wtpt", xyz_tag(kD50[0], kD50[1], kD50[2]) },
+        { "rTRC", trc },
+        { "gTRC", trc },
+        { "bTRC", trc },
+    });
+}
+
+// Decodable but nonstandard: wide-gamut primaries, gamma 1.8 -- matches no
+// registry identity.
+static std::vector<uint8_t>
+wide_profile()
+{
+    auto trc = curv_gamma(1.8f);
+    return assemble({
+        { "desc", desc_tag("oiio custom wide-gamut g1.8 fixture") },
+        { "rXYZ", xyz_tag(53445, 19596, -193) },
+        { "gXYZ", xyz_tag(10487, 47072, 629) },
+        { "bXYZ", xyz_tag(-742, -1131, 53624) },
+        { "wtpt", xyz_tag(kD50[0], kD50[1], kD50[2]) },
+        { "rTRC", trc },
+        { "gTRC", trc },
+        { "bTRC", trc },
+    });
+}
+
+// cLUT-only profile: A2B0 (lut8Type), no matrix/TRC tags -> OCIO's
+// matrix/TRC reader cannot build a transform and must refuse it.
+static std::vector<uint8_t>
+clut_profile()
+{
+    std::vector<uint8_t> a2b;
+    tag4(a2b, "mft1");
+    be32(a2b, 0);
+    a2b.push_back(3);  // in channels
+    a2b.push_back(3);  // out channels
+    a2b.push_back(2);  // grid points
+    a2b.push_back(0);
+    for (int v : { 1, 0, 0, 0, 1, 0, 0, 0, 1 })  // identity matrix s15f16
+        be32(a2b, uint32_t(v * 65536));
+    for (int i = 0; i < 3; ++i)  // input tables
+        a2b.insert(a2b.end(), { 0x00, 0xFF });
+    for (int r : { 0, 255 })  // 2^3 CLUT grid, 3 outputs
+        for (int g : { 0, 255 })
+            for (int b : { 0, 255 })
+                a2b.insert(a2b.end(), { uint8_t(r), uint8_t(g), uint8_t(b) });
+    for (int i = 0; i < 3; ++i)  // output tables
+        a2b.insert(a2b.end(), { 0x00, 0xFF });
+    return assemble({
+        { "desc", desc_tag("oiio cLUT A2B fixture") },
+        { "wtpt", xyz_tag(kD50[0], kD50[1], kD50[2]) },
+        { "A2B0", a2b },
+    });
+}
+
+}  // namespace icc_fixture
+
+
+
+static void
+test_identify_icc()
+{
+    using OIIO::pvt::icc_profile_identifier;
+    using OIIO::pvt::identify_icc_profile;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    Strutil::print("Testing ICC profile identification\n");
+    ColorConfig config("ocio://default");
+
+    // Non-ICC bytes: empty id, not decodable (invalid input, not a color
+    // answer).
+    {
+        std::vector<uint8_t> junk(200, 0x42);
+        auto r = identify_icc_profile(config, junk);
+        OIIO_CHECK_EQUAL(r.id, "");
+        OIIO_CHECK_EQUAL(r.decodable, false);
+    }
+
+    // Standard sRGB profile: decodes and fingerprint-matches the registry
+    // sRGB display identity -- the result must carry srgb_rec709_display
+    // semantics (caller-local name or the bare CIID) and must NOT be an
+    // "icc:" token (identify-first: no token for a matched profile).
+    const auto srgb = icc_fixture::srgb_profile();
+    {
+        auto r = identify_icc_profile(config, srgb);
+        OIIO_CHECK_EQUAL(r.decodable, true);
+        OIIO_CHECK_ASSERT(!r.id.empty());
+        OIIO_CHECK_ASSERT(!Strutil::starts_with(r.id, "icc:"));
+        const bool srgb_semantics = r.id == "srgb_rec709_display"
+                                    || config.get_color_interop_id(r.id)
+                                           == "srgb_rec709_display";
+        OIIO_CHECK_ASSERT(srgb_semantics);
+        if (!srgb_semantics)
+            Strutil::print("  (identified as '{}')\n", r.id);
+    }
+
+    // Decodable but nonstandard profile: no registry identity matches, so
+    // the answer is the bare deterministic "icc:<identifier>" token
+    // (16-hex XXH64 for a v2 profile). Idempotent across calls.
+    const auto wide = icc_fixture::wide_profile();
+    {
+        const std::string token = "icc:" + icc_profile_identifier(wide);
+        OIIO_CHECK_EQUAL(token.size(), 4 + 16);
+        auto r = identify_icc_profile(config, wide);
+        OIIO_CHECK_EQUAL(r.decodable, true);
+        OIIO_CHECK_EQUAL(r.id, token);
+        auto again = identify_icc_profile(config, wide);
+        OIIO_CHECK_EQUAL(again.id, token);
+    }
+
+    // cLUT/AToB profile: structurally ICC but OCIO's matrix/TRC reader
+    // refuses it -> bare token, decodable false.
+    const auto clut = icc_fixture::clut_profile();
+    {
+        auto r = identify_icc_profile(config, clut);
+        OIIO_CHECK_EQUAL(r.decodable, false);
+        OIIO_CHECK_EQUAL(r.id, "icc:" + icc_profile_identifier(clut));
+    }
+
+    // Distinct profiles stay distinct across interleaved identifications:
+    // the content-unique virtual filename keeps OCIO's process-global file
+    // hash cache from handing one profile's processor to another (the
+    // classic collision would "decode" the cLUT as the previously-seen
+    // sRGB).
+    {
+        auto r1 = identify_icc_profile(config, srgb);
+        auto r2 = identify_icc_profile(config, clut);
+        auto r3 = identify_icc_profile(config, srgb);
+        OIIO_CHECK_EQUAL(r2.decodable, false);
+        OIIO_CHECK_EQUAL(r1.decodable, true);
+        OIIO_CHECK_EQUAL(r3.id, r1.id);
+        OIIO_CHECK_ASSERT(r1.id != r2.id);
+    }
+}
+
+
+
 static void
 test_interop_derive()
 {
@@ -1681,6 +1965,7 @@ main(int argc, char* argv[])
     test_color_space_fingerprint_cache();
     test_interop_resolve();
     test_icc_utils();
+    test_identify_icc();
     test_interop_derive();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run

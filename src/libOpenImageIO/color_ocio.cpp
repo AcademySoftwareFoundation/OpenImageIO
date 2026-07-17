@@ -5072,6 +5072,174 @@ registry_id_for_fingerprint(const RegistryFingerprintIndex& index,
     return {};
 }
 
+
+
+// ---------------------------------------------------------------------------
+// ICC profile identification -- decode an embedded ICC profile through
+// OCIO's matrix/TRC ICC FileTransform reader inside a throwaway in-memory
+// probe config, then fingerprint the decoded transform against the interop
+// identities registry above. Mirror-inside: the reader's acceptance rules
+// (colorant matrix + per-channel tone curves, hardcoded Bradford D50->D65
+// adaptation) are OCIO's, never re-derived here.
+// ---------------------------------------------------------------------------
+
+// Serves the embedded ICC blob to OCIO's ICC FileTransform reader without
+// touching disk. The probe config is built in code (never parsed), so
+// getConfigData() is intentionally empty -- OCIO only consults the proxy
+// for LUT/file reads once setConfigIOProxy is attached to an
+// already-constructed config. The config carries exactly one file (the
+// virtual profile name), which OCIO absolutizes against the config's
+// search path before asking the proxy -- so serve the single blob for any
+// non-null request rather than matching the (absolutized) filename.
+class IccBlobProxy final : public OCIO::ConfigIOProxy {
+public:
+    IccBlobProxy(cspan<uint8_t> blob, std::string hash)
+        : m_blob(blob.begin(), blob.end())
+        , m_hash(std::move(hash))
+    {
+    }
+
+    std::vector<uint8_t> getLutData(const char* filepath) const override
+    {
+        if (filepath)
+            return m_blob;
+        throw OCIO::Exception("IccBlobProxy: unexpected LUT request");
+    }
+    std::string getConfigData() const override { return {}; }
+    std::string getFastLutFileHash(const char* filepath) const override
+    {
+        return filepath ? m_hash : std::string();
+    }
+
+private:
+    std::vector<uint8_t> m_blob;
+    std::string m_hash;
+};
+
+
+
+// Build the throwaway probe config for one ICC profile: a display-referred
+// space "icc_probe" whose to_reference is a FileTransform on the profile
+// set INVERSE (OCIO's ICC FileTransform forward maps reference(PCS) ->
+// device; inverting makes to_reference DECODE device code values into the
+// CIE-XYZ-D65 display reference), plus an identity "cie_xyz_d65" space
+// carrying the display interchange role so the fingerprint probe values
+// are already in the reference and normalization is a no-op.
+//
+// The per-profile virtual filename embeds the content identifier -- this
+// is load-bearing, NOT cosmetic: OCIO's process-global GetFastFileHash
+// cache (PathUtils.cpp) keys purely on the resolved filename and never
+// re-consults the ConfigIOProxy, and a config's processor cache ID hashes
+// its serialization (which embeds the src). A shared filename would make
+// every probe config collide on both keys, handing back the FIRST
+// profile's processor for every later profile in the process (e.g. an
+// undecodable cLUT "decoding" as a previously-seen sRGB). A content-unique
+// name keeps distinct profiles distinct.
+OCIO::ConstConfigRcPtr
+make_icc_probe_config(cspan<uint8_t> iccdata)
+{
+    const std::string hash = OIIO::pvt::icc_profile_identifier(iccdata);
+    // Start from CreateRaw's minimal working config (current version, "raw"
+    // space + default role already valid). validate() rejects an empty
+    // search_path when a FileTransform is present, so set one -- the actual
+    // bytes come from the ConfigIOProxy, never this path.
+    auto cfg = OCIO::Config::CreateRaw()->createEditableCopy();
+    cfg->setName("oiio-icc-probe");
+    cfg->setSearchPath(".");
+    // Every processor built against the probe is a one-shot; a per-config
+    // processor cache would only add mutex serialization and retained
+    // processors.
+    cfg->setProcessorCacheFlags(OCIO::PROCESSOR_CACHE_OFF);
+
+    auto xyz = OCIO::ColorSpace::Create(OCIO::REFERENCE_SPACE_DISPLAY);
+    xyz->setName("cie_xyz_d65");
+    cfg->addColorSpace(xyz);
+    cfg->setRole(OCIO::ROLE_INTERCHANGE_DISPLAY, "cie_xyz_d65");
+
+    // OCIO validation requires a view transform whenever display-referred
+    // spaces exist; bridge scene AP0 <-> CIE-XYZ-D65 with the standard
+    // utility builtin (also wires the scene interchange, matching the
+    // registry topology).
+    auto ap0 = OCIO::ColorSpace::Create(OCIO::REFERENCE_SPACE_SCENE);
+    ap0->setName("lin_ap0");
+    cfg->addColorSpace(ap0);
+    cfg->setRole(OCIO::ROLE_INTERCHANGE_SCENE, "lin_ap0");
+    auto bridge = OCIO::ViewTransform::Create(OCIO::REFERENCE_SPACE_SCENE);
+    bridge->setName("scene_to_display_bridge");
+    auto toxyz = OCIO::BuiltinTransform::Create();
+    toxyz->setStyle("UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD");
+    bridge->setTransform(toxyz, OCIO::VIEWTRANSFORM_DIR_FROM_REFERENCE);
+    cfg->addViewTransform(bridge);
+    cfg->setDefaultViewTransformName("scene_to_display_bridge");
+
+    auto probe = OCIO::ColorSpace::Create(OCIO::REFERENCE_SPACE_DISPLAY);
+    probe->setName("icc_probe");
+    auto ft = OCIO::FileTransform::Create();
+    ft->setSrc(("embedded_" + hash + ".icc").c_str());
+    ft->setDirection(OCIO::TRANSFORM_DIR_INVERSE);
+    probe->setTransform(ft, OCIO::COLORSPACE_DIR_TO_REFERENCE);
+    cfg->addColorSpace(probe);
+
+    cfg->setConfigIOProxy(std::make_shared<IccBlobProxy>(iccdata, hash));
+    cfg->validate();
+    return cfg;
+}
+
+
+
+// Core of pvt::identify_icc_profile() (the pvt shim at the end of this
+// file forwards here). Identify-first: a profile that decodes and matches
+// a registry identity yields that identity (resolved against the caller's
+// config when possible); a decodable-but-unmatched profile yields the bare
+// "icc:<identifier>" token. There is deliberately NO session-synthetic
+// registration on this branch -- nothing consumes a registered synthetic
+// yet, so the token itself is the complete answer for the unmatched case.
+OIIO::pvt::IccIdentifyResult
+identify_icc_profile_impl(const ColorConfig& config, cspan<uint8_t> iccdata)
+{
+    OIIO::pvt::IccIdentifyResult result;
+    if (!OIIO::pvt::is_icc_profile(iccdata))
+        return result;  // not ICC: empty id, decodable false
+    const std::string token = "icc:"
+                              + OIIO::pvt::icc_profile_identifier(iccdata);
+
+    // Decode-validate eagerly: undecodable profiles (cLUT/AToB -- OCIO's
+    // reader is matrix/TRC-only) throw when the processor is built.
+    OCIO::ConstConfigRcPtr probecfg;
+    try {
+        probecfg = make_icc_probe_config(iccdata);
+        probecfg->getProcessor("icc_probe", "cie_xyz_d65");
+    } catch (...) {
+        result.id = token;
+        return result;  // decodable stays false
+    }
+    result.decodable = true;
+
+    // Fingerprint the decoded profile against the registry identities. The
+    // probe values are authored in CIE-XYZ-D65, which IS this config's
+    // display reference, so initialize_probe_values leaves them untouched.
+    std::string ciid;
+    try {
+        auto context       = probecfg->getCurrentContext();
+        ProbeValues probes = initialize_probe_values(probecfg, context);
+        if (auto fp = compute_fingerprint(probecfg,
+                                          probecfg->getColorSpace("icc_probe"),
+                                          context, probes))
+            ciid = registry_id_for_fingerprint(registry_fingerprint_index(),
+                                               *fp);
+    } catch (...) {
+    }
+    if (ciid.empty()) {
+        result.id = token;  // decodable, unmatched
+        return result;
+    }
+    // Prefer a caller-local resolution of the matched identity; fall back
+    // to the canonical interop id itself.
+    string_view local = config.resolve(ciid);
+    result.id         = local.empty() ? ciid : std::string(local);
+    return result;
+}
+
 }  // namespace
 
 
@@ -5583,6 +5751,12 @@ color_config_interopified_cache_off(const ColorConfig& config)
 {
     auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
     return impl ? impl->interopifiedCacheOff() : false;
+}
+
+IccIdentifyResult
+identify_icc_profile(const ColorConfig& config, cspan<uint8_t> iccdata)
+{
+    return v3_1::identify_icc_profile_impl(config, iccdata);
 }
 
 }  // namespace pvt

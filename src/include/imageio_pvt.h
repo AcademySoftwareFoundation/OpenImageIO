@@ -345,6 +345,33 @@ icc_profile_identifier(cspan<uint8_t> iccdata);
 OIIO_API bool
 icc_embedded_cicp(cspan<uint8_t> iccdata, int cicp[4]);
 
+/// Result of identify_icc_profile(). The three shapes:
+///   - id empty, decodable false: the bytes are not an ICC profile at all
+///     (failed is_icc_profile) -- invalid input, not a color answer.
+///   - id == "icc:<identifier>", decodable false: structurally an ICC
+///     profile, but OCIO's matrix/TRC reader cannot decode it (cLUT/AToB
+///     transform). The token names the profile without asserting any
+///     colorimetry; callers should let weaker color hints win.
+///   - id non-empty, decodable true: the decoded profile either matched a
+///     built-in registry identity (id is the caller-local space name when
+///     the caller's config resolves the identity, else the canonical
+///     interop id) or matched nothing (id is the bare "icc:<identifier>"
+///     token).
+struct IccIdentifyResult {
+    std::string id;
+    bool decodable = false;
+};
+
+/// Identify the color space of an embedded ICC profile blob as a color
+/// interop ID, by decoding it through OCIO's matrix/TRC ICC reader inside
+/// a throwaway in-memory probe config and fingerprinting the decoded
+/// transform against the built-in interop identities registry. `config` is
+/// only consulted to prefer a caller-local resolution of a matched
+/// identity (ColorConfig::resolve); identification itself runs entirely
+/// against the process-global registry. Never throws.
+OIIO_API IccIdentifyResult
+identify_icc_profile(const ColorConfig& config, cspan<uint8_t> iccdata);
+
 
 // ---------------------------------------------------------------------------
 // Color-space classification -- how ColorConfig internally classifies a
