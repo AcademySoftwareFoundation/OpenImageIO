@@ -24,9 +24,12 @@ public:
             // as per the KTX1/2 specs:
             // https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
             feature == "arbitrary_metadata" ||
-            /* ktx supports 3D textures, cubmap textures, texture arrays, etc. */
+            // KTX2 supports 2D texture arrays, 3D texture arrays, and cubemap
+            // arrays. That being said, 2D texture arrays is the only one
+            // supported by this OIIO plugin.
             feature == "multiimage" ||
-            /* ktx supports storage of mipmaps */
+            // KTX2 supports mipmaps. 3D texture mipmaps are treated as a
+            // per-slice mipmap.
             feature == "mipmap");
     }
 
@@ -240,6 +243,16 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
+    if (m_tex->isArray && m_tex->numDimensions == 3) {
+        errorfmt("3D texture arrays are not supported");
+        return false;
+    }
+
+    if (m_tex->isArray && m_tex->numFaces > 1) {
+        errorfmt("Cubemap texture arrays are not supported");
+        return false;
+    }
+
     m_spec       = ImageSpec(m_tex->baseWidth, m_tex->baseHeight,
                              4 /* dummy value - will be overwritten */,
                              TypeDesc::UINT8);
@@ -280,15 +293,10 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.extra_attribs.attribute("ktx:miplevels", m_tex->numLevels);
     m_spec.extra_attribs.attribute("ktx:generatemipmaps",
                                    m_tex->generateMipmaps);
-
-    // Store colormodel so that if a KTX2 is requested to be generated, we know
-    // if a Basis Universal scheme has to be applied.
+    // TODO: do we need this?
     m_spec.extra_attribs.attribute("ktx:colormodel",
                                    (uint32_t)KHR_DFDVAL(m_tex->pDfd + 1, MODEL));
     m_spec.extra_attribs.attribute("ktx:vkformat", (uint32_t)m_tex->vkFormat);
-
-    // m_spec.extra_attribs.attribute("ktx:transferfunction", TypeDesc::UINT32, 1,
-    //                                cspan<uint32_t>(transfer_function));
 
     //
     // Save arbitrary metadata. KTX allows for the storage of arbitrary
@@ -339,15 +347,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             auto ktx_prefixed_attr_name = fmt::format("ktx:{}", attr_name);
 
             if (attr_name == KTX_WRITER_KEY) {
-                // KTXwriter identifies the program used to write this KTX file
-                // Should be NUL terminated.
-                if (vallen <= 1)
-                    continue;
-                auto char_ptr = reinterpret_cast<const char*>(val);
-                m_spec.extra_attribs.attribute(
-                    ktx_prefixed_attr_name,
-                    std::string(char_ptr, char_ptr + (vallen - 1)));
-
+                // KTXwriter identifies the program used to write this KTX file.
+                // We don't care about such entry
+                continue;
             } else if (attr_name == KTX_WRITER_SCPARAMS_KEY) {
                 // KTXwriterScParams is used to report all kinds of non-default parameters used by ktx tools to write this KTX2 file.
                 // This includes:
@@ -458,10 +460,12 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //          TODO: wait for my RP in libktx to get merged then add BCn
     //          support.
     //
-    //    ETC2: TODO: some licensing clarification is needed from the part of
-    //                etcunpack usage in libktx.
+    //    ETC2: libktx provides decoders but they fall under non-open-source
+    //          license. To quote KTX-Software: "The file lib/etcdec.cxx is not
+    //          open source. It is made available under the terms of an Ericsson
+    //          license, found in the file itself."
     //
-    //    PVRTC: TODO: wait for libktx PR.
+    //    PVRTC: not planned (there are pending PRs in libktx).
     //
     if (m_tex->isCompressed /* i.e., is GPU block compressed? */) {
         // m_cmp = get_block_compression_from_format(m_tex->vkFormat);
@@ -471,11 +475,12 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             close();
             errorfmt("Could not extract format info from provided "
                      "VkFormat: {}. This format is unsupported",
-                     static_cast<uint32_t>(m_vkformat));
+                     m_tex->vkFormat);
             return false;
         }
         m_cmp = format_info.compression;
         switch (m_cmp) {
+#if 0  // TODO: wait for my PR in libktx to be merged
             /* BCn GPU formats */
         case BlockCompression::BC1:
         case BlockCompression::BC1A:
@@ -487,8 +492,6 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         case BlockCompression::BC6HS:
         case BlockCompression::BC7:
             //
-            // TODO: wait for my PR in libktx to be merged
-            //
             // Note:
             // ktxTexture2_DecodeBCn internally creates a new ktxTexture2 texture
             // and populates it with decoded data from the originally provided
@@ -499,27 +502,18 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             // After this, m_tex->isCompressed will be false => this will only
             // be called once.
             //
-            // if (auto status = ktxTexture2_DecodeBCn(m_tex);
-            //     status != KTX_SUCCESS) {
-            //     errorfmt("failed to decode BCn-compressed texture. "
-            //              "ktxTexture2_DecodeBCn returned Ktx error code: {}",
-            //              static_cast<uint32_t>(status));
-            //     return false;
-            // }
-            // break;
-            errorfmt("BCn GPU-compressed formats are not yet supported.");
-            return false;
-
-            /* ETC formats */
-        case BlockCompression::ETC2_RGB:
-        case BlockCompression::ETC2_RGB_A1:
-        case BlockCompression::ETC2_RGBA:
-            errorfmt("ETC GPU-compressed formats are not yet supported.");
-            return false;
+            if (auto status = ktxTexture2_DecodeBCn(m_tex);
+                status != KTX_SUCCESS) {
+                errorfmt("failed to decode BCn-compressed texture. "
+                         "ktxTexture2_DecodeBCn returned Ktx error code: {}",
+                         static_cast<uint32_t>(status));
+                return false;
+            }
+            break;
+#endif
 
             /* ASTC formats */
         case BlockCompression::ASTC:
-#if Ktx_VERSION > OIIO_MAKE_VERSION(4, 3, 2) || Ktx_VERSION == Ktx_VERSIONLESS
             //
             // Note:
             // ktxTexture2_DecodeAstc internally creates a new ktxTexture2 texture
@@ -539,15 +533,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             }
             break;
-#else
-            errorfmt(
-                "ASTC decoding is not available in libktx v{}. Consider using libktx > 4.3.2",
-                Ktx_VERSION);
-            return false;
-#endif
 
         default:
-            errorfmt("GPU block compression format {} is unsupported",
+            errorfmt("{} GPU-compressed formats are not supported",
                      block_compression_name(m_cmp));
             return false;
         }

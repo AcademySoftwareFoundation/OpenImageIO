@@ -8,6 +8,9 @@
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
+// TODO:
+//  - Should we add support to 2D texture arrays (i.e., "multiimage")?
+
 class KtxOutput final : public ImageOutput {
 public:
     KtxOutput()
@@ -29,8 +32,9 @@ public:
             // as per the KTX2 specs:
             //  registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
             feature == "arbitrary_metadata" ||
-            // ktx supports 3D textures, cubmap textures, texture arrays, ...
-            feature == "multiimage" ||
+            // KTX2 supports 2D texture arrays, cubmap arrays, and 2D texture
+            // arrays. That being said, we only support 2D texture arrays.
+            // feature == "multiimage" ||
             // ktx supports mipmaps
             feature == "mipmap" ||
             // Ktx supports 3D textures
@@ -41,9 +45,6 @@ public:
 
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode = Create) override;
-
-    bool open(const std::string& name, int subimages,
-              const ImageSpec* specs) override;
 
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
@@ -70,8 +71,6 @@ private:
     VkFormat m_vkformat_uncompressed { VK_FORMAT_UNDEFINED };
 
     uint32_t m_miplevel_idx { 0 };  ///< Current MIP level
-
-    uint32_t m_subimages_to_write { 1 };  ///< Number of slices/faces to write
 
     uint32_t m_max_nmiplevels { 1 };  ///< Max number allowable MIP levels
 
@@ -108,7 +107,7 @@ private:
     ///
     /// Container for raw (i.e., uncompressed) texture data structured as
     /// follows:
-    ///   slice/face -> mipmaps -> mipmap data
+    ///   mip level -> slice/face -> pixels
     ///
     /// The number of slices/faces is known before hand (i.e., appending
     /// slices/faces is not supported). This significantly simplifies the
@@ -120,11 +119,13 @@ private:
     ///    all times. This is also needed because we apply compression upon file
     ///    closure and not each time on write_scanline(s).
     ///
-    /// To access underlying data: [slice_idx + face_idx][miplevel_idx]
+    /// To access underlying data: [miplevel_idx][slice_idx + face_idx]
     /// Note: slice_idx and face_idx are mutually exclusive so summing them is
     ///       perfectly fine.
     ///
     std::vector<std::vector<std::vector<uint8_t>>> m_imgs;
+
+    void append_mipmaps_vector();
 
     void init();
 
@@ -132,6 +133,10 @@ private:
 
     bool construct_basis_params(ktxBasisParams& params, uint32_t codec,
                                 uint32_t threads = 1) const;
+
+    // bool construct_astc_params(ktxAstcParams& param) const;
+
+    // bool construct_bcn_params(ktxBCnParams& params) const;
 };
 
 
@@ -150,70 +155,23 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 bool
-KtxOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
-{
-    if (m_initialized) {
-        errorfmt("Cannot call open() on an already initialized ImageOutput");
-        return false;
-    }
-
-    if (subimages > 10) {
-        errorfmt("Ktx does not support more than {} subimages", 10);
-        return false;
-    }
-
-    if (subimages < 1) {
-        errorfmt("subimages has to be at least >= 1");
-        return false;
-    }
-
-    //
-    // All provided specs have to be the same (same width, height, nchannels,
-    // format, etc.). This is because KTX does not support subimages of
-    // different dimensions/types/nchannels etc. We only use the first supplid
-    // spec and the rest are not needed.
-    //
-    const ImageSpec& ref_spec = specs[0];
-    // for (int i = 1; i < subimages; ++i) {
-    //     const ImageSpec& spec = specs[i];
-    //     if (spec.width != ref_spec.width || spec.height != ref_spec.height
-    //         || spec.nchannels != ref_spec.nchannels
-    //         || spec.format != ref_spec.format) {
-    //         errorfmt(
-    //             "Ktx expects all specs for all provided subimages to be the same. Different subimage specs is not supported");
-    //         return false;
-    //     }
-    // }
-
-    OIIO_ASSERT(m_imgs.empty() && "slices/faces std::vector should be empty");
-
-    bool ok = open(name, ref_spec, Create);
-    if (ok) {
-        m_subimages_to_write = subimages;
-        m_imgs.resize(m_subimages_to_write);
-        for (auto& mipmaps_vec : m_imgs)
-            // default is to assume a single mip level
-            mipmaps_vec.emplace_back(ref_spec.scanline_bytes()
-                                     * ref_spec.height);
-    }
-    return ok;
-}
-
-
-
-bool
 KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
     if (mode == Create) {
-        // TODO: verify the x, y, z limits (probably not 65535)
-        // This does: m_spec = userspec
-        // Q. Why zend is 0 (i.e., volumes not permitted even though "volumes" are supported?
-        // A. User is expected to call AppendSubimage to a append a slices/faces.
-        //    As far as I know, there no ImageOutput API that allows
-        //    random-access writes of volume slides, TODO: or is there?
-        if (!check_open(mode, userspec, { 0, 65535, 0, 65535, 0, 65535, 0, 4 }))
-            return false;
+        if (userspec.depth
+            > 1) {  // Volume texture are limited to 4096x4096x4096
+            if (!check_open(mode, userspec, { 0, 4096, 0, 4096, 0, 4096, 0, 4 }))
+                return false;
+        } else if (userspec.tile_width
+                   > 1) {  // Cubemap texture are limited to 16384x16384
+            if (!check_open(mode, userspec,
+                            { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 }))
+                return false;
+        } else {  // 2D texture are limited to 32768x32768
+            if (!check_open(mode, userspec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
+                return false;
+        }
 
         m_basewidth  = m_spec.width;
         m_baseheight = m_spec.height;
@@ -378,24 +336,30 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
 
-        m_max_nmiplevels = (uint32_t)floor(
-                               logf(std::min(m_spec.width, m_spec.height))
-                               / logf(2))
-                           + 1;
+        if (m_spec.depth > 1)
+            m_max_nmiplevels
+                = (uint32_t)floor(
+                      logf(std::min(std::min(m_spec.width, m_spec.height),
+                                    m_spec.depth))
+                      / logf(2))
+                  + 1;
+        else
+            m_max_nmiplevels = (uint32_t)floor(
+                                   logf(std::min(m_spec.width, m_spec.height))
+                                   / logf(2))
+                               + 1;
 
         DBG std::cout << "[ktxoutput] max number mip levels allowed: "
                       << m_max_nmiplevels << std::endl;
 
         // Initialize slices/faces container if not already initialized by a
         // previous call to open(name, subimages, specs)
-        if (m_imgs.empty()) {
-            OIIO_ASSERT(
-                m_subimages_to_write == 1
-                && "open(name, subimages, specs) should initialize slices/faces container");
-            m_imgs.emplace_back(1);
-            // default is to assume a single mip level
-            m_imgs[0].emplace_back(m_spec.scanline_bytes() * m_spec.height);
-        }
+        OIIO_ASSERT(m_imgs.empty()
+                    && "Expected mip levels container to be empty");
+        OIIO_ASSERT(m_miplevel_idx == 0);
+
+        // Reserve space for base-level mipmap (level 0)
+        append_mipmaps_vector();
 
         m_initialized = true;
         return true;
@@ -416,29 +380,27 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                                             m_basewidth >> (m_miplevel_idx + 1));
         uint32_t miplevel_height = std::max(1u, m_baseheight
                                                     >> (m_miplevel_idx + 1));
+        uint32_t miplevel_depth  = std::max(1u,
+                                            m_basedepth >> (m_miplevel_idx + 1));
 
         // Copy the new mip level size.  Keep everything else from the
         // original level.
         if ((uint32_t)userspec.width != miplevel_width
-            || (uint32_t)userspec.height != miplevel_height) {
-            errorfmt("Expected (widht,height): ({},{}) but got: ({},{})",
-                     miplevel_width, miplevel_height, userspec.width,
-                     userspec.height);
+            || (uint32_t)userspec.height != miplevel_height
+            || (uint32_t)userspec.depth != miplevel_depth) {
+            errorfmt(
+                "Expected (widht,height,depth): ({},{},{}) but got: ({},{},{})",
+                miplevel_width, miplevel_height, miplevel_depth, userspec.width,
+                userspec.height, userspec.depth);
             return false;
         }
         m_spec.width  = userspec.width;
         m_spec.height = userspec.height;
-        // depth not updated because we don't support appending 3D volume mips
-        // Dow we need to set something else?
+        m_spec.depth  = userspec.depth;
         ++m_miplevel_idx;
 
-        //
-        // For each slice/face, add additional mip map std::vector with
-        // allocated size of this new mipmap level. KTX doesn't support
-        // different mip level count per slice/face.
-        //
-        for (auto& slice_vec : m_imgs)
-            slice_vec.emplace_back(m_spec.scanline_bytes() * m_spec.height);
+        // Reserve memory for this mip level
+        append_mipmaps_vector();
 
         return true;
     }  // mode == AppendMIPLevel
@@ -504,7 +466,7 @@ KtxOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     size_t offset      = ybegin * pitch;
     size_t datalen     = (yend - ybegin) * pitch;
 
-    memcpy(m_imgs[z][m_miplevel_idx].data() + offset, pSrc, datalen);
+    memcpy(m_imgs[m_miplevel_idx][z].data() + offset, pSrc, datalen);
     DBG std::cout << "write_scanlines wrote " << datalen << " bytes"
                   << std::endl;
     return true;
@@ -532,6 +494,17 @@ KtxOutput::close()
 
 
 void
+KtxOutput::append_mipmaps_vector()
+{
+    m_imgs.emplace_back(m_spec.depth);
+    for (auto& slices_vec : m_imgs[m_miplevel_idx]) {
+        slices_vec.resize(m_spec.scanline_bytes() * m_spec.height);
+    }
+}
+
+
+
+void
 KtxOutput::init()
 {
     // TODO: calling open() after close() on this hasn't been tested yet ...
@@ -540,7 +513,6 @@ KtxOutput::init()
     m_vkformat              = VK_FORMAT_UNDEFINED;
     m_vkformat_uncompressed = VK_FORMAT_UNDEFINED;
     m_miplevel_idx          = 0;
-    m_subimages_to_write    = 1;
     m_max_nmiplevels        = 1;
     m_basewidth             = 0;
     m_baseheight            = 0;
@@ -597,16 +569,11 @@ KtxOutput::construct_basis_params(ktxBasisParams& params, uint32_t codec,
     params.noSSE       = false;
     params.threadCount = threads;
 
-#if Ktx_VERSION >= OIIO_MAKE_VERSION(5, 0, 0) || Ktx_VERSION == Ktx_VERSIONLESS
     params.etc1sCompressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
-#else
-    params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
-#endif
 
     params.uastcFlags = KTX_PACK_UASTC_LEVEL_DEFAULT;
     params.uastcRDO   = false;
 
-#if Ktx_VERSION >= OIIO_MAKE_VERSION(5, 0, 0) || Ktx_VERSION == Ktx_VERSIONLESS
     if (codec == ktx_basis_codec_e::KTX_BASIS_CODEC_NONE
         || codec
                >= ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE) {
@@ -614,17 +581,6 @@ KtxOutput::construct_basis_params(ktxBasisParams& params, uint32_t codec,
         return false;
     }
     params.codec = codec;
-#else
-    // Is provided codec valid (ETC1S or UASTC 4x4 LDR)
-    if (codec != 1 && codec != 2) {
-        errorfmt(
-            "Provided Basis codec is invalid. Expected 1 for ETC1S or 2 for UASTC but got: {}",
-            codec);
-        return false;
-    }
-    // 2 == ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_LDR_4x4 in libktx 5.0.0
-    params.uastc = codec == 2;
-#endif
 
     if (params.codec == ktx_basis_codec_e::KTX_BASIS_CODEC_ETC1S) {
         // Params that only apply to ETC1S
@@ -785,50 +741,55 @@ KtxOutput::write_ktx2()
     //
     for (uint32_t level_idx = 0; level_idx < tex->numLevels; ++level_idx) {
         const uint32_t depth = std::max(tex->baseDepth >> level_idx, 1u);
-        for (uint32_t face_idx = 0; face_idx < tex->numFaces; ++face_idx) {
-            for (uint32_t slice_idx = 0; slice_idx < depth; ++slice_idx) {
-                // ImageBuf mipmap_data = generate_miplevel(make_cspan(m_img[m_miplevel_idx]), level_idx, m_mipmap_generation_params.filtername);
-                //
-                // TODO: can this not be contiguous? If so, add another loop
-                // (and another loop if scanlines are not contiguous). Might end in a black hole at this rate ...
-                // OIIO_ASSERT(mipmap_data.contiguous());
-                // auto mipmap_data_span = mipmap_data.localpixels_as_byte_image_span();
-                // auto data_ptr = (const ktx_uint8_t*)mipmap_data_span.data();
-                // auto data_size = mipmap_data_span.size_bytes();
+        // Since array layers are not supported, this loop will only execute once
+        for (ktx_uint32_t layer_idx = 0; layer_idx < tex->numLayers;
+             ++layer_idx) {
+            for (uint32_t face_idx = 0; face_idx < tex->numFaces; ++face_idx) {
+                for (uint32_t slice_idx = 0; slice_idx < depth; ++slice_idx) {
+                    // ImageBuf mipmap_data = generate_miplevel(make_cspan(m_img[m_miplevel_idx]), level_idx, m_mipmap_generation_params.filtername);
+                    //
+                    // TODO: can this not be contiguous? If so, add another loop
+                    // (and another loop if scanlines are not contiguous). Might end in a black hole at this rate ...
+                    // OIIO_ASSERT(mipmap_data.contiguous());
+                    // auto mipmap_data_span = mipmap_data.localpixels_as_byte_image_span();
+                    // auto data_ptr = (const ktx_uint8_t*)mipmap_data_span.data();
+                    // auto data_size = mipmap_data_span.size_bytes();
 
-                // Faces and Slices are mutually exclusive, addition is fine
-                auto data_ptr = m_imgs[slice_idx + face_idx][level_idx].data();
-                const size_t data_size
-                    = m_imgs[slice_idx + face_idx][level_idx].size();
+                    // Faces and Slices are mutually exclusive, addition is fine
+                    auto data_ptr
+                        = m_imgs[level_idx][slice_idx + face_idx].data();
+                    const size_t data_size
+                        = m_imgs[level_idx][slice_idx + face_idx].size();
 
-                // Before anything, be absolutely certain that what we are about
-                // to write is of the exact same size (in bytes) of what libktx
-                // expects us to write for this mip level.
-                const size_t expected_size
-                    = ktxTexture2_GetImageSize(tex.get(), level_idx);
-                if (data_size != expected_size) {
-                    errorfmt(
-                        "libktx expects {} bytes to be written for this mip level {} but {} bytes are instead attempted to be written",
-                        expected_size, level_idx, data_size);
-                    return false;
-                }
+                    // Before anything, be absolutely certain that what we are about
+                    // to write is of the exact same size (in bytes) of what libktx
+                    // expects us to write for this mip level.
+                    const size_t expected_size
+                        = ktxTexture2_GetImageSize(tex.get(), level_idx);
+                    if (data_size != expected_size) {
+                        errorfmt(
+                            "libktx expects {} bytes to be written for this mip level {} but {} bytes are instead attempted to be written",
+                            expected_size, level_idx, data_size);
+                        return false;
+                    }
 
-                auto status = ktxTexture_SetImageFromMemory(
-                    (ktxTexture*)tex.get(), level_idx, 0, face_idx + slice_idx,
-                    data_ptr, data_size);
-                if (status != KTX_SUCCESS) {
-                    errorfmt(
-                        "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
-                        static_cast<uint32_t>(status));
-                    return false;
-                }
-                DBG std::cout << fmt::format(
-                    "ktxTexture_SetImageFromMemory for slice_idx={} face_idx={} level_idx={} wrote {} bytes",
-                    slice_idx, face_idx, level_idx, data_size)
-                              << std::endl;
-            }  // slices
-        }      // faces
-    }          // mip levels
+                    auto status = ktxTexture_SetImageFromMemory(
+                        (ktxTexture*)tex.get(), level_idx, 0,
+                        face_idx + slice_idx, data_ptr, data_size);
+                    if (status != KTX_SUCCESS) {
+                        errorfmt(
+                            "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
+                            static_cast<uint32_t>(status));
+                        return false;
+                    }
+                    DBG std::cout << fmt::format(
+                        "ktxTexture_SetImageFromMemory for slice_idx={} face_idx={} level_idx={} wrote {} bytes",
+                        slice_idx, face_idx, level_idx, data_size)
+                                  << std::endl;
+                }  // slices
+            }      // faces
+        }          // layers
+    }              // mip levels
 
 
     //

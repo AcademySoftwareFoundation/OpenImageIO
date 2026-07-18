@@ -5,7 +5,7 @@
 set_cache (Ktx_BUILD_VERSION main "Ktx version for local builds")
 set       (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git")
 set_cache (Ktx_GIT_TAG "${Ktx_BUILD_VERSION}" "Git branch or tag")
-set_cache (Ktx_GIT_COMMIT "0082055d7147f558f241e531d85af5c39d9c09dc"
+set_cache (Ktx_GIT_COMMIT "e2f948066c108b56b8d0052b460b2ac7d34886aa"
               "commit hash to verify tag/branch against")
 set_cache (Ktx_BUILD_SHARED_LIBS OFF #${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
               DOC "Should a local Ktx build, if necessary, build shared libraries" ADVANCED)
