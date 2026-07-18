@@ -322,6 +322,17 @@ interop_identities_config_size();
 OIIO_API bool
 interop_identities_config_resolves(string_view interop_id);
 
+/// True if the internal copy_config() helper preserves a config's explicit
+/// default view transform name across an editable copy. OCIO < 2.3.1's
+/// createEditableCopy() drops it; copy_config() restores it so the cross-config
+/// display bridge does not shadow a config's own default view transform. The
+/// probe builds a two-view-transform config whose explicit default is the
+/// non-first one (OCIO's implicit default is the first), copies it, and checks
+/// the name survived. Vacuously true when OCIO support is unavailable. For
+/// internal/test use only.
+OIIO_API bool
+copy_config_preserves_default_view_transform();
+
 /// The `name:` of every color space declared in OIIO's built-in interop
 /// identities config (see interop_identities_config_size), in the config's
 /// own enumeration order. By construction, each entry's `name:` equals its

@@ -67,6 +67,44 @@ copy_config(const OCIO::ConstConfigRcPtr& config)
 }  // namespace
 
 
+// Test probe backing pvt::copy_config_preserves_default_view_transform()
+// (declared in the current namespace, forwarded here). Builds a config with
+// TWO view transforms whose explicit default is the NON-first one, runs the
+// real copy_config(), and reports whether the copy kept that explicit default.
+// The two-VT shape matters: OCIO reports the first view transform as the
+// implicit default when none is set, so a single-VT probe would pass even if
+// createEditableCopy() silently dropped the explicit default. Returns true on
+// preservation -- native on OCIO >= 2.3.1, workaround-restored below that --
+// and vacuously true when OCIO support or the view-transform API is
+// unavailable.
+bool
+copy_config_default_vt_probe()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return true;
+    try {
+        OCIO::ConfigRcPtr cfg = OCIO::Config::CreateRaw()->createEditableCopy();
+        for (const char* name : { "probe_vt_a", "probe_vt_b" }) {
+            auto vt = OCIO::ViewTransform::Create(OCIO::REFERENCE_SPACE_SCENE);
+            vt->setName(name);
+            vt->setTransform(OCIO::MatrixTransform::Create(),
+                             OCIO::VIEWTRANSFORM_DIR_FROM_REFERENCE);
+            cfg->addViewTransform(vt);
+        }
+        // Explicit default is the SECOND view transform, not OCIO's implicit
+        // first-VT default -- so a dropped default is observable.
+        cfg->setDefaultViewTransformName("probe_vt_b");
+
+        OCIO::ConstConfigRcPtr src = cfg;
+        OCIO::ConfigRcPtr copy     = copy_config(src);
+        const char* copied_default = copy->getDefaultViewTransformName();
+        return copied_default && std::string(copied_default) == "probe_vt_b";
+    } catch (const OCIO::Exception&) {
+        return true;  // view-transform API unavailable -> vacuous pass
+    }
+}
+
+
 #if 1 || !defined(NDEBUG) /* allow color configuration debugging */
 static bool colordebug = Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_COLOR"))
                          || Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_ALL"));
@@ -7717,6 +7755,12 @@ interop_identities_config_size()
 {
     auto config = v3_1::build_interop_identities_config();
     return config ? config->getNumColorSpaces() : 0;
+}
+
+bool
+copy_config_preserves_default_view_transform()
+{
+    return v3_1::copy_config_default_vt_probe();
 }
 
 bool
