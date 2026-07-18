@@ -846,6 +846,8 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
                     "Images with more than 65535 channels are not supported.");
             tempspec = nativespec;
             if (nmip == 0) {
+                OIIO::pvt::set_source_provenance(tempspec, inp->format_name(),
+                                                 m_filename.string());
                 sispec = find_or_create_spec(nsubimages, tempspec);
                 OIIO_DASSERT(sispec);
                 // Things to do on MIP level 0, i.e. once per subimage
