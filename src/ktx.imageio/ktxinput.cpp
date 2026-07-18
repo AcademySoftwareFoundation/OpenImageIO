@@ -3,7 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "ktx_pvt.h"
-#include <charconv>
+#include <cstdio>
 #include <optional>
 #include <regex>
 
@@ -97,7 +97,7 @@ private:
 
     std::string get_colorspace() const;
 
-    void parse_ktx_sc_params_metadata(std::string_view ktx_sc_params);
+    void parse_ktx_sc_params_metadata(const std::string& ktx_sc_params);
 
     bool check(int subimage, int miplevel) const;
 };
@@ -853,16 +853,6 @@ KtxInput::get_colorspace() const
 
 
 
-template<typename T>
-inline bool
-parse_number(const std::string& str, T& num)
-{
-    auto [_, ec] = std::from_chars(str.data(), str.data() + str.size(), num);
-    return ec != std::errc {};
-}
-
-
-
 ///
 /// Parses KTXwriterScParams metadata and sets relevant attributes accordingly.
 /// E.g., if Basis Universal non-default params were found, they are set.
@@ -876,10 +866,13 @@ parse_number(const std::string& str, T& num)
 /// should be as similar as possible to the given input (assuming a read-write
 /// of a KTX2 file without any change to its data).
 ///
+/// Note:
+///   std::from_chars fails on MacOS because it still apparently doesn't support
+///   floating point values ...
+///
 void
-KtxInput::parse_ktx_sc_params_metadata(const std::string_view ktx_sc_params)
+KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
 {
-    std::cmatch m;
     const auto f = std::regex_constants::icase;
 
     {  // UASTC params (see KTX-Software/tools/ktx/encode_utils_basis.h)
@@ -899,106 +892,80 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string_view ktx_sc_params)
         std::regex uastc_hdr_6x6i_level_re("--uastc-hdr-6x6i-level\\s+(\\d+)",
                                            f);
 
-        if (std::regex_search(ktx_sc_params.cbegin(), ktx_sc_params.cend(), m,
-                              uastc_quality_re)
-            && m.size() == 2) {
-            uint32_t uastc_quality;
-            if (parse_number(m[1].str(), uastc_quality)) {
-                const uint32_t uastc_flags
-                    = (unsigned int)~KTX_PACK_UASTC_LEVEL_MASK | uastc_quality;
-                m_spec.extra_attribs.attribute("ktx:uastcFlags", uastc_flags);
-                m_spec.extra_attribs.attribute("ktx:uastcHDRLevel",
-                                               uastc_quality);
-            }
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_quality_re)
+                           && m.size() == 2) {
+            auto uastc_quality = static_cast<uint32_t>(std::stol(m[1].str()));
+            const uint32_t uastc_flags
+                = (unsigned int)~KTX_PACK_UASTC_LEVEL_MASK | uastc_quality;
+            m_spec.extra_attribs.attribute("ktx:uastcFlags", uastc_flags);
+            m_spec.extra_attribs.attribute("ktx:uastcHDRLevel", uastc_quality);
         }
 
-        if (std::regex_match(ktx_sc_params.cbegin(), ktx_sc_params.cend(),
-                             uastc_rdo_re))
+        if (std::regex_match(ktx_sc_params, uastc_rdo_re))
             m_spec.extra_attribs.attribute("ktx:uastcRDO", true);
 
-        if (std::regex_search(ktx_sc_params.cbegin(), ktx_sc_params.cend(), m,
-                              uastc_rdo_l_re)
-            && m.size() == 2) {
-            float uastc_rdo_l;
-            if (parse_number(m[1].str(), uastc_rdo_l)) {
-                m_spec.extra_attribs.attribute("ktx:uastcRDOQualityScalar",
-                                               uastc_rdo_l);
-            }
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_rdo_l_re)
+                           && m.size() == 2) {
+            auto uastc_rdo_l = std::stof(m[1].str());
+            m_spec.extra_attribs.attribute("ktx:uastcRDOQualityScalar",
+                                           uastc_rdo_l);
         }
 
-        if (std::regex_search(ktx_sc_params.cbegin(), ktx_sc_params.cend(), m,
-                              uastc_rdo_d_re)
-            && m.size() == 2) {
-            uint32_t uastc_rdo_d;
-            if (parse_number(m[1].str(), uastc_rdo_d)) {
-                m_spec.extra_attribs.attribute("ktx:uastcRDODictSize",
-                                               uastc_rdo_d);
-            }
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_rdo_d_re)
+                           && m.size() == 2) {
+            auto uastc_rdo_d = static_cast<uint32_t>(std::stol(m[1].str()));
+            m_spec.extra_attribs.attribute("ktx:uastcRDODictSize", uastc_rdo_d);
         }
 
-        if (std::regex_search(ktx_sc_params.cbegin(), ktx_sc_params.cend(), m,
-                              uastc_rdo_b_re)
-            && m.size() == 2) {
-            float uastc_rdo_b;
-            if (parse_number(m[1].str(), uastc_rdo_b)) {
-                m_spec.extra_attribs.attribute(
-                    "ktx:uastcRDOMaxSmoothBlockErrorScale", uastc_rdo_b);
-            }
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_rdo_b_re)
+                           && m.size() == 2) {
+            auto uastc_rdo_b = std::stof(m[1].str());
+            m_spec.extra_attribs.attribute(
+                "ktx:uastcRDOMaxSmoothBlockErrorScale", uastc_rdo_b);
         }
 
-        if (std::regex_search(ktx_sc_params.cbegin(), ktx_sc_params.cend(), m,
-                              uastc_rdo_s_re)
-            && m.size() == 2) {
-            float uastc_rdo_s;
-            if (parse_number(m[1].str(), uastc_rdo_s)) {
-                m_spec.extra_attribs.attribute(
-                    "ktx:uastcRDOMaxSmoothBlockStdDev", uastc_rdo_s);
-            }
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_rdo_s_re)
+                           && m.size() == 2) {
+            auto uastc_rdo_s = std::stof(m[1].str());
+            m_spec.extra_attribs.attribute("ktx:uastcRDOMaxSmoothBlockStdDev",
+                                           uastc_rdo_s);
         }
 
-        if (std::regex_match(ktx_sc_params.cbegin(), ktx_sc_params.cend(),
-                             uastc_rdo_f_re))
+        if (std::regex_match(ktx_sc_params, uastc_rdo_f_re))
             m_spec.extra_attribs.attribute("ktx:uastcRDODontFavorSimplerModes",
                                            true);
 
-        if (std::regex_match(ktx_sc_params.cbegin(), ktx_sc_params.cend(),
-                             uastc_rdo_m_re))
+        if (std::regex_match(ktx_sc_params, uastc_rdo_m_re))
             m_spec.extra_attribs.attribute("ktx:uastcRDONoMultithreading",
                                            true);
 
-        if (std::regex_match(ktx_sc_params.cbegin(), ktx_sc_params.cend(),
-                             uastc_rdo_uber_mode_re))
+        if (std::regex_match(ktx_sc_params, uastc_rdo_uber_mode_re))
             m_spec.extra_attribs.attribute("ktx:uastcHDRUberMode", true);
 
-        if (std::regex_match(ktx_sc_params.cbegin(), ktx_sc_params.cend(),
-                             uastc_rdo_ultra_quant_re))
+        if (std::regex_match(ktx_sc_params, uastc_rdo_ultra_quant_re))
             m_spec.extra_attribs.attribute("ktx:uastcHDRUltraQuant", true);
 
-        if (std::regex_match(ktx_sc_params.cbegin(), ktx_sc_params.cend(),
-                             uastc_rdo_favor_astc_re))
+        if (std::regex_match(ktx_sc_params, uastc_rdo_favor_astc_re))
             m_spec.extra_attribs.attribute("ktx:uastcHDRFavorAstc", true);
 
-        if (std::regex_search(ktx_sc_params.cbegin(), ktx_sc_params.cend(), m,
-                              uastc_hdr_lambda_re)
+        if (std::smatch m;
+            std::regex_search(ktx_sc_params, m, uastc_hdr_lambda_re)
             && m.size() == 2) {
-            float uastc_hdr_lambda;
-            if (parse_number(m[1].str(), uastc_hdr_lambda)) {
-                m_spec.extra_attribs.attribute("ktx:uastcHDRLambda",
-                                               uastc_hdr_lambda);
-            }
+            auto uastc_hdr_lambda = std::stof(m[1].str());
+            m_spec.extra_attribs.attribute("ktx:uastcHDRLambda",
+                                           uastc_hdr_lambda);
         }
 
-        if (std::regex_search(ktx_sc_params.cbegin(), ktx_sc_params.cend(), m,
-                              uastc_hdr_6x6i_level_re)
+        if (std::smatch m;
+            std::regex_search(ktx_sc_params, m, uastc_hdr_6x6i_level_re)
             && m.size() == 2) {
-            uint32_t uastc_hdr_6x6i_level;
-            if (parse_number(m[1].str(), uastc_hdr_6x6i_level)) {
-                m_spec.extra_attribs.attribute("ktx:uastcHDRLevel",
-                                               uastc_hdr_6x6i_level);
-            }
+            auto uastc_hdr_6x6i_level = static_cast<uint32_t>(
+                std::stol(m[1].str()));
+            m_spec.extra_attribs.attribute("ktx:uastcHDRLevel",
+                                           uastc_hdr_6x6i_level);
         }
     }
-
+#if 0
     {  // ETC1S params (see KTX-Software/tools/ktx/encode_utils_basis.h)
         std::regex etc1s_clevel("--clevel\\s+(\\d+)", f);
         std::regex etc1s_qlevel("--qlevel\\s+(\\d+)", f);
@@ -1022,6 +989,7 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string_view ktx_sc_params)
         std::regex uastc_hdr_6x6i_level_re("--uastc-hdr-6x6i-level\\s+(\\d+)",
                                            f);
     }
+#endif
 }
 
 OIIO_PLUGIN_NAMESPACE_END
