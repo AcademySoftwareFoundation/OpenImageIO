@@ -1870,6 +1870,769 @@ colorspaces:
 // fixture configs isolate each step so one config's setup can't accidentally
 // satisfy a different step's assertion.
 static void
+test_icc_utils()
+{
+    using OIIO::pvt::icc_embedded_cicp;
+    using OIIO::pvt::icc_profile_identifier;
+    using OIIO::pvt::is_icc_profile;
+
+    Strutil::print("Testing ICC identification primitives\n");
+
+    // Build a minimal structurally-valid ICC blob: 128-byte header with the
+    // 'acsp' signature at byte 36 and `version` in header byte 8, a
+    // big-endian tag count at 128, then `tagcount` 12-byte tag entries.
+    auto make_icc = [](uint8_t version, uint32_t tagcount) {
+        std::vector<uint8_t> blob(132 + size_t(tagcount) * 12, 0);
+        memcpy(blob.data() + 36, "acsp", 4);
+        blob[8]   = version;
+        blob[131] = uint8_t(tagcount);  // BE tag count (< 256 here)
+        return blob;
+    };
+
+    // ---- is_icc_profile: the sole header gate ----------------------------
+    OIIO_CHECK_ASSERT(!is_icc_profile(cspan<uint8_t>()));
+    std::vector<uint8_t> junk(200, 0x42);
+    OIIO_CHECK_ASSERT(!is_icc_profile(junk));
+    std::vector<uint8_t> tiny(make_icc(2, 0));
+    tiny.resize(131);  // one byte short of header + tag count
+    OIIO_CHECK_ASSERT(!is_icc_profile(tiny));
+    OIIO_CHECK_ASSERT(is_icc_profile(make_icc(2, 0)));
+    OIIO_CHECK_EQUAL(icc_profile_identifier(junk), "");
+
+    // ---- identifier, v2: XXH64 over raw bytes, 16 lowercase hex.
+    // Bytes 84-99 are reserved in v2, so even a non-zero Profile ID field
+    // must NOT be trusted -- but raw-byte hashing means changing those bytes
+    // still changes the identifier (trust-embedded contract, tamper polarity
+    // included). ----------------------------------------------------------
+    auto v2                = make_icc(2, 0);
+    const std::string v2id = icc_profile_identifier(v2);
+    OIIO_CHECK_EQUAL(v2id.size(), 16);
+    OIIO_CHECK_EQUAL(icc_profile_identifier(v2), v2id);  // deterministic
+    auto v2tampered = v2;
+    for (size_t i = 84; i < 100; ++i)
+        v2tampered[i] = 0xAB;
+    const std::string v2tamperedid = icc_profile_identifier(v2tampered);
+    OIIO_CHECK_EQUAL(v2tamperedid.size(), 16);  // still XXH64: v2 never trusts
+    OIIO_CHECK_ASSERT(v2tamperedid != v2id);  // raw bytes differ -> id differs
+
+    // ---- identifier, v4: non-zero embedded Profile ID taken verbatim (32
+    // hex chars); all-zero ID falls back to XXH64. -------------------------
+    auto v4 = make_icc(4, 0);
+    OIIO_CHECK_EQUAL(icc_profile_identifier(v4).size(),
+                     16);  // zero ID -> XXH64
+    for (size_t i = 84; i < 100; ++i)
+        v4[i] = uint8_t(i - 84);
+    const std::string v4id = icc_profile_identifier(v4);
+    OIIO_CHECK_EQUAL(v4id, "000102030405060708090a0b0c0d0e0f");
+    // Trust-embedded: a body change leaves a v4 identifier alone as long as
+    // the embedded ID field is unchanged.
+    auto v4body = v4;
+    v4body[100] = 0x7F;
+    OIIO_CHECK_EQUAL(icc_profile_identifier(v4body), v4id);
+
+    // ---- embedded cicpTag reader ----------------------------------------
+    // Well-formed v4 cicp tag: entry at 132, tag data at 144 = 'cicp' + 4
+    // reserved zero bytes + (P,T,M,R).
+    auto make_cicp_icc = [&](uint8_t p, uint8_t t, uint8_t m, uint8_t r) {
+        auto blob = make_icc(4, 1);
+        blob.resize(156, 0);
+        memcpy(blob.data() + 132, "cicp", 4);
+        blob[139] = 144;  // BE tag offset
+        blob[143] = 12;   // BE tag size
+        memcpy(blob.data() + 144, "cicp", 4);
+        blob[152] = p;
+        blob[153] = t;
+        blob[154] = m;
+        blob[155] = r;
+        return blob;
+    };
+    int cicp[4] = { -1, -1, -1, -1 };
+    OIIO_CHECK_ASSERT(icc_embedded_cicp(make_cicp_icc(1, 13, 0, 1), cicp));
+    OIIO_CHECK_EQUAL(cicp[0], 1);
+    OIIO_CHECK_EQUAL(cicp[1], 13);
+    OIIO_CHECK_EQUAL(cicp[2], 0);
+    OIIO_CHECK_EQUAL(cicp[3], 1);
+
+    // No cicp tag; v2 profile; junk: all false, cicp untouched.
+    int untouched[4] = { -1, -1, -1, -1 };
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(make_icc(4, 0), untouched));
+    auto v2cicp = make_cicp_icc(1, 13, 0, 1);
+    v2cicp[8]   = 2;  // v2: cicpTag is an ICC.1:2022 (v4) construct
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(v2cicp, untouched));
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(junk, untouched));
+
+    // Malformed flavors: wrong tag size, non-zero reserved bytes, range
+    // flag > 1, out-of-bounds offset.
+    auto badsize = make_cicp_icc(1, 13, 0, 1);
+    badsize[143] = 16;  // size != 12
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(badsize, untouched));
+    auto badresv = make_cicp_icc(1, 13, 0, 1);
+    badresv[148] = 1;  // reserved must be zero
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(badresv, untouched));
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(make_cicp_icc(1, 13, 0, 2),
+                                         untouched));  // range > 1
+    auto badoffset = make_cicp_icc(1, 13, 0, 1);
+    badoffset[139] = 200;  // tag data beyond the blob
+    OIIO_CHECK_ASSERT(!icc_embedded_cicp(badoffset, untouched));
+    for (int v : untouched)
+        OIIO_CHECK_EQUAL(v, -1);
+}
+
+
+
+// ---------------------------------------------------------------------------
+// ICC identification fixtures, built in-memory (port of the proven POC
+// fixture generator). The rXYZ/gXYZ/bXYZ colorant matrices are the
+// primaries' NPM Bradford-adapted from D65 to the ICC PCS illuminant D50
+// (dst = the header illuminant XYZ 0.9642/1.0/0.8249, NOT xy-derived D50),
+// which is the exact inverse of the hardcoded D50->D65 adaptation OCIO's
+// ICC reader composes in on decode -- so the decoded fixture recovers its
+// nominal D65 primaries. The matrix values are precomputed s15Fixed16
+// integers; the construction math is not repeated here.
+// ---------------------------------------------------------------------------
+
+namespace icc_fixture {
+
+static void
+be16(std::vector<uint8_t>& v, uint16_t x)
+{
+    v.push_back(uint8_t(x >> 8));
+    v.push_back(uint8_t(x));
+}
+
+static void
+be32(std::vector<uint8_t>& v, uint32_t x)
+{
+    v.push_back(uint8_t(x >> 24));
+    v.push_back(uint8_t(x >> 16));
+    v.push_back(uint8_t(x >> 8));
+    v.push_back(uint8_t(x));
+}
+
+static void
+tag4(std::vector<uint8_t>& v, const char* sig)
+{
+    v.insert(v.end(), sig, sig + 4);
+}
+
+// 'XYZ ' tag from three s15Fixed16 raw integers.
+static std::vector<uint8_t>
+xyz_tag(int32_t x, int32_t y, int32_t z)
+{
+    std::vector<uint8_t> t;
+    tag4(t, "XYZ ");
+    be32(t, 0);
+    be32(t, uint32_t(x));
+    be32(t, uint32_t(y));
+    be32(t, uint32_t(z));
+    return t;
+}
+
+// 'curv' tag: gamma (one u8Fixed8 entry) or a full u16 table.
+static std::vector<uint8_t>
+curv_gamma(float g)
+{
+    std::vector<uint8_t> t;
+    tag4(t, "curv");
+    be32(t, 0);
+    be32(t, 1);
+    be16(t, uint16_t(std::lround(g * 256.0f)));
+    return t;
+}
+
+static std::vector<uint8_t>
+curv_srgb_table(int n = 1024)
+{
+    std::vector<uint8_t> t;
+    tag4(t, "curv");
+    be32(t, 0);
+    be32(t, uint32_t(n));
+    for (int i = 0; i < n; ++i) {
+        double x = double(i) / (n - 1);
+        double y = x <= 0.04045 ? x / 12.92
+                                : std::pow((x + 0.055) / 1.055, 2.4);
+        be16(t,
+             uint16_t(std::lround(std::min(std::max(y, 0.0), 1.0) * 65535.0)));
+    }
+    return t;
+}
+
+// ICC v2 'desc' (textDescription) tag, ASCII record only.
+static std::vector<uint8_t>
+desc_tag(const char* text)
+{
+    std::vector<uint8_t> t;
+    tag4(t, "desc");
+    be32(t, 0);
+    const size_t len = strlen(text) + 1;  // include NUL
+    be32(t, uint32_t(len));
+    t.insert(t.end(), text, text + len);
+    t.insert(t.end(), 8 + 3 + 67, 0);  // unicode + scriptcode + mac records
+    return t;
+}
+
+// D50 header illuminant / wtpt as s15Fixed16 (0.9642, 1.0, 0.8249).
+static const int32_t kD50[3] = { 63190, 65536, 54061 };
+
+// Assemble header + tag table + 4-byte-aligned bodies; profile_size at 0.
+static std::vector<uint8_t>
+assemble(const std::vector<std::pair<const char*, std::vector<uint8_t>>>& tags)
+{
+    std::vector<uint8_t> h(128, 0);
+    memcpy(h.data() + 4, "oici", 4);                   // CMM
+    h[8] = 2, h[9] = 0x40;                             // version 2.4
+    memcpy(h.data() + 12, "mntr", 4);                  // device class
+    memcpy(h.data() + 16, "RGB ", 4);                  // data color space
+    memcpy(h.data() + 20, "XYZ ", 4);                  // PCS
+    h[24] = 0x07, h[25] = 0xEA, h[27] = 7, h[29] = 9;  // fixed date
+    memcpy(h.data() + 36, "acsp", 4);                  // signature
+    std::vector<uint8_t> illum;
+    be32(illum, uint32_t(kD50[0]));
+    be32(illum, uint32_t(kD50[1]));
+    be32(illum, uint32_t(kD50[2]));
+    std::copy(illum.begin(), illum.end(), h.begin() + 68);
+
+    const uint32_t n = uint32_t(tags.size());
+    uint32_t offset  = 128 + 4 + 12 * n;
+    std::vector<uint8_t> table, body;
+    be32(table, n);
+    for (const auto& [sig, data] : tags) {
+        tag4(table, sig);
+        be32(table, offset);
+        be32(table, uint32_t(data.size()));
+        body.insert(body.end(), data.begin(), data.end());
+        const size_t pad = (4 - data.size() % 4) % 4;
+        body.insert(body.end(), pad, 0);
+        offset += uint32_t(data.size() + pad);
+    }
+    std::vector<uint8_t> blob = std::move(h);
+    blob.insert(blob.end(), table.begin(), table.end());
+    blob.insert(blob.end(), body.begin(), body.end());
+    blob[0] = uint8_t(blob.size() >> 24);
+    blob[1] = uint8_t(blob.size() >> 16);
+    blob[2] = uint8_t(blob.size() >> 8);
+    blob[3] = uint8_t(blob.size());
+    return blob;
+}
+
+// Standard sRGB: Rec.709 primaries / D65, Bradford-adapted to D50
+// (s15Fixed16 columns R,G,B), tabulated sRGB EOTF.
+static std::vector<uint8_t>
+srgb_profile()
+{
+    auto trc = curv_srgb_table();
+    return assemble({
+        { "desc", desc_tag("oiio sRGB v2 fixture") },
+        { "rXYZ", xyz_tag(28576, 14581, 912) },
+        { "gXYZ", xyz_tag(25239, 46983, 6361) },
+        { "bXYZ", xyz_tag(9375, 3972, 46787) },
+        { "wtpt", xyz_tag(kD50[0], kD50[1], kD50[2]) },
+        { "rTRC", trc },
+        { "gTRC", trc },
+        { "bTRC", trc },
+    });
+}
+
+// Decodable but nonstandard: wide-gamut primaries, gamma 1.8 -- matches no
+// registry identity.
+static std::vector<uint8_t>
+wide_profile()
+{
+    auto trc = curv_gamma(1.8f);
+    return assemble({
+        { "desc", desc_tag("oiio custom wide-gamut g1.8 fixture") },
+        { "rXYZ", xyz_tag(53445, 19596, -193) },
+        { "gXYZ", xyz_tag(10487, 47072, 629) },
+        { "bXYZ", xyz_tag(-742, -1131, 53624) },
+        { "wtpt", xyz_tag(kD50[0], kD50[1], kD50[2]) },
+        { "rTRC", trc },
+        { "gTRC", trc },
+        { "bTRC", trc },
+    });
+}
+
+// cLUT-only profile: A2B0 (lut8Type), no matrix/TRC tags -> OCIO's
+// matrix/TRC reader cannot build a transform and must refuse it.
+static std::vector<uint8_t>
+clut_profile()
+{
+    std::vector<uint8_t> a2b;
+    tag4(a2b, "mft1");
+    be32(a2b, 0);
+    a2b.push_back(3);  // in channels
+    a2b.push_back(3);  // out channels
+    a2b.push_back(2);  // grid points
+    a2b.push_back(0);
+    for (int v : { 1, 0, 0, 0, 1, 0, 0, 0, 1 })  // identity matrix s15f16
+        be32(a2b, uint32_t(v * 65536));
+    for (int i = 0; i < 3; ++i)  // input tables
+        a2b.insert(a2b.end(), { 0x00, 0xFF });
+    for (int r : { 0, 255 })  // 2^3 CLUT grid, 3 outputs
+        for (int g : { 0, 255 })
+            for (int b : { 0, 255 })
+                a2b.insert(a2b.end(), { uint8_t(r), uint8_t(g), uint8_t(b) });
+    for (int i = 0; i < 3; ++i)  // output tables
+        a2b.insert(a2b.end(), { 0x00, 0xFF });
+    return assemble({
+        { "desc", desc_tag("oiio cLUT A2B fixture") },
+        { "wtpt", xyz_tag(kD50[0], kD50[1], kD50[2]) },
+        { "A2B0", a2b },
+    });
+}
+
+}  // namespace icc_fixture
+
+
+
+static void
+test_identify_icc()
+{
+    using OIIO::pvt::icc_profile_identifier;
+    using OIIO::pvt::identify_icc_profile;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    Strutil::print("Testing ICC profile identification\n");
+    ColorConfig config("ocio://default");
+
+    // Non-ICC bytes: empty id, not decodable (invalid input, not a color
+    // answer).
+    {
+        std::vector<uint8_t> junk(200, 0x42);
+        auto r = identify_icc_profile(config, junk);
+        OIIO_CHECK_EQUAL(r.id, "");
+        OIIO_CHECK_EQUAL(r.decodable, false);
+    }
+
+    // Standard sRGB profile: decodes and fingerprint-matches the registry
+    // sRGB display identity -- the result must carry srgb_rec709_display
+    // semantics (caller-local name or the bare CIID) and must NOT be an
+    // "icc:" token (identify-first: no token for a matched profile).
+    const auto srgb = icc_fixture::srgb_profile();
+    {
+        auto r = identify_icc_profile(config, srgb);
+        OIIO_CHECK_EQUAL(r.decodable, true);
+        OIIO_CHECK_ASSERT(!r.id.empty());
+        OIIO_CHECK_ASSERT(!Strutil::starts_with(r.id, "icc:"));
+        const bool srgb_semantics = r.id == "srgb_rec709_display"
+                                    || config.get_color_interop_id(r.id)
+                                           == "srgb_rec709_display";
+        OIIO_CHECK_ASSERT(srgb_semantics);
+        if (!srgb_semantics)
+            Strutil::print("  (identified as '{}')\n", r.id);
+    }
+
+    // Decodable but nonstandard profile: no registry identity matches, so
+    // the answer is the bare deterministic "icc:<identifier>" token
+    // (16-hex XXH64 for a v2 profile). Idempotent across calls.
+    const auto wide = icc_fixture::wide_profile();
+    {
+        const std::string token = "icc:" + icc_profile_identifier(wide);
+        OIIO_CHECK_EQUAL(token.size(), 4 + 16);
+        auto r = identify_icc_profile(config, wide);
+        OIIO_CHECK_EQUAL(r.decodable, true);
+        OIIO_CHECK_EQUAL(r.id, token);
+        auto again = identify_icc_profile(config, wide);
+        OIIO_CHECK_EQUAL(again.id, token);
+    }
+
+    // cLUT/AToB profile: structurally ICC but OCIO's matrix/TRC reader
+    // refuses it -> bare token, decodable false.
+    const auto clut = icc_fixture::clut_profile();
+    {
+        auto r = identify_icc_profile(config, clut);
+        OIIO_CHECK_EQUAL(r.decodable, false);
+        OIIO_CHECK_EQUAL(r.id, "icc:" + icc_profile_identifier(clut));
+    }
+
+    // Distinct profiles stay distinct across interleaved identifications:
+    // the content-unique virtual filename keeps OCIO's process-global file
+    // hash cache from handing one profile's processor to another (the
+    // classic collision would "decode" the cLUT as the previously-seen
+    // sRGB).
+    {
+        auto r1 = identify_icc_profile(config, srgb);
+        auto r2 = identify_icc_profile(config, clut);
+        auto r3 = identify_icc_profile(config, srgb);
+        OIIO_CHECK_EQUAL(r2.decodable, false);
+        OIIO_CHECK_EQUAL(r1.decodable, true);
+        OIIO_CHECK_EQUAL(r3.id, r1.id);
+        OIIO_CHECK_ASSERT(r1.id != r2.id);
+    }
+}
+
+
+
+static void
+test_mastering_volume()
+{
+    using OIIO::pvt::derive_mastering_volume;
+    using OIIO::pvt::MasteringDisplayVolume;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    // The fixture declares interop_id attributes (OCIO >= 2.5) and 2.5
+    // builtin styles.
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02050000)
+        return;
+
+    Strutil::print("Testing mastering display volume derivation\n");
+
+    // Identity 3D LUT for the pure-LUT ODT fixtures.
+    std::string lut_path = Filesystem::temp_directory_path()
+                           + "/oiio_mdcv_identity.spi3d";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(lut_path,
+                                                  "SPILUT 1.0\n"
+                                                  "3 3\n"
+                                                  "2 2 2\n"
+                                                  "0 0 0 0.0 0.0 0.0\n"
+                                                  "0 0 1 0.0 0.0 1.0\n"
+                                                  "0 1 0 0.0 1.0 0.0\n"
+                                                  "0 1 1 0.0 1.0 1.0\n"
+                                                  "1 0 0 1.0 0.0 0.0\n"
+                                                  "1 0 1 1.0 0.0 1.0\n"
+                                                  "1 1 0 1.0 1.0 0.0\n"
+                                                  "1 1 1 1.0 1.0 1.0\n"));
+
+    // mDCV fixture (ported from the proven POC): ACES builtin HDR/SDR
+    // views, custom RangeTransform views for the probe path, v1-style
+    // colorspace-based views with GroupTransform nesting, gamma-2.6
+    // theatrical and PQ-DCDM flavors for the cinema-anchor cases, and
+    // pure-LUT ODTs (tagged and untagged) for the identity tier.
+    static const char* mdcv_yaml = R"(ocio_profile_version: 2.5
+name: mdcv-fixture
+search_path: .
+roles:
+  aces_interchange: ACES2065-1
+  cie_xyz_d65_interchange: CIE-XYZ-D65
+  default: ACES2065-1
+  scene_linear: ACES2065-1
+file_rules:
+  - !<Rule> {name: Default, colorspace: default}
+displays:
+  Rec2100PQ:
+    - !<View> {name: HDR 1000 nit P3 lim, view_transform: HDR-1000-P3lim, display_colorspace: ST2084-P3-D65}
+    - !<View> {name: SDR Video, view_transform: SDR-Video, display_colorspace: sRGB - Display}
+    - !<View> {name: Custom Clamp SDRish, view_transform: Custom-Clamp-1, display_colorspace: ST2084-P3-D65}
+    - !<View> {name: Custom Clamp HDRish, view_transform: Custom-Clamp-10, display_colorspace: ST2084-P3-D65}
+  LegacyHDR:
+    - !<View> {name: Output HDR Video, colorspace: Output - HDR Video 2020}
+  LegacySDR:
+    - !<View> {name: Output sRGB, colorspace: Output - SDR Video}
+  LegacyCinema:
+    - !<View> {name: Output DCI, colorspace: Output - SDR Cinema DCI}
+    - !<View> {name: Output D60, colorspace: Output - SDR Cinema D60}
+  DCDMPQ:
+    - !<View> {name: PQ DCDM Clamp, view_transform: Custom-Clamp-10, display_colorspace: ST2084-DCDM}
+  CinemaVT:
+    - !<View> {name: DCI VT, view_transform: SDR-Cinema-DCI-VT, display_colorspace: G2.6-P3-DCI}
+  LegacyLUT:
+    - !<View> {name: Film LUT, colorspace: Output - Film LUT}
+    - !<View> {name: Mystery LUT, colorspace: Output - Mystery LUT}
+    - !<View> {name: Lin P3DCI LUT, colorspace: Output - Lin P3DCI LUT}
+default_view_transform: SDR-Video
+view_transforms:
+  - !<ViewTransform>
+    name: HDR-1000-P3lim
+    from_scene_reference: !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - HDR-VIDEO-1000nit-15nit-P3lim_1.1}
+  - !<ViewTransform>
+    name: SDR-Video
+    from_scene_reference: !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0}
+  - !<ViewTransform>
+    name: Custom-Clamp-1
+    from_scene_reference: !<RangeTransform> {min_in_value: 0., max_in_value: 1., min_out_value: 0., max_out_value: 1.}
+  - !<ViewTransform>
+    name: Custom-Clamp-10
+    from_scene_reference: !<RangeTransform> {min_in_value: 0., max_in_value: 10., min_out_value: 0., max_out_value: 10.}
+  - !<ViewTransform>
+    name: SDR-Cinema-DCI-VT
+    from_scene_reference: !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-CINEMA-D60sim-DCI_1.0}
+display_colorspaces:
+  - !<ColorSpace>
+    name: CIE-XYZ-D65
+    encoding: display-linear
+    isdata: false
+  - !<ColorSpace>
+    name: ST2084-P3-D65
+    encoding: hdr-video
+    isdata: false
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_ST2084-P3-D65}
+  - !<ColorSpace>
+    name: sRGB - Display
+    encoding: sdr-video
+    isdata: false
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_sRGB}
+  - !<ColorSpace>
+    name: G2.6-P3-DCI
+    encoding: sdr-video
+    isdata: false
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-DCI-BFD}
+  - !<ColorSpace>
+    name: ST2084-DCDM
+    encoding: hdr-video
+    isdata: false
+    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_ST2084-DCDM-D65}
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+    encoding: scene-linear
+    isdata: false
+  - !<ColorSpace>
+    name: Output - HDR Video 2020
+    encoding: hdr-video
+    isdata: false
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - HDR-VIDEO-1000nit-15nit-REC2020lim_1.1}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_REC.2100-PQ}
+  - !<ColorSpace>
+    name: Output - SDR Video
+    encoding: sdr-video
+    isdata: false
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_sRGB}
+  - !<ColorSpace>
+    name: Output - Film LUT
+    encoding: sdr-video
+    isdata: false
+    interop_id: srgb_rec709_display
+    from_scene_reference: !<FileTransform> {src: oiio_mdcv_identity.spi3d, interpolation: best}
+  - !<ColorSpace>
+    name: Output - Mystery LUT
+    encoding: sdr-video
+    isdata: false
+    from_scene_reference: !<FileTransform> {src: oiio_mdcv_identity.spi3d, interpolation: best}
+  - !<ColorSpace>
+    name: Output - Lin P3DCI LUT
+    encoding: sdr-video
+    isdata: false
+    interop_id: oiio:lin_p3dci_display
+    from_scene_reference: !<FileTransform> {src: oiio_mdcv_identity.spi3d, interpolation: best}
+  - !<ColorSpace>
+    name: Output - SDR Cinema DCI
+    encoding: sdr-video
+    isdata: false
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-CINEMA-D60sim-DCI_1.0}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-DCI-BFD}
+  - !<ColorSpace>
+    name: Output - SDR Cinema D60
+    encoding: sdr-video
+    isdata: false
+    from_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-CINEMA-D60sim-DCI_1.0}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-D60-BFD}
+)";
+    std::string config_path      = Filesystem::temp_directory_path()
+                              + "/oiio_mdcv_fixture.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(config_path, mdcv_yaml));
+    ColorConfig config(config_path);
+    OIIO_CHECK_ASSERT(!config.has_error());
+
+    static const float kRec709[4][2]  = { { 0.64f, 0.33f },
+                                          { 0.30f, 0.60f },
+                                          { 0.15f, 0.06f },
+                                          { 0.3127f, 0.329f } };
+    static const float kP3D65[4][2]   = { { 0.68f, 0.32f },
+                                          { 0.265f, 0.69f },
+                                          { 0.15f, 0.06f },
+                                          { 0.3127f, 0.329f } };
+    static const float kRec2020[4][2] = { { 0.708f, 0.292f },
+                                          { 0.170f, 0.797f },
+                                          { 0.131f, 0.046f },
+                                          { 0.3127f, 0.329f } };
+    auto check_primaries              = [](const MasteringDisplayVolume& vol,
+                              const float want[4][2], float tol) {
+        for (int i = 0; i < 4; ++i) {
+            OIIO_CHECK_EQUAL_THRESH(vol.primaries[i][0], want[i][0], tol);
+            OIIO_CHECK_EQUAL_THRESH(vol.primaries[i][1], want[i][1], tol);
+        }
+    };
+
+    // Tier 1, view_transform-based: nominal peak + limiting gamut from the
+    // ACES-OUTPUT style table.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "Rec2100PQ",
+                                                  "HDR 1000 nit P3 lim", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        OIIO_CHECK_EQUAL(vol.min_luminance, 0.0);
+        OIIO_CHECK_ASSERT(Strutil::contains(vol.style, "P3lim"));
+        check_primaries(vol, kP3D65, 1e-6f);
+    }
+
+    // Tier 1, v1-style with the builtin nested inside a GroupTransform.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "LegacyHDR",
+                                                  "Output HDR Video", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        OIIO_CHECK_ASSERT(Strutil::contains(vol.style, "REC2020lim"));
+        check_primaries(vol, kRec2020, 1e-6f);
+    }
+
+    // Tier 1, tokenless SDR-VIDEO: ACES defines it as Rec.709 / 100 nit,
+    // in both the view_transform-based and v1-style flavors.
+    for (auto&& [d, v] :
+         { std::pair<const char*, const char*> { "Rec2100PQ", "SDR Video" },
+           { "LegacySDR", "Output sRGB" } }) {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, d, v, vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 100.0);
+        OIIO_CHECK_EQUAL(vol.min_luminance, 0.0);
+        check_primaries(vol, kRec709, 1e-6f);
+    }
+
+    // Tier 2 probe, SDR-ish clamp (XYZ Y=1 -> 100 nits): primaries are the
+    // display ENCODING gamut; provenance style is empty (no ACES builtin
+    // anywhere in the custom view).
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "Rec2100PQ",
+                                                  "Custom Clamp SDRish", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 100.0);
+        OIIO_CHECK_ASSERT(vol.min_luminance < 1e-6);
+        OIIO_CHECK_EQUAL(vol.style, "");
+        check_primaries(vol, kP3D65, 1e-4f);
+    }
+
+    // Tier 2 probe, HDR-ish clamp (Y=10 -> 1000 nits, snapped to nominal).
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "Rec2100PQ",
+                                                  "Custom Clamp HDRish", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        check_primaries(vol, kP3D65, 1e-4f);
+    }
+
+    // Tier 3, v1-style DCI: the ACES style parses no gamut (DCI white has
+    // no table entry), so the DISPLAY tail decodes INVERSE. The BFD builtin
+    // bakes a Bradford DCI->D65 adaptation (white lands at D65) and the
+    // gamma-2.6 family anchors at the 48-nit projector calibration white:
+    // the D60sim white sits at Y_rel 0.883 -> ~42.4 cd/m^2, between
+    // nominals so reported raw.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "LegacyCinema", "Output DCI", vol));
+        OIIO_CHECK_EQUAL_THRESH(vol.max_luminance, 0.8828 * 48.0, 0.05);
+        OIIO_CHECK_ASSERT(vol.min_luminance < 1e-5);
+        OIIO_CHECK_EQUAL(vol.style, "DISPLAY - CIE-XYZ-D65_to_G2.6-P3-DCI-BFD");
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][0], 0.3127f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][1], 0.329f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[0][0], 0.68f, 0.01f);
+    }
+
+    // Tier 3, same shape re-encoded with the G2.6-P3-D60-BFD tail: a
+    // 48-nit theatrical encoding whose style carries NO DCI/DCDM token.
+    // The anchor is classified from the leading encoding family
+    // (G2.6-P3-*), not device-token matching -- the same ~42.4 cd/m^2, not
+    // a 2x-overstated 88.3.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "LegacyCinema", "Output D60", vol));
+        OIIO_CHECK_EQUAL_THRESH(vol.max_luminance, 0.8828 * 48.0, 0.05);
+        OIIO_CHECK_EQUAL(vol.style, "DISPLAY - CIE-XYZ-D65_to_G2.6-P3-D60-BFD");
+    }
+
+    // Tier 2, PQ in the DCDM XYZ container: pure PQ decodes to absolute
+    // nits/100 -- the "DCDM" token must NOT drag it to the 48-nit cinema
+    // anchor (which would understate luminance 2.08x). Clamp at Y=10 ->
+    // 1000 nits on the nominal; encoding gamut is the raw XYZ container
+    // axes with white at illuminant E.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "DCDMPQ", "PQ DCDM Clamp", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        OIIO_CHECK_ASSERT(vol.min_luminance < 1e-5);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][0], 1.0f / 3.0f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][1], 1.0f / 3.0f, 1e-4f);
+    }
+
+    // Tier 2, view_transform-based DCI cinema: the ACES style parses a
+    // 48-nit peak but no gamut token, so it falls to the CST probe. Cinema
+    // is detected from the display colorspace's structural evidence (its
+    // DCI DISPLAY-builtin tail), anchoring at 48: the CST exactly cancels
+    // the display colorspace's forward builtin, so the measured peak is
+    // the raw ACES SDR-CINEMA-D60sim-DCI output, ~42.375 cd/m^2. The
+    // provenance is the unparseable ACES style tier 1 found.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "CinemaVT", "DCI VT", vol));
+        OIIO_CHECK_EQUAL_THRESH(vol.max_luminance, 42.375443, 1e-3);
+        OIIO_CHECK_ASSERT(vol.min_luminance < 1e-5);
+        OIIO_CHECK_ASSERT(
+            Strutil::contains(vol.style, "SDR-CINEMA-D60sim-DCI"));
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][0], 0.3127f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[0][0], 0.68f, 0.01f);
+    }
+
+    // Tier 4, pure-LUT ODT tagged with a LINEAR P3DCI display identity:
+    // the decode comes from the REGISTRY definition of the id. The 1e5
+    // drive saturates the identity LUT to code (1,1,1); decoded as linear
+    // P3DCI that is the display white at relative luminance 1.0, and the
+    // display-linear + p3dci identity anchors at the 48-nit cinema peak.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "LegacyLUT", "Lin P3DCI LUT", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 48.0);
+        OIIO_CHECK_EQUAL(vol.min_luminance, 0.0);
+        OIIO_CHECK_EQUAL(vol.style, "oiio:lin_p3dci_display");
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[3][0], 0.3127f, 1e-4f);
+        OIIO_CHECK_EQUAL_THRESH(vol.primaries[0][0], 0.68f, 0.01f);
+    }
+
+    // Tier 4, pure-LUT ODT tagged srgb_rec709_display: registry decode,
+    // video anchor.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(
+            derive_mastering_volume(config, "LegacyLUT", "Film LUT", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 100.0);
+        OIIO_CHECK_EQUAL(vol.min_luminance, 0.0);
+        OIIO_CHECK_EQUAL(vol.style, "srgb_rec709_display");
+        check_primaries(vol, kRec709, 1e-4f);
+    }
+
+    // Tier 5: same LUT with no identity, no DISPLAY tail, no parseable
+    // style -- code->nits is underdetermined; honestly no record.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_FALSE(
+            derive_mastering_volume(config, "LegacyLUT", "Mystery LUT", vol));
+    }
+
+    // Defaults: no display/view resolves to the first declared display and
+    // its default view (the 1000-nit P3-limited volume).
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_ASSERT(derive_mastering_volume(config, "", "", vol));
+        OIIO_CHECK_EQUAL(vol.max_luminance, 1000.0);
+        check_primaries(vol, kP3D65, 1e-6f);
+    }
+
+    // Unknown display or view: no record.
+    {
+        MasteringDisplayVolume vol;
+        OIIO_CHECK_FALSE(derive_mastering_volume(config, "NoSuchDisplay",
+                                                 "NoSuchView", vol));
+        OIIO_CHECK_FALSE(
+            derive_mastering_volume(config, "Rec2100PQ", "NoSuchView", vol));
+    }
+}
+
+
+
+static void
 test_interop_derive()
 {
     using OIIO::pvt::sanitize_id_token;
@@ -2263,6 +3026,9 @@ main(int argc, char* argv[])
     test_cross_config_display();
     test_color_space_fingerprint_cache();
     test_interop_resolve();
+    test_icc_utils();
+    test_identify_icc();
+    test_mastering_volume();
     test_interop_derive();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run

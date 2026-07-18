@@ -532,6 +532,106 @@ transfer_hint_matches(const TransferHint& hint, const TransferProperty& property
 
 
 // ---------------------------------------------------------------------------
+// ICC profile identification primitives -- cheap, OCIO-free byte-level
+// inspection of an embedded ICC profile blob (e.g. the "ICCProfile" spec
+// attribute), used by the color-interop ICC identification path.
+// ---------------------------------------------------------------------------
+
+/// Whether `iccdata` is structurally an ICC profile: at least 132 bytes
+/// (fixed header + tag count) with the mandatory 'acsp' signature at byte
+/// offset 36. This is the sole gate separating "an ICC profile" from
+/// arbitrary bytes; deeper malformations are handled downstream.
+OIIO_API bool
+is_icc_profile(cspan<uint8_t> iccdata);
+
+/// Process-local content identifier for an ICC profile, as lowercase hex:
+/// a v4 profile's non-zero embedded Profile ID field (bytes 84-99,
+/// ICC.1:2022 section 7.2.18) taken verbatim (32 hex chars); otherwise
+/// XXH64 over the raw, unmodified profile bytes (16 hex chars). Returns
+/// the empty string when `iccdata` is not an ICC profile (is_icc_profile).
+/// The identifier is used for internal cache keys and "icc:<id>" synthetic
+/// tokens only -- it never leaves the process and must not be written as
+/// portable metadata. (If that need ever arises, switch to recomputing the
+/// ICC-mandated normalized MD5 rather than trusting the embedded field.)
+OIIO_API std::string
+icc_profile_identifier(cspan<uint8_t> iccdata);
+
+/// Read an ICC.1:2022 `cicpTag` from a v4 profile into `cicp` as
+/// { color_primaries, transfer_characteristics, matrix_coefficients,
+/// video_full_range_flag } (ITU-T H.273 code points). Returns false --
+/// without touching `cicp` -- when the profile is not ICC, not v4, has no
+/// cicp tag, or the tag is malformed (wrong size, non-zero reserved bytes,
+/// out-of-bounds offsets, or a range flag greater than 1). Never throws.
+OIIO_API bool
+icc_embedded_cicp(cspan<uint8_t> iccdata, int cicp[4]);
+
+/// Result of identify_icc_profile(). The three shapes:
+///   - id empty, decodable false: the bytes are not an ICC profile at all
+///     (failed is_icc_profile) -- invalid input, not a color answer.
+///   - id == "icc:<identifier>", decodable false: structurally an ICC
+///     profile, but OCIO's matrix/TRC reader cannot decode it (cLUT/AToB
+///     transform). The token names the profile without asserting any
+///     colorimetry; callers should let weaker color hints win.
+///   - id non-empty, decodable true: the decoded profile either matched a
+///     built-in registry identity (id is the caller-local space name when
+///     the caller's config resolves the identity, else the canonical
+///     interop id) or matched nothing (id is the bare "icc:<identifier>"
+///     token).
+struct IccIdentifyResult {
+    std::string id;
+    bool decodable = false;
+};
+
+/// Identify the color space of an embedded ICC profile blob as a color
+/// interop ID, by decoding it through OCIO's matrix/TRC ICC reader inside
+/// a throwaway in-memory probe config and fingerprinting the decoded
+/// transform against the built-in interop identities registry. `config` is
+/// only consulted to prefer a caller-local resolution of a matched
+/// identity (ColorConfig::resolve); identification itself runs entirely
+/// against the process-global registry. Never throws.
+OIIO_API IccIdentifyResult
+identify_icc_profile(const ColorConfig& config, cspan<uint8_t> iccdata);
+
+
+// ---------------------------------------------------------------------------
+// Mastering display volume (SMPTE ST 2086) derivation.
+// ---------------------------------------------------------------------------
+
+/// A mastering display colour volume: the reference monitor a picture
+/// graded through a (display, view) pair was mastered on. Describes the
+/// MASTERING MONITOR, not the container encoding (that is CICP territory).
+struct MasteringDisplayVolume {
+    /// Limiting-gamut primaries + whitepoint as CIE xy, in R, G, B, W
+    /// order.
+    float primaries[4][2] = {};
+    /// Peak luminance, cd/m^2 (snapped to the nominal mastering targets).
+    double max_luminance = 0.0;
+    /// Minimum luminance, cd/m^2. Probe-honest (may be exactly 0.0); wire
+    /// encoders wanting the conventional 0.0001 floor clamp at encode time.
+    double min_luminance = 0.0;
+    /// Provenance: the matched ACES-OUTPUT style, the DISPLAY builtin
+    /// style, or the interop id that supplied the decode; empty for a
+    /// plain interchange probe.
+    std::string style;
+};
+
+/// Derive the ST 2086 mastering display volume for a (display, view) pair
+/// of `config`, via a five-tier first-hit-wins ladder: ACES-OUTPUT style
+/// table, then a shared numeric probe over three decode constructions
+/// (display-interchange CST / inverse DISPLAY builtin / registry-identity
+/// decode), then no record. Empty display/view resolve to the config
+/// defaults. Returns false -- leaving `volume` untouched by contract of
+/// interest -- when no tier fires (unresolvable display/view, an untagged
+/// unmatched LUT-only view, or a config with no display interchange to
+/// probe): the ladder honestly yields nothing rather than guess. Content
+/// light levels (MaxCLL/MaxFALL) are out of scope by design -- they need a
+/// pixel scan, not a transform inspection. Never throws.
+OIIO_API bool
+derive_mastering_volume(const ColorConfig& config, string_view display,
+                        string_view view, MasteringDisplayVolume& volume);
+
+
+// ---------------------------------------------------------------------------
 // Color-space classification -- how ColorConfig internally classifies a
 // color space for interop matching (the "simple" transform allowlist and
 // related properties). For internal/test use only.
