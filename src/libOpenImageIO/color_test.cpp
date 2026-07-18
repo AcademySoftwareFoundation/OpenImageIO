@@ -934,6 +934,24 @@ run_bench_phases()
 
 
 
+// The CICP tuple with Rec.709 primaries (1) and the IEC 61966-2-1 / sRGB
+// transfer (13) describes display-referred sRGB. The reverse CICP -> interop-ID
+// lookup (matched on primaries + transfer) must therefore resolve it to the
+// display-referred identity, not the scene-referred one.
+static void
+test_cicp_interop_id()
+{
+    ColorConfig config;
+    const int cicp_srgb[4] = { 1, 13, 0, 1 };
+    OIIO_CHECK_EQUAL(config.get_color_interop_id(cicp_srgb),
+                     string_view("srgb_rec709_display"));
+    // Forward mapping round-trips to a Rec.709 / sRGB tuple.
+    cspan<int> cicp = config.get_cicp("srgb_rec709_display");
+    OIIO_CHECK_ASSERT(cicp.size() >= 2 && cicp[0] == 1 && cicp[1] == 13);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -961,6 +979,7 @@ main(int argc, char* argv[])
     test_color_space_fingerprint();
     test_config_interoperability();
     test_color_space_fingerprint_cache();
+    test_cicp_interop_id();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.
