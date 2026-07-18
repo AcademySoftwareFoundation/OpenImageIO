@@ -74,11 +74,15 @@ using ColorProcessorHandle = std::shared_ptr<ColorProcessor>;
 /// NOTE: ColorConfig(s) and ColorProcessor(s) are potentially heavy-weight.
 /// Their construction / destruction should be kept to a minimum.
 
+#ifdef OIIO_INTERNAL
 namespace pvt {
 // Access shim letting the internal color-space classification test hooks
-// (see imageio_pvt.h) reach ColorConfig's private implementation.
+// (see imageio_pvt.h) reach ColorConfig's private implementation. Only
+// visible when building OIIO itself (same pattern as deepdata.h); the
+// installed public header exposes no new symbol.
 struct ColorConfigClassificationPeek;
 }  // namespace pvt
+#endif
 
 class OIIO_API ColorConfig {
 public:
@@ -483,7 +487,9 @@ private:
     std::unique_ptr<Impl> m_impl;
     Impl* getImpl() const { return m_impl.get(); }
 
+#ifdef OIIO_INTERNAL
     friend struct pvt::ColorConfigClassificationPeek;
+#endif
 };
 
 OIIO_NAMESPACE_3_1_END
