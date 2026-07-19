@@ -714,10 +714,12 @@ test_context_override()
 }
 
 
-// The public ColorConfig::find_color_spaces thin adapter: it must fill the
-// internal option set and forward to the pvt core, always searching active
-// spaces (there is no include_active toggle on the public shape), and it must
-// surface the core's fail-fast throw.
+// The public ColorConfig::find_color_spaces thin adapter: it must map
+// ColorSpaceSearchOptions onto the internal option set and forward to the
+// pvt core, always searching active spaces (there is no include_active
+// toggle on the public shape), and it must convert the core's fail-fast
+// throw into the has_error()/geterror() convention (the public method never
+// throws).
 void
 test_public_adapter()
 {
@@ -738,15 +740,25 @@ test_public_adapter()
                                       "unknown_encoding" }));
 
     // include_inactive flows through the adapter.
+    ColorSpaceSearchOptions inactive_opts;
+    inactive_opts.include_inactive = true;
     OIIO_CHECK_ASSERT(
-        config.find_color_spaces({}, {}, {}, {}, /*include_inactive=*/true)
+        config.find_color_spaces({}, {}, {}, {}, inactive_opts)
         == std::vector<std::string>({ "active_simple", "display_simple",
                                       "unknown_encoding", "inactive_simple" }));
 
-    // Fail-fast on an unresolvable hint is surfaced by the public method.
+    // The core's fail-fast throw on an unresolvable hint is converted to
+    // the error convention: empty result, has_error() set, never a throw.
     std::vector<std::string> bad = { "bogus" };
-    OIIO_CHECK_ASSERT(throws_invalid_argument(
-        [&] { (void)config.find_color_spaces({}, {}, {}, bad); }));
+    std::vector<std::string> r;
+    OIIO_CHECK_ASSERT(
+        !throws_invalid_argument([&] {
+            r = config.find_color_spaces({}, {}, {}, bad);
+        }));
+    OIIO_CHECK_ASSERT(r.empty());
+    OIIO_CHECK_ASSERT(config.has_error());
+    OIIO_CHECK_ASSERT(!config.geterror().empty());
+    OIIO_CHECK_ASSERT(!config.has_error());  // geterror() cleared it
 }
 
 }  // namespace
