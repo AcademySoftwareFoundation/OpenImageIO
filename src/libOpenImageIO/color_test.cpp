@@ -1978,11 +1978,7 @@ test_icc_utils()
     OIIO_CHECK_ASSERT(is_icc_profile(make_icc(2, 0)));
     OIIO_CHECK_EQUAL(icc_profile_identifier(junk), "");
 
-    // ---- identifier, v2: XXH64 over raw bytes, 16 lowercase hex.
-    // Bytes 84-99 are reserved in v2, so even a non-zero Profile ID field
-    // must NOT be trusted -- but raw-byte hashing means changing those bytes
-    // still changes the identifier (trust-embedded contract, tamper polarity
-    // included). ----------------------------------------------------------
+    // ---- identifier, v2: XXH64 over raw bytes, 16 lowercase hex. ---------
     auto v2                = make_icc(2, 0);
     const std::string v2id = icc_profile_identifier(v2);
     OIIO_CHECK_EQUAL(v2id.size(), 16);
@@ -1991,23 +1987,25 @@ test_icc_utils()
     for (size_t i = 84; i < 100; ++i)
         v2tampered[i] = 0xAB;
     const std::string v2tamperedid = icc_profile_identifier(v2tampered);
-    OIIO_CHECK_EQUAL(v2tamperedid.size(), 16);  // still XXH64: v2 never trusts
+    OIIO_CHECK_EQUAL(v2tamperedid.size(), 16);
     OIIO_CHECK_ASSERT(v2tamperedid != v2id);  // raw bytes differ -> id differs
 
-    // ---- identifier, v4: non-zero embedded Profile ID taken verbatim (32
-    // hex chars); all-zero ID falls back to XXH64. -------------------------
+    // ---- identifier, v4: byte-exact contract. The embedded Profile ID
+    // field (bytes 84-99) is NEVER trusted as identity -- two different
+    // bodies sharing one embedded ID must not collide, and identical bytes
+    // must agree. ----------------------------------------------------------
     auto v4 = make_icc(4, 0);
-    OIIO_CHECK_EQUAL(icc_profile_identifier(v4).size(),
-                     16);  // zero ID -> XXH64
+    OIIO_CHECK_EQUAL(icc_profile_identifier(v4).size(), 16);
     for (size_t i = 84; i < 100; ++i)
         v4[i] = uint8_t(i - 84);
     const std::string v4id = icc_profile_identifier(v4);
-    OIIO_CHECK_EQUAL(v4id, "000102030405060708090a0b0c0d0e0f");
-    // Trust-embedded: a body change leaves a v4 identifier alone as long as
-    // the embedded ID field is unchanged.
+    OIIO_CHECK_EQUAL(v4id.size(), 16);  // hash, not the embedded hex field
+    OIIO_CHECK_EQUAL(icc_profile_identifier(v4), v4id);  // same bytes, same id
+    // A body change with an UNCHANGED embedded Profile ID (the stale/forged
+    // ID scenario) must change the identifier.
     auto v4body = v4;
     v4body[100] = 0x7F;
-    OIIO_CHECK_EQUAL(icc_profile_identifier(v4body), v4id);
+    OIIO_CHECK_ASSERT(icc_profile_identifier(v4body) != v4id);
 
     // ---- embedded cicpTag reader ----------------------------------------
     // Well-formed v4 cicp tag: entry at 132, tag data at 144 = 'cicp' + 4

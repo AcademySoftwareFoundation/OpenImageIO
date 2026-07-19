@@ -556,11 +556,13 @@ OIIO_API bool
 is_icc_profile(cspan<uint8_t> iccdata);
 
 /// Process-local content identifier for an ICC profile, as lowercase hex:
-/// a v4 profile's non-zero embedded Profile ID field (bytes 84-99,
-/// ICC.1:2022 section 7.2.18) taken verbatim (32 hex chars); otherwise
 /// XXH64 over the raw, unmodified profile bytes (16 hex chars). Returns
 /// the empty string when `iccdata` is not an ICC profile (is_icc_profile).
-/// The identifier is used for internal cache keys and "icc:<id>" synthetic
+/// Deliberately byte-exact: a v4 profile's embedded Profile ID field
+/// (bytes 84-99, ICC.1:2022 section 7.2.18) is NOT consulted -- it is
+/// creator-written and can be stale or forged, so two different blobs
+/// could share one embedded ID and collide as cache identity. The
+/// identifier is used for internal cache keys and "icc:<id>" synthetic
 /// tokens only -- it never leaves the process and must not be written as
 /// portable metadata. (If that need ever arises, switch to recomputing the
 /// ICC-mandated normalized MD5 rather than trusting the embedded field.)

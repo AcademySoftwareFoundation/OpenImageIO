@@ -267,17 +267,13 @@ icc_profile_identifier(cspan<uint8_t> iccdata)
 {
     if (!is_icc_profile(iccdata))
         return {};
-    // ICC.1 v4 defines bytes 84-99 as a precomputed Profile ID. In v2 those
-    // bytes are reserved, so only trust the field for a v4 profile.
-    if (iccdata[8] == 4
-        && std::any_of(iccdata.begin() + 84, iccdata.begin() + 100,
-                       [](uint8_t b) { return b != 0; })) {
-        std::string hex;
-        hex.reserve(32);
-        for (size_t i = 84; i < 100; ++i)
-            hex += Strutil::fmt::format("{:02x}", iccdata[i]);
-        return hex;
-    }
+    // Always hash the exact bytes. ICC.1 v4 defines bytes 84-99 as a
+    // precomputed Profile ID, but that embedded field is written by the
+    // profile's creator and is routinely stale or forged: two different
+    // blobs carrying the same Profile ID would collide as cache /
+    // virtual-filename identity and hand one profile the other's cached
+    // processor. The embedded field may be *reported* wherever it is
+    // surfaced as metadata, but it is never a safe cache key.
     return Strutil::fmt::format("{:016x}",
                                 xxhash::XXH64(iccdata.data(),
                                               std::size(iccdata), 0));
