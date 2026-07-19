@@ -401,6 +401,67 @@ test_policy_hint_plumbing()
 }
 
 
+// A Suppress verdict must be enforced at the WRITER boundary, not just in
+// the plan object: an author-supplied value under a 'never' policy stays out
+// of the written file even though the attribute sits on the spec (the EXR
+// generic-metadata loop would otherwise emit it anyway).
+static void
+test_writer_level_suppress()
+{
+    // EXR: author colorInteropID + per-spec never -> reopened file carries
+    // no colorInteropID.
+    if (ImageOutput::create("exr")) {
+        const std::string file = Filesystem::temp_directory_path()
+                                 + "/oiio_cmp_suppress.exr";
+        std::vector<float> pix(4 * 4 * 3, 0.5f);
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("colorInteropID", "lin_adobergb_scene");
+        spec.attribute("oiio:colorpolicy:write:interop_id", "never");
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            OIIO_CHECK_ASSERT(
+                !in->spec().find_attribute("colorInteropID", TypeString));
+            in->close();
+        }
+        Filesystem::remove(file);
+    }
+
+    // PNG: author CICP + per-spec never -> reopened file carries no cICP
+    // chunk (the writer's emit gate already enforces this; guard it).
+    if (ImageOutput::create("png")) {
+        const std::string file = Filesystem::temp_directory_path()
+                                 + "/oiio_cmp_suppress.png";
+        std::vector<unsigned char> pix(4 * 4 * 3, 128);
+        const int cicp[4] = { 1, 13, 0, 1 };
+        ImageSpec spec(4, 4, 3, TypeUInt8);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        spec.attribute("oiio:colorpolicy:write:cicp", "never");
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeUInt8, pix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            int got[4] = { -1, -1, -1, -1 };
+            OIIO_CHECK_ASSERT(!in->spec().getattribute(
+                "CICP", TypeDesc(TypeDesc::INT, 4), got));
+            in->close();
+        }
+        Filesystem::remove(file);
+    }
+}
+
+
 // The provenance write rule: suppress oiio:SourcePath, keep oiio:SourceFormat.
 static void
 test_provenance_rule()
@@ -476,6 +537,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_explicit_chroma_and_gamma();
     test_global_policy_tier();
     test_policy_hint_plumbing();
+    test_writer_level_suppress();
     test_provenance_rule();
     test_exr_consumption();
 
