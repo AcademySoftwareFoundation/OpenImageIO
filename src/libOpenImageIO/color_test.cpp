@@ -1557,13 +1557,14 @@ colorspaces:
     // context keys a separate bucket. This is airtight given (2a): matrix_inv
     // collapsing proved cc1 and cc2 share one structural config id, so the only
     // thing that can grow the cache here is ctx_space's differing context id.
-    // (The fingerprint VALUE is not asserted to differ: the probe copy that
-    // computes it is memoized per structural config, so both contexts probe
-    // through the copy the first query built -- the cache keys the contexts
-    // apart regardless, which is what this slice guarantees.)
     ColorSpaceFingerprint s2 = color_space_fingerprint_cached(cc2, "ctx_space");
     OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(3));  // new bucket
     OIIO_CHECK_ASSERT(s2.computed());
+    // And the VALUES differ: each instance probes under its OWN current
+    // context (gamma_a's 2.2 curve vs gamma_b's 1.8 curve), even though both
+    // share one process-memoized structural probe copy. The cache key's
+    // context id is exactly the context the probe ran under.
+    OIIO_CHECK_ASSERT(s1.values != s2.values);
 
     // (3) A structurally different config keys separately; the earlier entries
     // just orphan (content-addressed, no eviction, no crash).

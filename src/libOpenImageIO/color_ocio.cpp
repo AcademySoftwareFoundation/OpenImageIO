@@ -3749,7 +3749,15 @@ ColorConfig::Impl::ensureProbeConfig() const
         probe_config.reset();
     if (probe_config) {
         try {
-            probe_context = probe_config->getCurrentContext();
+            // Probe under THIS instance's current context, never the memoized
+            // interopified copy's: that copy is shared process-wide across
+            // all instances of the same structural config (first-writer-wins),
+            // so its captured context belongs to whichever instance built it
+            // first. The fingerprint cache keys entries by this instance's
+            // context id (fingerprint_cache_scope); the probe must run under
+            // exactly that context.
+            probe_context = config_ ? config_->getCurrentContext()
+                                    : probe_config->getCurrentContext();
             probe_values = initialize_probe_values(probe_config, probe_context);
         } catch (...) {
             probe_config.reset();
