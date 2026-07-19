@@ -162,6 +162,7 @@ OIIO_NAMESPACE_3_1_BEGIN
 // libOpenImageIO_Util
 class ArgParse;
 class ColorConfig;
+struct ColorSpaceSearchOptions;
 class ColorProcessor;
 class ErrorHandler;
 class Filter1D;
@@ -208,6 +209,7 @@ OIIO_NAMESPACE_BEGIN
 // libOpenImageIO_Util
 using v3_1::ArgParse;
 using v3_1::ColorConfig;
+using v3_1::ColorSpaceSearchOptions;
 using v3_1::ColorProcessor;
 using v3_1::ErrorHandler;
 using v3_1::Filter1D;

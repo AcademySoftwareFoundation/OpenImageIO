@@ -14,6 +14,9 @@ colorspaces:
     name: active_simple
     encoding: scene-linear
   - !<ColorSpace>
+    name: "acme:special"
+    encoding: scene-linear
+  - !<ColorSpace>
     name: inactive_simple
     encoding: scene-linear
   - !<ColorSpace>

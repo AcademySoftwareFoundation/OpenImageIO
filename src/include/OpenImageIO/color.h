@@ -85,6 +85,30 @@ struct ColorConfigClassificationPeek;
 }  // namespace pvt
 #endif
 
+
+/// Options controlling ColorConfig::find_color_spaces(). The four hint axes
+/// are passed separately; this bundles the search-scope toggles and the
+/// per-call context. Default-constructed options give the default search
+/// (active, simple, context-invariant spaces; encoding axis may use the
+/// interop-identity twin).
+///
+/// @version 3.2
+struct ColorSpaceSearchOptions {
+    /// Also consider the config's inactive color spaces.
+    bool include_inactive = false;
+    /// Also consider spaces whose transforms depend on context variables.
+    bool include_context_sensitive = false;
+    /// Also consider complex (non-simple) spaces by inspecting their
+    /// authored and realized transforms.
+    bool include_complex = false;
+    /// Limit the encoding axis to encodings explicitly authored in the
+    /// config -- no inference through a space's interop-identity twin.
+    bool authored_encoding_only = false;
+    /// OCIO context-variable overrides, scoped to the one call.
+    std::map<std::string, std::string> context;
+};
+
+
 class OIIO_API ColorConfig {
 public:
     /// Construct a ColorConfig using the named OCIO configuration file,
@@ -493,24 +517,26 @@ public:
     /// `rec709`; a named transform or transfer triple; a literal encoding; the
     /// image state `scene`, `display`, or `all`). A candidate whose property
     /// cannot be derived is treated as *unknown*, never an error. A malformed
-    /// term or an unresolvable hint throws `std::invalid_argument`, before any
-    /// candidate is examined.
+    /// term or an unresolvable hint is reported through the usual ColorConfig
+    /// error convention (has_error() / geterror()) -- before any candidate is
+    /// examined -- and the search returns an empty list. This method does not
+    /// throw.
     ///
     /// By default the search considers the config's active, simple color
-    /// spaces. `include_inactive` also considers inactive spaces;
-    /// `include_context_sensitive` also considers spaces whose transforms
-    /// depend on context variables; `exhaustive` also considers complex
-    /// (non-simple) spaces by inspecting their authored and realized
-    /// transforms. `context` applies OCIO context-variable overrides scoped to
-    /// this call only.
+    /// spaces. `options.include_inactive` also considers inactive spaces;
+    /// `options.include_context_sensitive` also considers spaces whose
+    /// transforms depend on context variables; `options.include_complex` also
+    /// considers complex (non-simple) spaces by inspecting their authored and
+    /// realized transforms. `options.context` applies OCIO context-variable
+    /// overrides scoped to this call only.
     ///
     /// On the encoding axis a candidate characterizes as its authored
     /// encoding attribute and, additionally, as the encoding of its
     /// interop-identity twin (so a LUT space tagged with a theatrical
     /// interop ID but authored `sdr-video` matches searches for both
     /// `sdr-video` and `sdr-cinema`); a candidate with no authored encoding
-    /// adopts the twin's outright. `strict` limits the encoding axis to
-    /// authored attributes only.
+    /// adopts the twin's outright. `options.authored_encoding_only` limits
+    /// the encoding axis to authored attributes only.
     ///
     /// Current limitations (each a documented behavior, not a defect):
     /// probe-derived chromaticities assume a single D65 + Bradford hypothesis,
@@ -518,18 +544,16 @@ public:
     /// chromaticity table may resolve as unknown; registry-side gamuts are
     /// taken from that reserved table only, so a gamut absent from it (e.g.
     /// `ciexyzd65`) is not yet resolvable. Interop IDs that contain a colon
-    /// (such as `custom:*` or `icc:*`) are usable as hints through this API but
-    /// not through the `oiiotool --colorspacesearch` flag, whose comma- and
-    /// colon-delimited option syntax cannot carry them.
+    /// (such as `custom:*` or `icc:*`) must be quoted when passed through the
+    /// `oiiotool --colorspacesearch` flag, whose modifier syntax otherwise
+    /// treats `:` as its option delimiter.
     ///
-    /// @version 3.1
+    /// @version 3.2
     OIIO_NODISCARD std::vector<std::string> find_color_spaces(
         cspan<std::string> chromaticities = {},
         cspan<std::string> transfer_function = {},
         cspan<std::string> encoding = {}, cspan<std::string> image_state = {},
-        bool include_inactive = false, bool include_context_sensitive = false,
-        bool exhaustive = false, bool strict = false,
-        const std::map<std::string, std::string>& context = {}) const;
+        const ColorSpaceSearchOptions& options = {}) const;
     // See <OpenImageIO/color_interop_ids.h> for `OIIO::ColorInteropIDs::*`, a
     // set of `constexpr string_view` constants -- one per canonical Color
     // Interop Forum id -- usable anywhere a `string_view` CIID is accepted

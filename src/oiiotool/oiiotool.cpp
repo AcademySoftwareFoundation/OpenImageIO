@@ -2385,9 +2385,11 @@ set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 // --colorspacesearch
 // Query the color config for color spaces matching a partial characterization
 // and print their names, one per line. Each axis is given as a comma-separated
-// list of terms via the modifier options chromaticities=, transfer=, encoding=,
-// state=; the inclusion toggles inactive=, contextsensitive=, exhaustive=,
-// strict= (authored encodings only, no interop-identity twin inference).
+// list of terms via the modifier options gamut=, transfer_function=,
+// encoding=, image_state=; the inclusion toggles include_inactive=,
+// include_context_sensitive=, include_complex=, and authored_encoding_only=
+// (no interop-identity twin inference on the encoding axis) mirror the
+// ColorSpaceSearchOptions fields of the C++/Python API.
 static void
 colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
 {
@@ -2395,10 +2397,11 @@ colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
     string_view command = ot.express(argv[0]);
     auto options        = ot.extract_options(command);
 
-    // Comma-splits each axis into terms; a term itself may not contain a comma
-    // or colon (the latter is oiiotool's option delimiter), so colon-bearing
-    // interop IDs (custom:*, icc:*, <config>:local:*) are not reachable from
-    // this flag -- pass such hints through the C++/Python API.
+    // Comma-splits each axis into terms. A term containing a colon (e.g. a
+    // custom:*, icc:*, or <config>:local:* interop ID) can be given by
+    // quoting the modifier value -- extract_options() takes a single- or
+    // double-quoted value whole, colons included, as in
+    //   --colorspacesearch:gamut="custom:acme:widegamut"
     auto terms = [](string_view s) {
         std::vector<std::string> out;
         for (auto& t : Strutil::splitsv(s, ","))
@@ -2406,21 +2409,30 @@ colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
                 out.emplace_back(t);
         return out;
     };
-    std::vector<std::string> chromaticities
-        = terms(options.get_string("chromaticities"));
-    std::vector<std::string> transfer    = terms(options.get_string("transfer"));
+    std::vector<std::string> chromaticities = terms(
+        options.get_string("gamut"));
+    std::vector<std::string> transfer = terms(
+        options.get_string("transfer_function"));
     std::vector<std::string> encoding    = terms(options.get_string("encoding"));
-    std::vector<std::string> image_state = terms(options.get_string("state"));
+    std::vector<std::string> image_state = terms(
+        options.get_string("image_state"));
 
-    try {
-        std::vector<std::string> results = ot.colorconfig().find_color_spaces(
-            chromaticities, transfer, encoding, image_state,
-            options.get_int("inactive"), options.get_int("contextsensitive"),
-            options.get_int("exhaustive"), options.get_int("strict"));
+    OIIO::ColorSpaceSearchOptions searchopts;
+    searchopts.include_inactive = options.get_int("include_inactive");
+    searchopts.include_context_sensitive
+        = options.get_int("include_context_sensitive");
+    searchopts.include_complex = options.get_int("include_complex");
+    searchopts.authored_encoding_only
+        = options.get_int("authored_encoding_only");
+
+    std::vector<std::string> results
+        = ot.colorconfig().find_color_spaces(chromaticities, transfer, encoding,
+                                             image_state, searchopts);
+    if (ot.colorconfig().has_error()) {
+        ot.errorfmt("--colorspacesearch", "{}", ot.colorconfig().geterror());
+    } else {
         for (auto& name : results)
             Strutil::print("{}\n", name);
-    } catch (const std::exception& e) {
-        ot.errorfmt("--colorspacesearch", "{}", e.what());
     }
     ot.printed_info = true;
 }
@@ -7477,8 +7489,9 @@ Oiiotool::getargs(int argc, char* argv[])
       .OTACTION(set_colorconfig);
     ap.arg("--colorspacesearch")
       .help("Print the color spaces matching a partial characterization "
-            "(options: chromaticities=, transfer=, encoding=, state=, "
-            "inactive=, contextsensitive=, exhaustive=, strict=)")
+            "(options: gamut=, transfer_function=, encoding=, image_state=, "
+            "include_inactive=, include_context_sensitive=, "
+            "include_complex=, authored_encoding_only=)")
       .OTACTION(colorspacesearch);
     ap.arg("--iscolorspace %s:COLORSPACE")
       .help("Set the assumed color space (without altering pixels)")

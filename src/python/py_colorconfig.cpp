@@ -233,24 +233,31 @@ declare_colorconfig(py::module& m)
             [](const ColorConfig& self, const py::object& chromaticities,
                const py::object& transfer_function, const py::object& encoding,
                const py::object& image_state, bool include_inactive,
-               bool include_context_sensitive, bool exhaustive, bool strict,
+               bool include_context_sensitive, bool include_complex,
+               bool authored_encoding_only,
                const std::map<std::string, std::string>& context_vars) {
                 auto chrom = parse_hint_terms(chromaticities, "chromaticities");
                 auto tf    = parse_hint_terms(transfer_function,
                                               "transfer_function");
                 auto enc   = parse_hint_terms(encoding, "encoding");
                 auto state = parse_hint_terms(image_state, "image_state");
-                return self.find_color_spaces(chrom, tf, enc, state,
-                                              include_inactive,
-                                              include_context_sensitive,
-                                              exhaustive, strict,
-                                              context_vars);
+                OIIO::ColorSpaceSearchOptions opts;
+                opts.include_inactive          = include_inactive;
+                opts.include_context_sensitive = include_context_sensitive;
+                opts.include_complex           = include_complex;
+                opts.authored_encoding_only    = authored_encoding_only;
+                opts.context                   = context_vars;
+                // The search can probe transforms and build OCIO processors
+                // (potentially every space of the config): pure C++ work, no
+                // Python objects -- release the GIL for its duration.
+                py::gil_scoped_release gil;
+                return self.find_color_spaces(chrom, tf, enc, state, opts);
             },
             "chromaticities"_a = "", "transfer_function"_a = "",
             "encoding"_a = "", "image_state"_a = "", py::kw_only(),
             "include_inactive"_a = false,
-            "include_context_sensitive"_a = false, "exhaustive"_a = false,
-            "strict"_a = false,
+            "include_context_sensitive"_a = false, "include_complex"_a = false,
+            "authored_encoding_only"_a = false,
             "context_vars"_a = std::map<std::string, std::string>())
         .def("configname", &ColorConfig::configname)
         .def_static("default_colorconfig", []() -> const ColorConfig& {

@@ -4536,10 +4536,12 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     description, one per line. This lets you ask "which color spaces in this
     config have the Rec.709 gamut but are not scene-linear?" without knowing
     the config's naming conventions. Each of the four hint axes is given as a
-    comma-separated list of terms through an appended modifier:
+    comma-separated list of terms through an appended modifier (the modifier
+    names mirror the `ColorConfig::find_color_spaces` C++/Python parameter
+    and option names):
 
-    - `chromaticities=` *terms*, `transfer=` *terms*, `encoding=` *terms*,
-      `state=` *terms* :
+    - `gamut=` *terms*, `transfer_function=` *terms*, `encoding=` *terms*,
+      `image_state=` *terms* :
 
       The gamut, transfer-function, encoding, and image-state axes. A term
       is matched by default; a leading `-` excludes proven matches; a leading
@@ -4550,13 +4552,14 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       transfer/curve name, an encoding name, or the image state `scene`,
       `display`, or `all`).
 
-    - `inactive=` *val*, `contextsensitive=` *val*, `exhaustive=` *val* :
+    - `include_inactive=` *val*, `include_context_sensitive=` *val*,
+      `include_complex=` *val* :
 
       When nonzero, also consider (respectively) the config's inactive color
       spaces, its context-sensitive spaces, and complex (non-simple) spaces
       whose transforms are inspected exhaustively. All default to 0.
 
-    - `strict=` *val* :
+    - `authored_encoding_only=` *val* :
 
       When nonzero, the encoding axis matches only encodings authored in the
       config. By default a candidate also matches through the encoding of
@@ -4565,13 +4568,14 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       interop ID but authored `sdr-video` matches searches for both
       `sdr-video` and `sdr-cinema`. Defaults to 0.
 
-    Because a term may not contain a comma or a colon (the latter being
-    :program:`oiiotool`'s own option delimiter), color interop IDs that
-    contain a colon (such as `custom:*` or `icc:*`) cannot be passed through
-    this flag; use the `ColorConfig::find_color_spaces` C++ or Python API for
-    those. Example::
+    A term may not contain a comma. A term containing a colon (for example
+    the color interop ID namespaces `custom:*`, `icc:*`, or
+    `<config>:local:*`) must be given as a quoted modifier value, since an
+    unquoted `:` is :program:`oiiotool`'s own option delimiter (remember
+    that the quotes themselves must survive your shell). Examples::
 
-        oiiotool --colorspacesearch:chromaticities=rec709:encoding=-scene-linear
+        oiiotool --colorspacesearch:gamut=rec709:encoding=-scene-linear
+        oiiotool '--colorspacesearch:transfer_function="custom:acme:supercurve"'
 
 .. option:: --colorconfig <filename>
 

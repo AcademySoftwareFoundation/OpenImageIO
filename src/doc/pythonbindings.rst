@@ -4048,7 +4048,7 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.1.
 
 
-.. py:method:: find_color_spaces (chromaticities=[], transfer_function=[], encoding=[], image_state=[], include_inactive=False, include_context_sensitive=False, exhaustive=False, strict=False, context={})
+.. py:method:: find_color_spaces (chromaticities=[], transfer_function=[], encoding=[], image_state=[], include_inactive=False, include_context_sensitive=False, include_complex=False, authored_encoding_only=False, context_vars={})
 
     Return the names of the config's color spaces whose derivable
     characteristics match a partial description, ordered deterministically.
@@ -4061,17 +4061,15 @@ is provided for minimal color support.
     interop ID, or an axis-specific form (a gamut component such as ``rec709``,
     a transfer/curve name, an encoding name, or the image state ``scene`` /
     ``display`` / ``all``). A candidate whose property cannot be derived is
-    treated as *unknown*, never an error; a malformed term, an unresolvable
-    hint, or a hint element that is not a string raises ``ValueError``.
-.. py:class:: ColorInteropID
+    treated as *unknown*, never an error. A hint element that is not a string
+    raises ``ValueError``; a malformed term or an unresolvable hint is
+    reported through ``geterror()`` and the search returns an empty list.
 
-    A ``str`` enum (members compare equal to, and may be passed anywhere as,
-    a plain string) with one member per canonical Color Interop Forum id
-    that OpenImageIO's built-in interop identities registry declares -- the
-    same set as the C++ ``OIIO::ColorInteropIDs::*`` constants
-    (``<OpenImageIO/color_interop_ids.h>``). Member names are the canonical
-    id, upper-cased, with any namespace ``:`` replaced by ``_`` (e.g. id
-    ``"ocio:acescc_ap1_scene"`` is member ``OCIO_ACESCC_AP1_SCENE``).
+    ``include_inactive=True`` also considers inactive color spaces,
+    ``include_context_sensitive=True`` spaces whose transforms depend on
+    context variables, and ``include_complex=True`` complex (non-simple)
+    spaces, inspected exhaustively. ``context_vars`` applies OCIO
+    context-variable overrides scoped to the one call.
 
     Example:
 
@@ -4086,14 +4084,31 @@ is provided for minimal color support.
     and, additionally, as the encoding of its interop-identity twin (a LUT
     space tagged ``g26_p3d65_display`` but authored ``sdr-video`` matches
     searches for both ``sdr-video`` and ``sdr-cinema``); a candidate with no
-    authored encoding adopts the twin's outright. ``strict=True`` limits the
-    encoding axis to authored encodings only.
+    authored encoding adopts the twin's outright.
+    ``authored_encoding_only=True`` limits the encoding axis to authored
+    encodings only.
 
     The chromaticity derivation is single-hypothesis (D65 + Bradford) and
     registry-side gamuts come only from a reserved chromaticity table, so a
     space whose gamut is neither derivable under that hypothesis nor present
     in the table resolves as unknown. This function was added in OpenImageIO
     3.2.
+
+
+.. py:class:: ColorInteropID
+
+    A ``str`` enum (members compare equal to, and may be passed anywhere as,
+    a plain string) with one member per canonical Color Interop Forum id
+    that OpenImageIO's built-in interop identities registry declares -- the
+    same set as the C++ ``OIIO::ColorInteropIDs::*`` constants
+    (``<OpenImageIO/color_interop_ids.h>``). Member names are the canonical
+    id, upper-cased, with any namespace ``:`` replaced by ``_`` (e.g. id
+    ``"ocio:acescc_ap1_scene"`` is member ``OCIO_ACESCC_AP1_SCENE``).
+
+    Example:
+
+    .. code-block:: python
+
         cid = oiio.ColorInteropID.SRGB_REC709_DISPLAY
         assert cid == "srgb_rec709_display"
         interop_id = colorconfig.get_color_interop_id(cid)
