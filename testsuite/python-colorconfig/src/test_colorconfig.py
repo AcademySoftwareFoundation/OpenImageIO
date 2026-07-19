@@ -71,10 +71,11 @@ try:
     # a real alias through a namespace prefix it has never seen, where it
     # used to only echo the input back unchanged.
     print (f"resolve('myapp:g24_rec709'): {config.resolve('myapp:g24_rec709')}")
-    # Bindings parity: the enriched get_color_interop_id write cascade reaches
-    # its step 3 (config-local id generation) for a space with no built-in
-    # registry equivalent, where it used to return empty -- both the config
-    # name and the color space name are sanitized per the CIF grammar.
+    # get_color_interop_id is a CHEAP lookup (declared interop_id attribute
+    # or table name/alias match only): a space with no declared id and no
+    # table-name match returns empty here. The full derivation cascade
+    # (fingerprint match, config-local id generation) runs internally at
+    # write-planning time, not through this getter.
     print (f"get_color_interop_id('Gamma 2.6 Encoded Rec.709 (sRGB)'): {config.get_color_interop_id('Gamma 2.6 Encoded Rec.709 (sRGB)')}")
     display = config.getDefaultDisplayName()
     default_cs = config.getColorSpaceFromFilepath("foo.exr")
