@@ -260,9 +260,8 @@ declare_colorconfig(py::module& m)
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
     m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();
 
-    // ColorInteropID: a Python str enum (ADR-0017 in the color-interop hub)
-    // of every canonical Color Interop Forum id OIIO's built-in interop
-    // identities registry declares -- the same set as the generated C++
+    // ColorInteropID: a Python str enum of every canonical Color Interop
+    // Forum id OIIO's built-in interop identities registry declares -- the same set as the generated C++
     // OIIO::ColorInteropIDs::* constants (color_interop_ids.h), one member
     // per id. Defined via a `class ColorInteropID(str, enum.Enum)` source
     // string rather than enum's functional API so it can override __str__ to

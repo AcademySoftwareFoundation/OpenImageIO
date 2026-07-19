@@ -13,8 +13,7 @@
 // Values are the canonical ID strings -- pass them anywhere a
 // string_view CIID is accepted (e.g. ColorConfig::get_color_interop_id);
 // no API signature changes. Raw strings remain first-class for ids this
-// finite set cannot enumerate (local/custom/icc/user-namespaced ids;
-// see ADR-0017 in the color-interop hub).
+// finite set cannot enumerate (local/custom/icc/user-namespaced ids).
 
 #pragma once
 

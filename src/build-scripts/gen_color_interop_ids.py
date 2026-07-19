@@ -7,8 +7,7 @@
 Regenerate src/include/OpenImageIO/color_interop_ids.h from the canonical
 `interop_id:` entries declared in src/libOpenImageIO/interop-identities-config.ocio
 (OIIO's built-in Color Interop Forum identities registry -- the single
-source of truth for the canonical CIID set; see ADR-0017 in the color-interop
-hub).
+source of truth for the canonical CIID set).
 
 The registry is a small, hand-authored OCIO config, not machine-generated
 YAML with exotic scalar styles, so a line-oriented `interop_id: <token>`
@@ -80,8 +79,7 @@ def generate(ids: list[str]) -> str:
         "// Values are the canonical ID strings -- pass them anywhere a",
         "// string_view CIID is accepted (e.g. ColorConfig::get_color_interop_id);",
         "// no API signature changes. Raw strings remain first-class for ids this",
-        "// finite set cannot enumerate (local/custom/icc/user-namespaced ids;",
-        "// see ADR-0017 in the color-interop hub).",
+        "// finite set cannot enumerate (local/custom/icc/user-namespaced ids).",
         "",
         "#pragma once",
         "",

@@ -435,7 +435,7 @@ test_registry_round_trip()
 
 
 
-// P11 (ADR-0017): the generated OIIO::ColorInteropIDs::* constants
+// The generated OIIO::ColorInteropIDs::* constants
 // (src/include/OpenImageIO/color_interop_ids.h) must be an exact-set match
 // for the canonical `interop_id:` set declared in the embedded interop
 // identities registry source (NOT the composite parsed config, whose
@@ -473,7 +473,7 @@ test_color_interop_id_constants_sync()
 
 
 
-// P4 consolidation (mainline-restart.md): the legacy static CICP/interop-id
+// The legacy static CICP/interop-id
 // table (color_ocio.cpp's `color_interop_ids[]`) must not drift from the
 // registry that is now its single source of truth for id spelling. Every
 // table entry is built from a generated ColorInteropIDs::* constant already
@@ -3044,7 +3044,7 @@ test_cicp_interop_id()
 
 
 
-// P6c regression guard: the internal copy_config() must preserve a config's
+// Regression guard: the internal copy_config() must preserve a config's
 // explicit default view transform name across an editable copy. OCIO < 2.3.1's
 // createEditableCopy() drops it; without the restore, interopify_config's
 // display bridge would see no default view transform and synthesize a

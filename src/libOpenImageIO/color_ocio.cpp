@@ -3854,8 +3854,8 @@ struct ColorInteropID {
 // utility token, which the registry deliberately does not declare -- see
 // pvt::is_utility_interop_id) is one of the generated
 // OIIO::ColorInteropIDs::* constants (src/include/OpenImageIO/
-// color_interop_ids.h, generated from interop-identities-config.ocio; ADR-0017
-// in the color-interop hub). That makes the registry the sole place these ID
+// color_interop_ids.h, generated from interop-identities-config.ocio).
+// That makes the registry the sole place these ID
 // strings are spelled -- this table is a derived, hand-curated CICP-tuple
 // annotation *of* that ID set, not a second independent spelling of it. A
 // registry rename shows up here as a compile error (the constant disappears);
@@ -4551,8 +4551,8 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
             // Inverse: pixels land in the scene `from` space -- unless the
             // conversion fell back to a no-op, in which case they never left
             // the (display, view) encoding the input arrived in. Tag that
-            // source space, not the `from` we failed to reach (ADR-0018,
-            // mirror of the forward branch's honest source-tag rule).
+            // source space, not the `from` we failed to reach (mirror of
+            // the forward branch's honest source-tag rule).
             dst.specmod().set_colorspace(
                 lenient_passthrough
                     ? colorconfig->getDisplayViewColorSpaceName(display, view)

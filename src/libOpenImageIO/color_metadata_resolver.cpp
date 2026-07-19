@@ -571,7 +571,7 @@ resolve_color_metadata(const ColorConfig* config,
               rule_color_interop_id(config, facts, policy, diag)))
         return expl;
     // CICP before ICC, matching the PNG spec's own chunk precedence
-    // (cICP > iCCP) and the oicio reference resolver.
+    // (cICP > iCCP).
     if (apply(ColorRule::Cicp, rule_cicp(config, facts, policy, diag)))
         return expl;
     if (apply(ColorRule::IccProfile, rule_icc(facts, policy, diag)))
