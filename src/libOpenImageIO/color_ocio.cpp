@@ -3740,6 +3740,13 @@ ColorConfig::Impl::ensureProbeConfig() const
         spin_rw_read_lock lock(m_mutex);
         probe_config = m_interop.interopified;
     }
+    // Fail-don't-guess: the probe constants are AP0-calibrated, so they are
+    // only meaningful when the (repaired) copy POSITIVELY resolves the scene
+    // interchange to normalize against (see interopify_config). Without it,
+    // leave the probe config unset so fingerprints report "not computable"
+    // instead of silently assuming the config's reference is AP0.
+    if (probe_config && !interopifiedResolvesSceneInterchange())
+        probe_config.reset();
     if (probe_config) {
         try {
             probe_context = probe_config->getCurrentContext();
@@ -5167,10 +5174,17 @@ bootstrap_display_interchange(const OCIO::ConfigRcPtr& editable,
         auto acesCS = editable->getColorSpace(interchangeScene.c_str());
         const bool acesIsSceneRef
             = acesCS && !acesCS->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE);
-        if (acesIsSceneRef || sceneRefName.empty()
-            || sceneRefName == interchangeScene) {
-            // The scene reference is (treated as) AP0: use the builtin alone.
+        if (acesIsSceneRef || sceneRefName == interchangeScene) {
+            // The scene reference IS the (positively identified) AP0
+            // interchange space: use the builtin alone.
             bridge = ap0ToXyz;
+        } else if (sceneRefName.empty()) {
+            // The reference has no nameable space to chain through and is
+            // not itself the identified interchange -- don't guess that it
+            // is AP0. Skip view-transform synthesis; the display interchange
+            // role is still set, so cross-config processors work for many
+            // spaces anyway.
+            return;
         } else {
             // Chain scene_reference -> aces_interchange, then AP0 -> XYZ-D65.
             auto group = OCIO::GroupTransform::Create();
@@ -5226,23 +5240,18 @@ interopify_config(const OCIO::ConstConfigRcPtr& config)
             if (!editable->getColorSpace(OCIO::ROLE_INTERCHANGE_SCENE))
                 editable->setRole(OCIO::ROLE_INTERCHANGE_SCENE,
                                   interchange.c_str());
-        } else if (std::string identity
-                   = find_scene_reference_identity(editable);
-                   !identity.empty()) {
-            // Repair: anchor lin_ap0_scene on the scene-referred identity space
-            // and make it the scene interchange. For now this treats the
-            // config's scene reference as AP0; synthesize a real scene-linear
-            // -> AP0 transform via a builtin color space when the reference is
-            // known not to be AP0.
-            if (!editable->getColorSpace("lin_ap0_scene")) {
-                auto cs = OCIO::ColorSpace::Create(OCIO::REFERENCE_SPACE_SCENE);
-                cs->setName("lin_ap0_scene");
-                cs->setEncoding("scene-linear");
-                editable->addColorSpace(cs);
-            }
-            editable->setRole(OCIO::ROLE_INTERCHANGE_SCENE, "lin_ap0_scene");
-            interchange = "lin_ap0_scene";
         }
+        // Fail-don't-guess: when no scene interchange can be POSITIVELY
+        // identified (the aces_interchange role, a known alias/name match,
+        // or OCIO builtin identification -- all covered by
+        // discover_scene_interchange above), NO repair is attempted. A
+        // transformless scene reference could be linear Rec.709, a camera
+        // gamut, or any config-defined reference; fabricating an AP0
+        // equivalence for it would produce numerically wrong cross-config
+        // transforms and fingerprints. The copy then resolves no scene
+        // interchange, the bridge gate stays closed, and cross-config /
+        // fingerprint queries fail cleanly with the existing
+        // "not color-interoperable" narration.
 
         // Ensure lin_ap0_scene resolves (as an alias of the interchange space)
         // so the probe path's fallback lookups find it by that name.

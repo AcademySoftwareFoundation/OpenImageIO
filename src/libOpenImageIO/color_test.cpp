@@ -687,11 +687,13 @@ test_color_space_fingerprint()
 
 
 // Exercise the config interoperability check: a config carrying the
-// aces_interchange role is interoperable and does not warn; a stripped config
-// is not interoperable, gets an in-memory interopified repair copy that DOES
-// resolve a scene interchange (with the OCIO processor cache off, leaving the
-// original config unmutated), and warns exactly once per config structure. The
-// whole thing is lazy -- constructing a ColorConfig runs none of it.
+// aces_interchange role is interoperable and does not warn; a config whose
+// scene reference is positively identifiable (known alias/name, or OCIO
+// builtin identification) is repaired -- the interopified copy binds the
+// interchange role; a stripped config whose reference CANNOT be positively
+// identified is NOT repaired (fail-don't-guess: never fabricate an AP0
+// equivalence), and warns exactly once per config structure. The whole thing
+// is lazy -- constructing a ColorConfig runs none of it.
 static void
 test_config_interoperability()
 {
@@ -777,10 +779,12 @@ colorspaces:
         // convert with is otherwise perfectly healthy.
         OIIO_CHECK_FALSE(cc.has_error());
 
-        // But the in-memory interopified copy was repaired to resolve one,
-        // with the processor cache off -- and the original config is
-        // unmutated (is_interoperable stays false above).
-        OIIO_CHECK_ASSERT(
+        // The in-memory interopified copy is NOT repaired: "ref" is a bare
+        // transformless space that nothing positively identifies as AP0
+        // (no role, no known alias, no builtin identification), and the
+        // bridge must never fabricate that equivalence. The copy still
+        // exists (processor cache off), but resolves no scene interchange.
+        OIIO_CHECK_FALSE(
             color_config_interopified_resolves_scene_interchange(cc));
         OIIO_CHECK_ASSERT(color_config_interopified_cache_off(cc));
 
@@ -802,9 +806,43 @@ colorspaces:
         ColorConfig cc2(stripped_path);
         OIIO_CHECK_FALSE(color_config_is_interoperable(cc2));
         OIIO_CHECK_ASSERT(color_config_interop_warned(cc2));
-        // ...and it still gets its own repaired, cache-off copy.
-        OIIO_CHECK_ASSERT(
+        // ...and its own copy likewise resolves no scene interchange.
+        OIIO_CHECK_FALSE(
             color_config_interopified_resolves_scene_interchange(cc2));
+    }
+
+    // --- Positively identifiable reference: repair IS performed -------------
+    // The reference space is transformless but NAMED as a known scene
+    // interchange alias ("ACES2065-1"), so the identification is positive and
+    // the interopified copy may bind the interchange role to it.
+    {
+        static const char* identifiable_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ACES2065-1
+  scene_linear: ACES2065-1
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ACES2065-1}
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+)";
+        std::string identifiable_path
+            = Filesystem::temp_directory_path()
+              + "/oiio_color_test_identifiable.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(identifiable_path, identifiable_yaml));
+        ColorConfig cc(identifiable_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        // Alias discovery finds "ACES2065-1" even without the role...
+        OIIO_CHECK_ASSERT(color_config_is_interoperable(cc));
+        OIIO_CHECK_EQUAL(color_config_interchange_name(cc), "ACES2065-1");
+        // ...and the interopified copy binds the role to it.
+        OIIO_CHECK_ASSERT(
+            color_config_interopified_resolves_scene_interchange(cc));
+        OIIO_CHECK_FALSE(color_config_interop_warned(cc));
+        Filesystem::remove(identifiable_path);
     }
 
     Filesystem::remove(interop_path);
