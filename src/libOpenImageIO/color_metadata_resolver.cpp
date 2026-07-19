@@ -231,16 +231,6 @@ synthesize_icc_space(const std::vector<unsigned char>& profile)
     return Strutil::fmt::format("icc:{:016x}", uint64_t(h));
 }
 
-bool
-is_exr_source(const ColorCallContext& ctx)
-{
-    if (!ctx.format.empty()) {
-        const std::string f = lower_copy(ctx.format);
-        return f == "exr" || f == "openexr";
-    }
-    return Strutil::ends_with(lower_copy(ctx.filename), ".exr");
-}
-
 // ---- individual rules -------------------------------------------------
 
 struct RuleResult {
