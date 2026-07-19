@@ -291,30 +291,42 @@ test_policy_hint_plumbing()
             OIIO_CHECK_ASSERT(o->write_image(TypeFloat, fpix.data()));
             OIIO_CHECK_ASSERT(o->close());
         }
-        // Global tier: prefer the scene-state twin of the file's id.
-        OIIO_CHECK_ASSERT(OIIO::attribute(
-            "oiio:colorpolicy:read:state_preference", "scene"));
-        auto in = ImageInput::open(file);
-        OIIO_CHECK_ASSERT(in.get());
-        if (in) {
-            OIIO_CHECK_EQUAL(
-                in->spec().get_string_attribute("oiio:ColorSpace"),
-                "srgb_rec709_scene");
-            in->close();
+        // Reader-parity guard: run the probes under BOTH EXR readers
+        // (openexr:core=0 -> OpenEXRInput, =1 -> OpenEXRCoreInput), so a
+        // policy wired into only one reader fails here regardless of which
+        // one the build defaults to.
+        int core_orig = 0;
+        OIIO::getattribute("openexr:core", core_orig);
+        for (int core : { 0, 1 }) {
+            OIIO_CHECK_ASSERT(OIIO::attribute("openexr:core", core));
+            // Global tier: prefer the scene-state twin of the file's id.
+            OIIO_CHECK_ASSERT(OIIO::attribute(
+                "oiio:colorpolicy:read:state_preference", "scene"));
+            auto in = ImageInput::open(file);
+            OIIO_CHECK_ASSERT(in.get());
+            if (in) {
+                OIIO_CHECK_EQUAL(
+                    in->spec().get_string_attribute("oiio:ColorSpace"),
+                    "srgb_rec709_scene");
+                in->close();
+            }
+            // Per-open hint: put the display preference back for THIS open
+            // only.
+            ImageSpec config;
+            config.attribute("oiio:colorpolicy:read:state_preference",
+                             "display");
+            auto in2 = ImageInput::open(file, &config);
+            OIIO_CHECK_ASSERT(in2.get());
+            if (in2) {
+                OIIO_CHECK_EQUAL(
+                    in2->spec().get_string_attribute("oiio:ColorSpace"),
+                    "srgb_rec709_display");
+                in2->close();
+            }
+            OIIO_CHECK_ASSERT(OIIO::attribute(
+                "oiio:colorpolicy:read:state_preference", "auto"));
         }
-        // Per-open hint: put the display preference back for THIS open only.
-        ImageSpec config;
-        config.attribute("oiio:colorpolicy:read:state_preference", "display");
-        auto in2 = ImageInput::open(file, &config);
-        OIIO_CHECK_ASSERT(in2.get());
-        if (in2) {
-            OIIO_CHECK_EQUAL(
-                in2->spec().get_string_attribute("oiio:ColorSpace"),
-                "srgb_rec709_display");
-            in2->close();
-        }
-        OIIO_CHECK_ASSERT(
-            OIIO::attribute("oiio:colorpolicy:read:state_preference", "auto"));
+        OIIO::attribute("openexr:core", core_orig);
         Filesystem::remove(file);
     }
 
