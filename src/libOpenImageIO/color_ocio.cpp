@@ -327,6 +327,12 @@ private:
     mutable spin_rw_mutex m_mutex;
     mutable std::string m_error;
     ColorProcessorMap colorprocmap;  // cache of ColorProcessors
+    // Lenient cross-config fallbacks: the pass-through no-op processors
+    // reconcile_cross_config{,_display} hand back under non-strict parsing,
+    // keyed by processor identity, mapped to the composed continue-message.
+    // Guarded by m_mutex; entries live as long as colorprocmap holds the
+    // processor (the life of this Impl).
+    std::unordered_map<const ColorProcessor*, std::string> m_lenient_fallbacks;
     atomic_int colorprocs_requested;
     atomic_int colorprocs_created;
     std::string m_configname;
@@ -430,9 +436,15 @@ public:
 
     // Add the given color processor. Be careful -- if a matching one is
     // already in the table, just return the existing one. If they pass
-    // in an empty handle, just return it.
+    // in an empty handle, just return it. If `lenient_fallback_msg` is
+    // non-null, the handle is a lenient cross-config pass-through fallback:
+    // record its continue-message against the cached processor (under the
+    // same lock as the insertion), so the per-call outcome travels WITH the
+    // processor and a later cache hit can re-signal it.
     ColorProcessorHandle addproc(const ColorProcCacheKey& key,
-                                 ColorProcessorHandle handle)
+                                 ColorProcessorHandle handle,
+                                 const std::string* lenient_fallback_msg
+                                 = nullptr)
     {
         if (!handle)
             return handle;
@@ -447,7 +459,22 @@ public:
             // return the one already in the map.
             handle = found->second;
         }
+        if (lenient_fallback_msg)
+            m_lenient_fallbacks[handle.get()] = *lenient_fallback_msg;
         return handle;
+    }
+
+    // If `proc` is a registered lenient cross-config pass-through fallback
+    // (see addproc), return its continue-message; otherwise return empty.
+    // This -- never the shared error string, which cache hits and unrelated
+    // calls may have cleared or overwritten -- is how callers must decide
+    // whether a non-null processor actually converts pixels.
+    std::string lenient_fallback_message(const ColorProcessor* proc) const
+    {
+        spin_rw_read_lock lock(m_mutex);
+        auto found = m_lenient_fallbacks.find(proc);
+        return found == m_lenient_fallbacks.end() ? std::string()
+                                                  : found->second;
     }
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
@@ -2339,14 +2366,24 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
                                   ustring context_value) const
 {
     std::string pending_error;
+    std::string lenient_fallback_msg;
 
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
     ColorProcCacheKey prockey(inputColorSpace, outputColorSpace, context_key,
                               context_value);
     ColorProcessorHandle handle = getImpl()->findproc(prockey);
-    if (handle)
+    if (handle) {
+        // A cached lenient cross-config fallback must behave exactly like
+        // its first computation: re-signal its continue-message so this
+        // call's outcome (pixels will NOT be converted) is observable per
+        // call, not lost to whoever consumed the shared error string first.
+        std::string fallback = getImpl()->lenient_fallback_message(
+            handle.get());
+        if (fallback.size())
+            getImpl()->error("{}", fallback);
         return handle;
+    }
 
     // DBG("createColorProcessor {} -> {}\n", inputColorSpace,
     //                outputColorSpace);
@@ -2422,6 +2459,7 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
                     getImpl()->clear_error();  // clean bridge success
                 pending_error = reconciled;    // empty on success; a
                                                // continue-message on fallback
+                lenient_fallback_msg = reconciled;  // ditto (registered below)
             } else if (reconciled.size()) {
                 pending_error = reconciled;  // strict hard error: why+how-to-fix
             }
@@ -2442,7 +2480,9 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
     if (pending_error.size())
         getImpl()->error("{}", pending_error);
 
-    return getImpl()->addproc(prockey, handle);
+    return getImpl()->addproc(prockey, handle,
+                              lenient_fallback_msg.size() ? &lenient_fallback_msg
+                                                          : nullptr);
 }
 
 
@@ -2558,8 +2598,17 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                               ustring() /*file*/, ustring() /*namedtransform*/,
                               inverse);
     ColorProcessorHandle handle = getImpl()->findproc(prockey);
-    if (handle)
+    if (handle) {
+        // A cached lenient cross-config fallback must behave exactly like
+        // its first computation: re-signal its continue-message (see
+        // createColorProcessor for the identical pattern).
+        std::string fallback = getImpl()->lenient_fallback_message(
+            handle.get());
+        if (fallback.size())
+            getImpl()->error("{}", fallback);
         return handle;
+    }
+    std::string lenient_fallback_msg;
 
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
@@ -2618,6 +2667,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                     getImpl()->clear_error();  // clean bridge success
                 pending_error = reconciled;    // empty on success; a
                                                // continue-message on fallback
+                lenient_fallback_msg = reconciled;  // ditto (registered below)
             } else if (reconciled.size()) {
                 pending_error = reconciled;  // strict hard error: why+how-to-fix
             }
@@ -2630,7 +2680,9 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
             getImpl()->error("{}", pending_error);
     }
 
-    return getImpl()->addproc(prockey, handle);
+    return getImpl()->addproc(prockey, handle,
+                              lenient_fallback_msg.size() ? &lenient_fallback_msg
+                                                          : nullptr);
 }
 
 
@@ -4107,14 +4159,21 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         return false;
     }
 
-    // A non-null processor paired with a pending ColorConfig error means
-    // cross-config reconciliation fell back to a lenient pass-through no-op
-    // (non-strict parsing: the requested spaces couldn't be bridged, but the
-    // pipeline proceeds anyway). No pixels are actually converted in that
-    // case, so the output must keep documenting its true (source) space
-    // rather than claiming the requested destination -- an honest no-op
-    // instead of metadata that asserts a conversion that never happened.
-    bool lenient_passthrough = colorconfig->has_error();
+    // A lenient cross-config fallback is a pass-through no-op standing in
+    // for a conversion that could not be reconciled (non-strict parsing: the
+    // requested spaces couldn't be bridged, but the pipeline proceeds
+    // anyway). The outcome travels WITH the processor -- never the shared
+    // error string, which cache hits and unrelated calls may not reflect --
+    // so ask the config whether THIS processor is such a fallback. No pixels
+    // are actually converted in that case, so the output must keep
+    // documenting its true (source) space rather than claiming the requested
+    // destination -- an honest no-op instead of metadata that asserts a
+    // conversion that never happened.
+    bool lenient_passthrough
+        = pvt::ColorConfigClassificationPeek::impl(*colorconfig)
+              ->lenient_fallback_message(processor.get())
+              .size()
+          > 0;
 
     logtime.stop(-1);  // transition to other colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
@@ -4501,13 +4560,17 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
     }
 
     // Same lenient cross-config pass-through signal as
-    // ImageBufAlgo::colorconvert(): a non-null processor with a pending
-    // ColorConfig error means reconcile_cross_config_display() fell back to
-    // a no-op (non-strict parsing). No pixels moved, so the output must keep
-    // documenting the space the pixels are actually in -- never the space
-    // the failed conversion was reaching for. Which space that is depends on
-    // direction (handled per-branch below).
-    bool lenient_passthrough = colorconfig->has_error();
+    // ImageBufAlgo::colorconvert(): the fallback outcome travels WITH the
+    // processor (reconcile_cross_config_display() fell back to a no-op under
+    // non-strict parsing), never through the shared error string. No pixels
+    // moved, so the output must keep documenting the space the pixels are
+    // actually in -- never the space the failed conversion was reaching for.
+    // Which space that is depends on direction (handled per-branch below).
+    bool lenient_passthrough
+        = pvt::ColorConfigClassificationPeek::impl(*colorconfig)
+              ->lenient_fallback_message(processor.get())
+              .size()
+          > 0;
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);

@@ -16,6 +16,8 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/color_interop_ids.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -1110,6 +1112,44 @@ colorspaces:
         // Narration recorded on the error string: what failed and how to fix.
         OIIO_CHECK_ASSERT(Strutil::contains(err, "lin_ap1_scene"));
         OIIO_CHECK_ASSERT(Strutil::contains(err, "aces_interchange role"));
+    }
+
+    // --- Lenient-fallback outcome travels WITH the processor: a cache hit of
+    //     the fallback behaves exactly like its first computation, and IBA
+    //     metadata never claims the conversion that didn't happen ------------
+    {
+        ColorConfig cc(non_path);
+        auto h1 = cc.createColorProcessor("enc", "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(h1.get() != nullptr);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        (void)cc.geterror();  // consume (clears the shared error string)
+
+        // Cache hit: the per-call outcome must be identical to the first
+        // computation -- the continue-message is re-signaled, not lost.
+        auto h2 = cc.createColorProcessor("enc", "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(h2.get() != nullptr);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err2 = cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err2, "aces_interchange role"));
+
+        // IBA honesty on BOTH calls: no pixels moved, so the output keeps the
+        // true (source) color space -- including when the fallback processor
+        // comes from the cache with the shared error string clean.
+        ImageBuf src(ImageSpec(2, 2, 3, TypeDesc::FLOAT));
+        ImageBufAlgo::fill(src, { 0.25f, 0.5f, 0.75f });
+        src.specmod().set_colorspace("enc");
+        ImageBuf d1 = ImageBufAlgo::colorconvert(src, "enc", "lin_ap1_scene",
+                                                 true, "", "", &cc);
+        OIIO_CHECK_ASSERT(!d1.has_error());
+        OIIO_CHECK_EQUAL(d1.spec().get_string_attribute("oiio:ColorSpace"),
+                         "enc");
+        (void)cc.geterror();  // clear again: the cached path must not depend
+                              // on leftover shared error state
+        ImageBuf d2 = ImageBufAlgo::colorconvert(src, "enc", "lin_ap1_scene",
+                                                 true, "", "", &cc);
+        OIIO_CHECK_ASSERT(!d2.has_error());
+        OIIO_CHECK_EQUAL(d2.spec().get_string_attribute("oiio:ColorSpace"),
+                         "enc");
     }
 
     // --- Strict parsing: hard error (today's behavior) with why + how-to-fix --
