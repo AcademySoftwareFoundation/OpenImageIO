@@ -24,6 +24,7 @@
 
 #include "exr_pvt.h"
 #include "imageio_pvt.h"
+#include "color_pvt.h"
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.

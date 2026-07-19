@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 
+#include "color_pvt.h"
+
 #include <OpenImageIO/unittest.h>
 
 #include "imageio_pvt.h"

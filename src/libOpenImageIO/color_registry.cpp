@@ -27,7 +27,7 @@
 // The built-in interop identities config and the interoperability
 // assertion/bootstrap machinery below touch ColorConfig::Impl, which lives in
 // the ABI-versioned v3_1 namespace -- so they must too. The OIIO_API pvt
-// shims that expose them are declared (by imageio_pvt.h) in the library's
+// shims that expose them are declared (by color_pvt.h) in the library's
 // "current" namespace and are defined further down in a separate
 // OIIO_NAMESPACE_BEGIN block; those reach back here with explicit v3_1::
 // qualification.
@@ -253,7 +253,7 @@ OIIO_NAMESPACE_END
 
 
 // The pvt shims below are declared (OIIO_API) in the library's "current"
-// namespace by imageio_pvt.h, so they must be defined there too, not inside
+// namespace by color_pvt.h, so they must be defined there too, not inside
 // the ABI-versioned v3_1 namespace the helpers above live in.
 OIIO_NAMESPACE_BEGIN
 

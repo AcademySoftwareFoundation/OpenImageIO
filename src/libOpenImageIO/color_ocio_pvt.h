@@ -32,6 +32,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/unordered_map_concurrent.h>
 
+#include "color_pvt.h"
 #include "imageio_pvt.h"
 
 #define MAKE_OCIO_VERSION_HEX(maj, min, patch) \
@@ -210,7 +211,7 @@ struct CSInfo {
 
 
 // The classification bits observed by tests through pvt::ColorSpaceAnalysis
-// (imageio_pvt.h) are the raw CSInfo classification bits; keep the two in
+// (color_pvt.h) are the raw CSInfo classification bits; keep the two in
 // sync so a shim result is interpreted correctly.
 static_assert(int(OIIO::pvt::ColorSpaceIsData) == CSInfo::is_data
                   && int(OIIO::pvt::ColorSpaceIsUnique) == CSInfo::is_unique
@@ -772,7 +773,7 @@ private:
 
 namespace pvt {
 // Grants the color-space classification test shims (declared in
-// imageio_pvt.h, defined in the current namespace below) access to the
+// color_pvt.h, defined in the current namespace below) access to the
 // private ColorConfig::Impl (shared by the color_*.cpp translation units).
 struct ColorConfigClassificationPeek {
     static ColorConfig::Impl* impl(const ColorConfig& config)

@@ -641,7 +641,7 @@ OIIO_NAMESPACE_END
 
 
 // The pvt shims below are declared (OIIO_API) in the library's "current"
-// namespace by imageio_pvt.h, so they must be defined there too, not inside
+// namespace by color_pvt.h, so they must be defined there too, not inside
 // the ABI-versioned v3_1 namespace the helpers above live in.
 OIIO_NAMESPACE_BEGIN
 

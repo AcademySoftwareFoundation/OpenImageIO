@@ -22,6 +22,7 @@
 // whitepoint/CAT sweep is a documented follow-on.
 
 #include "imageio_pvt.h"
+#include "color_pvt.h"
 
 #include <OpenImageIO/strutil.h>
 

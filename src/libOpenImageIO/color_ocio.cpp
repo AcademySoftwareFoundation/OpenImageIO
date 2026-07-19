@@ -1231,7 +1231,7 @@ namespace {
 
 // Helpers for the interop-ID resolution tiers layered onto resolve(). They
 // only read the OCIO config and the pure grammar/sanitization functions from
-// imageio_pvt.h; none of them touch the interoperability bootstrap or the
+// color_pvt.h; none of them touch the interoperability bootstrap or the
 // fingerprint engine. Every string_view they return is backed by an OCIO-owned
 // color space name (stable for the life of the config), never a temporary.
 
@@ -3947,7 +3947,7 @@ OIIO_NAMESPACE_END
 
 
 // The pvt shims below are declared (OIIO_API) in the library's "current"
-// namespace by imageio_pvt.h, so they must be defined there too, not inside
+// namespace by color_pvt.h, so they must be defined there too, not inside
 // the ABI-versioned v3_1 namespace the helpers above live in.
 OIIO_NAMESPACE_BEGIN
 

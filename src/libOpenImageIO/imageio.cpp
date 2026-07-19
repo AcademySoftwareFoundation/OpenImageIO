@@ -86,7 +86,7 @@ static const int maxthreads = 512;  // reasonable maximum for sanity check
 
 // Storage for the global `oiio:colorpolicy:*` attribute namespace, consumed
 // via OIIO::getattribute() by the color policy snapshots (see
-// ColorPolicySnapshot in imageio_pvt.h). Generic name->value storage guarded
+// ColorPolicySnapshot in color_pvt.h). Generic name->value storage guarded
 // by attrib_mutex like the other globals; the grammar and defaults are owned
 // by the policy readers, not here.
 static ParamValueList colorpolicy_attribs;

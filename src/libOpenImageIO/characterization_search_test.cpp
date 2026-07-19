@@ -20,6 +20,8 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/strutil.h>
+#include "color_pvt.h"
+
 #include <OpenImageIO/unittest.h>
 
 #include "imageio_pvt.h"

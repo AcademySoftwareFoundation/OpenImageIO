@@ -11,6 +11,7 @@
 // translation unit so color_ocio.cpp doesn't have to grow to hold them.
 
 #include "imageio_pvt.h"
+#include "color_pvt.h"
 
 #include <array>
 

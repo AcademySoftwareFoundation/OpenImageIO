@@ -3,7 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 // Unit tests for the read-side color-metadata reconciler (pvt), driven
-// directly through imageio_pvt.h. The vectors port a proven prototype's
+// directly through color_pvt.h. The vectors port a proven prototype's
 // precedence, utility-token, strict-parsing, CICP-over-ICC, and
 // filename-invariance cases.
 
@@ -15,6 +15,8 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
+#include "color_pvt.h"
+
 #include <OpenImageIO/unittest.h>
 
 #include "imageio_pvt.h"

@@ -21,6 +21,7 @@
 // always wins last.
 
 #include "imageio_pvt.h"
+#include "color_pvt.h"
 
 #include <OpenImageIO/strutil.h>
 

@@ -3,7 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 // Unit tests for the write-side color-metadata plan (pvt), driven directly
-// through imageio_pvt.h. They exercise the write/suppress/derive/omit marking
+// through color_pvt.h. They exercise the write/suppress/derive/omit marking
 // of each signal, the never-guess omission rule, the provenance suppression
 // rule, and the OpenEXR writer's consumption of the plan.
 
@@ -15,6 +15,8 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
+#include "color_pvt.h"
+
 #include <OpenImageIO/unittest.h>
 
 #include "imageio_pvt.h"

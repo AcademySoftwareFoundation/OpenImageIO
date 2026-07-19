@@ -16,6 +16,7 @@
 // verbatim from the proven reference implementation.
 
 #include "imageio_pvt.h"
+#include "color_pvt.h"
 
 #include <algorithm>
 #include <array>

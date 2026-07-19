@@ -19,6 +19,7 @@
 #include <OpenEXR/openexr.h>
 
 #include "imageio_pvt.h"
+#include "color_pvt.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/deepdata.h>

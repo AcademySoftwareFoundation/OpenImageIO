@@ -4,7 +4,7 @@
 
 // Unit tests for the spec-aware color-metadata resolution surface (pvt):
 // fact extraction from an ImageSpec and the spec resolve() overload, driven
-// directly through imageio_pvt.h. Also locks the reader-path / spec-path
+// directly through color_pvt.h. Also locks the reader-path / spec-path
 // same-hints-same-answer regression.
 
 #include <cstdio>
@@ -17,6 +17,8 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
+#include "color_pvt.h"
+
 #include <OpenImageIO/unittest.h>
 
 #include "imageio_pvt.h"

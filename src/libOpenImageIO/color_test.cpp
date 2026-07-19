@@ -23,6 +23,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>
+#include "color_pvt.h"
+
 #include <OpenImageIO/unittest.h>
 
 #include "imageio_pvt.h"

@@ -13,7 +13,7 @@
 // prototype. The engine is pure -- a ColorConfig plus plain value types --
 // so the same code path serves resolve() and its explain() trace (explain
 // is just resolve with the reason strings kept), and a unit test can drive
-// it directly through imageio_pvt.h.
+// it directly through color_pvt.h.
 
 #include <algorithm>
 #include <cctype>
@@ -29,6 +29,7 @@
 #include <OpenImageIO/ustring.h>
 
 #include "imageio_pvt.h"
+#include "color_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
 

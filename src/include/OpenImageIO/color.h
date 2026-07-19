@@ -78,7 +78,7 @@ using ColorProcessorHandle = std::shared_ptr<ColorProcessor>;
 #ifdef OIIO_INTERNAL
 namespace pvt {
 // Access shim letting the internal color-space classification test hooks
-// (see imageio_pvt.h) reach ColorConfig's private implementation. Only
+// (see color_pvt.h) reach ColorConfig's private implementation. Only
 // visible when building OIIO itself (same pattern as deepdata.h); the
 // installed public header exposes no new symbol.
 struct ColorConfigClassificationPeek;
