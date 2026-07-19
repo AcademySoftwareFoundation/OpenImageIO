@@ -158,7 +158,11 @@ test_derivation(const ColorConfig& config)
 
     auto p = plan_color_metadata(&config, spec, all_caps(), pol);
 
-    const std::string want_id(config.get_color_interop_id("srgb_rec709_display"));
+    // The plan's Derive path runs the full derivation cascade, so the
+    // expectation comes from pvt::derive_color_interop_id, not the cheap
+    // public lookup.
+    const std::string want_id(
+        derive_color_interop_id(config, "srgb_rec709_display"));
     if (!want_id.empty()) {
         OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Derive));
         OIIO_CHECK_EQUAL(p.interop_id.str, want_id);
@@ -166,7 +170,8 @@ test_derivation(const ColorConfig& config)
         OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Omit));
     }
 
-    cspan<int> want_cicp = config.get_cicp("srgb_rec709_display");
+    cspan<int> want_cicp = want_id.empty() ? cspan<int>()
+                                           : config.get_cicp(want_id);
     if (want_cicp.size() == 4) {
         OIIO_CHECK_EQUAL(int(p.cicp.action), int(ColorPlanAction::Derive));
         OIIO_CHECK_EQUAL(p.cicp.ints.size(), size_t(4));
@@ -207,8 +212,8 @@ test_global_policy_tier()
     // the color space emits none while the global says never. Only meaningful
     // when the default config can derive one -- guard like test_exr_consumption.
     const std::string derivable(
-        ColorConfig::default_colorconfig().get_color_interop_id(
-            "lin_ap0_scene"));
+        derive_color_interop_id(ColorConfig::default_colorconfig(),
+                                "lin_ap0_scene"));
     if (!derivable.empty() && ImageOutput::create("exr")) {
         const std::string file = Filesystem::temp_directory_path()
                                  + "/oiio_cmp_globalpolicy.exr";
@@ -250,8 +255,8 @@ test_policy_hint_plumbing()
 
     // --- EXR write: per-spec hint overrides a global 'never'. ------------
     const std::string derivable(
-        ColorConfig::default_colorconfig().get_color_interop_id(
-            "lin_ap0_scene"));
+        derive_color_interop_id(ColorConfig::default_colorconfig(),
+                                "lin_ap0_scene"));
     if (!derivable.empty() && ImageOutput::create("exr")) {
         const std::string file = Filesystem::temp_directory_path()
                                  + "/oiio_cmp_hints.exr";
@@ -531,8 +536,8 @@ test_exr_consumption()
         spec.attribute("oiio:ColorSpace", "lin_ap0_scene");
         write(spec);
         const std::string want(
-            ColorConfig::default_colorconfig().get_color_interop_id(
-                "lin_ap0_scene"));
+            derive_color_interop_id(ColorConfig::default_colorconfig(),
+                                    "lin_ap0_scene"));
         OIIO_CHECK_EQUAL(read_id(), want);
     }
 

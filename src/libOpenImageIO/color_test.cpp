@@ -398,7 +398,7 @@ test_registry_round_trip()
             std::string resolved(cc.resolve(id));
             if (cc.getColorSpaceIndex(resolved) < 0)
                 continue;  // id did not land on a real space in this config
-            std::string got(cc.get_color_interop_id(resolved));
+            std::string got(OIIO::pvt::derive_color_interop_id(cc, resolved));
             if (round_trips(got, id))
                 continue;
 
@@ -427,7 +427,8 @@ test_registry_round_trip()
         if (!studio.has_error() && studio.getNumColorSpaces() > 0) {
             std::string resolved(studio.resolve("g24_rec709_scene"));
             OIIO_CHECK_GE(studio.getColorSpaceIndex(resolved), 0);
-            std::string got(studio.get_color_interop_id(resolved));
+            std::string got(
+                OIIO::pvt::derive_color_interop_id(studio, resolved));
             OIIO_CHECK_NE(got, std::string("g24_rec709_scene"));
             OIIO_CHECK_EQUAL(strip_leftmost_namespace(got),
                              std::string("g24_rec709_scene"));
@@ -1943,11 +1944,8 @@ colorspaces:
 
 
 
-// Exercise ColorConfig::get_color_interop_id(string_view)'s four-step write
-// cascade (declared/isData -> registry fingerprint match -> generated
-// config-local id -> empty). As with test_interop_resolve, separate small
-// fixture configs isolate each step so one config's setup can't accidentally
-// satisfy a different step's assertion.
+// Exercise the cheap, OCIO-free ICC byte-inspection primitives
+// (is_icc_profile / icc_profile_identifier / icc_embedded_cicp).
 static void
 test_icc_utils()
 {
@@ -2292,9 +2290,10 @@ test_identify_icc()
         OIIO_CHECK_EQUAL(r.decodable, true);
         OIIO_CHECK_ASSERT(!r.id.empty());
         OIIO_CHECK_ASSERT(!Strutil::starts_with(r.id, "icc:"));
-        const bool srgb_semantics = r.id == "srgb_rec709_display"
-                                    || config.get_color_interop_id(r.id)
-                                           == "srgb_rec709_display";
+        const bool srgb_semantics
+            = r.id == "srgb_rec709_display"
+              || OIIO::pvt::derive_color_interop_id(config, r.id)
+                     == "srgb_rec709_display";
         OIIO_CHECK_ASSERT(srgb_semantics);
         if (!srgb_semantics)
             Strutil::print("  (identified as '{}')\n", r.id);
@@ -2712,6 +2711,7 @@ colorspaces:
 static void
 test_interop_derive()
 {
+    using OIIO::pvt::derive_color_interop_id;
     using OIIO::pvt::sanitize_id_token;
 
     if (!ColorConfig::supportsOpenColorIO())
@@ -2761,7 +2761,10 @@ colorspaces:
         // Step 1, utility sub-case: a data space with no declared interop_id
         // resolves to "data" -- before any fingerprint tier runs, even though
         // this identity space would ALSO fingerprint-match the registry's
-        // lin_ap0_scene identity.
+        // lin_ap0_scene identity. (This tier is also part of the cheap public
+        // lookup.)
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "implicit_data_space"),
+                         "data");
         OIIO_CHECK_EQUAL(cc.get_color_interop_id("implicit_data_space"),
                           "data");
 
@@ -2769,9 +2772,13 @@ colorspaces:
         // registry-precluding classification is genuinely fingerprint-
         // equivalent to the built-in registry's "lin_ap0_scene" identity
         // (also an identity transform) -- returns the REGISTRY identity's own
-        // id, not the query's own name.
+        // id, not the query's own name. Fingerprinting is derive-only: the
+        // cheap public lookup must NOT identify this space.
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc,
+                                                 "registry_equivalent_space"),
+                         "lin_ap0_scene");
         OIIO_CHECK_EQUAL(cc.get_color_interop_id("registry_equivalent_space"),
-                          "lin_ap0_scene");
+                          "");
 
         // Step 2 miss -> step 3: no registry scene-side entry is a bare
         // gamma-exponent curve, so this space has no fingerprint match; the
@@ -2784,13 +2791,17 @@ colorspaces:
         std::string expected_local = sanitize_id_token("MyDerive Config")
                                      + ":local:"
                                      + sanitize_id_token("My Unmatched Curve");
-        OIIO_CHECK_EQUAL(cc.get_color_interop_id("my_unmatched_curve"),
-                          expected_local);
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "my_unmatched_curve"),
+                         expected_local);
+        // Local-id manufacture is derive-only: the cheap public lookup never
+        // manufactures an id.
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("my_unmatched_curve"), "");
 
         // Step 3 precondition: the query itself must resolve to a real space
         // -- a config-local id is never generated for a name this config
         // doesn't know, even though the config has a name.
-        OIIO_CHECK_EQUAL(cc.get_color_interop_id("no_such_space_at_all"), "");
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "no_such_space_at_all"),
+                         "");
     }
     Filesystem::remove(named_path);
 
@@ -2823,7 +2834,8 @@ colorspaces:
             Filesystem::write_text_file(unnamed_path, unnamed_yaml));
         ColorConfig cc(unnamed_path);
         OIIO_CHECK_ASSERT(!cc.has_error());
-        OIIO_CHECK_EQUAL(cc.get_color_interop_id("my_unmatched_curve"), "");
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "my_unmatched_curve"),
+                         "");
         Filesystem::remove(unnamed_path);
     }
 
@@ -2865,11 +2877,11 @@ colorspaces:
         ColorConfig cc(collide_path);
         OIIO_CHECK_ASSERT(!cc.has_error());
         // Both colliding spaces omit -- neither may claim the shared token.
-        OIIO_CHECK_EQUAL(cc.get_color_interop_id("Foo Bar"), "");
-        OIIO_CHECK_EQUAL(cc.get_color_interop_id("foo_bar"), "");
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "Foo Bar"), "");
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "foo_bar"), "");
         // The collision-free space still gets its config-local id.
-        OIIO_CHECK_EQUAL(cc.get_color_interop_id("Solo Space"),
-                          "collide_cfg:local:solo_space");
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "Solo Space"),
+                         "collide_cfg:local:solo_space");
         // Read side: the ambiguous token resolves to NEITHER space (the
         // total-miss passthrough), while the unique token still resolves.
         OIIO_CHECK_EQUAL(cc.resolve("collide_cfg:local:foo_bar"),
@@ -2911,7 +2923,10 @@ colorspaces:
         ColorConfig cc(declared_path);
         OIIO_CHECK_ASSERT(!cc.has_error());
         // Would fingerprint-match "lin_ap0_scene" (identity transform) if the
-        // declared attribute didn't win first.
+        // declared attribute didn't win first. The declared tier is shared:
+        // both the derive cascade and the cheap public lookup honor it.
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "declared_explicit_space"),
+                         "custom:explicit_id");
         OIIO_CHECK_EQUAL(cc.get_color_interop_id("declared_explicit_space"),
                           "custom:explicit_id");
         Filesystem::remove(declared_path);

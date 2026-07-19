@@ -454,27 +454,17 @@ public:
 
     /// Find the Color Interop ID for the given colorspace (see the Color
     /// Interop Forum recommendation "An ID for Color Interop",
-    /// https://github.com/AcademySoftwareFoundation/ColorInterop/wiki). The
-    /// write-side derivation tries four steps in order and returns the first id
-    /// it produces:
-    ///   1. an author-declared `interop_id` attribute on the space is returned
-    ///      verbatim and is unconditionally authoritative (OCIO 2.5+); a data
-    ///      space with no declared token yields "data" here, before any
-    ///      fingerprint match;
-    ///   2. a space definitionally equal (by fingerprint) to a built-in
-    ///      registry identity yields THAT registry identity's id, not the
-    ///      query's own name;
-    ///   3. a config-local id "<config>:local:<space>" when this config has a
-    ///      name and the query resolves to a real space (both segments
-    ///      sanitized per the CIF grammar);
-    ///   4. otherwise an empty string -- an unidentified space is never given a
-    ///      guessed default.
-    /// Two behaviors are deliberate: (a) the legacy static id/CICP table is
-    /// consulted only as a syntactic fallback after step 2's real fingerprint
-    /// match and before steps 3-4, so it can never act as a guessed default
-    /// (and get_cicp(), which shares that table, is unchanged); (b) step 3
-    /// always attempts -- this overload takes no opt-in flag, and its two
-    /// natural preconditions already keep it from firing on a genuine miss.
+    /// https://github.com/AcademySoftwareFoundation/ColorInterop/wiki). This
+    /// is a CHEAP lookup: it returns an author-declared `interop_id`
+    /// attribute on the resolved space (unconditionally authoritative, OCIO
+    /// 2.5+; a data space with no declared token yields "data"), else a
+    /// name/alias match against the built-in id/CICP table, else the empty
+    /// string. It never probes transforms, builds processors, or
+    /// manufactures an id -- an unidentified space is simply "" here, never
+    /// a guessed default. The full (expensive) derivation cascade --
+    /// fingerprint equivalence against the built-in registry identities and
+    /// config-local id generation -- runs at write-planning time when a file
+    /// is written, not inside this getter.
     /// Returns empty string if not found.
     ///
     /// @version 3.1

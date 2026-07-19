@@ -64,8 +64,14 @@ own answer takes precedence over OpenImageIO's built-in table.
 consult the built-in table; they do not consult the OCIO config.
 
 Color space name lookups are case-insensitive, and the name may be any
-color space, alias, or role that OpenImageIO's `ColorConfig::equivalent()`
-considers equivalent to one of the built-in interop ID tokens.
+color space, alias, or role that OpenImageIO can relate to one of the
+built-in interop ID tokens by name, alias, or its cheap color space
+classification. `get_color_interop_id()` is deliberately an inexpensive
+lookup: it never probes transforms or builds color processors. The full
+derivation (which can additionally identify a space by comparing its
+transform values against the built-in registry identities, or generate a
+config-local ID) runs internally at write-planning time when a file is
+written.
 
 
 Built-in color interop ID / CICP table
@@ -286,9 +292,10 @@ The OpenEXR plugin reads and writes a string attribute literally named
   `colorInteropID` attribute is present, its value is used to set
   `"oiio:ColorSpace"`.
 - On write, if no `colorInteropID` attribute is already present on the
-  spec, one is derived automatically from `"oiio:ColorSpace"` via
-  `ColorConfig::get_color_interop_id()` and attached to the file (only if
-  a matching interop ID is found).
+  spec, one is derived automatically from `"oiio:ColorSpace"` by the
+  write-planning derivation cascade (declared config `interop_id`,
+  registry identity match, built-in table, config-local ID) and attached
+  to the file (only if a matching interop ID is found).
 - The `openexr:ACESContainerPolicy` output configuration attribute (`none`,
   `strict`, or `relaxed`) can additionally force a file into ACES
   Container form: it sets the ACES AP0 `chromaticities`, sets

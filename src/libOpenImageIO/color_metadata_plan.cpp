@@ -152,20 +152,29 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
 
     ColorMetadataPlan plan;
 
+    // One full derivation cascade (declared id, registry fingerprint match,
+    // legacy table, config-local id) feeds both derived signals below. This
+    // is deliberately derive_color_interop_id(), NOT the cheap
+    // get_color_interop_id() lookup: write planning is the intentional home
+    // of the expensive derivation.
+    const std::string derived_id(derive_color_interop_id(cfg, colorspace));
+
     // interop id: author's colorInteropID verbatim, else name -> interop id.
     plan.interop_id
         = plan_string_signal(policy.interop_id, caps.interop_id,
                              spec.get_string_attribute("colorInteropID"),
-                             std::string(cfg.get_color_interop_id(colorspace)));
+                             derived_id);
 
-    // CICP: author's CICP int[4] verbatim, else name -> CICP tuple.
+    // CICP: author's CICP int[4] verbatim, else name -> interop id -> CICP
+    // tuple (get_cicp on the derived id is a cheap table lookup).
     if (caps.cicp && policy.cicp != ColorSignalPolicy::Never) {
         int explicit_cicp[4];
         if (spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4), explicit_cicp)) {
             plan.cicp.action = ColorPlanAction::Write;
             plan.cicp.ints.assign(explicit_cicp, explicit_cicp + 4);
         } else {
-            cspan<int> derived = cfg.get_cicp(colorspace);
+            cspan<int> derived = derived_id.empty() ? cspan<int>()
+                                                    : cfg.get_cicp(derived_id);
             if (derived.size() == 4) {
                 plan.cicp.action = ColorPlanAction::Derive;
                 plan.cicp.ints.assign(derived.begin(), derived.end());

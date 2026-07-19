@@ -252,8 +252,8 @@ test_universe_and_visibility()
 
 // An untagged, unencoded display space that IS g26_p3d65_display by value
 // (same matrix + gamma as the registry definition): the fingerprint tier of
-// get_color_interop_id derives the identity, and the encoding axis adopts
-// the twin's sdr-cinema outright.
+// pvt::derive_color_interop_id derives the identity, and the encoding axis
+// adopts the twin's sdr-cinema outright.
 constexpr const char* kUntaggedTheatricalConfig
     = R"OCIO(ocio_profile_version: 2.3
 roles:

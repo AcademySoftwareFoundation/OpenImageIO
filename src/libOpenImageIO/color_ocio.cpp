@@ -512,6 +512,20 @@ public:
 
     string_view resolve(string_view name) const;
 
+    // The syntactic (fingerprint-free) subset of resolve(): direct OCIO
+    // name/role/alias, informal aliases, stripped-namespace retry,
+    // config-local form, declared interop_id, and the data/bypass utility
+    // ranking -- everything except the registry-equivalence fingerprint
+    // tier. Returns empty on a miss (no passthrough), and never wakes the
+    // fingerprint engine or builds the registry index.
+    string_view resolve_syntactic(string_view name) const;
+
+    // equivalent() restricted to syntactic resolution + the cheap
+    // classification flags -- the equivalence the cheap public
+    // get_color_interop_id() table tier uses. Never fingerprints.
+    bool equivalent_syntactic(string_view color_space1,
+                              string_view color_space2) const;
+
     // Note: Uses std::format syntax
     template<typename... Args>
     void error(const char* fmt, const Args&... args) const
@@ -613,7 +627,7 @@ public:
     // deterministic bulk "warm" pass; see fingerprintSimpleColorSpaces()).
     std::size_t fingerprintWarm();
 
-    // Step 2 of ColorConfig::get_color_interop_id(): the write-side analog of
+    // Step 2 of pvt::derive_color_interop_id(): the write-side analog of
     // resolve_registry_equivalence(). Given a color space name that already
     // resolves to a real space in this config, fingerprint it and return the
     // built-in registry identity it is definitionally equal to -- i.e. the
@@ -2173,7 +2187,7 @@ ColorConfig::Impl::resolve_name_tier1a(string_view name) const
 
 
 string_view
-ColorConfig::Impl::resolve(string_view name) const
+ColorConfig::Impl::resolve_syntactic(string_view name) const
 {
     // Tier 1a: direct OCIO color space / role / alias, then informal aliases.
     if (string_view r = resolve_name_tier1a(name); !r.empty())
@@ -2207,7 +2221,21 @@ ColorConfig::Impl::resolve(string_view name) const
         if (name == "data" || name == "bypass")
             if (string_view r = resolve_data_utility(config_, name); !r.empty())
                 return r;
+    }
 
+    return {};
+}
+
+
+
+string_view
+ColorConfig::Impl::resolve(string_view name) const
+{
+    // Every syntactic (fingerprint-free) tier first.
+    if (string_view r = resolve_syntactic(name); !r.empty())
+        return r;
+
+    if (config_ && !disable_ocio) {
         // Tier 2: registry equivalence (fingerprint match). Canonicalize the id
         // through the built-in interop identities registry and return this
         // config's OWN equivalent simple color space -- the user's own space
@@ -2229,6 +2257,46 @@ ColorConfig::Impl::resolve(string_view name) const
     // Total miss: preserve OIIO's historical passthrough -- return the input
     // name unchanged so callers that assumed identity resolution keep working.
     return name;
+}
+
+
+
+bool
+ColorConfig::Impl::equivalent_syntactic(string_view color_space1,
+                                        string_view color_space2) const
+{
+    // Mirrors ColorConfig::equivalent() exactly, except resolution is
+    // resolve_syntactic() -- so a match can come from names, roles, aliases
+    // (formal or informal), a declared interop_id, or the cheap
+    // classification flags, but NEVER from the fingerprint tier.
+    if (color_space1.empty() || color_space2.empty())
+        return false;
+    if (Strutil::iequals(color_space1, color_space2))
+        return true;
+
+    string_view r1 = resolve_syntactic(color_space1);
+    if (!r1.empty())
+        color_space1 = r1;
+    string_view r2 = resolve_syntactic(color_space2);
+    if (!r2.empty())
+        color_space2 = r2;
+    if (Strutil::iequals(color_space1, color_space2))
+        return true;
+
+    const int mask = CSInfo::is_srgb | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
+                     | CSInfo::is_Rec709;
+    const CSInfo* csi1 = find(color_space1);
+    const CSInfo* csi2 = find(color_space2);
+    if (csi1 && csi2) {
+        int flags1 = csi1->flags() & mask;
+        int flags2 = csi2->flags() & mask;
+        if ((flags1 | flags2) && csi1->flags() == csi2->flags())
+            return true;
+        if ((csi1->canonical.size() && csi2->canonical.size())
+            && Strutil::iequals(csi1->canonical, csi2->canonical))
+            return true;
+    }
+    return false;
 }
 
 
@@ -4031,21 +4099,84 @@ constexpr ColorInteropID color_interop_ids[] = {
 string_view
 ColorConfig::get_color_interop_id(string_view colorspace) const
 {
+    // Cheap lookup ONLY (see the doc comment in color.h): a declared
+    // interop_id attribute, the data-space utility token, or a static-table
+    // name/alias/classification match -- all through the syntactic
+    // (fingerprint-free) resolution subset. The expensive derivation cascade
+    // (fingerprint matching against the built-in registry, config-local id
+    // manufacture) lives in pvt::derive_color_interop_id() and runs at
+    // write-planning time, never inside this getter.
     if (colorspace.empty())
         return "";
 
-    // Four-step Color Interop Forum write-side derivation (see the doc comment
-    // in color.h for the full order and the two documented decisions). The first
-    // step to produce an id wins; nothing here runs at construction time, and
-    // step 2's fingerprint engine only wakes on the first query that reaches it.
-
-    std::string resolved;
-    bool resolves_to_real_space = false;
     if (getImpl()->config_ && !disable_ocio) {
-        resolved = std::string(resolve(colorspace));
+        std::string resolved(getImpl()->resolve_syntactic(colorspace));
+        if (resolved.empty())
+            resolved = colorspace;
         OCIO::ConstColorSpaceRcPtr c;
         try {
             c = getImpl()->config_->getColorSpace(resolved.c_str());
+        } catch (...) {
+            c = nullptr;
+        }
+        if (c) {
+            // An author-declared interop_id on the space is unconditionally
+            // authoritative (OCIO 2.5+). A non-empty value is what "declared"
+            // means; an unset attribute (empty string) falls through rather
+            // than short-circuiting to empty.
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+            if (const char* iid = c->getInteropID(); iid && *iid)
+                return iid;
+#endif
+            // Utility sub-case: a data space with no explicit token is
+            // "data", never "unknown" or empty. (isData() is available on
+            // all OCIO 2.x.)
+            if (c->isData())
+                return "data";
+        }
+    }
+
+    // The static CICP / interop-id table matched by syntactic (name / role /
+    // alias / cheap-classification) equivalence -- also the table get_cicp()
+    // consults to map an id back to a CICP tuple. Its literals live in
+    // static storage, so the returned view is stable.
+    for (const ColorInteropID& interop : color_interop_ids) {
+        if (getImpl()->equivalent_syntactic(colorspace, interop.interop_id))
+            return interop.interop_id;
+    }
+
+    // Not identified: return empty, never a guessed default.
+    return "";
+}
+
+
+// The full write-side derivation cascade behind pvt::derive_color_interop_id
+// (the pvt shim at the end of this file forwards here). This is the
+// EXPENSIVE path -- fingerprint probing can build the registry index and
+// OCIO processors -- so it is a distinct entry point consumed at
+// write-planning time (color_metadata_plan.cpp) and by internal
+// characterization machinery, never hidden behind the cheap public getter.
+string_view
+derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace)
+{
+    if (colorspace.empty())
+        return "";
+
+    // Four-step Color Interop Forum write-side derivation. The first step to
+    // produce an id wins; the fingerprint engine only wakes on the first
+    // query that reaches it.
+
+    auto* impl = pvt::ColorConfigClassificationPeek::impl(config);
+    if (!impl)
+        return "";
+
+    std::string resolved;
+    bool resolves_to_real_space = false;
+    if (impl->config_ && !disable_ocio) {
+        resolved = std::string(config.resolve(colorspace));
+        OCIO::ConstColorSpaceRcPtr c;
+        try {
+            c = impl->config_->getColorSpace(resolved.c_str());
         } catch (...) {
             c = nullptr;
         }
@@ -4073,8 +4204,7 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
     // string), not the query's own name. Only meaningful once the query resolves
     // to a real space to fingerprint.
     if (resolves_to_real_space) {
-        if (string_view r = getImpl()->deriveRegistryInteropId(resolved);
-            !r.empty())
+        if (string_view r = impl->deriveRegistryInteropId(resolved); !r.empty())
             return r;
     }
 
@@ -4087,21 +4217,20 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
     // default. Its literals live in static storage, so the returned view is
     // stable.
     for (const ColorInteropID& interop : color_interop_ids) {
-        if (equivalent(colorspace, interop.interop_id))
+        if (config.equivalent(colorspace, interop.interop_id))
             return interop.interop_id;
     }
 
     // Step 3 (DECISION b): a named config plus a query that resolves to a real
     // space yields a config-local id "<config>:local:<space>", both segments
     // sanitized independently per the CIF grammar. This ALWAYS attempts -- it is
-    // not gated behind an opt-in knob (the string_view overload can gain no such
-    // parameter) -- because its two natural preconditions, a non-empty config
-    // name AND a resolvable query, already keep it from firing on a genuine
-    // miss. The generated std::string is interned via ustring so the returned
-    // view outlives this call (the local literals and OCIO-owned strings the
-    // earlier steps return are already stable).
+    // not gated behind an opt-in knob -- because its two natural preconditions,
+    // a non-empty config name AND a resolvable query, already keep it from
+    // firing on a genuine miss. The generated std::string is interned via
+    // ustring so the returned view outlives this call (the local literals and
+    // OCIO-owned strings the earlier steps return are already stable).
     if (resolves_to_real_space) {
-        const char* cfgname = getImpl()->config_->getName();
+        const char* cfgname = impl->config_->getName();
         if (cfgname && *cfgname) {
             // Never serialize an ambiguous id: the sanitizer is many-to-one,
             // so if a SECOND space's sanitized name/alias collides on this
@@ -4109,8 +4238,7 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
             // through to step 4's never-guess empty rather than emit an id
             // that silently names two spaces.
             const std::string base = OIIO::pvt::sanitize_id_token(resolved);
-            if (!unique_space_for_sanitized_token(getImpl()->config_, base)
-                     .empty())
+            if (!unique_space_for_sanitized_token(impl->config_, base).empty())
                 return ustring(OIIO::pvt::sanitize_id_token(cfgname)
                                + ":local:" + base);
         }
@@ -6115,7 +6243,7 @@ derive_mastering_volume_impl(const ColorConfig& config, string_view display,
                                        kDisplayBuiltinPrefix, false, tail);
             }
             const int idcinema = cinema_from_identity(
-                config.get_color_interop_id(dcsname));
+                derive_color_interop_id_impl(config, dcsname));
             cinema   = idcinema >= 0 ? (idcinema > 0)
                                      : is_cinema_display_builtin(tail);
             auto cst = OCIO::ColorSpaceTransform::Create();
@@ -6144,7 +6272,8 @@ derive_mastering_volume_impl(const ColorConfig& config, string_view display,
             // display luminance.
             if (output_space.empty())
                 return false;
-            string_view interop_id = config.get_color_interop_id(output_space);
+            string_view interop_id = derive_color_interop_id_impl(config,
+                                                                  output_space);
             const RegistryFingerprintIndex& index = registry_fingerprint_index();
             if (interop_id.empty() || !index.config)
                 return false;
@@ -7323,8 +7452,9 @@ ColorConfig::Impl::effectiveEncoding(string_view name) const
     auto cs = config_->getColorSpace(resolved.c_str());
     if (cs && cs->getEncoding() && cs->getEncoding()[0])
         return cs->getEncoding();
-    // Fall back to the encoding declared by the interop-identity equivalent.
-    std::string id(m_self->get_color_interop_id(resolved));
+    // Fall back to the encoding declared by the interop-identity equivalent
+    // (full derivation: the twin may only be discoverable by fingerprint).
+    std::string id(derive_color_interop_id_impl(*m_self, resolved));
     if (!id.empty()) {
         if (auto registry = build_interop_identities_config())
             if (auto ics = registry->getColorSpace(id.c_str()))
@@ -7346,7 +7476,7 @@ ColorConfig::Impl::deriveChromaticities(
     // Reserved/registry table first: a space that resolves to a known interop
     // id uses that id's reserved primaries (single hypothesis, exact ==).
     if (auto reserved = spvt::reserved_chromaticities_for_id(
-            std::string(m_self->get_color_interop_id(resolved))))
+            std::string(derive_color_interop_id_impl(*m_self, resolved))))
         return reserved;
 
     // Probe fallback: push pure R/G/B/W through colorspace -> the scene
@@ -7426,7 +7556,8 @@ ColorConfig::Impl::deriveTransferSignature(
     if (!sig)
         return {};
     sig->encoding = effectiveEncoding(resolved);
-    sig->family   = tf_curve_family(m_self->get_color_interop_id(resolved));
+    sig->family = tf_curve_family(derive_color_interop_id_impl(*m_self,
+                                                               resolved));
     return sig;
 }
 
@@ -7470,7 +7601,7 @@ ColorConfig::Impl::find_color_spaces(
     // The interop-identity twin's encoding for a candidate (empty when the
     // space has no identity or the identity has no registry entry).
     auto twin_encoding = [&](const std::string& name) -> std::string {
-        std::string id(m_self->get_color_interop_id(name));
+        std::string id(derive_color_interop_id_impl(*m_self, name));
         if (id.empty() || !registry)
             return {};
         auto ics = registry->getColorSpace(id.c_str());
@@ -7616,7 +7747,7 @@ ColorConfig::Impl::find_color_spaces(
                     // evidence for such spaces.
                     hint.identity = isColorSpaceLinear(name);
                     hint.family   = tf_curve_family(
-                        m_self->get_color_interop_id(name));
+                        derive_color_interop_id_impl(*m_self, name));
                 } catch (...) {
                 }
                 if (!hint.identity)
@@ -7865,7 +7996,7 @@ ColorConfig::Impl::find_color_spaces(
                 // probe below is authoritative for context-sensitive spaces.
                 transfer.identity = isColorSpaceLinear(name);
                 transfer.family   = tf_curve_family(
-                    m_self->get_color_interop_id(name));
+                    derive_color_interop_id_impl(*m_self, name));
             } catch (...) {
             }
             if (!transfer.identity)
@@ -7982,6 +8113,13 @@ legacy_interop_id_table_names()
     for (const auto& interop : v3_1::color_interop_ids)
         names.emplace_back(std::string(interop.interop_id));
     return names;
+}
+
+
+string_view
+derive_color_interop_id(const ColorConfig& config, string_view colorspace)
+{
+    return v3_1::derive_color_interop_id_impl(config, colorspace);
 }
 
 
