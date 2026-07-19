@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <memory>
 #include <mutex>
@@ -243,10 +244,18 @@ struct CSInfo {
         is_simple             = 1024,  // member of the simple set
         is_context_invariant  = 2048,  // no context vars affect this space
     };
-    int m_flags   = 0;
-    bool examined = false;
-    bool analyzed = false;  // classification bits computed (see Impl::analyze)
-    bool active   = true;   // member of the active colorspace enumeration
+    // The lazily-computed classification state is written under the Impl's
+    // m_mutex but deliberately READ without it on hot paths (the examine()/
+    // analyze() double-checked fast path, equivalent()'s flag compare), so
+    // the flag words are atomics: `examined`/`analyzed` publish with release
+    // stores paired with acquire loads on the unlocked fast-path checks, and
+    // m_flags is or-accumulated. Plain ints/bools here were a C++ data race
+    // (UB) under concurrent first-use classification. `active` stays a plain
+    // bool: it is only accessed under m_mutex.
+    std::atomic<int> m_flags { 0 };
+    std::atomic<bool> examined { false };
+    std::atomic<bool> analyzed { false };  // analyze() ran (see Impl::analyze)
+    bool active = true;     // member of the active colorspace enumeration
     std::string canonical;  // Canonical name for this color space
     OCIO::ConstColorSpaceRcPtr ocio_cs;
 
@@ -259,18 +268,35 @@ struct CSInfo {
     {
     }
 
-    void setflag(int flagval) { m_flags |= flagval; }
+    // Atomics are not copyable; the copy constructor exists only for
+    // std::vector growth during single-threaded inventory().
+    CSInfo(const CSInfo& other)
+        : name(other.name)
+        , index(other.index)
+        , m_flags(other.m_flags.load(std::memory_order_relaxed))
+        , examined(other.examined.load(std::memory_order_relaxed))
+        , analyzed(other.analyzed.load(std::memory_order_relaxed))
+        , active(other.active)
+        , canonical(other.canonical)
+        , ocio_cs(other.ocio_cs)
+    {
+    }
+
+    void setflag(int flagval)
+    {
+        m_flags.fetch_or(flagval, std::memory_order_relaxed);
+    }
 
     // Set flag to include any bits in flagval, and also if alias is not yet
     // set, set it to name.
     void setflag(int flagval, std::string& alias)
     {
-        m_flags |= flagval;
+        m_flags.fetch_or(flagval, std::memory_order_relaxed);
         if (alias.empty())
             alias = name;
     }
 
-    int flags() const { return m_flags; }
+    int flags() const { return m_flags.load(std::memory_order_relaxed); }
 };
 
 
@@ -723,13 +749,15 @@ private:
     // mutex.
     void examine(CSInfo* cs)
     {
-        if (!cs->examined) {
+        // Unlocked fast-path check: acquire pairs with the release publish
+        // below, making the classification written before it visible.
+        if (!cs->examined.load(std::memory_order_acquire)) {
             spin_rw_write_lock lock(m_mutex);
-            if (!cs->examined) {
+            if (!cs->examined.load(std::memory_order_relaxed)) {
                 classify_by_name(*cs);
                 classify_by_conversions(*cs);
                 reclassify_heuristics(*cs);
-                cs->examined = true;
+                cs->examined.store(true, std::memory_order_release);
             }
         }
     }
@@ -3333,7 +3361,9 @@ ColorConfig::Impl::getSimpleColorSpaces() const
 void
 ColorConfig::Impl::analyze(CSInfo* cs)
 {
-    if (cs->analyzed)
+    // Unlocked fast-path check: acquire pairs with the release publish at
+    // the bottom, making the flags/active written before it visible.
+    if (cs->analyzed.load(std::memory_order_acquire))
         return;
 
     // Gather everything that takes its own locks *before* locking m_mutex
@@ -3387,10 +3417,10 @@ ColorConfig::Impl::analyze(CSInfo* cs)
         flagval |= CSInfo::should_skip_matching;
 
     spin_rw_write_lock lock(m_mutex);
-    if (!cs->analyzed) {
+    if (!cs->analyzed.load(std::memory_order_relaxed)) {
         cs->setflag(flagval);
-        cs->active   = active;
-        cs->analyzed = true;
+        cs->active = active;
+        cs->analyzed.store(true, std::memory_order_release);
     }
 }
 
