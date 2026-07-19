@@ -230,6 +230,7 @@ private:
     int m_miplevel;                     ///< What MIP level are we looking at?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
     std::string m_filename;             // filename, if known
+    ImageSpec m_config;                 ///< Saved copy of configuration spec
 
     void init()
     {
@@ -246,6 +247,7 @@ private:
         m_local_io.reset();
         m_missingcolor.clear();
         m_filename.clear();
+        m_config = ImageSpec();
     }
 
     bool read_native_scanlines_individually(int subimage, int miplevel,

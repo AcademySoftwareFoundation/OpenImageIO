@@ -239,6 +239,168 @@ test_global_policy_tier()
 }
 
 
+// Per-spec / per-open policy hints must reach every reconcile/plan call
+// site: a hint on the output spec (write) or the open-config spec (read)
+// overrides the global tier, on both PNG and EXR, read and write.
+static void
+test_policy_hint_plumbing()
+{
+    std::vector<float> fpix(4 * 4 * 3, 0.5f);
+    std::vector<unsigned char> upix(4 * 4 * 3, 128);
+
+    // --- EXR write: per-spec hint overrides a global 'never'. ------------
+    const std::string derivable(
+        ColorConfig::default_colorconfig().get_color_interop_id(
+            "lin_ap0_scene"));
+    if (!derivable.empty() && ImageOutput::create("exr")) {
+        const std::string file = Filesystem::temp_directory_path()
+                                 + "/oiio_cmp_hints.exr";
+        OIIO_CHECK_ASSERT(
+            OIIO::attribute("oiio:colorpolicy:write:interop_id", "never"));
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("oiio:ColorSpace", "lin_ap0_scene");
+        spec.attribute("oiio:colorpolicy:write:interop_id", "auto");
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeFloat, fpix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        OIIO_CHECK_ASSERT(
+            OIIO::attribute("oiio:colorpolicy:write:interop_id", "auto"));
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            // The per-spec 'auto' beat the global 'never': the id derived.
+            OIIO_CHECK_EQUAL(
+                in->spec().get_string_attribute("colorInteropID"), derivable);
+            in->close();
+        }
+        Filesystem::remove(file);
+    }
+
+    // --- EXR read: per-open config hint overrides a global preference. ---
+    if (ImageOutput::create("exr")) {
+        const std::string file = Filesystem::temp_directory_path()
+                                 + "/oiio_cmp_hints_read.exr";
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("colorInteropID", "srgb_rec709_display");
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeFloat, fpix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        // Global tier: prefer the scene-state twin of the file's id.
+        OIIO_CHECK_ASSERT(OIIO::attribute(
+            "oiio:colorpolicy:read:state_preference", "scene"));
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            OIIO_CHECK_EQUAL(
+                in->spec().get_string_attribute("oiio:ColorSpace"),
+                "srgb_rec709_scene");
+            in->close();
+        }
+        // Per-open hint: put the display preference back for THIS open only.
+        ImageSpec config;
+        config.attribute("oiio:colorpolicy:read:state_preference", "display");
+        auto in2 = ImageInput::open(file, &config);
+        OIIO_CHECK_ASSERT(in2.get());
+        if (in2) {
+            OIIO_CHECK_EQUAL(
+                in2->spec().get_string_attribute("oiio:ColorSpace"),
+                "srgb_rec709_display");
+            in2->close();
+        }
+        OIIO_CHECK_ASSERT(
+            OIIO::attribute("oiio:colorpolicy:read:state_preference", "auto"));
+        Filesystem::remove(file);
+    }
+
+    // --- PNG: capability probe -- explicit CICP must round-trip at all
+    // (libpng without cICP support skips the PNG halves). -----------------
+    const int cicp_srgb[4] = { 1, 13, 0, 1 };
+    bool png_cicp_ok       = false;
+    const std::string pngfile = Filesystem::temp_directory_path()
+                                + "/oiio_cmp_hints.png";
+    if (ImageOutput::create("png")) {
+        ImageSpec spec(4, 4, 3, TypeUInt8);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp_srgb);
+        auto o = ImageOutput::create(pngfile);
+        OIIO_CHECK_ASSERT(o && o->open(pngfile, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeUInt8, upix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        auto in = ImageInput::open(pngfile);
+        if (in) {
+            int got[4] = { -1, -1, -1, -1 };
+            png_cicp_ok = in->spec().getattribute("CICP",
+                                                  TypeDesc(TypeDesc::INT, 4),
+                                                  got);
+            in->close();
+        }
+    }
+    if (!png_cicp_ok) {
+        Strutil::print("PNG cICP unavailable; skipping PNG hint plumbing\n");
+        Filesystem::remove(pngfile);
+        return;
+    }
+
+    // --- PNG read: per-open config hint changes the CICP resolution. -----
+    {
+        // No hint: the sRGB CICP tuple resolves display-referred.
+        auto in = ImageInput::open(pngfile);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            OIIO_CHECK_EQUAL(
+                in->spec().get_string_attribute("oiio:ColorSpace"),
+                "srgb_rec709_display");
+            in->close();
+        }
+        // Per-open hint: prefer the scene-state twin.
+        ImageSpec config;
+        config.attribute("oiio:colorpolicy:read:state_preference", "scene");
+        auto in2 = ImageInput::open(pngfile, &config);
+        OIIO_CHECK_ASSERT(in2.get());
+        if (in2) {
+            OIIO_CHECK_EQUAL(
+                in2->spec().get_string_attribute("oiio:ColorSpace"),
+                "srgb_rec709_scene");
+            in2->close();
+        }
+    }
+
+    // --- PNG write: per-spec hint overrides a global 'never'. ------------
+    {
+        OIIO_CHECK_ASSERT(
+            OIIO::attribute("oiio:colorpolicy:write:cicp", "never"));
+        ImageSpec spec(4, 4, 3, TypeUInt8);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp_srgb);
+        spec.attribute("oiio:colorpolicy:write:cicp", "auto");
+        auto o = ImageOutput::create(pngfile);
+        OIIO_CHECK_ASSERT(o && o->open(pngfile, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeUInt8, upix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        OIIO_CHECK_ASSERT(
+            OIIO::attribute("oiio:colorpolicy:write:cicp", "auto"));
+        auto in = ImageInput::open(pngfile);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            int got[4] = { -1, -1, -1, -1 };
+            // The per-spec 'auto' beat the global 'never': the chunk exists.
+            OIIO_CHECK_ASSERT(in->spec().getattribute(
+                "CICP", TypeDesc(TypeDesc::INT, 4), got));
+            in->close();
+        }
+    }
+    Filesystem::remove(pngfile);
+}
+
+
 // The provenance write rule: suppress oiio:SourcePath, keep oiio:SourceFormat.
 static void
 test_provenance_rule()
@@ -313,6 +475,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_incapable_omits();
     test_explicit_chroma_and_gamma();
     test_global_policy_tier();
+    test_policy_hint_plumbing();
     test_provenance_rule();
     test_exr_consumption();
 
