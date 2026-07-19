@@ -86,8 +86,8 @@ curve_is_mirror(string_view name, cspan<std::string> catalog_names)
     // v10 companion lookup: a suffixless mirror is identified by the presence
     // of its `_tx` pass-through twin in the same catalog. Self-adapts to
     // whichever config generation built the catalog.
-    // ponytail: linear scan -- a hot matcher loop should pre-build a set of
-    // catalog names, but slice-1 has no such caller yet.
+    // Linear scan -- a hot matcher loop should pre-build a set of catalog
+    // names, but no such caller exists yet.
     const std::string companion = std::string(name) + "_tx";
     for (const std::string& n : catalog_names)
         if (n == companion)

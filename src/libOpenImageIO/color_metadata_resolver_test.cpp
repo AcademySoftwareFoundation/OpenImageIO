@@ -214,9 +214,8 @@ test_icc_synthetic(const ColorConfig& config)
 }
 
 
-// Vector 19 crown lock: CICP sits ABOVE ICC, per the PNG spec's own chunk
-// precedence (cICP > iCCP) -- user decision 2026-07-17, matching the oicio
-// reference resolver. A CICP tuple plus a decodable ICC profile resolves via
+// CICP sits ABOVE ICC, per the PNG spec's own chunk precedence
+// (cICP > iCCP). A CICP tuple plus a decodable ICC profile resolves via
 // CICP, not ICC; the ICC rule is never even visited.
 static void
 test_cicp_over_icc(const ColorConfig& config)

@@ -241,6 +241,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     // Check any other configuration hints
 
     m_filename = name;
+    m_config   = config;  // save config spec (per-open policy hints etc.)
 
     // "missingcolor" gives fill color for missing scanlines or tiles.
     if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
@@ -707,8 +708,10 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     // Hand the raw color attributes the header deposited to the one central
     // color-metadata reconciler, which applies the audited precedence
     // cascade (replacing this reader's former inline ACES-flag/colorInteropID
-    // special-casing). With policy at its defaults the result is identical.
-    pvt::reconcile_color_metadata(spec, pvt::ColorReadPolicy::snapshot());
+    // special-casing). Per-open config hints override the global policy tier.
+    // With policy at its defaults the result is identical.
+    pvt::reconcile_color_metadata(spec,
+                                  pvt::ColorReadPolicy::snapshot(&in->m_config));
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);

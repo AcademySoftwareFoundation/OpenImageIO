@@ -437,7 +437,7 @@ test_registry_round_trip()
 
 
 
-// P11 (ADR-0017): the generated OIIO::ColorInteropIDs::* constants
+// The generated OIIO::ColorInteropIDs::* constants
 // (src/include/OpenImageIO/color_interop_ids.h) must be an exact-set match
 // for the canonical `interop_id:` set declared in the embedded interop
 // identities registry source (NOT the composite parsed config, whose
@@ -475,7 +475,7 @@ test_color_interop_id_constants_sync()
 
 
 
-// P4 consolidation (mainline-restart.md): the legacy static CICP/interop-id
+// The legacy static CICP/interop-id
 // table (color_ocio.cpp's `color_interop_ids[]`) must not drift from the
 // registry that is now its single source of truth for id spelling. Every
 // table entry is built from a generated ColorInteropIDs::* constant already
@@ -2829,6 +2829,58 @@ colorspaces:
         Filesystem::remove(unnamed_path);
     }
 
+    // ---- Sanitizer-collision fixture: two distinct spaces ("Foo Bar" and
+    // "foo_bar") whose names sanitize to the SAME token. Serializing a
+    // config-local id for either would be ambiguous -- resolution could not
+    // uniquely reverse it -- so step 3 must OMIT (never-guess) rather than
+    // emit a lossy id, and read-side resolution of the colliding token must
+    // refuse to pick a winner. A third, collision-free space proves the
+    // guard doesn't disturb the ordinary step-3 path. ----------------------
+    {
+        static const char* collide_yaml = R"(ocio_profile_version: 2.1
+name: collide_cfg
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: Foo Bar
+    from_scene_reference: !<ExponentTransform> {value: [1.7, 1.7, 1.7, 1]}
+
+  - !<ColorSpace>
+    name: foo_bar
+    from_scene_reference: !<ExponentTransform> {value: [1.9, 1.9, 1.9, 1]}
+
+  - !<ColorSpace>
+    name: Solo Space
+    from_scene_reference: !<ExponentTransform> {value: [2.1, 2.1, 2.1, 1]}
+)";
+        std::string collide_path = Filesystem::temp_directory_path()
+                                   + "/oiio_color_test_derive_collide.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(collide_path, collide_yaml));
+        ColorConfig cc(collide_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        // Both colliding spaces omit -- neither may claim the shared token.
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("Foo Bar"), "");
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("foo_bar"), "");
+        // The collision-free space still gets its config-local id.
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("Solo Space"),
+                          "collide_cfg:local:solo_space");
+        // Read side: the ambiguous token resolves to NEITHER space (the
+        // total-miss passthrough), while the unique token still resolves.
+        OIIO_CHECK_EQUAL(cc.resolve("collide_cfg:local:foo_bar"),
+                          "collide_cfg:local:foo_bar");
+        OIIO_CHECK_EQUAL(cc.resolve("collide_cfg:local:solo_space"),
+                          "Solo Space");
+        Filesystem::remove(collide_path);
+    }
+
     if (has_interop_id_attr) {
         // ---- Declared interop_id precedence: the single most important
         // regression vector for step 1 -- an explicit, author-declared
@@ -3071,7 +3123,7 @@ test_cicp_interop_id()
 
 
 
-// P6c regression guard: the internal copy_config() must preserve a config's
+// Regression guard: the internal copy_config() must preserve a config's
 // explicit default view transform name across an editable copy. OCIO < 2.3.1's
 // createEditableCopy() drops it; without the restore, interopify_config's
 // display bridge would see no default view transform and synthesize a

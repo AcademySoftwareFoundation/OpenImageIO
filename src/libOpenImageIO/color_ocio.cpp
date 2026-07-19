@@ -1905,24 +1905,19 @@ namespace {
 // fingerprint engine. Every string_view they return is backed by an OCIO-owned
 // color space name (stable for the life of the config), never a temporary.
 
-// Tier 1a'' -- the config-local form "<config>:local:<base>". Resolves only
-// when the id parses as outer:local:base and `outer` sanitizes to this config's
-// own name; then it matches `base` against every color space's sanitized name
-// or alias (across all reference types and visibilities). Deliberately never
-// consults a color space's interop_id attribute -- that is tier 1c's job.
+// The UNIQUE owner of a sanitized base token among the config's color space
+// names and aliases (across all reference types and visibilities): the owning
+// space's name when exactly one space claims `token`, empty when none or more
+// than one do. The sanitizer is many-to-one ("Foo Bar" and "foo_bar" both map
+// to "foo_bar"), so this is the shared ambiguity guard for BOTH sides of the
+// config-local id form: generation refuses to serialize an id that resolution
+// could not uniquely reverse, and resolution refuses to guess among colliding
+// spaces (the never-guess rule). Linear scan per query; cache an inverted map
+// if either side ever shows up hot.
 string_view
-resolve_local_namespace(const OCIO::ConstConfigRcPtr& config, string_view name)
+unique_space_for_sanitized_token(const OCIO::ConstConfigRcPtr& config,
+                                 const std::string& token)
 {
-    OIIO::pvt::InteropIdParts parts
-        = OIIO::pvt::parse_interop_id(std::string(name));
-    if (parts.form != OIIO::pvt::InteropIdForm::OUTER_INNER_BASE
-        || parts.inner != "local")
-        return {};
-    const char* cfgname = config->getName();
-    if (!cfgname || !*cfgname)
-        return {};
-    if (OIIO::pvt::sanitize_id_token(cfgname) != parts.outer)
-        return {};
     int n = 0;
     try {
         n = config->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
@@ -1930,6 +1925,7 @@ resolve_local_namespace(const OCIO::ConstConfigRcPtr& config, string_view name)
     } catch (...) {
         return {};
     }
+    string_view found;
     for (int i = 0; i < n; ++i) {
         const char* nm
             = config->getColorSpaceNameByIndex(OCIO::SEARCH_REFERENCE_SPACE_ALL,
@@ -1944,13 +1940,38 @@ resolve_local_namespace(const OCIO::ConstConfigRcPtr& config, string_view name)
         }
         if (!cs)
             continue;
-        if (OIIO::pvt::sanitize_id_token(cs->getName()) == parts.base)
-            return cs->getName();
-        for (int a = 0, ae = cs->getNumAliases(); a < ae; ++a)
-            if (OIIO::pvt::sanitize_id_token(cs->getAlias(a)) == parts.base)
-                return cs->getName();
+        bool claims = OIIO::pvt::sanitize_id_token(cs->getName()) == token;
+        for (int a = 0, ae = cs->getNumAliases(); !claims && a < ae; ++a)
+            claims = OIIO::pvt::sanitize_id_token(cs->getAlias(a)) == token;
+        if (!claims)
+            continue;
+        if (!found.empty())
+            return {};  // a second owner: the token is ambiguous
+        found = cs->getName();
     }
-    return {};
+    return found;
+}
+
+// Tier 1a'' -- the config-local form "<config>:local:<base>". Resolves only
+// when the id parses as outer:local:base and `outer` sanitizes to this config's
+// own name; then it matches `base` against every color space's sanitized name
+// or alias (across all reference types and visibilities), refusing an
+// ambiguous token via the unique-owner guard above. Deliberately never
+// consults a color space's interop_id attribute -- that is tier 1c's job.
+string_view
+resolve_local_namespace(const OCIO::ConstConfigRcPtr& config, string_view name)
+{
+    OIIO::pvt::InteropIdParts parts
+        = OIIO::pvt::parse_interop_id(std::string(name));
+    if (parts.form != OIIO::pvt::InteropIdForm::OUTER_INNER_BASE
+        || parts.inner != "local")
+        return {};
+    const char* cfgname = config->getName();
+    if (!cfgname || !*cfgname)
+        return {};
+    if (OIIO::pvt::sanitize_id_token(cfgname) != parts.outer)
+        return {};
+    return unique_space_for_sanitized_token(config, parts.base);
 }
 
 // Tier 1c -- match `name` against a color space's explicit interop_id attribute
@@ -3934,8 +3955,8 @@ struct ColorInteropID {
 // utility token, which the registry deliberately does not declare -- see
 // pvt::is_utility_interop_id) is one of the generated
 // OIIO::ColorInteropIDs::* constants (src/include/OpenImageIO/
-// color_interop_ids.h, generated from interop-identities-config.ocio; ADR-0017
-// in the color-interop hub). That makes the registry the sole place these ID
+// color_interop_ids.h, generated from interop-identities-config.ocio).
+// That makes the registry the sole place these ID
 // strings are spelled -- this table is a derived, hand-curated CICP-tuple
 // annotation *of* that ID set, not a second independent spelling of it. A
 // registry rename shows up here as a compile error (the constant disappears);
@@ -4081,9 +4102,18 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
     // earlier steps return are already stable).
     if (resolves_to_real_space) {
         const char* cfgname = getImpl()->config_->getName();
-        if (cfgname && *cfgname)
-            return ustring(OIIO::pvt::sanitize_id_token(cfgname) + ":local:"
-                           + OIIO::pvt::sanitize_id_token(resolved));
+        if (cfgname && *cfgname) {
+            // Never serialize an ambiguous id: the sanitizer is many-to-one,
+            // so if a SECOND space's sanitized name/alias collides on this
+            // token, resolution could not uniquely reverse the id. Fall
+            // through to step 4's never-guess empty rather than emit an id
+            // that silently names two spaces.
+            const std::string base = OIIO::pvt::sanitize_id_token(resolved);
+            if (!unique_space_for_sanitized_token(getImpl()->config_, base)
+                     .empty())
+                return ustring(OIIO::pvt::sanitize_id_token(cfgname)
+                               + ":local:" + base);
+        }
     }
 
     // Step 4: nothing identified the space -- return empty, never a guessed
@@ -4633,8 +4663,8 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
             // Inverse: pixels land in the scene `from` space -- unless the
             // conversion fell back to a no-op, in which case they never left
             // the (display, view) encoding the input arrived in. Tag that
-            // source space, not the `from` we failed to reach (ADR-0018,
-            // mirror of the forward branch's honest source-tag rule).
+            // source space, not the `from` we failed to reach (mirror of
+            // the forward branch's honest source-tag rule).
             dst.specmod().set_colorspace(
                 lenient_passthrough
                     ? colorconfig->getDisplayViewColorSpaceName(display, view)

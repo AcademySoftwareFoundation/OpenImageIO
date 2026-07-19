@@ -1042,6 +1042,11 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                                        pvt::ColorWritePolicy::snapshot(&spec));
         if (plan.interop_id.action == pvt::ColorPlanAction::Derive)
             spec.attribute("colorInteropID", plan.interop_id.str);
+        else if (plan.interop_id.action == pvt::ColorPlanAction::Suppress)
+            // Enforce the Suppress verdict at the writer boundary: an
+            // author-supplied id still sits in extra_attribs, and the
+            // generic metadata loop below would emit it anyway.
+            spec.erase_attribute("colorInteropID");
     }
 
     // Deal with all other params

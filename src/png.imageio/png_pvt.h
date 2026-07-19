@@ -185,7 +185,7 @@ decode_png_text_exif(string_view raw, ImageSpec& spec)
 inline bool
 read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
           int& interlace_type, Imath::Color3f& bg, ImageSpec& spec,
-          bool keep_unassociated_alpha)
+          bool keep_unassociated_alpha, const ImageSpec* config_hints)
 {
     // Must call this setjmp in every function that does PNG reads
     if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
@@ -358,8 +358,10 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     // Hand the raw color attributes just deposited to the central color-
     // metadata reconciler, which applies the audited precedence cascade
     // (replacing this reader's former inline CICP -> color-space override).
-    // With policy at its defaults the resolved color space is identical.
-    pvt::reconcile_color_metadata(spec, pvt::ColorReadPolicy::snapshot());
+    // Per-open config hints (if any) override the global policy tier. With
+    // policy at its defaults the resolved color space is identical.
+    pvt::reconcile_color_metadata(spec,
+                                  pvt::ColorReadPolicy::snapshot(config_hints));
 
     return ok;
 }
@@ -766,7 +768,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         caps.cicp = true;
         pvt::ColorMetadataPlan plan
             = pvt::plan_color_metadata(nullptr, spec, caps,
-                                       pvt::ColorWritePolicy::snapshot());
+                                       pvt::ColorWritePolicy::snapshot(&spec));
         const bool emit = plan.cicp.action == pvt::ColorPlanAction::Write
                           || (plan.cicp.action == pvt::ColorPlanAction::Derive
                               && !wrote_colorspace);
