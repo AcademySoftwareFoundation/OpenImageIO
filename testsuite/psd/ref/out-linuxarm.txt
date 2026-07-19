@@ -2090,7 +2090,7 @@ src/Layers_32bit_RGB.psd :   48 x   27, 3 channel, float psd
     stEvt:instanceID: "xmp.iid:68fcb000-4377-c148-974d-bdd193ca024d; xmp.iid:cbd904c5-53b4-0d4e-9ff8-37ac35429f46"
     stEvt:softwareAgent: "Adobe Photoshop 23.3 (Windows)"
     stEvt:when: "2024-04-01T19:35:16+02:00"
-oiiotool ERROR: read : Failed to decode Exif data
+oiiotool ERROR: read : Could not decode Exif
 failed to open "src/crash-psd-exif-1632.psd": failed load_resources
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-psd-exif-1632.psd
@@ -2105,8 +2105,21 @@ oiiotool ERROR: read : [Image Data Section] channel count 3 is too few for color
 failed to open "src/crash-8a15.psd": failed load_image_data
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-8a15.psd
-oiiotool ERROR: read : unable to decode zip compressed data: src_size=39, dst_size=1296 
-Error during layer decompression. Possible corrupt file?
+oiiotool ERROR: read : [Layer Record] invalid image width 16777264
 failed to open "../oiio-images/psd/corrupt_20260312a.psd": failed load_global_additional
 Full command line was:
 > oiiotool --info -v -a --hash ../oiio-images/psd/corrupt_20260312a.psd
+oiiotool ERROR: read : [Layer Record] invalid image height 1493172215
+failed to open "src/crash-layerres.psd": failed load_layers
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-layerres.psd
+oiiotool ERROR: read : Read error: hit end of file in psd reader
+failed to open "src/crash-eofstring.psd": failed load_resources
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-eofstring.psd
+Reading src/crash-rowbounds-f999.psd
+oiiotool ERROR: -info : SHA-1: Corrupt PSD channel data for row 0
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-rowbounds-f999.psd
+src/crash-rowbounds-f999.psd :   10 x  111, 3 channel, uint8 psd
+    channel list: R, G, B

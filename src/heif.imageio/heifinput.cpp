@@ -412,12 +412,20 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         if (Strutil::iequals(m_ihandle.get_metadata_type(m), "Exif")
             && metacontents.size() >= 10) {
             cspan<uint8_t> s(&metacontents[10], metacontents.size() - 10);
-            decode_exif(s, m_spec);
+            bool ok = decode_exif(s, m_spec);
+            if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+                errorfmt("Could not decode Exif");
+                return false;
+            }
         } else if (0  // For now, skip this, I haven't seen anything useful
                    && Strutil::iequals(m_ihandle.get_metadata_type(m), "mime")
                    && Strutil::iequals(m_ihandle.get_metadata_content_type(m),
                                        "application/rdf+xml")) {
-            decode_xmp(metacontents, m_spec);
+            bool ok = decode_xmp(metacontents, m_spec);
+            if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+                errorfmt("Could not decode XMP");
+                return false;
+            }
         } else {
 #ifdef DEBUG
             print(

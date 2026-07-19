@@ -25,10 +25,17 @@ if (FFmpeg_FOUND)
         endif()
     endif()
 
+    # Newer ffmpeg versions (3.1.1+) marked some fields and functions (e.g.
+    # av_init_packet, m_format_context->streams[i]->codec) as deprecated.
+    # Suppress those warnings here so they apply in both the embedded and
+    # standalone (EMBEDPLUGINS=0) build paths.
+    # FIXME -- at some point, come back and figure out how to fix for real
+    # before the fields disappear entirely.
     add_oiio_plugin (ffmpeginput.cpp
                      INCLUDE_DIRS ${FFMPEG_INCLUDES}
                      LINK_LIBRARIES ${FFMPEG_LIBRARIES}
                                     $<TARGET_NAME_IF_EXISTS:BZip2::BZip2>
+                     COMPILE_OPTIONS $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-deprecated-declarations>
                      DEFINITIONS "USE_FFMPEG"
                                  "-DOIIO_FFMPEG_VERSION=\"${FFMPEG_VERSION}\"")
 else()

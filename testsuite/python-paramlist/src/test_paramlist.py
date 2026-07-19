@@ -35,8 +35,8 @@ try:
     pv = oiio.ParamValue("c", "xyzpdq")
     print_param_value(pv)
     # Construct from tuple
-    pv = oiio.ParamValue("d", "float[4]", (3.5, 4.5, 5.5, 6.5))
-    print_param_value(pv)
+    pv_tuple = oiio.ParamValue("d", "float[4]", (3.5, 4.5, 5.5, 6.5))
+    print_param_value(pv_tuple)
     # Construct from tuple with nvalues/interp
     pv = oiio.ParamValue("e", "float", 4, oiio.Interp.LINEAR, (1, 3, 5, 7))
     print_param_value(pv)
@@ -44,9 +44,9 @@ try:
     pv = oiio.ParamValue("f", "point", [3.5, 4.5, 5.5, 6.5])
     print_param_value(pv)
     # Construct from a numpy array
-    pv = oiio.ParamValue("g", "color",
-                         numpy.array([0.25, 0.5, 0.75], dtype='f'))
-    print_param_value(pv)
+    pv_np = oiio.ParamValue("g", "color",
+                            numpy.array([0.25, 0.5, 0.75], dtype='f'))
+    print_param_value(pv_np)
     # Construct from numpy byte array
     pv = oiio.ParamValue("ucarr", "uint8[10]", numpy.array([49, 50, 51, 0, 0, 97, 98, 99, 1, 88], dtype='B'))
     print_param_value(pv)
@@ -86,6 +86,16 @@ try:
     )
     # Check: type uint8[4] with 2 nvalues; exercises inference with nvalues>1.
     print_param_value(pv)
+
+    print ("ParamValue conversion helper checks:")
+    if pv_tuple.value == (3.5, 4.5, 5.5, 6.5):
+        print ("Passed: ParamValue tuple to float[4]")
+    else:
+        print ("Failed: ParamValue tuple to float[4] got", pv_tuple.value)
+    if pv_np.value is not None and tuple(pv_np.value) == (0.25, 0.5, 0.75):
+        print ("Passed: ParamValue numpy float buffer to color")
+    else:
+        print ("Failed: ParamValue numpy float buffer to color got", pv_np.value)
 
     print ("")
 

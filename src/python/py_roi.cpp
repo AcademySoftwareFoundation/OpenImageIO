@@ -7,9 +7,6 @@
 namespace PyOpenImageIO {
 
 
-static ROI ROI_All;
-
-
 static bool
 roi_contains_coord(const ROI& roi, int x, int y, int z, int ch)
 {
@@ -27,19 +24,17 @@ roi_contains_roi(const ROI& roi, const ROI& other)
 
 // Declare the OIIO ROI class to Python
 void
-declare_roi(py::module& m)
+declare_roi(py_module& m)
 {
-    using namespace py;
-
     py::class_<ROI>(m, "ROI")
-        .def_readwrite("xbegin", &ROI::xbegin)
-        .def_readwrite("xend", &ROI::xend)
-        .def_readwrite("ybegin", &ROI::ybegin)
-        .def_readwrite("yend", &ROI::yend)
-        .def_readwrite("zbegin", &ROI::zbegin)
-        .def_readwrite("zend", &ROI::zend)
-        .def_readwrite("chbegin", &ROI::chbegin)
-        .def_readwrite("chend", &ROI::chend)
+        .OIIO_PY_RW("xbegin", &ROI::xbegin)
+        .OIIO_PY_RW("xend", &ROI::xend)
+        .OIIO_PY_RW("ybegin", &ROI::ybegin)
+        .OIIO_PY_RW("yend", &ROI::yend)
+        .OIIO_PY_RW("zbegin", &ROI::zbegin)
+        .OIIO_PY_RW("zend", &ROI::zend)
+        .OIIO_PY_RW("chbegin", &ROI::chbegin)
+        .OIIO_PY_RW("chend", &ROI::chend)
 
         .def(py::init<>())
         .def(py::init<int, int, int, int>())
@@ -48,22 +43,22 @@ declare_roi(py::module& m)
         .def(py::init<const ROI&>())
 
         // .def("defined",   [](const ROI& roi) { return (int)roi.defined(); })
-        .def_property_readonly("defined", &ROI::defined)
-        .def_property_readonly("width", &ROI::width)
-        .def_property_readonly("height", &ROI::height)
-        .def_property_readonly("depth", &ROI::depth)
-        .def_property_readonly("nchannels", &ROI::nchannels)
-        .def_property_readonly("npixels", &ROI::npixels)
+        .OIIO_PY_PROP_RO("defined", &ROI::defined)
+        .OIIO_PY_PROP_RO("width", &ROI::width)
+        .OIIO_PY_PROP_RO("height", &ROI::height)
+        .OIIO_PY_PROP_RO("depth", &ROI::depth)
+        .OIIO_PY_PROP_RO("nchannels", &ROI::nchannels)
+        .OIIO_PY_PROP_RO("npixels", &ROI::npixels)
         .def("contains", &roi_contains_coord, "x"_a, "y"_a, "z"_a = 0,
              "ch"_a = 0)
         .def("contains", &roi_contains_roi, "other"_a)
 
-        .def_readonly_static("All", &ROI_All)
+        .OIIO_PY_RO_STATIC("All", [](const py::object&) { return ROI::All(); })
 
         // Conversion to string
         .def("__str__",
              [](const ROI& roi) {
-                 return PY_STR(Strutil::fmt::format("{}", roi));
+                 return oiio_py::str(Strutil::fmt::format("{}", roi));
              })
 
         // Copy
@@ -76,6 +71,7 @@ declare_roi(py::module& m)
         .def(py::self == py::self)  // operator==   // NOSONAR
         .def(py::self != py::self)  // operator!=   // NOSONAR
         ;
+
 
     m.def("union", &roi_union);
     m.def("intersection", &roi_intersection);

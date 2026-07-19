@@ -233,6 +233,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     uint32_t bits = 0;
     JxlColorEncoding color_encoding {};
     bool have_color_encoding = false;
+    bool got_basic_info      = false;
 
     for (;;) {
         JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
@@ -283,6 +284,16 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             format.num_channels = info.num_color_channels
                                   + info.num_extra_channels;
             m_channels = info.num_color_channels + info.num_extra_channels;
+
+            // Validate dimensions/channel count before the decoder proceeds
+            // further and may attempt huge allocations on corrupt inputs.
+            m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
+            if (!check_open(m_spec, { 0, (1 << 30) - 1, 0, (1 << 30) - 1, 0, 1,
+                                      0, 4099 })) {
+                return false;
+            }
+            got_basic_info = true;
+
             JxlResizableParallelRunnerSetThreads(
                 m_runner.get(),
                 JxlResizableParallelRunnerSuggestThreads(info.xsize,
@@ -365,11 +376,10 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
-    m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
-
-    if (!check_open(m_spec,
-                    { 0, (1 << 30) - 1, 0, (1 << 30) - 1, 0, 1, 0, 4099 }))
+    if (!got_basic_info) {
+        errorfmt("Possible corrupt file, no JPEG XL basic info found\n");
         return false;
+    }
 
     // Read ICC profile
     if (m_icc_profile.size() && m_icc_profile.data()) {

@@ -177,6 +177,11 @@ type 'fromstring('point')'
 after unarray('float[2]') = float
 vector is_vec2,is_vec3,is_vec4 = False True False
 box2i is_box2,is_box3 = True False
+vector is_vec2(),is_vec3(),is_vec4() defaults = False True False
+vector defaults match explicit FLOAT = True True True
+box2 is_box2(),is_box3() defaults = True False
+box2 defaults match explicit FLOAT = True True
+box2i is_box2() default vs INT = False True
 all_types_equal([uint8,uint8]) = True
 all_types_equal([uint8,uint16]) = False
 repr(TypeFloat) = <TypeDesc 'float'>

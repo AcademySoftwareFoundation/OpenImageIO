@@ -22,6 +22,7 @@
 #pragma once
 #define OPENIMAGEIO_IMAGEBUFALGO_OPENCV_H
 
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/platform.h>
@@ -49,7 +50,9 @@ OIIO_PRAGMA_WARNING_PUSH
 // #    pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 #include <opencv2/opencv.hpp>
-#if OIIO_OPENCV_VERSION >= 40000
+#if OIIO_OPENCV_VERSION >= 50000
+#    include <opencv2/imgproc.hpp>
+#elif OIIO_OPENCV_VERSION >= 40000
 #    include <opencv2/core/core_c.h>
 #    include <opencv2/imgproc/imgproc_c.h>
 #else

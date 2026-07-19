@@ -2,5 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-add_oiio_plugin (psdinput.cpp)
+add_oiio_plugin (psdinput.cpp
+                 LINK_LIBRARIES ZLIB::ZLIB)
 

@@ -23,6 +23,9 @@
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #    include <xlocale.h>
 #endif
+#ifdef __EMSCRIPTEN__
+#    include <strings.h>
+#endif
 #ifdef _WIN32
 #    include <windows.h>
 #endif
@@ -45,7 +48,7 @@
 #endif
 #define stbsp__uintptr std::uintptr_t
 
-#ifdef OpenImageIO_SANITIZE
+#if defined(OpenImageIO_SANITIZE) || defined(__EMSCRIPTEN__)
 #    define STB_SPRINTF_NOUNALIGNED
 #endif
 
@@ -533,6 +536,8 @@ strcasecmp(const char* a, const char* b)
         if (*us1++ == '\0')
             return (0);
     return (tolower_l(*us1, c_loc) - tolower_l(*--us2, c_loc));
+#elif defined(__EMSCRIPTEN__)
+    return ::strcasecmp(a, b);
 #else
 #    error("need equivalent of strcasecmp_l on this platform");
 #endif
@@ -561,6 +566,8 @@ strncasecmp(const char* a, const char* b, size_t size)
         } while (--size != 0);
     }
     return (0);
+#elif defined(__EMSCRIPTEN__)
+    return ::strncasecmp(a, b, size);
 #else
 #    error("need equivalent of strncasecmp_l on this platform");
 #endif

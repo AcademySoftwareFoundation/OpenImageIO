@@ -26,9 +26,21 @@ Arguments: `$ARGUMENTS`
    ```
    Read `/tmp/cliff-out.md` to see the raw output.
 
-3. **Read CHANGES.md** to see the current top of the file and understand where to insert.
+3. **Required, do not skip:** Look up the GitHub user ID for each author (use
+   `gh pr view NNNN --repo AcademySoftwareFoundation/OpenImageIO --json
+   author` — the login is discernable from the posted PR, but not from the
+   local commit). Rewrite every git-cliff author credit from `(by First
+   Last)` to the combined form `(by @githubid / First Last)` before drafting
+   the formatted notes in step 5. This applies to patch, minor, major, and
+   main updates alike — the combined format is the standard for every
+   release type, not just an example in the patch skeleton. Only fall back to
+   a single form — `(by @githubid)` or `(by First Last)` — if the other half
+   genuinely cannot be found; don't skip the github lookup just because the
+   real name is already known from the local commit.
 
-4. **Format the release notes** according to the release type:
+4. **Read CHANGES.md** to see the current top of the file and understand where to insert.
+
+5. **Format the release notes** according to the release type:
 
 ### For patch releases:
 
@@ -37,7 +49,7 @@ Follow the skeleton in `docs/dev/Changes-skeleton-patch.md`:
 ```
 Release X.Y.Z.W (Month DD, YYYY) -- compared to X.Y.Z.W-1
 ---------------------------------------------------------
-- *category*: Description. [#NNNN](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/NNNN) (by author)
+- *category*: Description. [#NNNN](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/NNNN) (by @authorid / author-full-name)
 ```
 
 Rules:
@@ -50,8 +62,9 @@ Rules:
   docs/admin.
 - **Omit** entries that are purely internal and too minor to matter to users.
   Ask for confirmation about entries you propose to omit.
-- Prefer to use author's actual name if known. If the name cannot be found,
-  the GitHub userid can be used instead.
+- Author credit is `(by @githubid / Full Name)` per step 3 above. Use just
+  `(by @githubid)` or `(by Full Name)` only if the other half truly can't be
+  found — don't drop the githubid merely because the name is already known.
 - Omit the author if it is the project leader, Larry Gritz, unless he is not
   the dominant author (at least 75% of commits) in this release.
 - Keep entries to one line each. Be terse but informative.
@@ -98,7 +111,8 @@ Rules:
 - When needed, expand terse one-liners into enough prose that users understand what changed and why it matters.
 - For `feat:` commits, make sure the feature is explained sufficiently — don't just copy the commit subject.
 - For `api:` or `api!:` commits, clearly call out what changed in the public API.
-- Include PR links and author attribution for every entry.
+- Include PR links and author attribution for every entry, in the combined
+  `(by @githubid / Full Name)` form from step 3.
 - The notes should "tell the story" of the release, not just be a dump of commit subjects.
 - We aim to make major/minor releases approximately in October 1 of each year. If the anticipted release date is already in the file, don't change it. If it is not present, ask for confirmation of the planned release date.
 

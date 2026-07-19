@@ -25,16 +25,29 @@ Comparison: of flip.tif and flop.tif
   warns 2034 fails 2034
 Relative comparison: of flip.tif and flop.tif
   warns 1946 fails 1896
+compare_Yee ok: True nfail: 1906 mean: True
 FLIP_diff same vs same: mean=0 max=0
 FLIP_diff black vs white: mean=0.96738 max=0.96738
 FLIP_ppd = 67.02
 isConstantColor on pink image is (1 0.50196 0.50196)
 isConstantColor on checker is  None
+isConstantChannel pink R=1: True
+isConstantChannel checker G=0.5: False
 Is cmul1.exr monochrome?  True
 Is cmul2.exr monochrome?  False
 color range counts =  (4, 8, 4)
 Nonzero region is:  100 180 100 180 0 1 0 3
-SHA-1 of bsplinekernel.exr is: 0902C72521944A879D5F8E8154B6DFA9D3F62598
+SHA-1 of bsplinekernel.exr valid: True
+zover closer fg wins: True
+text_size defined: True width>0: True
+textcentered wrote: True
+render shapes nonzero: True
+
+Testing additional IBA bindings:
+copy size: 128 96 3
+repremult ok: True
+deep_merge deep: True samples@0,0: 1
+demosaic size: 256 x 172
 R hist:  (10000, 0, 0, 0)
 G hist:  (10000, 0, 0, 0)
 B hist:  (0, 10000, 0, 0)
@@ -219,9 +232,13 @@ Comparing "box3.exr" and "../../../testsuite/oiiotool-fixnan/ref/box3.exr"
 PASS
 Comparing "a_over_b.exr" and "../../../testsuite/oiiotool-composite/ref/a_over_b.exr"
 PASS
+Comparing "zover.exr" and "ref/zover.exr"
+PASS
+Comparing "render-shapes.tif" and "ref/render-shapes.tif"
+PASS
+Comparing "deep_merge.exr" and "ref/deep_merge.exr"
+PASS
+Comparing "demosaic.tif" and "ref/demosaic.tif"
+PASS
 Comparing "tahoe-small.tx" and "ref/tahoe-small.tx"
-PASS
-Comparing "text.tif" and "../../../testsuite/oiiotool-text/ref/text-freetype2.7.tif"
-PASS
-Comparing "textcentered.tif" and "ref/textcentered.tif"
 PASS

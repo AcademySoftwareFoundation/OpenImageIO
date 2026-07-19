@@ -128,6 +128,42 @@ try:
     print ("getattribute('smpte:TimeCode') retrieves", s.getattribute("smpte:TimeCode"))
     print ("getattribute('ucarr') retrieves", s.getattribute("ucarr"))
     print ("getattribute('unknown') retrieves", s.getattribute("unknown"))
+    print ()
+    print ("Conversion helper roundtrips (py_to_stdvector, C_to_tuple):")
+    s_conv = oiio.ImageSpec()
+    s_conv.attribute("foo_vector", oiio.TypeVector, (1.0, 0.0, 11.0))
+    vec = s_conv.getattribute("foo_vector")
+    if tuple(vec) == (1.0, 0.0, 11.0):
+        print ("Passed: C_to_tuple vector getattribute")
+    else:
+        print ("Failed: C_to_tuple vector getattribute expected (1.0, 0.0, 11.0) got", vec)
+    s_conv.attribute("float_buf_probe", oiio.TypeDesc("float[4]"),
+                      numpy.array([1.0, 2.0, 3.0, 4.0], dtype="f"))
+    fb = s_conv.getattribute("float_buf_probe")
+    if fb is not None and tuple(fb) == (1.0, 2.0, 3.0, 4.0):
+        print ("Passed: py_buffer_to_stdvector float numpy buffer")
+    else:
+        print ("Failed: py_buffer_to_stdvector float numpy buffer got", fb)
+    s_conv.attribute("float_from_int_probe", oiio.TypeDesc("float[2]"),
+                      numpy.array([3, 4], dtype="i"))
+    fi = s_conv.getattribute("float_from_int_probe")
+    if fi is not None and tuple(fi) == (3.0, 4.0):
+        print ("Passed: buffer_format int buffer to float[2]")
+    else:
+        print ("Failed: buffer_format int buffer to float[2] got", fi)
+    s_conv.attribute("list_float_probe", oiio.TypeDesc("float[4]"),
+                      [1.0, 2.0, 3.0, 4.0])
+    lf = s_conv.getattribute("list_float_probe")
+    if lf is not None and tuple(lf) == (1.0, 2.0, 3.0, 4.0):
+        print ("Passed: py_indexable list to float vector")
+    else:
+        print ("Failed: py_indexable list to float vector got", lf)
+    s_conv.attribute("tuple_float_probe", oiio.TypeDesc("float[2]"), (5.0, 6.0))
+    tf = s_conv.getattribute("tuple_float_probe")
+    if tf is not None and tuple(tf) == (5.0, 6.0):
+        print ("Passed: py_indexable tuple to float vector")
+    else:
+        print ("Failed: py_indexable tuple to float vector got", tf)
     print ("s.get('foo_int') =", s.get('foo_int'))
     print ("s.get('ucarr') retrieves", s.get("ucarr"))
     try :

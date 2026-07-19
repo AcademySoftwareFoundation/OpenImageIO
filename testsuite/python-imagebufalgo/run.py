@@ -60,8 +60,11 @@ outputs = ["black.tif", "filled.tif", "checker.tif",
            "tahoe-filled.tif",
            "box3.exr",
            "a_over_b.exr",
+           "zover.exr",
+           "render-shapes.tif",
+           "deep_merge.exr",
+           "demosaic.tif",
            "tahoe-small.tx",
-           "text.tif", "textcentered.tif",
            "out.txt"
          ]
     # command += checkref (f)

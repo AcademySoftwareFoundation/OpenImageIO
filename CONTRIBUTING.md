@@ -82,8 +82,8 @@ Policy on AI Tools
 ------------------
 
 Please read our [Policy on AI Coding Assistants](docs/dev/AI_Policy.md)
-before contributing or particpating in the project in any way mediated by "AI"
-assistants.
+before contributing or participating in the project in any way mediated by
+"AI" assistants.
 
 High-level summary:
 - Human must always be in the loop, and is the responsible party for

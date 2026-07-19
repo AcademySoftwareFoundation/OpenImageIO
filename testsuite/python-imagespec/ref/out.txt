@@ -93,6 +93,13 @@ getattribute('foo_no') retrieves None
 getattribute('smpte:TimeCode') retrieves (18356486, 4294967295)
 getattribute('ucarr') retrieves [49 50 51  0  0 97 98 99  1 88]
 getattribute('unknown') retrieves None
+
+Conversion helper roundtrips (py_to_stdvector, C_to_tuple):
+Passed: C_to_tuple vector getattribute
+Passed: py_buffer_to_stdvector float numpy buffer
+Passed: buffer_format int buffer to float[2]
+Passed: py_indexable list to float vector
+Passed: py_indexable tuple to float vector
 s.get('foo_int') = 14
 s.get('ucarr') retrieves [49 50 51  0  0 97 98 99  1 88]
 s['ucarr'] retrieves [49 50 51  0  0 97 98 99  1 88]

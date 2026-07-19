@@ -475,7 +475,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     closetif();
 
     if (!check_open(mode, userspec,
-                    { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 16 }))
+                    { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
         return false;
 
     // Check for things this format doesn't support

@@ -263,25 +263,44 @@ macro (setup_python_module_nanobind)
                            OUTPUT_NAME ${lib_MODULE}
                            DEBUG_POSTFIX "")
 
-    if (SKBUILD)
-        set (_nanobind_install_dir .)
+    if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "both")
+        if (SKBUILD)
+            set (_nanobind_install_dir .)
+        else ()
+            set (_nanobind_install_dir ${PYTHON_SITE_DIR})
+        endif ()
+
+        # Keep nanobind modules isolated in the build tree so they don't alter
+        # how the existing top-level OpenImageIO module is imported during tests.
+        set_target_properties (${target_name} PROPERTIES
+                LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind/OpenImageIO
+                ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind/OpenImageIO
+                )
+
+        install (TARGETS ${target_name}
+                 RUNTIME DESTINATION ${_nanobind_install_dir} COMPONENT user
+                 LIBRARY DESTINATION ${_nanobind_install_dir} COMPONENT user)
+
+        if (lib_PACKAGE_FILES)
+            install (FILES ${lib_PACKAGE_FILES}
+                     DESTINATION ${_nanobind_install_dir} COMPONENT user)
+        endif ()
     else ()
-        set (_nanobind_install_dir ${PYTHON_SITE_DIR})
+        if (SKBUILD)
+            set (PYTHON_SITE_DIR .)
+        endif ()
+
+        set_target_properties (${target_name} PROPERTIES
+                LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/site-packages
+                ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/site-packages
+                )
+
+        install (TARGETS ${target_name}
+                 RUNTIME DESTINATION ${PYTHON_SITE_DIR} COMPONENT user
+                 LIBRARY DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
+
+        install (FILES __init__.py stubs/OpenImageIO/__init__.pyi stubs/OpenImageIO/py.typed
+                 DESTINATION ${PYTHON_SITE_DIR} COMPONENT user)
     endif ()
 
-    # Keep nanobind modules isolated in the build tree so they don't alter
-    # how the existing top-level OpenImageIO module is imported during tests.
-    set_target_properties (${target_name} PROPERTIES
-            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind/OpenImageIO
-            ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/python/nanobind/OpenImageIO
-            )
-
-    install (TARGETS ${target_name}
-             RUNTIME DESTINATION ${_nanobind_install_dir} COMPONENT user
-             LIBRARY DESTINATION ${_nanobind_install_dir} COMPONENT user)
-
-    if (lib_PACKAGE_FILES)
-        install (FILES ${lib_PACKAGE_FILES}
-                 DESTINATION ${_nanobind_install_dir} COMPONENT user)
-    endif ()
 endmacro ()

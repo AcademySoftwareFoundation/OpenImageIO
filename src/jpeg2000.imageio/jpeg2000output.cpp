@@ -185,7 +185,7 @@ bool
 Jpeg2000Output::open(const std::string& name, const ImageSpec& spec,
                      OpenMode mode)
 {
-    if (!check_open(mode, spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 4 },
+    if (!check_open(mode, spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 4 },
                     uint64_t(OpenChecks::Disallow2Channel)))
         return false;
 

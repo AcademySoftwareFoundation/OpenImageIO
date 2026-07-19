@@ -1,0 +1,2 @@
+classic: rect 63x64 smashed=0 baddiffs=0 -> PASS
+core: rect 63x64 smashed=0 baddiffs=0 -> PASS

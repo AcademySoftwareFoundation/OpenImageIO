@@ -3,6 +3,8 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 #include "iff_pvt.h"
 
+#include <OpenImageIO/memory.h>
+
 #include <cmath>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -30,7 +32,7 @@ public:
 private:
     std::string m_filename;
     iff_pvt::IffFileHeader m_header;
-    std::vector<uint8_t> m_buf;
+    default_init_vector<uint8_t> m_buf;
 
     uint32_t m_tbmp_start;
 
@@ -280,6 +282,12 @@ IffInput::open(const std::string& name, ImageSpec& spec)
     // file pointer is set to the beginning of tbmp data
     // we save this position - it will be helpful in read_native_tile
     m_tbmp_start = m_header.tbmp_start;
+
+    // Validity check resolutions. Width and height are a uint16, but this is
+    // an old format, we are guessing that there are no Maya IFF files that
+    // are > 64k pixels per side.
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 5 }))
+        return false;
 
     spec = m_spec;
     return true;
@@ -607,6 +615,21 @@ IffInput::readimg()
     // seek pos
     // set position tile may be called randomly
     ioseek(m_tbmp_start);
+
+    // Check that the image size claimed is plausible for the size of the
+    // remainder of the file. RLE can expand at most 128x (a 2-byte run
+    // encodes up to 128 output bytes).
+    uint64_t filesize = uint64_t(ioproxy()->size());
+    uint64_t avail    = filesize > m_tbmp_start ? filesize - m_tbmp_start : 0;
+    uint64_t max_plausible_bytes = (m_header.compression == iff_pvt::RLE)
+                                       ? avail * 128
+                                       : avail;
+    if (m_header.image_bytes() > max_plausible_bytes) {
+        errorfmt(
+            "IFF error: header claims image size {} bytes, implausible for {} bytes of remaining tile data",
+            m_header.image_bytes(), avail);
+        return false;
+    }
 
     // resize buffer
     m_buf.resize(m_header.image_bytes());

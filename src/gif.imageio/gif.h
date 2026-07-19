@@ -340,7 +340,8 @@ void GifSplitPalette(uint8_t* image, int numPixels, int firstElt, int lastElt, i
     if(bRange > gRange) splitCom = 2;
     if(rRange > bRange && rRange > gRange) splitCom = 0;
 
-    int subPixelsA = numPixels * (splitElt - firstElt) / (lastElt - firstElt);
+    int subPixelsA = (int)(int64_t(numPixels) * (splitElt - firstElt)
+                           / (lastElt - firstElt));
     int subPixelsB = numPixels-subPixelsA;
 
     GifPartitionByMedian(image, 0, numPixels, splitCom, subPixelsA);
@@ -388,7 +389,7 @@ void GifMakePalette( const uint8_t* lastFrame, const uint8_t* nextFrame, uint32_
 
     // SplitPalette is destructive (it sorts the pixels by color) so
     // we must create a copy of the image for it to destroy
-    size_t imageSize = (size_t)(width * height * 4 * sizeof(uint8_t));
+    size_t imageSize = size_t(width) * size_t(height) * 4 * sizeof(uint8_t);
     uint8_t* destroyableImage = (uint8_t*)GIF_TEMP_MALLOC(imageSize);
     memcpy(destroyableImage, nextFrame, imageSize);
 
@@ -789,7 +790,7 @@ bool GifBegin( GifWriter<FILE>* writer, const char* filename, uint32_t width, ui
     writer->firstFrame = true;
 
     // allocate
-    writer->oldImage = (uint8_t*)GIF_MALLOC(width*height*4);
+    writer->oldImage = (uint8_t*)GIF_MALLOC(uint64_t(width)*uint64_t(height)*4);
 
     fputs("GIF89a", writer->f);
 

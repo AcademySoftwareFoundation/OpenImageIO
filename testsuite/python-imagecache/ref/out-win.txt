@@ -1,31 +1,66 @@
-getattribute("max_open_files") 90
-getattribute("max_memory_MB") 900.0
-getattribute("searchpath") ../common
-tahoe_tiny is 128 x 96
-grid is 1000 x 1000
-full getattribute stat:cache_memory_used 0
-full getattribute stat:image_size 4036864
-full getattribute total_files 2
-full getattribute all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
-getattributetype stat:cache_memory_used int64
-getattributetype stat:image_size int64
-getattributetype total_files int
-getattributetype all_filenames string[2]
-untyped getattribute stat:cache_memory_used 0
-untyped getattribute stat:image_size 4036864
-untyped getattribute total_files 2
-untyped getattribute all_filenames ('../common/grid.tif', '../common/tahoe-tiny.tif')
-getpixels from grid.tif: [[[1.         0.49803925 0.49803925 1.        ]
+Testing attribute() one-arg:
+  max_open_files: 90
+  max_memory_MB: 900.0
+  searchpath: ../common
+
+Testing attribute() typed:
+  max_open_files typed round-trip: True
+
+Testing get_imagespec:
+  tahoe_tiny is 128 x 96
+  grid is 1000 x 1000
+
+Testing resolve_filename:
+  resolve ends with grid.tif: True
+
+Testing get_cache_dimensions:
+  cache dimensions width>0: True
+  cache dimensions height>0: True
+
+Testing getattribute() and getattributetype():
+  getattributetype stat:cache_memory_used: int64
+  getattributetype stat:image_size: int64
+  getattributetype total_files: int
+  getattributetype searchpath: string
+  total_files is int: True
+  total_files >= 2: True
+  stat:image_size is int: True
+  stat:image_size positive: True
+  all_filenames is tuple: True
+  all_filenames len matches total_files: True
+  untyped stat:cache_memory_used is int: True
+
+Testing get_pixels() coord overload:
+  getpixels from grid.tif: [[[1.         0.49803925 0.49803925 1.        ]
   [1.         0.49803925 0.49803925 1.        ]]
 
  [[1.         0.49803925 0.49803925 1.        ]
   [1.         0.49803925 0.49803925 1.        ]]]
-  has_error? False
-  geterror? 
-getpixels from broken.tif: None
-  has_error? True
-  geterror? Invalid image file "broken.tif": Could not open file: S: Cannot open
-getstats beginning:
-['OpenImageIO', 'ImageCache', 'statistics']
+  has_error after success: False
+
+Testing get_pixels() ROI overload:
+  ROI matches coord overload: True
+
+Testing get_pixels() missing file:
+  broken returns None: True
+  has_error after broken: True
+  geterror nonempty: True
+
+Testing getstats:
+  getstats starts with OpenImageIO: True
+  getstats contains statistics: True
+
+Testing invalidate/invalidate_all:
+  invalidate ok: True
+
+Testing ImageCache.destroy:
+  destroy shared=False ok: True
+
+Testing has_error/geterror on private cache:
+  has_error before: False
+  has_error after bad file: True
+  geterror persists: True
+  geterror clear returns message: True
+  has_error after clear: False
 
 Done.

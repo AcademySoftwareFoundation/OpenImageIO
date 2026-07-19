@@ -102,8 +102,20 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     int maxbits = 0;
     for (int i = 0; i < nchannels; i++) {
         int b(m_cin.header.BitDepth(i));
-        if (b < 1 || b > 32) {
+        // libcineon's ComponentDataSize/ComponentByteCount only know how to
+        // handle these bit depths; anything else asserts (or worse, in a
+        // non-debug build) deep inside the vendored library. Reject bogus
+        // values here so we can give a proper error instead.
+        switch (b) {
+        case 8:
+        case 10:
+        case 12:
+        case 16:
+        case 32:
+        case 64: break;
+        default:
             errorfmt("Invalid bitdepth in channel {}: {} bits", i, b);
+            close();
             return false;
         }
         maxbits = std::max(maxbits, b);
@@ -118,7 +130,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(), nchannels,
                        typedesc);
 
-    if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1, 0, 8 })) {
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })) {
         return false;
     }
 

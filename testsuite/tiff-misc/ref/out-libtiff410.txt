@@ -41,5 +41,22 @@ gps.tif              :   64 x   64, 3 channel, uint8 tiff
     tiff:RowsPerStrip: 32
 iconvert ERROR copying "src/crash-cmyk-e12b.tif" to "out.tif" :
 	Decoding error at scanline 0, invalid distance too far back
+Reading src/crash-cmyk-1bit.tif
+src/crash-cmyk-1bit.tif :   73 x   43, 3 channel, uint1 tiff
+    SHA-1: 7E9169CEC1B8ABD56C3604AAD37761DBD8FE0F2A
+    channel list: R, G, B
+    compression: "none"
+    DocumentName: "flower-separated-contig-08.tif"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    ResolutionUnit: "in"
+    XResolution: 0
+    YResolution: 72
+    oiio:BitsPerSample: 1
+    tiff:ColorSpace: "CMYK"
+    tiff:Compression: 1
+    tiff:PhotometricInterpretation: 5
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 28
 Comparing "check1.tif" and "ref/check1.tif"
 PASS

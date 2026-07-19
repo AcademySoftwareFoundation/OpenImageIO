@@ -35,4 +35,7 @@ command += run_app ("(" + oiio_app("iconvert")
                     + "out.null > /dev/null 2>&1 "
                     + "|| echo indexed-transparency-256-rejected)")
 
+# Regression test: bad colormode
+command += oiiotool ("--nostderr --info --iconfig oiio:RawColor 1 src/bad_colormode.psd", failureok=True)
+
 outputs += [ "out.txt" ]

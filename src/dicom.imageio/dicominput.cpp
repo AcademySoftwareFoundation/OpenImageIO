@@ -231,7 +231,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
 
     m_spec = ImageSpec(m_img->getWidth(), m_img->getHeight(), nchannels,
                        format);
-    if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 16 }))
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
         return false;
 
     m_bitspersample = m_img->getDepth();
