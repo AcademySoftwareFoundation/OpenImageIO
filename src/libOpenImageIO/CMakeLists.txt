@@ -75,6 +75,11 @@ set (libOpenImageIO_srcs
                           imageoutput.cpp
                           iptc.cpp xmp.cpp
                           color_ocio.cpp
+                          color_registry.cpp
+                          color_fingerprint.cpp
+                          color_crossconfig.cpp
+                          color_icc_probe.cpp
+                          color_search.cpp
                           interop_id.cpp
                           curve_family.cpp
                           chromaticity_match.cpp
