@@ -176,6 +176,69 @@ test_derivation(const ColorConfig& config)
 }
 
 
+// The global oiio:colorpolicy:* tier: a value set through OIIO::attribute()
+// must round-trip through OIIO::getattribute(), be visible to the policy
+// snapshot, and actually change writer behavior end to end (write a file,
+// reopen it, observe the signal gone) -- not merely alter a plan object.
+static void
+test_global_policy_tier()
+{
+    // Storage round-trip, string and int.
+    OIIO_CHECK_ASSERT(
+        OIIO::attribute("oiio:colorpolicy:write:interop_id", "never"));
+    std::string v;
+    OIIO_CHECK_ASSERT(
+        OIIO::getattribute("oiio:colorpolicy:write:interop_id", v));
+    OIIO_CHECK_EQUAL(v, "never");
+    OIIO_CHECK_ASSERT(
+        OIIO::attribute("oiio:colorpolicy:read:ignore_cicp_for_png", 1));
+    int iv = 0;
+    OIIO_CHECK_ASSERT(
+        OIIO::getattribute("oiio:colorpolicy:read:ignore_cicp_for_png", iv));
+    OIIO_CHECK_EQUAL(iv, 1);
+    OIIO_CHECK_ASSERT(
+        OIIO::attribute("oiio:colorpolicy:read:ignore_cicp_for_png", 0));
+
+    // The write-policy snapshot sees the global (no per-spec hints in play).
+    auto pol = ColorWritePolicy::snapshot();
+    OIIO_CHECK_EQUAL(int(pol.interop_id), int(ColorSignalPolicy::Never));
+
+    // End to end: an EXR write that would otherwise DERIVE an interop id from
+    // the color space emits none while the global says never. Only meaningful
+    // when the default config can derive one -- guard like test_exr_consumption.
+    const std::string derivable(
+        ColorConfig::default_colorconfig().get_color_interop_id(
+            "lin_ap0_scene"));
+    if (!derivable.empty() && ImageOutput::create("exr")) {
+        const std::string file = Filesystem::temp_directory_path()
+                                 + "/oiio_cmp_globalpolicy.exr";
+        std::vector<float> pix(4 * 4 * 3, 0.5f);
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("oiio:ColorSpace", "lin_ap0_scene");
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            OIIO_CHECK_EQUAL(
+                in->spec().get_string_attribute("colorInteropID"), "");
+            in->close();
+        }
+        Filesystem::remove(file);
+    }
+
+    // Restore the default so later tests see auto behavior.
+    OIIO_CHECK_ASSERT(
+        OIIO::attribute("oiio:colorpolicy:write:interop_id", "auto"));
+    pol = ColorWritePolicy::snapshot();
+    OIIO_CHECK_EQUAL(int(pol.interop_id), int(ColorSignalPolicy::Auto));
+}
+
+
 // The provenance write rule: suppress oiio:SourcePath, keep oiio:SourceFormat.
 static void
 test_provenance_rule()
@@ -249,6 +312,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_never_suppresses();
     test_incapable_omits();
     test_explicit_chroma_and_gamma();
+    test_global_policy_tier();
     test_provenance_rule();
     test_exr_consumption();
 

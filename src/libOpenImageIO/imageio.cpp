@@ -84,6 +84,13 @@ namespace {
 static std::recursive_mutex attrib_mutex;
 static const int maxthreads = 512;  // reasonable maximum for sanity check
 
+// Storage for the global `oiio:colorpolicy:*` attribute namespace, consumed
+// via OIIO::getattribute() by the color policy snapshots (see
+// ColorPolicySnapshot in imageio_pvt.h). Generic name->value storage guarded
+// by attrib_mutex like the other globals; the grammar and defaults are owned
+// by the policy readers, not here.
+static ParamValueList colorpolicy_attribs;
+
 class TimingLog {
 public:
     spin_mutex mutex;
@@ -373,6 +380,10 @@ attribute(string_view name, TypeDesc type, const void* val)
 
     // Things below here need to buarded by the attrib_mutex
     std::lock_guard lock(attrib_mutex);
+    if (Strutil::starts_with(name, "oiio:colorpolicy:")) {
+        colorpolicy_attribs.attribute(name, type, val);
+        return true;
+    }
     if (name == "debug" && type == TypeInt) {
         oiio_print_debug = *(const int*)val;
         return true;
@@ -515,6 +526,9 @@ getattribute(string_view name, TypeDesc type, void* val)
 
     // Things below here need to buarded by the attrib_mutex
     std::lock_guard lock(attrib_mutex);
+    if (Strutil::starts_with(name, "oiio:colorpolicy:")) {
+        return colorpolicy_attribs.getattribute(name, type, val);
+    }
     if (name == "debug" && type == TypeInt) {
         *(int*)val = oiio_print_debug;
         return true;
