@@ -12,6 +12,7 @@
 //      resolution, escapes/sequences, and the exhaustive realize-clean +
 //      allowlist gate (which must NOT consult the fingerprint subsystem).
 
+#include <algorithm>
 #include <atomic>
 #include <string>
 #include <vector>
@@ -638,6 +639,81 @@ test_transfer_axis()
 }
 
 
+// A config with one context-sensitive space: ctx_space resolves $CTX at
+// probe time, behaving as gamma_a (2.35 curve) or gamma_b (1.4 curve)
+// depending on the context. The explicit per-call context override must be
+// honored by every characterization probe.
+constexpr const char* kContextConfig = R"OCIO(ocio_profile_version: 2.1
+environment:
+  CTX: gamma_a
+roles:
+  default: ref
+  aces_interchange: ref
+  scene_linear: ref
+file_rules:
+  - !<Rule> {name: Default, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: gamma_a
+    encoding: sdr-video
+    from_scene_reference: !<ExponentTransform> {value: 2.35, style: pass_thru, direction: inverse}
+  - !<ColorSpace>
+    name: gamma_b
+    encoding: sdr-video
+    from_scene_reference: !<ExponentTransform> {value: 1.4, style: pass_thru, direction: inverse}
+  - !<ColorSpace>
+    name: ctx_space
+    encoding: sdr-video
+    to_scene_reference: !<ColorSpaceTransform> {src: $CTX, dst: ref}
+)OCIO";
+
+
+void
+test_context_override()
+{
+    ScratchDir dir;
+    ColorConfig config = config_from_text(dir, "ctx.ocio", kContextConfig);
+
+    auto contains = [](const std::vector<std::string>& v, const char* name) {
+        return std::find(v.begin(), v.end(), name) != v.end();
+    };
+
+    pvt::FindColorSpacesOptions opt;
+    opt.include_context_sensitive = true;
+    opt.transfer_functions        = { "gamma_a" };
+
+    // Under CTX=gamma_a (also the config's ambient default), ctx_space
+    // behaves as gamma_a and matches the hint.
+    opt.context = { { "CTX", "gamma_a" } };
+    const auto with_a = pvt::find_color_spaces(config, opt);
+    OIIO_CHECK_ASSERT(contains(with_a, "gamma_a"));
+    OIIO_CHECK_ASSERT(contains(with_a, "ctx_space"));
+
+    // Under CTX=gamma_b the SAME space behaves as gamma_b: the probes must
+    // run under the explicit override, so ctx_space drops out of a gamma_a
+    // transfer query...
+    opt.context = { { "CTX", "gamma_b" } };
+    const auto with_b = pvt::find_color_spaces(config, opt);
+    OIIO_CHECK_ASSERT(contains(with_b, "gamma_a"));
+    OIIO_CHECK_FALSE(contains(with_b, "ctx_space"));
+
+    // ...and reappears in a gamma_b transfer query under the same override.
+    pvt::FindColorSpacesOptions opt_b;
+    opt_b.include_context_sensitive = true;
+    opt_b.transfer_functions        = { "gamma_b" };
+    opt_b.context                   = { { "CTX", "gamma_b" } };
+    const auto with_b2 = pvt::find_color_spaces(config, opt_b);
+    OIIO_CHECK_ASSERT(contains(with_b2, "gamma_b"));
+    OIIO_CHECK_ASSERT(contains(with_b2, "ctx_space"));
+
+    // Two explicit contexts, same query, different result sets.
+    OIIO_CHECK_ASSERT(with_a != with_b);
+}
+
+
 // The public ColorConfig::find_color_spaces thin adapter: it must fill the
 // internal option set and forward to the pvt core, always searching active
 // spaces (there is no include_active toggle on the public shape), and it must
@@ -689,6 +765,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_non_simple_and_hint_source();
     test_exhaustive_realize_clean_gate();
     test_transfer_axis();
+    test_context_override();
     test_public_adapter();
     return unit_test_failures;
 }

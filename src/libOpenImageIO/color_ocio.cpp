@@ -578,12 +578,16 @@ public:
     // pure pvt:: primitives. The effective (declared, else registry-inferred)
     // OCIO encoding; the chromaticities (reserved table, else AP0-probe
     // derivation); and the behavioral transfer signature (neutral-axis probe
-    // run in the encode direction).
+    // run in the encode direction). `context`, when non-null, is the exact
+    // context every probe processor is built under (find_color_spaces'
+    // per-call override); null means the config's own current context.
     std::string effectiveEncoding(string_view name) const;
     std::optional<OIIO::pvt::Chromaticities>
-    deriveChromaticities(string_view name) const;
+    deriveChromaticities(string_view name,
+                         const OCIO::ConstContextRcPtr& context = {}) const;
     std::optional<OIIO::pvt::TransferFunctionSignature>
-    deriveTransferSignature(string_view name) const;
+    deriveTransferSignature(string_view name,
+                            const OCIO::ConstContextRcPtr& context = {}) const;
 
     // Compute the color space fingerprint for `name` (transform the fixed
     // probe from the reference role to the space). Builds the probe config
@@ -7303,7 +7307,8 @@ ColorConfig::Impl::effectiveEncoding(string_view name) const
 
 
 std::optional<spvt::Chromaticities>
-ColorConfig::Impl::deriveChromaticities(string_view name) const
+ColorConfig::Impl::deriveChromaticities(
+    string_view name, const OCIO::ConstContextRcPtr& context) const
 {
     if (!config_ || disable_ocio || name.empty())
         return {};
@@ -7330,7 +7335,10 @@ ColorConfig::Impl::deriveChromaticities(string_view name) const
         return {};
     float rgb[12] = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1 };
     try {
-        auto proc = config_->getProcessor(resolved.c_str(),
+        // Probe under the explicit per-call context when one was supplied
+        // (context overrides are scoped to the whole query, probes included).
+        auto ctx  = context ? context : config_->getCurrentContext();
+        auto proc = config_->getProcessor(ctx, resolved.c_str(),
                                           interchange.c_str());
         if (!proc)
             return {};
@@ -7348,7 +7356,8 @@ ColorConfig::Impl::deriveChromaticities(string_view name) const
 
 
 std::optional<spvt::TransferFunctionSignature>
-ColorConfig::Impl::deriveTransferSignature(string_view name) const
+ColorConfig::Impl::deriveTransferSignature(
+    string_view name, const OCIO::ConstContextRcPtr& context) const
 {
     if (!config_ || disable_ocio || name.empty())
         return {};
@@ -7374,7 +7383,11 @@ ColorConfig::Impl::deriveTransferSignature(string_view name) const
 
     std::optional<spvt::TransferFunctionSignature> sig;
     try {
-        auto proc = config_->getProcessor(source.c_str(), resolved.c_str());
+        // Probe under the explicit per-call context when one was supplied
+        // (context overrides are scoped to the whole query, probes included).
+        auto ctx  = context ? context : config_->getCurrentContext();
+        auto proc = config_->getProcessor(ctx, source.c_str(),
+                                          resolved.c_str());
         sig       = probe_signature_over(proc ? proc->getDefaultCPUProcessor()
                                               : OCIO::ConstCPUProcessorRcPtr());
     } catch (...) {
@@ -7503,7 +7516,7 @@ ColorConfig::Impl::find_color_spaces(
     auto resolve_chromaticities
         = [&](const std::string& raw) -> std::vector<spvt::Chromaticities> {
         if (auto local = local_space(raw)) {
-            if (auto value = deriveChromaticities(local->getName()))
+            if (auto value = deriveChromaticities(local->getName(), ctx))
                 return { *value };
             throw std::invalid_argument(
                 "chromaticities hint has no derivable value: " + raw);
@@ -7566,13 +7579,18 @@ ColorConfig::Impl::find_color_spaces(
             if (auto local = local_space(value)) {
                 const std::string name = local->getName();
                 try {
+                    // NOTE: OCIO's isColorSpaceLinear() takes no context, so
+                    // for a context-sensitive space it evaluates under the
+                    // config's ambient context. The context-threaded
+                    // signature probe below is the authoritative transfer
+                    // evidence for such spaces.
                     hint.identity = isColorSpaceLinear(name);
                     hint.family   = tf_curve_family(
                         m_self->get_color_interop_id(name));
                 } catch (...) {
                 }
                 if (!hint.identity)
-                    if (auto sig = deriveTransferSignature(name))
+                    if (auto sig = deriveTransferSignature(name, ctx))
                         hint.signatures.push_back(std::move(*sig));
             } else if (auto rcs = registry_space(value)) {
                 // Known interop id: the registry space is an identity, so its
@@ -7805,20 +7823,23 @@ ColorConfig::Impl::find_color_spaces(
 
         std::optional<spvt::Chromaticities> chromaticities;
         if (!chromaticity_terms.empty())
-            chromaticities = deriveChromaticities(name);
+            chromaticities = deriveChromaticities(name, ctx);
         if (!chromaticity_axis_accepts(chromaticity_terms, chromaticities))
             continue;
 
         spvt::TransferProperty transfer;
         if (!transfer_terms.empty()) {
             try {
+                // NOTE: OCIO's isColorSpaceLinear() takes no context (see the
+                // hint-resolution note above); the context-threaded signature
+                // probe below is authoritative for context-sensitive spaces.
                 transfer.identity = isColorSpaceLinear(name);
                 transfer.family   = tf_curve_family(
                     m_self->get_color_interop_id(name));
             } catch (...) {
             }
             if (!transfer.identity)
-                if (auto sig = deriveTransferSignature(name))
+                if (auto sig = deriveTransferSignature(name, ctx))
                     transfer.signature = std::move(*sig);
         }
         if (!transfer_axis_accepts(transfer_terms, transfer))
