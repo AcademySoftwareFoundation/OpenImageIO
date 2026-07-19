@@ -16,6 +16,8 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/color_interop_ids.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -685,11 +687,13 @@ test_color_space_fingerprint()
 
 
 // Exercise the config interoperability check: a config carrying the
-// aces_interchange role is interoperable and does not warn; a stripped config
-// is not interoperable, gets an in-memory interopified repair copy that DOES
-// resolve a scene interchange (with the OCIO processor cache off, leaving the
-// original config unmutated), and warns exactly once per config structure. The
-// whole thing is lazy -- constructing a ColorConfig runs none of it.
+// aces_interchange role is interoperable and does not warn; a config whose
+// scene reference is positively identifiable (known alias/name, or OCIO
+// builtin identification) is repaired -- the interopified copy binds the
+// interchange role; a stripped config whose reference CANNOT be positively
+// identified is NOT repaired (fail-don't-guess: never fabricate an AP0
+// equivalence), and warns exactly once per config structure. The whole thing
+// is lazy -- constructing a ColorConfig runs none of it.
 static void
 test_config_interoperability()
 {
@@ -775,10 +779,12 @@ colorspaces:
         // convert with is otherwise perfectly healthy.
         OIIO_CHECK_FALSE(cc.has_error());
 
-        // But the in-memory interopified copy was repaired to resolve one,
-        // with the processor cache off -- and the original config is
-        // unmutated (is_interoperable stays false above).
-        OIIO_CHECK_ASSERT(
+        // The in-memory interopified copy is NOT repaired: "ref" is a bare
+        // transformless space that nothing positively identifies as AP0
+        // (no role, no known alias, no builtin identification), and the
+        // bridge must never fabricate that equivalence. The copy still
+        // exists (processor cache off), but resolves no scene interchange.
+        OIIO_CHECK_FALSE(
             color_config_interopified_resolves_scene_interchange(cc));
         OIIO_CHECK_ASSERT(color_config_interopified_cache_off(cc));
 
@@ -800,9 +806,43 @@ colorspaces:
         ColorConfig cc2(stripped_path);
         OIIO_CHECK_FALSE(color_config_is_interoperable(cc2));
         OIIO_CHECK_ASSERT(color_config_interop_warned(cc2));
-        // ...and it still gets its own repaired, cache-off copy.
-        OIIO_CHECK_ASSERT(
+        // ...and its own copy likewise resolves no scene interchange.
+        OIIO_CHECK_FALSE(
             color_config_interopified_resolves_scene_interchange(cc2));
+    }
+
+    // --- Positively identifiable reference: repair IS performed -------------
+    // The reference space is transformless but NAMED as a known scene
+    // interchange alias ("ACES2065-1"), so the identification is positive and
+    // the interopified copy may bind the interchange role to it.
+    {
+        static const char* identifiable_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ACES2065-1
+  scene_linear: ACES2065-1
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ACES2065-1}
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+)";
+        std::string identifiable_path
+            = Filesystem::temp_directory_path()
+              + "/oiio_color_test_identifiable.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(identifiable_path, identifiable_yaml));
+        ColorConfig cc(identifiable_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        // Alias discovery finds "ACES2065-1" even without the role...
+        OIIO_CHECK_ASSERT(color_config_is_interoperable(cc));
+        OIIO_CHECK_EQUAL(color_config_interchange_name(cc), "ACES2065-1");
+        // ...and the interopified copy binds the role to it.
+        OIIO_CHECK_ASSERT(
+            color_config_interopified_resolves_scene_interchange(cc));
+        OIIO_CHECK_FALSE(color_config_interop_warned(cc));
+        Filesystem::remove(identifiable_path);
     }
 
     Filesystem::remove(interop_path);
@@ -1110,6 +1150,44 @@ colorspaces:
         // Narration recorded on the error string: what failed and how to fix.
         OIIO_CHECK_ASSERT(Strutil::contains(err, "lin_ap1_scene"));
         OIIO_CHECK_ASSERT(Strutil::contains(err, "aces_interchange role"));
+    }
+
+    // --- Lenient-fallback outcome travels WITH the processor: a cache hit of
+    //     the fallback behaves exactly like its first computation, and IBA
+    //     metadata never claims the conversion that didn't happen ------------
+    {
+        ColorConfig cc(non_path);
+        auto h1 = cc.createColorProcessor("enc", "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(h1.get() != nullptr);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        (void)cc.geterror();  // consume (clears the shared error string)
+
+        // Cache hit: the per-call outcome must be identical to the first
+        // computation -- the continue-message is re-signaled, not lost.
+        auto h2 = cc.createColorProcessor("enc", "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(h2.get() != nullptr);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        std::string err2 = cc.geterror();
+        OIIO_CHECK_ASSERT(Strutil::contains(err2, "aces_interchange role"));
+
+        // IBA honesty on BOTH calls: no pixels moved, so the output keeps the
+        // true (source) color space -- including when the fallback processor
+        // comes from the cache with the shared error string clean.
+        ImageBuf src(ImageSpec(2, 2, 3, TypeDesc::FLOAT));
+        ImageBufAlgo::fill(src, { 0.25f, 0.5f, 0.75f });
+        src.specmod().set_colorspace("enc");
+        ImageBuf d1 = ImageBufAlgo::colorconvert(src, "enc", "lin_ap1_scene",
+                                                 true, "", "", &cc);
+        OIIO_CHECK_ASSERT(!d1.has_error());
+        OIIO_CHECK_EQUAL(d1.spec().get_string_attribute("oiio:ColorSpace"),
+                         "enc");
+        (void)cc.geterror();  // clear again: the cached path must not depend
+                              // on leftover shared error state
+        ImageBuf d2 = ImageBufAlgo::colorconvert(src, "enc", "lin_ap1_scene",
+                                                 true, "", "", &cc);
+        OIIO_CHECK_ASSERT(!d2.has_error());
+        OIIO_CHECK_EQUAL(d2.spec().get_string_attribute("oiio:ColorSpace"),
+                         "enc");
     }
 
     // --- Strict parsing: hard error (today's behavior) with why + how-to-fix --
@@ -1479,13 +1557,14 @@ colorspaces:
     // context keys a separate bucket. This is airtight given (2a): matrix_inv
     // collapsing proved cc1 and cc2 share one structural config id, so the only
     // thing that can grow the cache here is ctx_space's differing context id.
-    // (The fingerprint VALUE is not asserted to differ: the probe copy that
-    // computes it is memoized per structural config, so both contexts probe
-    // through the copy the first query built -- the cache keys the contexts
-    // apart regardless, which is what this slice guarantees.)
     ColorSpaceFingerprint s2 = color_space_fingerprint_cached(cc2, "ctx_space");
     OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(3));  // new bucket
     OIIO_CHECK_ASSERT(s2.computed());
+    // And the VALUES differ: each instance probes under its OWN current
+    // context (gamma_a's 2.2 curve vs gamma_b's 1.8 curve), even though both
+    // share one process-memoized structural probe copy. The cache key's
+    // context id is exactly the context the probe ran under.
+    OIIO_CHECK_ASSERT(s1.values != s2.values);
 
     // (3) A structurally different config keys separately; the earlier entries
     // just orphan (content-addressed, no eviction, no crash).

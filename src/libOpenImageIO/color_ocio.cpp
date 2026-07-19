@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <memory>
 #include <mutex>
@@ -243,10 +244,18 @@ struct CSInfo {
         is_simple             = 1024,  // member of the simple set
         is_context_invariant  = 2048,  // no context vars affect this space
     };
-    int m_flags   = 0;
-    bool examined = false;
-    bool analyzed = false;  // classification bits computed (see Impl::analyze)
-    bool active   = true;   // member of the active colorspace enumeration
+    // The lazily-computed classification state is written under the Impl's
+    // m_mutex but deliberately READ without it on hot paths (the examine()/
+    // analyze() double-checked fast path, equivalent()'s flag compare), so
+    // the flag words are atomics: `examined`/`analyzed` publish with release
+    // stores paired with acquire loads on the unlocked fast-path checks, and
+    // m_flags is or-accumulated. Plain ints/bools here were a C++ data race
+    // (UB) under concurrent first-use classification. `active` stays a plain
+    // bool: it is only accessed under m_mutex.
+    std::atomic<int> m_flags { 0 };
+    std::atomic<bool> examined { false };
+    std::atomic<bool> analyzed { false };  // analyze() ran (see Impl::analyze)
+    bool active = true;     // member of the active colorspace enumeration
     std::string canonical;  // Canonical name for this color space
     OCIO::ConstColorSpaceRcPtr ocio_cs;
 
@@ -259,18 +268,35 @@ struct CSInfo {
     {
     }
 
-    void setflag(int flagval) { m_flags |= flagval; }
+    // Atomics are not copyable; the copy constructor exists only for
+    // std::vector growth during single-threaded inventory().
+    CSInfo(const CSInfo& other)
+        : name(other.name)
+        , index(other.index)
+        , m_flags(other.m_flags.load(std::memory_order_relaxed))
+        , examined(other.examined.load(std::memory_order_relaxed))
+        , analyzed(other.analyzed.load(std::memory_order_relaxed))
+        , active(other.active)
+        , canonical(other.canonical)
+        , ocio_cs(other.ocio_cs)
+    {
+    }
+
+    void setflag(int flagval)
+    {
+        m_flags.fetch_or(flagval, std::memory_order_relaxed);
+    }
 
     // Set flag to include any bits in flagval, and also if alias is not yet
     // set, set it to name.
     void setflag(int flagval, std::string& alias)
     {
-        m_flags |= flagval;
+        m_flags.fetch_or(flagval, std::memory_order_relaxed);
         if (alias.empty())
             alias = name;
     }
 
-    int flags() const { return m_flags; }
+    int flags() const { return m_flags.load(std::memory_order_relaxed); }
 };
 
 
@@ -327,6 +353,12 @@ private:
     mutable spin_rw_mutex m_mutex;
     mutable std::string m_error;
     ColorProcessorMap colorprocmap;  // cache of ColorProcessors
+    // Lenient cross-config fallbacks: the pass-through no-op processors
+    // reconcile_cross_config{,_display} hand back under non-strict parsing,
+    // keyed by processor identity, mapped to the composed continue-message.
+    // Guarded by m_mutex; entries live as long as colorprocmap holds the
+    // processor (the life of this Impl).
+    std::unordered_map<const ColorProcessor*, std::string> m_lenient_fallbacks;
     atomic_int colorprocs_requested;
     atomic_int colorprocs_created;
     std::string m_configname;
@@ -430,9 +462,15 @@ public:
 
     // Add the given color processor. Be careful -- if a matching one is
     // already in the table, just return the existing one. If they pass
-    // in an empty handle, just return it.
+    // in an empty handle, just return it. If `lenient_fallback_msg` is
+    // non-null, the handle is a lenient cross-config pass-through fallback:
+    // record its continue-message against the cached processor (under the
+    // same lock as the insertion), so the per-call outcome travels WITH the
+    // processor and a later cache hit can re-signal it.
     ColorProcessorHandle addproc(const ColorProcCacheKey& key,
-                                 ColorProcessorHandle handle)
+                                 ColorProcessorHandle handle,
+                                 const std::string* lenient_fallback_msg
+                                 = nullptr)
     {
         if (!handle)
             return handle;
@@ -447,7 +485,22 @@ public:
             // return the one already in the map.
             handle = found->second;
         }
+        if (lenient_fallback_msg)
+            m_lenient_fallbacks[handle.get()] = *lenient_fallback_msg;
         return handle;
+    }
+
+    // If `proc` is a registered lenient cross-config pass-through fallback
+    // (see addproc), return its continue-message; otherwise return empty.
+    // This -- never the shared error string, which cache hits and unrelated
+    // calls may have cleared or overwritten -- is how callers must decide
+    // whether a non-null processor actually converts pixels.
+    std::string lenient_fallback_message(const ColorProcessor* proc) const
+    {
+        spin_rw_read_lock lock(m_mutex);
+        auto found = m_lenient_fallbacks.find(proc);
+        return found == m_lenient_fallbacks.end() ? std::string()
+                                                  : found->second;
     }
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
@@ -525,12 +578,16 @@ public:
     // pure pvt:: primitives. The effective (declared, else registry-inferred)
     // OCIO encoding; the chromaticities (reserved table, else AP0-probe
     // derivation); and the behavioral transfer signature (neutral-axis probe
-    // run in the encode direction).
+    // run in the encode direction). `context`, when non-null, is the exact
+    // context every probe processor is built under (find_color_spaces'
+    // per-call override); null means the config's own current context.
     std::string effectiveEncoding(string_view name) const;
     std::optional<OIIO::pvt::Chromaticities>
-    deriveChromaticities(string_view name) const;
+    deriveChromaticities(string_view name,
+                         const OCIO::ConstContextRcPtr& context = {}) const;
     std::optional<OIIO::pvt::TransferFunctionSignature>
-    deriveTransferSignature(string_view name) const;
+    deriveTransferSignature(string_view name,
+                            const OCIO::ConstContextRcPtr& context = {}) const;
 
     // Compute the color space fingerprint for `name` (transform the fixed
     // probe from the reference role to the space). Builds the probe config
@@ -696,13 +753,15 @@ private:
     // mutex.
     void examine(CSInfo* cs)
     {
-        if (!cs->examined) {
+        // Unlocked fast-path check: acquire pairs with the release publish
+        // below, making the classification written before it visible.
+        if (!cs->examined.load(std::memory_order_acquire)) {
             spin_rw_write_lock lock(m_mutex);
-            if (!cs->examined) {
+            if (!cs->examined.load(std::memory_order_relaxed)) {
                 classify_by_name(*cs);
                 classify_by_conversions(*cs);
                 reclassify_heuristics(*cs);
-                cs->examined = true;
+                cs->examined.store(true, std::memory_order_release);
             }
         }
     }
@@ -2339,14 +2398,24 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
                                   ustring context_value) const
 {
     std::string pending_error;
+    std::string lenient_fallback_msg;
 
     // First, look up the requested processor in the cache. If it already
     // exists, just return it.
     ColorProcCacheKey prockey(inputColorSpace, outputColorSpace, context_key,
                               context_value);
     ColorProcessorHandle handle = getImpl()->findproc(prockey);
-    if (handle)
+    if (handle) {
+        // A cached lenient cross-config fallback must behave exactly like
+        // its first computation: re-signal its continue-message so this
+        // call's outcome (pixels will NOT be converted) is observable per
+        // call, not lost to whoever consumed the shared error string first.
+        std::string fallback = getImpl()->lenient_fallback_message(
+            handle.get());
+        if (fallback.size())
+            getImpl()->error("{}", fallback);
         return handle;
+    }
 
     // DBG("createColorProcessor {} -> {}\n", inputColorSpace,
     //                outputColorSpace);
@@ -2422,6 +2491,7 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
                     getImpl()->clear_error();  // clean bridge success
                 pending_error = reconciled;    // empty on success; a
                                                // continue-message on fallback
+                lenient_fallback_msg = reconciled;  // ditto (registered below)
             } else if (reconciled.size()) {
                 pending_error = reconciled;  // strict hard error: why+how-to-fix
             }
@@ -2442,7 +2512,9 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
     if (pending_error.size())
         getImpl()->error("{}", pending_error);
 
-    return getImpl()->addproc(prockey, handle);
+    return getImpl()->addproc(prockey, handle,
+                              lenient_fallback_msg.size() ? &lenient_fallback_msg
+                                                          : nullptr);
 }
 
 
@@ -2558,8 +2630,17 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                               ustring() /*file*/, ustring() /*namedtransform*/,
                               inverse);
     ColorProcessorHandle handle = getImpl()->findproc(prockey);
-    if (handle)
+    if (handle) {
+        // A cached lenient cross-config fallback must behave exactly like
+        // its first computation: re-signal its continue-message (see
+        // createColorProcessor for the identical pattern).
+        std::string fallback = getImpl()->lenient_fallback_message(
+            handle.get());
+        if (fallback.size())
+            getImpl()->error("{}", fallback);
         return handle;
+    }
+    std::string lenient_fallback_msg;
 
     // Ask OCIO to make a Processor that can handle the requested
     // transformation.
@@ -2618,6 +2699,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                     getImpl()->clear_error();  // clean bridge success
                 pending_error = reconciled;    // empty on success; a
                                                // continue-message on fallback
+                lenient_fallback_msg = reconciled;  // ditto (registered below)
             } else if (reconciled.size()) {
                 pending_error = reconciled;  // strict hard error: why+how-to-fix
             }
@@ -2630,7 +2712,9 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
             getImpl()->error("{}", pending_error);
     }
 
-    return getImpl()->addproc(prockey, handle);
+    return getImpl()->addproc(prockey, handle,
+                              lenient_fallback_msg.size() ? &lenient_fallback_msg
+                                                          : nullptr);
 }
 
 
@@ -3281,7 +3365,9 @@ ColorConfig::Impl::getSimpleColorSpaces() const
 void
 ColorConfig::Impl::analyze(CSInfo* cs)
 {
-    if (cs->analyzed)
+    // Unlocked fast-path check: acquire pairs with the release publish at
+    // the bottom, making the flags/active written before it visible.
+    if (cs->analyzed.load(std::memory_order_acquire))
         return;
 
     // Gather everything that takes its own locks *before* locking m_mutex
@@ -3335,10 +3421,10 @@ ColorConfig::Impl::analyze(CSInfo* cs)
         flagval |= CSInfo::should_skip_matching;
 
     spin_rw_write_lock lock(m_mutex);
-    if (!cs->analyzed) {
+    if (!cs->analyzed.load(std::memory_order_relaxed)) {
         cs->setflag(flagval);
-        cs->active   = active;
-        cs->analyzed = true;
+        cs->active = active;
+        cs->analyzed.store(true, std::memory_order_release);
     }
 }
 
@@ -3688,9 +3774,24 @@ ColorConfig::Impl::ensureProbeConfig() const
         spin_rw_read_lock lock(m_mutex);
         probe_config = m_interop.interopified;
     }
+    // Fail-don't-guess: the probe constants are AP0-calibrated, so they are
+    // only meaningful when the (repaired) copy POSITIVELY resolves the scene
+    // interchange to normalize against (see interopify_config). Without it,
+    // leave the probe config unset so fingerprints report "not computable"
+    // instead of silently assuming the config's reference is AP0.
+    if (probe_config && !interopifiedResolvesSceneInterchange())
+        probe_config.reset();
     if (probe_config) {
         try {
-            probe_context = probe_config->getCurrentContext();
+            // Probe under THIS instance's current context, never the memoized
+            // interopified copy's: that copy is shared process-wide across
+            // all instances of the same structural config (first-writer-wins),
+            // so its captured context belongs to whichever instance built it
+            // first. The fingerprint cache keys entries by this instance's
+            // context id (fingerprint_cache_scope); the probe must run under
+            // exactly that context.
+            probe_context = config_ ? config_->getCurrentContext()
+                                    : probe_config->getCurrentContext();
             probe_values = initialize_probe_values(probe_config, probe_context);
         } catch (...) {
             probe_config.reset();
@@ -4107,14 +4208,21 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
         return false;
     }
 
-    // A non-null processor paired with a pending ColorConfig error means
-    // cross-config reconciliation fell back to a lenient pass-through no-op
-    // (non-strict parsing: the requested spaces couldn't be bridged, but the
-    // pipeline proceeds anyway). No pixels are actually converted in that
-    // case, so the output must keep documenting its true (source) space
-    // rather than claiming the requested destination -- an honest no-op
-    // instead of metadata that asserts a conversion that never happened.
-    bool lenient_passthrough = colorconfig->has_error();
+    // A lenient cross-config fallback is a pass-through no-op standing in
+    // for a conversion that could not be reconciled (non-strict parsing: the
+    // requested spaces couldn't be bridged, but the pipeline proceeds
+    // anyway). The outcome travels WITH the processor -- never the shared
+    // error string, which cache hits and unrelated calls may not reflect --
+    // so ask the config whether THIS processor is such a fallback. No pixels
+    // are actually converted in that case, so the output must keep
+    // documenting its true (source) space rather than claiming the requested
+    // destination -- an honest no-op instead of metadata that asserts a
+    // conversion that never happened.
+    bool lenient_passthrough
+        = pvt::ColorConfigClassificationPeek::impl(*colorconfig)
+              ->lenient_fallback_message(processor.get())
+              .size()
+          > 0;
 
     logtime.stop(-1);  // transition to other colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
@@ -4501,13 +4609,17 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
     }
 
     // Same lenient cross-config pass-through signal as
-    // ImageBufAlgo::colorconvert(): a non-null processor with a pending
-    // ColorConfig error means reconcile_cross_config_display() fell back to
-    // a no-op (non-strict parsing). No pixels moved, so the output must keep
-    // documenting the space the pixels are actually in -- never the space
-    // the failed conversion was reaching for. Which space that is depends on
-    // direction (handled per-branch below).
-    bool lenient_passthrough = colorconfig->has_error();
+    // ImageBufAlgo::colorconvert(): the fallback outcome travels WITH the
+    // processor (reconcile_cross_config_display() fell back to a no-op under
+    // non-strict parsing), never through the shared error string. No pixels
+    // moved, so the output must keep documenting the space the pixels are
+    // actually in -- never the space the failed conversion was reaching for.
+    // Which space that is depends on direction (handled per-branch below).
+    bool lenient_passthrough
+        = pvt::ColorConfigClassificationPeek::impl(*colorconfig)
+              ->lenient_fallback_message(processor.get())
+              .size()
+          > 0;
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
@@ -5104,10 +5216,17 @@ bootstrap_display_interchange(const OCIO::ConfigRcPtr& editable,
         auto acesCS = editable->getColorSpace(interchangeScene.c_str());
         const bool acesIsSceneRef
             = acesCS && !acesCS->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE);
-        if (acesIsSceneRef || sceneRefName.empty()
-            || sceneRefName == interchangeScene) {
-            // The scene reference is (treated as) AP0: use the builtin alone.
+        if (acesIsSceneRef || sceneRefName == interchangeScene) {
+            // The scene reference IS the (positively identified) AP0
+            // interchange space: use the builtin alone.
             bridge = ap0ToXyz;
+        } else if (sceneRefName.empty()) {
+            // The reference has no nameable space to chain through and is
+            // not itself the identified interchange -- don't guess that it
+            // is AP0. Skip view-transform synthesis; the display interchange
+            // role is still set, so cross-config processors work for many
+            // spaces anyway.
+            return;
         } else {
             // Chain scene_reference -> aces_interchange, then AP0 -> XYZ-D65.
             auto group = OCIO::GroupTransform::Create();
@@ -5163,23 +5282,18 @@ interopify_config(const OCIO::ConstConfigRcPtr& config)
             if (!editable->getColorSpace(OCIO::ROLE_INTERCHANGE_SCENE))
                 editable->setRole(OCIO::ROLE_INTERCHANGE_SCENE,
                                   interchange.c_str());
-        } else if (std::string identity
-                   = find_scene_reference_identity(editable);
-                   !identity.empty()) {
-            // Repair: anchor lin_ap0_scene on the scene-referred identity space
-            // and make it the scene interchange. For now this treats the
-            // config's scene reference as AP0; synthesize a real scene-linear
-            // -> AP0 transform via a builtin color space when the reference is
-            // known not to be AP0.
-            if (!editable->getColorSpace("lin_ap0_scene")) {
-                auto cs = OCIO::ColorSpace::Create(OCIO::REFERENCE_SPACE_SCENE);
-                cs->setName("lin_ap0_scene");
-                cs->setEncoding("scene-linear");
-                editable->addColorSpace(cs);
-            }
-            editable->setRole(OCIO::ROLE_INTERCHANGE_SCENE, "lin_ap0_scene");
-            interchange = "lin_ap0_scene";
         }
+        // Fail-don't-guess: when no scene interchange can be POSITIVELY
+        // identified (the aces_interchange role, a known alias/name match,
+        // or OCIO builtin identification -- all covered by
+        // discover_scene_interchange above), NO repair is attempted. A
+        // transformless scene reference could be linear Rec.709, a camera
+        // gamut, or any config-defined reference; fabricating an AP0
+        // equivalence for it would produce numerically wrong cross-config
+        // transforms and fingerprints. The copy then resolves no scene
+        // interchange, the bridge gate stays closed, and cross-config /
+        // fingerprint queries fail cleanly with the existing
+        // "not color-interoperable" narration.
 
         // Ensure lin_ap0_scene resolves (as an alias of the interchange space)
         // so the probe path's fallback lookups find it by that name.
@@ -7193,7 +7307,8 @@ ColorConfig::Impl::effectiveEncoding(string_view name) const
 
 
 std::optional<spvt::Chromaticities>
-ColorConfig::Impl::deriveChromaticities(string_view name) const
+ColorConfig::Impl::deriveChromaticities(
+    string_view name, const OCIO::ConstContextRcPtr& context) const
 {
     if (!config_ || disable_ocio || name.empty())
         return {};
@@ -7220,7 +7335,10 @@ ColorConfig::Impl::deriveChromaticities(string_view name) const
         return {};
     float rgb[12] = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1 };
     try {
-        auto proc = config_->getProcessor(resolved.c_str(),
+        // Probe under the explicit per-call context when one was supplied
+        // (context overrides are scoped to the whole query, probes included).
+        auto ctx  = context ? context : config_->getCurrentContext();
+        auto proc = config_->getProcessor(ctx, resolved.c_str(),
                                           interchange.c_str());
         if (!proc)
             return {};
@@ -7238,7 +7356,8 @@ ColorConfig::Impl::deriveChromaticities(string_view name) const
 
 
 std::optional<spvt::TransferFunctionSignature>
-ColorConfig::Impl::deriveTransferSignature(string_view name) const
+ColorConfig::Impl::deriveTransferSignature(
+    string_view name, const OCIO::ConstContextRcPtr& context) const
 {
     if (!config_ || disable_ocio || name.empty())
         return {};
@@ -7264,7 +7383,11 @@ ColorConfig::Impl::deriveTransferSignature(string_view name) const
 
     std::optional<spvt::TransferFunctionSignature> sig;
     try {
-        auto proc = config_->getProcessor(source.c_str(), resolved.c_str());
+        // Probe under the explicit per-call context when one was supplied
+        // (context overrides are scoped to the whole query, probes included).
+        auto ctx  = context ? context : config_->getCurrentContext();
+        auto proc = config_->getProcessor(ctx, source.c_str(),
+                                          resolved.c_str());
         sig       = probe_signature_over(proc ? proc->getDefaultCPUProcessor()
                                               : OCIO::ConstCPUProcessorRcPtr());
     } catch (...) {
@@ -7393,7 +7516,7 @@ ColorConfig::Impl::find_color_spaces(
     auto resolve_chromaticities
         = [&](const std::string& raw) -> std::vector<spvt::Chromaticities> {
         if (auto local = local_space(raw)) {
-            if (auto value = deriveChromaticities(local->getName()))
+            if (auto value = deriveChromaticities(local->getName(), ctx))
                 return { *value };
             throw std::invalid_argument(
                 "chromaticities hint has no derivable value: " + raw);
@@ -7456,13 +7579,18 @@ ColorConfig::Impl::find_color_spaces(
             if (auto local = local_space(value)) {
                 const std::string name = local->getName();
                 try {
+                    // NOTE: OCIO's isColorSpaceLinear() takes no context, so
+                    // for a context-sensitive space it evaluates under the
+                    // config's ambient context. The context-threaded
+                    // signature probe below is the authoritative transfer
+                    // evidence for such spaces.
                     hint.identity = isColorSpaceLinear(name);
                     hint.family   = tf_curve_family(
                         m_self->get_color_interop_id(name));
                 } catch (...) {
                 }
                 if (!hint.identity)
-                    if (auto sig = deriveTransferSignature(name))
+                    if (auto sig = deriveTransferSignature(name, ctx))
                         hint.signatures.push_back(std::move(*sig));
             } else if (auto rcs = registry_space(value)) {
                 // Known interop id: the registry space is an identity, so its
@@ -7695,20 +7823,23 @@ ColorConfig::Impl::find_color_spaces(
 
         std::optional<spvt::Chromaticities> chromaticities;
         if (!chromaticity_terms.empty())
-            chromaticities = deriveChromaticities(name);
+            chromaticities = deriveChromaticities(name, ctx);
         if (!chromaticity_axis_accepts(chromaticity_terms, chromaticities))
             continue;
 
         spvt::TransferProperty transfer;
         if (!transfer_terms.empty()) {
             try {
+                // NOTE: OCIO's isColorSpaceLinear() takes no context (see the
+                // hint-resolution note above); the context-threaded signature
+                // probe below is authoritative for context-sensitive spaces.
                 transfer.identity = isColorSpaceLinear(name);
                 transfer.family   = tf_curve_family(
                     m_self->get_color_interop_id(name));
             } catch (...) {
             }
             if (!transfer.identity)
-                if (auto sig = deriveTransferSignature(name))
+                if (auto sig = deriveTransferSignature(name, ctx))
                     transfer.signature = std::move(*sig);
         }
         if (!transfer_axis_accepts(transfer_terms, transfer))
