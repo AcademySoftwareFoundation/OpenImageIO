@@ -347,15 +347,21 @@ test_scrubber(const ColorConfig& config)
         OIIO_CHECK_ASSERT(spec.find_attribute("ICCProfile"));
     }
     {
-        // A deliberate known:* declaration is honored, never scrubbed; a
-        // bare "unknown" claim is contradicted by any definite color space.
+        // The deliberate unknown-marker family (ocio:unknown /
+        // oiio:unknown / error:unknown) is honored, never scrubbed; a bare
+        // "unknown" claim is contradicted by any definite color space.
+        for (const char* marker :
+             { "ocio:unknown", "oiio:unknown", "error:unknown" }) {
+            ImageSpec spec(4, 4, 3, TypeFloat);
+            spec.attribute("oiio:ColorSpace", "lin_test_scene");
+            spec.attribute("colorInteropID", marker);
+            scrub_color_metadata(spec, &config, {});
+            OIIO_CHECK_EQUAL(spec.get_string_attribute("colorInteropID"),
+                             marker);
+        }
+
         ImageSpec spec(4, 4, 3, TypeFloat);
         spec.attribute("oiio:ColorSpace", "lin_test_scene");
-        spec.attribute("colorInteropID", "known:unknown");
-        scrub_color_metadata(spec, &config, {});
-        OIIO_CHECK_EQUAL(spec.get_string_attribute("colorInteropID"),
-                         "known:unknown");
-
         spec.attribute("colorInteropID", "unknown");
         scrub_color_metadata(spec, &config, {});
         OIIO_CHECK_ASSERT(!spec.find_attribute("colorInteropID"));

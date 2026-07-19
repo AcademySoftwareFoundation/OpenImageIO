@@ -686,9 +686,12 @@ scrub_color_metadata(ImageSpec& spec, const ColorConfig* config,
     };
 
     if (!facts.color_interop_id.empty()) {
-        if (Strutil::istarts_with(facts.color_interop_id, "known:")) {
-            // A deliberate known:* declaration is honored, never scrubbed
-            // and never inferred over.
+        if (Strutil::iequals(facts.color_interop_id, "ocio:unknown")
+            || Strutil::iequals(facts.color_interop_id, "oiio:unknown")
+            || Strutil::iequals(facts.color_interop_id, "error:unknown")) {
+            // The deliberate unknown-marker family (config-declared,
+            // OIIO-synthetic-treatment, strict-resolution-failure) is
+            // honored: never scrubbed and never inferred over.
         } else if (facts.color_interop_id == "unknown") {
             // A bare "unknown" claim is contradicted by any definite
             // color space.

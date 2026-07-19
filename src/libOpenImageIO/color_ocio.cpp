@@ -4224,10 +4224,23 @@ derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace)
             // over any strict/unknown handling (OCIO 2.5+). A non-empty value is
             // what "declared" means; an unset attribute (empty string) falls
             // through to the tiers below rather than short-circuiting to empty.
+            // A declared value of literally "unknown" is the config-side
+            // declaration of unknownness and derives the "ocio:unknown"
+            // marker (the config declared it, OIIO reports where).
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
             if (const char* iid = c->getInteropID(); iid && *iid)
-                return iid;
+                return Strutil::iequals(iid, "unknown") ? "ocio:unknown" : iid;
 #endif
+            // Step 1, config-declared unknown: a space NAMED (not merely
+            // aliased) "unknown" with no contradicting declared interop_id
+            // is the config's own statement that this data's color space is
+            // unknown -- derive the "ocio:unknown" marker, before the
+            // isData sub-case and any fingerprint tier. A user's explicit
+            // colorInteropID attribute of "unknown" never reaches this
+            // derivation (the planner writes explicit values verbatim), so
+            // bare "unknown" on disk always means the author's own bytes.
+            if (Strutil::iequals(c->getName(), "unknown"))
+                return "ocio:unknown";
             // Step 1, utility sub-case: a data space with no explicit token
             // resolves to "data" HERE -- before any fingerprint tier -- never
             // "unknown" or empty. (isData() is available on all OCIO 2.x.)
@@ -4252,8 +4265,14 @@ derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace)
     // table to map an id back to a CICP tuple. It is never the final-resort
     // match -- steps 3 and 4 always follow -- so it can never act as a guessed
     // default. Its literals live in static storage, so the returned view is
-    // stable.
+    // stable. The "unknown" utility entry is deliberately SKIPPED here: the
+    // derivation never emits bare "unknown" (a query that is only the
+    // literal token, with no backing config space, is a cannot-determine and
+    // omits; a space genuinely named "unknown" already derived the
+    // "ocio:unknown" marker in step 1).
     for (const ColorInteropID& interop : color_interop_ids) {
+        if (interop.interop_id == "unknown")
+            continue;
         if (config.equivalent(colorspace, interop.interop_id))
             return interop.interop_id;
     }

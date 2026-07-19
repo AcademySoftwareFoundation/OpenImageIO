@@ -1170,10 +1170,11 @@ infer_color_space_from_spec(const ColorConfig* config, const ImageSpec& spec,
 /// outgoing spec carries when the resolver's trace proves what they claim
 /// (each signal judged in isolation; a determinate claim is either
 /// redundant with or contradicted by the spec's established color space --
-/// stale either way). Couldn't-determine leaves the attribute; a
-/// deliberate "known:*" declaration is always honored; a bare "unknown"
-/// claim is contradicted by any definite color space. Never touches the
-/// color space itself.
+/// stale either way). Couldn't-determine leaves the attribute; the
+/// deliberate unknown-marker family ("ocio:unknown" / "oiio:unknown" /
+/// "error:unknown") is always honored; a bare "unknown" claim is
+/// contradicted by any definite color space. Never touches the color
+/// space itself.
 OIIO_API void
 scrub_color_metadata(ImageSpec& spec, const ColorConfig* config,
                      const ColorReadPolicy& policy);

@@ -179,7 +179,14 @@ for every table entry that has a CICP mapping).
      - ---
      - ---
      - ---
-     - Marks pixel data whose color space is not known.
+     - Marks pixel data whose color space is not known. On write, OpenImageIO
+       never *derives* a bare ``unknown``: a user's explicitly-set
+       ``colorInteropID`` attribute of ``unknown`` is written verbatim (the
+       author's bytes are never rewritten), a config that itself declares a
+       space unknown (an ``interop_id`` of ``unknown``, or a color space
+       *named* ``unknown`` with no contradicting ``interop_id``) derives the
+       marker ``ocio:unknown``, and an undeterminable color space simply
+       omits the attribute.
 
 .. list-table:: Display-referred color interop IDs
    :widths: 22 14 20 20 24

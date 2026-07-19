@@ -530,6 +530,17 @@ test_exr_consumption()
         OIIO_CHECK_EQUAL(read_id(), "lin_adobergb_scene");
     }
 
+    // An explicitly-set attr of "unknown" is also verbatim -- in ALL modes.
+    // The author's bytes are sacred: OIIO never rewrites them into a
+    // namespaced marker (the "ocio:unknown" marker is derivation-only, for
+    // configs that themselves declare unknownness).
+    {
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("colorInteropID", "unknown");
+        write(spec);
+        OIIO_CHECK_EQUAL(read_id(), "unknown");
+    }
+
     // A color-space-only spec gets the plan's derived id (default config).
     {
         ImageSpec spec(4, 4, 3, TypeHalf);

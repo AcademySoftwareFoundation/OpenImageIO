@@ -2802,8 +2802,47 @@ colorspaces:
         // doesn't know, even though the config has a name.
         OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "no_such_space_at_all"),
                          "");
+
+        // The bare "unknown" token with no backing config space is a
+        // cannot-determine: the derivation omits (returns empty), never
+        // emits bare "unknown". (The cheap public lookup still answers the
+        // literal utility token from the static table.)
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "unknown"), "");
+        OIIO_CHECK_EQUAL(cc.get_color_interop_id("unknown"), "unknown");
     }
     Filesystem::remove(named_path);
+
+    // ---- Config-declared unknown fixture: a space NAMED "unknown" (with no
+    // contradicting declared interop_id) is the config's own declaration of
+    // unknownness -- the derivation emits the "ocio:unknown" marker, never
+    // bare "unknown". Bare "unknown" on disk is reserved for a user's own
+    // explicitly-set colorInteropID attribute, which writers emit verbatim.
+    {
+        static const char* unknown_yaml = R"(ocio_profile_version: 2.1
+name: unknowncfg
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: unknown
+    from_scene_reference: !<ExponentTransform> {value: [2.0, 2.0, 2.0, 1]}
+)";
+        std::string unknown_path = Filesystem::temp_directory_path()
+                                   + "/oiio_color_test_derive_unknown.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(unknown_path, unknown_yaml));
+        ColorConfig cc(unknown_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "unknown"),
+                         "ocio:unknown");
+        Filesystem::remove(unknown_path);
+    }
 
     // ---- Unnamed-config fixture: the same "no registry match" curve space,
     // but the config has no `name:` set. Step 3 requires a non-empty config
@@ -2915,6 +2954,10 @@ colorspaces:
   - !<ColorSpace>
     name: declared_explicit_space
     interop_id: "custom:explicit_id"
+
+  - !<ColorSpace>
+    name: declared_unknown_space
+    interop_id: "unknown"
 )";
         std::string declared_path = Filesystem::temp_directory_path()
                                     + "/oiio_color_test_derive_declared.ocio";
@@ -2929,6 +2972,11 @@ colorspaces:
                          "custom:explicit_id");
         OIIO_CHECK_EQUAL(cc.get_color_interop_id("declared_explicit_space"),
                           "custom:explicit_id");
+        // A declared interop_id of literally "unknown" is the config-side
+        // declaration of unknownness: the derivation emits the
+        // "ocio:unknown" marker rather than bare "unknown".
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "declared_unknown_space"),
+                         "ocio:unknown");
         Filesystem::remove(declared_path);
     }
 }
