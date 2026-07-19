@@ -336,6 +336,23 @@ struct ProbeValues {
 };
 
 
+// The cache id of an OCIO context ("" when unavailable). Used to scope
+// context-dependent failure state (the learned-complex set) by the exact
+// context it was observed under, so a failure under one context can never
+// poison queries under another.
+inline std::string
+context_cache_id(const OCIO::ConstContextRcPtr& ctx)
+{
+    try {
+        if (ctx)
+            if (const char* id = ctx->getCacheID())
+                return id;
+    } catch (...) {
+    }
+    return {};
+}
+
+
 
 // Hidden implementation of ColorConfig
 class ColorConfig::Impl {
@@ -373,7 +390,9 @@ private:
 
     // Color spaces learned to be complex only at query time (e.g. a transform
     // that failed to realize). This is a per-query hint, not a permanent
-    // verdict; it is cleared with the Impl (i.e. the config) lifetime.
+    // verdict; it is cleared with the Impl (i.e. the config) lifetime, and
+    // entries are keyed "<context-cache-id>|<name>" so failure observed
+    // under one context never blacklists the space for another.
     mutable std::mutex m_learned_complex_mutex;
     mutable std::unordered_set<std::string> m_learned_complex;
 
@@ -688,16 +707,34 @@ public:
     }
 
     // Record a color space as complex for the life of this config, so later
-    // queries skip it. This is a hint, not a permanent verdict.
-    void markLearnedComplex(string_view name) const
+    // queries skip it. This is a hint, not a permanent verdict, and it is
+    // keyed by the context (cache id) the failure was observed under: a
+    // realize failure under one context override set must not blacklist the
+    // space for other contexts.
+    void markLearnedComplex(string_view ctxscope, string_view name) const
     {
         std::lock_guard<std::mutex> lock(m_learned_complex_mutex);
-        m_learned_complex.emplace(name);
+        m_learned_complex.emplace(
+            Strutil::fmt::format("{}|{}", ctxscope, name));
     }
-    bool isLearnedComplex(string_view name) const
+    bool isLearnedComplex(string_view ctxscope, string_view name) const
     {
         std::lock_guard<std::mutex> lock(m_learned_complex_mutex);
-        return m_learned_complex.count(std::string(name)) != 0;
+        return m_learned_complex.count(
+                   Strutil::fmt::format("{}|{}", ctxscope, name))
+               != 0;
+    }
+
+    // The cache id of this config's CURRENT (ambient) context, the scope
+    // used when a query supplies no explicit context override.
+    std::string currentContextID() const
+    {
+        try {
+            if (config_)
+                return context_cache_id(config_->getCurrentContext());
+        } catch (...) {
+        }
+        return {};
     }
 
 private:
@@ -3506,7 +3543,7 @@ ColorConfig::Impl::analyze(CSInfo* cs)
     else if (!(flagval & CSInfo::is_data))
         flagval |= CSInfo::has_complex_transform;
     if ((flagval & (CSInfo::is_data | CSInfo::is_unique))
-        || isLearnedComplex(cs->name))
+        || isLearnedComplex(currentContextID(), cs->name))
         flagval |= CSInfo::should_skip_matching;
 
     spin_rw_write_lock lock(m_mutex);
@@ -5418,9 +5455,10 @@ bootstrap_display_interchange(const OCIO::ConfigRcPtr& editable,
 
 // Return the "interopified" copy of `config`: a PROCESSOR_CACHE_OFF editable
 // copy repaired to resolve a scene (and, where possible, display) interchange.
-// Memoized process-wide by structural cache id (first-writer-wins) so all
-// ColorConfig instances of the same config structure share one copy. `config`
-// itself is never mutated. Returns {} if OCIO can't build the copy.
+// Memoized process-wide by structural cache id (first-writer-wins, size
+// bounded) so all ColorConfig instances of the same config structure share
+// one copy. `config` itself is never mutated. Returns {} if OCIO can't
+// build the copy.
 OCIO::ConstConfigRcPtr
 interopify_config(const OCIO::ConstConfigRcPtr& config)
 {
@@ -5487,6 +5525,15 @@ interopify_config(const OCIO::ConstConfigRcPtr& config)
     if (key.empty() || !result)
         return result;
     spin_rw_write_lock lock(s_mutex);
+    // Bound the memo: every entry pins a full editable OCIO config copy for
+    // the life of the process. Real workloads touch a handful of configs;
+    // if the cap is ever reached, dropping the memo costs only a rebuild
+    // for later instances (each ColorConfig::Impl keeps its own reference
+    // to the copy it obtained, so nothing in use is invalidated).
+    // ponytail: clear-on-limit; add LRU only if config-churny processes
+    // show rebuild cost.
+    if (s_memo.size() >= 16 && !s_memo.count(key))
+        s_memo.clear();
     return s_memo.emplace(key, result).first->second;  // existing on race
 }
 
@@ -6843,9 +6890,9 @@ namespace {
 // existing sharded concurrent map -- find_or_insert is exactly the
 // first-writer-wins publish this needs, retrieve() is the cheap read-locked
 // hit. Content-addressed: a changed config or context simply produces new keys,
-// so stale entries orphan harmlessly -- there is no invalidation or eviction
-// path. clear() exists only for test/debug reset, never called from steady
-// state (see fingerprint_cache_reset).
+// so stale entries orphan harmlessly. Retention is bounded by a hard cap
+// (see fingerprint_cache_publish); there is no per-entry invalidation.
+// clear() also exists for test/debug reset (see fingerprint_cache_reset).
 using FingerprintCache
     = unordered_map_concurrent<std::string, OIIO::pvt::ColorSpaceFingerprint>;
 
@@ -6854,6 +6901,28 @@ fingerprint_cache()
 {
     static FingerprintCache cache;
     return cache;
+}
+
+// Publish `fp` under `key` (first-writer-wins) with a hard size bound: the
+// cache is content-addressed with no invalidation path, so a long-lived
+// process that churns configs or contexts would otherwise accrete orphaned
+// entries forever. On hitting the cap the whole cache is dropped and
+// repopulated by subsequent queries -- fingerprints are cheap to recompute,
+// so a full clear beats LRU bookkeeping here.
+// ponytail: clear-on-limit; upgrade to LRU only if churny workloads show
+// recompute cost in profiles.
+constexpr size_t fingerprint_cache_max_entries = 8192;
+
+OIIO::pvt::ColorSpaceFingerprint
+fingerprint_cache_publish(const std::string& key,
+                          const OIIO::pvt::ColorSpaceFingerprint& fp)
+{
+    auto& cache = fingerprint_cache();
+    if (cache.size() >= fingerprint_cache_max_entries)
+        cache.clear();
+    auto result = cache.find_or_insert(key, fp);
+    return result.first->second;  // the published value (possibly another
+                                  // thread's, on race)
 }
 
 // Build the cache key for `name`. A context-invariant space collapses to a
@@ -6925,9 +6994,7 @@ ColorConfig::Impl::fingerprintCached(string_view name)
     auto computed = computeFingerprint(name);
     if (!computed)
         return std::nullopt;
-    auto result = cache.find_or_insert(key, *computed);
-    return result.first->second;  // the published value (possibly another
-                                  // thread's, on race)
+    return fingerprint_cache_publish(key, *computed);
 }
 
 
@@ -7017,14 +7084,13 @@ ColorConfig::Impl::fingerprintWarm()
     // pass already iterates the sorted simple-space set deterministically and
     // skips spaces that don't fingerprint), then publish each into the cache.
     auto fingerprints = fingerprintSimpleColorSpaces();
-    auto& cache       = fingerprint_cache();
     std::size_t count = 0;
     for (auto& entry : fingerprints) {
         const bool invariant
             = (analysisFlags(entry.first) & CSInfo::is_context_invariant) != 0;
         const std::string key = fingerprint_cache_key(cfgId, ctxId, invariant,
                                                       entry.first);
-        cache.find_or_insert(key, entry.second);
+        fingerprint_cache_publish(key, entry.second);
         ++count;
     }
     return count;
@@ -7444,7 +7510,7 @@ ColorConfig::Impl::compute_analysis_flags(const std::string& name,
     else if (!(flagval & CSInfo::is_data))
         flagval |= CSInfo::has_complex_transform;
     if ((flagval & (CSInfo::is_data | CSInfo::is_unique))
-        || isLearnedComplex(name))
+        || isLearnedComplex(currentContextID(), name))
         flagval |= CSInfo::should_skip_matching;
     return flagval;
 }
@@ -7584,6 +7650,9 @@ ColorConfig::Impl::find_color_spaces(
     // everything below against a context copy carrying the overrides.
     const OCIO::ConstContextRcPtr ctx = make_context_with_overrides(
         config_, options.context);
+    // Learned-complex state is scoped to the exact context this query probes
+    // under (see markLearnedComplex).
+    const std::string ctx_scope            = context_cache_id(ctx);
     const OCIO::ConstConfigRcPtr registry = build_interop_identities_config();
 
     // ---------------- Hint resolution (fail-fast, pre-walk) ----------------
@@ -7882,7 +7951,7 @@ ColorConfig::Impl::find_color_spaces(
     // its authored graph is exhaustive-eligible and realizes cleanly.
     auto candidate_eligible = [&](const std::string& name, int flags) {
         if ((flags & (CSInfo::is_data | CSInfo::is_unique))
-            || isLearnedComplex(name))
+            || isLearnedComplex(ctx_scope, name))
             return false;
         if ((flags & CSInfo::is_simple)
             && !(flags & CSInfo::should_skip_matching))
@@ -7917,7 +7986,7 @@ ColorConfig::Impl::find_color_spaces(
             auto proc = config_->getProcessor(ctx, transform, direction);
             if (!proc
                 || !inspect_realized_transform(proc->createGroupTransform())) {
-                markLearnedComplex(name);
+                markLearnedComplex(ctx_scope, name);
                 return false;
             }
         } catch (...) {
