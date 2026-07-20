@@ -707,6 +707,60 @@ test_exr_consumption()
 }
 
 
+// B7 (spec 07): color identity is scoped to the whole file and emitted in
+// the FIRST part's header only. A multi-part EXR written with a colorInteropID
+// must carry the resolved id on part 0; a later part may carry only the "data"
+// utility token, never a duplicated color identity.
+static void
+test_exr_multipart_first_part_only()
+{
+    if (!ImageOutput::create("exr")) {
+        Strutil::print("EXR plugin unavailable; skipping multi-part B7\n");
+        return;
+    }
+    const std::string file = Filesystem::temp_directory_path()
+                             + "/oiio_cmp_multipart.exr";
+    std::vector<float> pix(4 * 4 * 3, 0.5f);
+
+    ImageSpec s0(4, 4, 3, TypeHalf);
+    s0.attribute("colorInteropID", "lin_adobergb_scene");
+    s0.attribute("name", "part0");
+    // A later part authored (wrongly) with the same color identity: B7 must
+    // strip it, since a later part may only ever carry "data".
+    ImageSpec s1(4, 4, 3, TypeHalf);
+    s1.attribute("colorInteropID", "lin_adobergb_scene");
+    s1.attribute("name", "part1");
+    ImageSpec specs[2] = { s0, s1 };
+
+    auto o = ImageOutput::create(file);
+    OIIO_CHECK_ASSERT(o && o->supports("multiimage"));
+    if (o && o->supports("multiimage")) {
+        OIIO_CHECK_ASSERT(o->open(file, 2, specs));
+        OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+        OIIO_CHECK_ASSERT(
+            o->open(file, specs[1], ImageOutput::AppendSubimage));
+        OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+        OIIO_CHECK_ASSERT(o->close());
+
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            // Part 0 keeps the color identity.
+            OIIO_CHECK_ASSERT(in->seek_subimage(0, 0));
+            OIIO_CHECK_EQUAL(
+                in->spec().get_string_attribute("colorInteropID"),
+                "lin_adobergb_scene");
+            // Part 1 must NOT carry the duplicated identity (over-tagging).
+            OIIO_CHECK_ASSERT(in->seek_subimage(1, 0));
+            OIIO_CHECK_EQUAL(
+                in->spec().get_string_attribute("colorInteropID"), "");
+            in->close();
+        }
+    }
+    Filesystem::remove(file);
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -721,6 +775,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_writer_level_suppress();
     test_provenance_rule();
     test_exr_consumption();
+    test_exr_multipart_first_part_only();
 
     const std::string cfgpath = write_test_config();
     ColorConfig config(cfgpath);

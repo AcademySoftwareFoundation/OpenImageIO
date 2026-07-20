@@ -1039,13 +1039,23 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         pvt::ColorMetadataPlan plan
             = pvt::plan_color_metadata(nullptr, spec, caps,
                                        pvt::ColorWritePolicy::snapshot(&spec));
-        if (plan.interop_id.action == pvt::ColorPlanAction::Derive)
+        // B7 (spec 07): color identity is scoped to the whole file and
+        // belongs in the FIRST part's header only. Later parts are additional
+        // layers of one image, not independently-tagged images; the only
+        // colorInteropID a later part may carry is the "data" utility token
+        // (non-color layers forced onto R/G/B channels). Drop anything else so
+        // multi-part files are not over-tagged.
+        if (subimage != 0) {
+            if (spec.get_string_attribute("colorInteropID") != "data")
+                spec.erase_attribute("colorInteropID");
+        } else if (plan.interop_id.action == pvt::ColorPlanAction::Derive) {
             spec.attribute("colorInteropID", plan.interop_id.str);
-        else if (plan.interop_id.action == pvt::ColorPlanAction::Suppress)
+        } else if (plan.interop_id.action == pvt::ColorPlanAction::Suppress) {
             // Enforce the Suppress verdict at the writer boundary: an
             // author-supplied id still sits in extra_attribs, and the
             // generic metadata loop below would emit it anyway.
             spec.erase_attribute("colorInteropID");
+        }
     }
 
     // Deal with all other params
