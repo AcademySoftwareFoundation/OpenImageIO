@@ -1149,13 +1149,12 @@ public:
     /// config-declared "error:unknown" catch space is honored under
     /// effective-strict (non-lenient resolution scope AND the config's own
     /// strictparsing).
-    bool prepare(const ImageBuf& src, ImageBuf& dst,
-                 const ColorConfig& config, string_view from);
+    bool prepare(const ImageBuf& src, ImageBuf& dst, const ColorConfig& config,
+                 string_view from);
 
     /// The source-less form, for operations with no source-space concept
     /// (e.g. ociofiletransform): records the operation only, never fails.
-    void prepare(const ImageBuf& src, ImageBuf& dst,
-                 const ColorConfig& config);
+    void prepare(const ImageBuf& src, ImageBuf& dst, const ColorConfig& config);
 
     /// The resolved source color space (valid after a successful
     /// prepare()).
@@ -1163,8 +1162,8 @@ public:
 
     /// The post-operation half; see the class comment for the per-class
     /// semantics. Must be called explicitly after the pixel operation.
-    void finish(ColorOperationIdentity identity,
-                string_view target_color_space, bool pixels_succeeded);
+    void finish(ColorOperationIdentity identity, string_view target_color_space,
+                bool pixels_succeeded);
 
 private:
     const ColorConfig* m_config = nullptr;

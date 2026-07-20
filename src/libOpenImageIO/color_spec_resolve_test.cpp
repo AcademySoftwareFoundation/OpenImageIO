@@ -565,8 +565,7 @@ test_hygiene_per_class(const ColorConfig& config)
         OIIO_CHECK_ASSERT(!explicit_src.has_error());
         auto cmp = ImageBufAlgo::compare(inferred, explicit_src, 0.0f, 0.0f);
         OIIO_CHECK_EQUAL(cmp.nfail, 0);
-        OIIO_CHECK_EQUAL(inferred.spec().get_string_attribute(
-                             "oiio:ColorSpace"),
+        OIIO_CHECK_EQUAL(inferred.spec().get_string_attribute("oiio:ColorSpace"),
                          "srgb_rec709_scene");
         OIIO_CHECK_ASSERT(!inferred.spec().find_attribute("colorInteropID"));
     }
@@ -611,8 +610,7 @@ test_hygiene_per_class(const ColorConfig& config)
                                                   "", &config);
         OIIO_CHECK_ASSERT(!out.has_error());
         const ImageSpec& s = out.spec();
-        OIIO_CHECK_EQUAL(s.get_string_attribute("oiio:ColorSpace"),
-                         "raw_data");
+        OIIO_CHECK_EQUAL(s.get_string_attribute("oiio:ColorSpace"), "raw_data");
         OIIO_CHECK_ASSERT(s.find_attribute("CICP"));
         OIIO_CHECK_ASSERT(s.find_attribute("colorInteropID"));
         OIIO_CHECK_ASSERT(s.find_attribute("ICCProfile"));
@@ -718,8 +716,7 @@ test_hygiene_failure_split(const ColorConfig& config,
     // to naming the catch space explicitly.
     {
         ImageBuf out = ImageBufAlgo::colorconvert(untagged, "", "lin_strict",
-                                                  true, "", "",
-                                                  &strict_config);
+                                                  true, "", "", &strict_config);
         OIIO_CHECK_ASSERT(!out.has_error());
         ImageBuf explicit_catch
             = ImageBufAlgo::colorconvert(untagged, "error:unknown",
@@ -732,7 +729,7 @@ test_hygiene_failure_split(const ColorConfig& config,
         ImageBuf noop = ImageBufAlgo::colorconvert(untagged, "lin_strict",
                                                    "lin_strict", true, "", "",
                                                    &strict_config);
-        auto cmp2 = ImageBufAlgo::compare(out, noop, 0.0f, 0.0f);
+        auto cmp2     = ImageBufAlgo::compare(out, noop, 0.0f, 0.0f);
         OIIO_CHECK_ASSERT(cmp2.nfail > 0);
     }
     OIIO::attribute("oiio:colorpolicy:read:scope", "lenient");

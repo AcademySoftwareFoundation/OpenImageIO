@@ -3721,7 +3721,7 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
         hygiene.finish(OIIO::pvt::ColorOperationIdentity::Known,
                        colorconfig->getColorSpaceFromFilepath(name), ok);
     else
-        hygiene.finish(OIIO::pvt::ColorOperationIdentity::Unknowable, {}, ok);
+        hygiene.finish(OIIO::pvt::ColorOperationIdentity::Unknowable, { }, ok);
     return ok;
 }
 
@@ -4002,11 +4002,11 @@ ColorOperationHygiene::prepare(const ImageBuf& src, ImageBuf& dst,
             // spec carries (colorInteropID, CICP, ICC, chromaticities/
             // gamma) before standing on any default.
             ColorCallContext ctx;
-            ctx.filename = std::string(src.name());
-            ctx.format   = std::string(src.file_format_name());
-            std::string hinted
-                = infer_color_space_from_spec(&config, src.spec(), ctx,
-                                              m_policy);
+            ctx.filename       = std::string(src.name());
+            ctx.format         = std::string(src.file_format_name());
+            std::string hinted = infer_color_space_from_spec(&config,
+                                                             src.spec(), ctx,
+                                                             m_policy);
             if (!hinted.empty()) {
                 Strutil::debug("color operation inferred source color space "
                                "\"{}\" from the input's color metadata\n",
