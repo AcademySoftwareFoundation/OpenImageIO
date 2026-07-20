@@ -4,11 +4,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# Python binding of the cheap characterization surface:
-# ColorConfig.get_color_space_info / get_color_space_infos and the
-# ColorSpaceInfo record. Unavailable fields are None (never empty strings);
-# invalid scalar input is None with the error on the config; invalid batch
-# input is [] with one indexed error.
+# Python binding of the characterization surface:
+# ColorConfig.get_color_space_info / get_color_space_infos (cheap) and
+# derive_color_space_info / derive_color_space_infos (full derivation), and
+# the ColorSpaceInfo record. Unavailable fields are None (never empty
+# strings); invalid scalar input is None with the error on the config;
+# invalid batch input is [] with one indexed error. The config here has no
+# aces_interchange role, so behavioral probes cannot run and every derive
+# outcome below is deterministic (table association or a stable negative).
 
 import OpenImageIO as oiio
 
@@ -51,6 +54,46 @@ print ("  error =", cc.geterror())
 
 print ("binding: invalid batch =")
 empty = cc.get_color_space_infos(["plain_space", "nope"])
+print ("  result =", empty)
+print ("  error =", cc.geterror())
+
+# --- The derive verbs: every field attempted; a field the config cannot
+# characterize is a stable negative (computed True, available False, value
+# None), not an error. The table-identified space associates its reserved
+# chromaticities without a probe.
+print ("derive: scalar, complete record =")
+full = cc.derive_color_space_info("my_srgb")
+print ("  name =", full.name)
+print ("  color_interop_id =", full.color_interop_id)
+print ("  chromaticities =",
+       None if full.chromaticities is None
+       else tuple(round(c, 4) for c in full.chromaticities))
+print ("  derived(Chromaticities) =", full.derived(F.Chromaticities))
+print ("  computed(TransferFunction) =", full.computed(F.TransferFunction))
+print ("  available(TransferFunction) =", full.available(F.TransferFunction))
+print ("  transfer_function =", full.transfer_function)
+print ("  computed(Range) =", full.computed(F.Range))
+print ("  available(Range) =", full.available(F.Range))
+print ("  range =", full.range)
+
+print ("derive: cheap getter now sees the cached facts =")
+seen = cc.get_color_space_info("my_srgb")
+print ("  chromaticities =",
+       None if seen.chromaticities is None
+       else tuple(round(c, 4) for c in seen.chromaticities))
+print ("  computed(TransferFunction) =", seen.computed(F.TransferFunction))
+
+print ("derive: batch order and duplicates =")
+infos = cc.derive_color_space_infos(["plain_space", "rawdata", "plain_space"])
+print ("  names =", [i.name for i in infos])
+
+print ("derive: invalid scalar =")
+bad = cc.derive_color_space_info("no_such_space")
+print ("  result =", bad)
+print ("  error =", cc.geterror())
+
+print ("derive: invalid batch =")
+empty = cc.derive_color_space_infos(["plain_space", "nope"])
 print ("  result =", empty)
 print ("  error =", cc.geterror())
 

@@ -3614,6 +3614,240 @@ test_characterize_color_space()
 
 
 
+// The public derive verbs: ColorConfig::derive_color_space_info (scalar and
+// batch). Complete-record semantics on an uncharacterizable space
+// (computed-but-unavailable, never an error), range never guessed even under
+// derive, batch order/duplicates and the indexed error, cache publication
+// observable through the cheap getter, and two-context derive isolation.
+static void
+test_derive_color_space_info()
+{
+    using OIIO::pvt::characterization_cache_reset;
+    using F = ColorSpaceInfoField;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    characterization_cache_reset();
+
+    // --- A NON-interoperable config (no aces_interchange): probes cannot
+    // run, so derive produces stable negatives -- computed but unavailable
+    // -- on a valid record, with no error.
+    {
+        static const char* config_yaml = R"(ocio_profile_version: 2.1
+name: derivecfg
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: srgb_rec709_scene
+    encoding: sdr-video
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: plain_space
+    from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
+)";
+        std::string config_path = Filesystem::temp_directory_path()
+                                  + "/oiio_color_test_derive.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(config_path, config_yaml));
+        ColorConfig cc(config_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        // The uncharacterizable space: every field attempted, the derivable
+        // ones honestly unavailable. That is a complete record, not an
+        // error.
+        ColorSpaceInfo plain = cc.derive_color_space_info("plain_space");
+        OIIO_CHECK_ASSERT(plain.valid());
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        for (F f : { F::EqualityID, F::ColorInteropID, F::Encoding,
+                     F::ImageState, F::Range, F::Chromaticities,
+                     F::TransferFunction })
+            OIIO_CHECK_ASSERT(plain.computed(f));
+        OIIO_CHECK_FALSE(plain.available(F::EqualityID));
+        OIIO_CHECK_FALSE(plain.available(F::Chromaticities));
+        OIIO_CHECK_FALSE(plain.available(F::TransferFunction));
+        // Range is never guessed, derive path included: nothing registers a
+        // genuine per-space range, so the full attempt is a stable negative.
+        OIIO_CHECK_FALSE(plain.available(F::Range));
+        OIIO_CHECK_EQUAL(plain.range(), "");
+
+        // A table-identified space still derives its reserved-table
+        // chromaticities without any probe (registry association, not a
+        // guess); the transfer probe itself stays unavailable here.
+        ColorSpaceInfo srgb = cc.derive_color_space_info("srgb_rec709_scene");
+        OIIO_CHECK_ASSERT(srgb.valid());
+        OIIO_CHECK_EQUAL(srgb.color_interop_id(), "srgb_rec709_scene");
+        OIIO_CHECK_ASSERT(srgb.available(F::Chromaticities)
+                          && srgb.derived(F::Chromaticities));
+        OIIO_CHECK_EQUAL(srgb.chromaticities().size(), 8);
+        OIIO_CHECK_ASSERT(srgb.computed(F::TransferFunction));
+
+        // Batch: order and duplicates preserved; per-field failure is not a
+        // batch failure.
+        {
+            std::vector<std::string> names { "plain_space",
+                                             "srgb_rec709_scene",
+                                             "plain_space" };
+            std::vector<ColorSpaceInfo> infos = cc.derive_color_space_infos(
+                names);
+            OIIO_CHECK_ASSERT(!cc.has_error());
+            OIIO_CHECK_EQUAL(infos.size(), 3);
+            if (infos.size() == 3) {
+                OIIO_CHECK_EQUAL(infos[0].name(), "plain_space");
+                OIIO_CHECK_EQUAL(infos[1].name(), "srgb_rec709_scene");
+                OIIO_CHECK_EQUAL(infos[2].name(), "plain_space");
+            }
+            OIIO_CHECK_ASSERT(
+                cc.derive_color_space_infos(cspan<std::string>()).empty());
+            OIIO_CHECK_ASSERT(!cc.has_error());
+        }
+
+        // Batch error: validate-all-first, one indexed error, empty result.
+        {
+            std::vector<std::string> names { "ref", "bogus_name",
+                                             "plain_space" };
+            std::vector<ColorSpaceInfo> infos = cc.derive_color_space_infos(
+                names);
+            OIIO_CHECK_ASSERT(infos.empty());
+            OIIO_CHECK_ASSERT(cc.has_error());
+            std::string err = cc.geterror();
+            OIIO_CHECK_ASSERT(
+                Strutil::contains(err, "derive_color_space_infos[1]")
+                && Strutil::contains(err, "bogus_name"));
+        }
+
+        // Scalar error convention.
+        {
+            ColorSpaceInfo bad = cc.derive_color_space_info("no_such_space");
+            OIIO_CHECK_FALSE(bad.valid());
+            OIIO_CHECK_ASSERT(cc.has_error());
+            std::string err = cc.geterror();
+            OIIO_CHECK_ASSERT(Strutil::contains(err, "derive_color_space_info")
+                              && Strutil::contains(err, "no_such_space"));
+        }
+
+        Filesystem::remove(config_path);
+    }
+
+    // --- Cache publication is observable through the PUBLIC surface: a
+    // derive fills the fields, a later cheap get sees them (the cheap
+    // getter itself still derives nothing).
+    if (ColorConfig::OpenColorIO_version_hex() >= 0x02020000) {
+        ColorConfig cc("ocio://default");
+        if (!cc.has_error() && cc.getNumColorSpaces() > 0) {
+            characterization_cache_reset();
+            ColorSpaceInfo cheap = cc.get_color_space_info("sRGB - Texture");
+            OIIO_CHECK_ASSERT(cheap.valid());
+            OIIO_CHECK_FALSE(cheap.computed(F::EqualityID));
+
+            ColorSpaceInfo full = cc.derive_color_space_info("sRGB - Texture");
+            OIIO_CHECK_ASSERT(full.valid());
+            OIIO_CHECK_ASSERT(full.available(F::EqualityID)
+                              && full.derived(F::EqualityID));
+            OIIO_CHECK_EQUAL(full.equality_id(), "srgb_rec709_scene");
+            OIIO_CHECK_ASSERT(full.available(F::Chromaticities));
+            OIIO_CHECK_EQUAL(full.transfer_function(), "srgb");
+            // Complete record, range still honestly absent.
+            OIIO_CHECK_ASSERT(full.computed(F::Range));
+            OIIO_CHECK_FALSE(full.available(F::Range));
+
+            ColorSpaceInfo seen = cc.get_color_space_info("sRGB - Texture");
+            OIIO_CHECK_ASSERT(seen.available(F::EqualityID));
+            OIIO_CHECK_EQUAL(seen.equality_id(), "srgb_rec709_scene");
+            OIIO_CHECK_EQUAL(seen.transfer_function(), "srgb");
+            // The earlier cheap snapshot is immutable.
+            OIIO_CHECK_FALSE(cheap.computed(F::EqualityID));
+        }
+    }
+
+    // --- Two-context derive isolation: a context-sensitive space derived
+    // under context A publishes into A's bucket only; a cheap get under
+    // context B sees none of it. (The interchange role + the OCIO context
+    // API used here need OCIO >= 2.2.)
+    if (ColorConfig::OpenColorIO_version_hex() >= 0x02020000) {
+        static const char* ctx_yaml = R"(ocio_profile_version: 2.1
+environment:
+  CTX_CS: ref
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: gamma_a
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: ctx_space
+    to_scene_reference: !<ColorSpaceTransform> {src: $CTX_CS, dst: ref}
+)";
+        std::string ctx_path = Filesystem::temp_directory_path()
+                               + "/oiio_color_test_derive_ctx.ocio";
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(ctx_path, ctx_yaml));
+        ColorConfig cc(ctx_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        characterization_cache_reset();
+
+        ColorSpaceInfoOptions ctx_ident, ctx_gamma;
+        ctx_ident.context = { { "CTX_CS", "ref" } };
+        ctx_gamma.context = { { "CTX_CS", "gamma_a" } };
+
+        // Under the identity context the space measures linear; under the
+        // gamma context it does not. Each derivation runs under its own
+        // per-call context.
+        ColorSpaceInfo ident = cc.derive_color_space_info("ctx_space",
+                                                          ctx_ident);
+        OIIO_CHECK_ASSERT(ident.valid());
+        OIIO_CHECK_ASSERT(ident.available(F::TransferFunction));
+        OIIO_CHECK_EQUAL(int(ident.transfer_function_kind()),
+                         int(ColorTransferFunctionKind::Linear));
+
+        ColorSpaceInfo gamma = cc.derive_color_space_info("ctx_space",
+                                                          ctx_gamma);
+        OIIO_CHECK_ASSERT(gamma.valid());
+        OIIO_CHECK_ASSERT(gamma.available(F::TransferFunction));
+        OIIO_CHECK_ASSERT(int(gamma.transfer_function_kind())
+                          != int(ColorTransferFunctionKind::Linear));
+
+        // Isolation: the cached facts are context-bucketed. A cheap get
+        // under each context sees exactly its own derivation.
+        ColorSpaceInfo cheap_ident = cc.get_color_space_info("ctx_space",
+                                                             ctx_ident);
+        OIIO_CHECK_ASSERT(cheap_ident.computed(F::TransferFunction));
+        OIIO_CHECK_EQUAL(int(cheap_ident.transfer_function_kind()),
+                         int(ColorTransferFunctionKind::Linear));
+        ColorSpaceInfo cheap_gamma = cc.get_color_space_info("ctx_space",
+                                                             ctx_gamma);
+        OIIO_CHECK_ASSERT(cheap_gamma.computed(F::TransferFunction));
+        OIIO_CHECK_ASSERT(int(cheap_gamma.transfer_function_kind())
+                          != int(ColorTransferFunctionKind::Linear));
+
+        characterization_cache_reset();
+        Filesystem::remove(ctx_path);
+    }
+
+    characterization_cache_reset();
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -3658,6 +3892,7 @@ main(int argc, char* argv[])
     test_interop_derive();
     test_color_space_info();
     test_characterize_color_space();
+    test_derive_color_space_info();
     test_copy_config_default_view_transform();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run

@@ -393,6 +393,47 @@ declare_colorconfig(py::module& m)
             },
             "names"_a, py::kw_only(),
             "context_vars"_a = std::map<std::string, std::string>())
+        .def(
+            "derive_color_space_info",
+            [](const ColorConfig& self, const std::string& name,
+               const std::map<std::string, std::string>& context_vars)
+                -> py::object {
+                ColorSpaceInfoOptions opts;
+                opts.context = context_vars;
+                ColorSpaceInfo info;
+                {
+                    // Full derivation can probe transforms and build OCIO
+                    // processors: pure C++ work, no Python objects --
+                    // release the GIL for its duration.
+                    py::gil_scoped_release gil;
+                    info = self.derive_color_space_info(name, opts);
+                }
+                // Invalid input maps to None; the error stays on the
+                // ColorConfig (geterror()).
+                if (!info.valid())
+                    return py::none();
+                return py::cast(info);
+            },
+            "name"_a, py::kw_only(),
+            "context_vars"_a = std::map<std::string, std::string>())
+        .def(
+            "derive_color_space_infos",
+            [](const ColorConfig& self, const std::vector<std::string>& names,
+               const std::map<std::string, std::string>& context_vars) {
+                ColorSpaceInfoOptions opts;
+                opts.context = context_vars;
+                std::vector<ColorSpaceInfo> infos;
+                {
+                    // Pure C++ work, no Python objects: release the GIL for
+                    // the batch (invalid batch input returns [] and leaves
+                    // the error on the ColorConfig).
+                    py::gil_scoped_release gil;
+                    infos = self.derive_color_space_infos(names, opts);
+                }
+                return infos;
+            },
+            "names"_a, py::kw_only(),
+            "context_vars"_a = std::map<std::string, std::string>())
         .def("configname", &ColorConfig::configname)
         .def_static("default_colorconfig", []() -> const ColorConfig& {
             return ColorConfig::default_colorconfig();

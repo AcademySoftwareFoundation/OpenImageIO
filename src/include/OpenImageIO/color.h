@@ -710,6 +710,51 @@ public:
     get_color_space_infos(cspan<std::string> color_spaces,
                           const ColorSpaceInfoOptions& options = {}) const;
 
+    /// Derive the complete characterization of the named color space (which
+    /// may be a name, role, alias, or Color Interop ID): every field of the
+    /// returned ColorSpaceInfo has been attempted, by full derivation where
+    /// direct inspection does not answer -- fingerprint equivalence for the
+    /// equality ID, the full interop-ID derivation cascade, the
+    /// interop-counterpart encoding fallback, chromaticity probing, and
+    /// transfer-function characterization. This is the EXPENSIVE
+    /// counterpart of get_color_space_info(): it may build OCIO processors
+    /// and probe transforms. Completed derivations (successful and
+    /// negative) are cached, so later queries -- including the cheap getter
+    /// -- see the derived facts without recomputing them; records already
+    /// held by callers are immutable snapshots and are not affected.
+    ///
+    /// "Complete" does not mean every field is available: an
+    /// uncharacterizable field reports `computed(field) == true` with
+    /// `available(field) == false`, a stable negative result rather than an
+    /// error. Range in particular is supplied only when intrinsic to a
+    /// registered identity or otherwise explicitly known -- it is never
+    /// guessed from a color-space name.
+    ///
+    /// For an unknown or unresolvable name, the returned object has
+    /// `valid() == false` and an error is reported through the usual
+    /// has_error()/geterror() convention. This method does not throw.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD ColorSpaceInfo
+    derive_color_space_info(string_view color_space,
+                            const ColorSpaceInfoOptions& options = {}) const;
+
+    /// Batch version of derive_color_space_info(): one record per requested
+    /// name, in input order (duplicates included). Every requested name is
+    /// validated before any record is derived; if any input is invalid, one
+    /// indexed error (e.g. `derive_color_space_infos[3]: unknown color
+    /// space "..."`) is reported through has_error()/geterror() and an
+    /// empty vector is returned. Per-field derivation failure remains an
+    /// unavailable field, never a failed batch. An empty input span is an
+    /// empty batch, not "all spaces". This method does not throw. (The
+    /// batch name is plural for the same overload-ambiguity reason as
+    /// get_color_space_infos().)
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD std::vector<ColorSpaceInfo>
+    derive_color_space_infos(cspan<std::string> color_spaces,
+                             const ColorSpaceInfoOptions& options = {}) const;
+
     // See <OpenImageIO/color_interop_ids.h> for `ColorInteropIDs::all()`,
     // which returns every canonical Color Interop Forum id declared by
     // OIIO's built-in interop identities registry -- each usable anywhere a

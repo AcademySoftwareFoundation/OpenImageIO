@@ -4130,11 +4130,58 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
+.. py:method:: derive_color_space_info (name, context_vars={})
+
+    Derive the *complete* characterization of the named color space: every
+    field of the returned :py:class:`ColorSpaceInfo` has been attempted, by
+    full derivation where direct inspection does not answer (fingerprint
+    equivalence for the equality ID, the full interop-ID derivation
+    cascade, the interop-counterpart encoding fallback, chromaticity
+    probing, and transfer-function characterization). This is the
+    *expensive* counterpart of :py:meth:`get_color_space_info` -- it may
+    build OCIO processors and probe transforms (the GIL is released while
+    it works). Completed derivations, successful and negative, are cached,
+    so later queries -- including the cheap getter -- see the derived facts
+    without recomputing them. "Complete" does not mean every field is
+    available: an uncharacterizable field reports ``computed(field)`` true
+    with ``available(field)`` false and its property as ``None`` -- a
+    stable negative result, not an error. ``range`` in particular is never
+    guessed from a color-space name. For an unknown or unresolvable name it
+    returns ``None`` and leaves the error on the config (``geterror()``).
+    ``context_vars`` applies OCIO context-variable overrides scoped to the
+    one call.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        info = colorconfig.derive_color_space_info("srgb_tx")
+        if info is not None:
+            print(info.equality_id, info.chromaticities, info.transfer_function)
+
+    This function was added in OpenImageIO 3.2.
+
+
+.. py:method:: derive_color_space_infos (names, context_vars={})
+
+    Batch version of :py:meth:`derive_color_space_info`: return a list with
+    one :py:class:`ColorSpaceInfo` per requested name, in input order
+    (duplicates included). Every requested name is validated before any
+    record is derived; if any input is invalid, an empty list is returned
+    and one indexed error is left on the config (``geterror()``).
+    Per-field derivation failure remains an unavailable field, never a
+    failed batch. The GIL is released for the duration of the batch.
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:class:: ColorSpaceInfo
 
     An immutable snapshot of the characterization information for one
     resolved color space, as returned by
-    :py:meth:`ColorConfig.get_color_space_info`. The read-only properties
+    :py:meth:`ColorConfig.get_color_space_info` and
+    :py:meth:`ColorConfig.derive_color_space_info`. The read-only properties
     ``name``, ``equality_id``, ``color_interop_id``, ``encoding``,
     ``image_state``, ``range``, ``chromaticities`` (an 8-tuple of RGBW xy
     floats), ``transfer_function_kind`` (a

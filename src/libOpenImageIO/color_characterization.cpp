@@ -306,7 +306,11 @@ characterize_color_space_impl(const ColorConfig& config,
         && !rec.full_attempted(Field::TransferFunction)) {
         begin_full_attempt(Field::TransferFunction);
         bool identity = false;
-        if (!is_data) {
+        if (!is_data && !ctx) {
+            // Conservative identity shortcut, ambient context only: OCIO's
+            // isColorSpaceLinear() takes no context, so under a per-call
+            // context override the context-threaded signature probe below
+            // is the only honest linearity evidence.
             try {
                 identity = impl->isColorSpaceLinear(rec.name);
             } catch (...) {
@@ -336,9 +340,18 @@ characterize_color_space_impl(const ColorConfig& config,
         mark(rec, Field::TransferFunction, determined, determined);
     }
 
-    // Range derivation (registry/CICP association) arrives with the derive
-    // verbs; requesting it today changes nothing beyond the direct attempt
-    // above, and it stays never-guessed either way.
+    if ((requested_fields & uint32_t(Field::Range))
+        && !rec.full_attempted(Field::Range)) {
+        // Range describes pixel state and may be supplied only by a genuine
+        // registry/CICP *registration* intrinsic to an identity. No such
+        // source exists yet: the static CICP table's range flag is hardwired
+        // Full for every row -- a fixed encode-time convention, not
+        // per-space knowledge -- so deriving from it would be exactly the
+        // guessed-"full" default the contract forbids. The full attempt is
+        // therefore a settled negative (cached, never retried) until a real
+        // registration source appears.
+        begin_full_attempt(Field::Range);
+    }
 
     // ---- Publish derivation attempts (immutable snapshot semantics:
     // field-wise first-writer-wins merge under the lock; callers holding
@@ -593,6 +606,78 @@ ColorConfig::get_color_space_infos(cspan<std::string> color_spaces,
         return results;
     } catch (const std::exception& e) {
         getImpl()->error("get_color_space_infos: {}", e.what());
+        return {};
+    }
+}
+
+
+
+// ---------------------------------------------------------------------------
+// Public ColorConfig entry points: the DERIVE verbs, scalar and batch. Both
+// request full derivation of every field from the engine (which publishes
+// completed attempts -- successful and negative -- to the shared cache) and
+// convert engine misses into the class's has_error()/geterror() convention.
+// Neither throws.
+// ---------------------------------------------------------------------------
+
+ColorSpaceInfo
+ColorConfig::derive_color_space_info(string_view color_space,
+                                     const ColorSpaceInfoOptions& options) const
+{
+    try {
+        spvt::CharacterizationRecord rec = characterize_color_space_impl(
+            *this, color_space, uint32_t(spvt::CharacterizationField::All),
+            options.context);
+        if (!rec.valid()) {
+            getImpl()->error(
+                "derive_color_space_info: unknown color space \"{}\"",
+                color_space);
+            return {};
+        }
+        return ColorSpaceInfo(
+            std::make_shared<const ColorSpaceInfo::Impl>(std::move(rec)));
+    } catch (const std::exception& e) {
+        getImpl()->error("derive_color_space_info: {}", e.what());
+        return {};
+    }
+}
+
+
+
+std::vector<ColorSpaceInfo>
+ColorConfig::derive_color_space_infos(cspan<std::string> color_spaces,
+                                      const ColorSpaceInfoOptions& options) const
+{
+    try {
+        // Resolve and validate EVERY requested name before deriving any
+        // record, so one bad input costs no processor work. The validation
+        // pass is the engine's cheap tier (no derivation requested).
+        for (size_t i = 0; i < size_t(color_spaces.size()); ++i) {
+            spvt::CharacterizationRecord probe = characterize_color_space_impl(
+                *this, color_spaces[i],
+                uint32_t(spvt::CharacterizationField::None), options.context);
+            if (!probe.valid()) {
+                getImpl()->error(
+                    "derive_color_space_infos[{}]: unknown color space \"{}\"",
+                    i, color_spaces[i]);
+                return {};
+            }
+        }
+        std::vector<ColorSpaceInfo> results;
+        results.reserve(color_spaces.size());
+        // Batch order and duplicates are preserved. Per-field derivation
+        // failure is an unavailable field on a valid record, never a failed
+        // batch.
+        for (const std::string& name : color_spaces) {
+            spvt::CharacterizationRecord rec = characterize_color_space_impl(
+                *this, name, uint32_t(spvt::CharacterizationField::All),
+                options.context);
+            results.push_back(ColorSpaceInfo(
+                std::make_shared<const ColorSpaceInfo::Impl>(std::move(rec))));
+        }
+        return results;
+    } catch (const std::exception& e) {
+        getImpl()->error("derive_color_space_infos: {}", e.what());
         return {};
     }
 }
