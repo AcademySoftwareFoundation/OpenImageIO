@@ -19,14 +19,24 @@ import OpenImageIO as oiio
 import numpy as np
 
 def example1() -> None:
-    #
-    # Example code fragment from the docs goes here.
-    #
-    # It probably should generate either some text output (which will show up
-    # in "out.txt" that captures each test's output), or it should produce a
-    # (small) image file that can be compared against a reference image that
-    # goes in the ref/ subdirectory of this test.
-    #
+    # Create an image cache and set some options
+    cache = oiio.ImageCache()
+    cache.attribute("max_memory_MB", 500.0)
+    cache.attribute("autotile", 64)
+
+    # Get information about a file
+    spec = cache.get_imagespec("tahoe.tif")
+    print(f"resolution is {spec.width}x{spec.height}")
+
+    # Get a block of pixels from a file (returns a numpy array, or None
+    # on failure).
+    roi = oiio.ROI(0, 4, 0, 4, 0, 1, 0, spec.nchannels)
+    pixels = cache.get_pixels("tahoe.tif", 0, 0, roi)
+
+    # Note that all files were referenced by name, we never had to open
+    # or close any files, and all the resource and memory management
+    # was automatic.
+    oiio.ImageCache.destroy(cache)
     return
 
 # END-imagecache-example1

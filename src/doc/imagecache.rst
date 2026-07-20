@@ -46,46 +46,26 @@ for you.  It is reasonable to access thousands of image files totalling
 hundreds of GB of pixels, efficiently and using a memory footprint on the
 order of 50 MB.
 
-Below are some simple code fragments that shows ImageCache in action::
+Below are some simple code fragments that shows ImageCache in action:
 
-    #include <OpenImageIO/imagecache.h>
-    using namespace OIIO;
+.. tabs::
 
-    // Create an image cache and set some options
-    ImageCache *cache = ImageCache::create ();
-    cache->attribute ("max_memory_MB", 500.0f);
-    cache->attribute ("autotile", 64);
+   .. tab:: C++
+      .. literalinclude:: ../../testsuite/docs-examples-cpp/src/docs-examples-imagecache.cpp
+          :language: c++
+          :start-after: BEGIN-imagecache-example1
+          :end-before: END-imagecache-example1
 
-    // Get a block of pixels from a file.
-    // (for brevity of this example, let's assume that 'size' is the
-    // number of channels times the number of pixels in the requested region)
-    float pixels[size];
-    cache->get_pixels ("file1.jpg", 0, 0, ROI(xbegin, xend, ybegin, yend),
-                       make_span(pixels));
+   .. tab:: Python
 
-    // Get information about a file
-    ImageSpec spec;
-    bool ok = cache->get_imagespec ("file2.exr", spec);
-    if (ok)
-        std::cout << "resolution is " << spec.width << "x"
-                  << spec.height << "\n";
+      .. literalinclude:: ../../testsuite/docs-examples-python/src/docs-examples-imagecache.py
+          :language: py
+          :start-after: BEGIN-imagecache-example1
+          :end-before: END-imagecache-example1
 
-    // Request and hold a tile, do some work with its pixels, then release
-    ImageCache::Tile *tile;
-    tile = cache->get_tile ("file2.exr", 0, 0, x, y, z);
-    // The tile won't be freed until we release it, so this is safe:
-    TypeDesc format;
-    void *p = cache->tile_pixels (tile, format);
-    // Now p points to the raw pixels of the tile, whose data format
-    // is given by 'format'.
-    cache->release_tile (tile);
-    // Now cache is permitted to free the tile when needed
-
-    // Note that all files were referenced by name, we never had to open
-    // or close any files, and all the resource and memory management
-    // was automatic.
-
-    ImageCache::destroy (cache);
+Note that all files were referenced by name, we never had to open
+or close any files, and all the resource and memory management
+was automatic.
 
 
 .. _sec-imagecache-api:
