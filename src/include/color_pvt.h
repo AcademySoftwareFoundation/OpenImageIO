@@ -795,6 +795,18 @@ struct CharacterizationRecord {
         = ColorTransferFunctionKind::Undetermined;
     std::string transfer_function;  ///< normalized family, or empty
 
+    // Internal search payload -- the raw evidence the search walk's
+    // three-valued matching consumes, cached alongside the public-facing
+    // values above but never exposed through ColorSpaceInfo:
+    // double-precision rounded chromaticities (the float vector above is a
+    // lossy public copy; exact-== matching needs the doubles), the probed
+    // transfer signature, and the conservative ambient-context linearity
+    // verdict (distinct from transfer_kind: a measured-linear signature
+    // yields kind Linear without setting this).
+    std::optional<Chromaticities> chromaticities_xy;
+    std::optional<TransferFunctionSignature> transfer_signature;
+    bool transfer_identity = false;
+
     bool valid() const { return !name.empty(); }
     bool computed(CharacterizationField f) const
     { return (computed_mask & uint32_t(f)) != 0; }

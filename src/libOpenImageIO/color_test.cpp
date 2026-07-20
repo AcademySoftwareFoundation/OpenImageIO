@@ -3848,6 +3848,91 @@ colorspaces:
 
 
 
+// Search/engine convergence: find_color_spaces' per-candidate
+// characterization consumes the same shared field-selective cache the
+// public derive verbs publish into. A repeat search is cache-only and
+// result-identical; a prior complete derive of every space leaves search
+// cache-only; results never change.
+static void
+test_search_engine_coupling()
+{
+    using OIIO::pvt::characterization_cache_reset;
+    using OIIO::pvt::characterization_cache_size;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02020000)
+        return;
+
+    // Interoperable, deliberately unnamed config (no generated-local id
+    // tier): a table-identified 2.2-gamma space, an unidentified 2.2-gamma
+    // twin, and the linear anchor.
+    static const char* config_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: srgb_rec709_scene
+    encoding: sdr-video
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: gamma_a
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+    std::string config_path = Filesystem::temp_directory_path()
+                              + "/oiio_color_test_searchconv.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(config_path, config_yaml));
+    ColorConfig cc(config_path);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+
+    characterization_cache_reset();
+
+    OIIO::pvt::FindColorSpacesOptions o;
+    o.transfer_functions = { "srgb_rec709_scene" };
+    o.chromaticities     = { "srgb_rec709_scene" };
+
+    const auto r1 = OIIO::pvt::find_color_spaces(cc, o);
+    OIIO_CHECK_ASSERT(std::find(r1.begin(), r1.end(), "srgb_rec709_scene")
+                      != r1.end());
+    const size_t published = characterization_cache_size();
+    // The walk published its per-candidate characterizations (partial
+    // records: only the requested axes).
+    OIIO_CHECK_ASSERT(published > 0);
+
+    // Repeat search: cache-only (settled fields are never re-derived, so
+    // nothing new publishes) and result-identical.
+    const auto r2 = OIIO::pvt::find_color_spaces(cc, o);
+    OIIO_CHECK_ASSERT(r2 == r1);
+    OIIO_CHECK_EQUAL(characterization_cache_size(), published);
+
+    // A prior COMPLETE derive of every space makes a fresh search
+    // cache-only too -- and the results are identical to the from-scratch
+    // walk.
+    characterization_cache_reset();
+    const auto all = cc.getColorSpaceNames();
+    OIIO_CHECK_ASSERT(!cc.derive_color_space_infos(all).empty());
+    const size_t post_derive = characterization_cache_size();
+    OIIO_CHECK_ASSERT(post_derive > 0);
+    const auto r3 = OIIO::pvt::find_color_spaces(cc, o);
+    OIIO_CHECK_ASSERT(r3 == r1);
+    OIIO_CHECK_EQUAL(characterization_cache_size(), post_derive);
+
+    characterization_cache_reset();
+    Filesystem::remove(config_path);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -3893,6 +3978,7 @@ main(int argc, char* argv[])
     test_color_space_info();
     test_characterize_color_space();
     test_derive_color_space_info();
+    test_search_engine_coupling();
     test_copy_config_default_view_transform();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run

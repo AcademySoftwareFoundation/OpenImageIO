@@ -542,16 +542,29 @@ ColorConfig::Impl::find_color_spaces(
                                : "scene");
     };
 
-    // The interop-identity twin's encoding for a candidate (empty when the
-    // space has no identity or the identity has no registry entry).
-    auto twin_encoding = [&](const std::string& name) -> std::string {
-        std::string id(derive_color_interop_id_impl(*m_self, name));
+    // The interop-identity twin's encoding for a derived interop id (empty
+    // when there is no id or the id has no registry entry). The id itself
+    // comes from the shared characterization engine below, so repeat
+    // searches and prior public derives make this cache-only.
+    auto twin_encoding_for_id = [&](const std::string& id) -> std::string {
         if (id.empty() || !registry)
             return {};
         auto ics = registry->getColorSpace(id.c_str());
         if (ics && ics->getEncoding() && ics->getEncoding()[0])
             return Strutil::lower(ics->getEncoding());
         return {};
+    };
+
+    // Per-candidate characterization routes through the one shared
+    // field-selective engine (the same records the public get/derive verbs
+    // read and publish): each axis requests only the field bits it needs,
+    // partial cached records are merged in, and a prior complete derive
+    // makes the whole walk cache-only. Derivation failures surface as
+    // unavailable fields, which the three-valued axes treat as "unknown".
+    using CField          = spvt::CharacterizationField;
+    auto characterization = [&](const std::string& name, CField fields) {
+        return characterize_color_space_impl(*m_self, name, uint32_t(fields),
+                                             options.context);
     };
 
     auto resolve_encoding
@@ -898,8 +911,11 @@ ColorConfig::Impl::find_color_spaces(
         if (!cs)
             continue;
 
-        // Per-candidate probes are wrapped so any derivation failure yields an
-        // "unknown" property (three-valued), never an abort.
+        // Per-candidate characterization comes from the shared engine, one
+        // axis at a time in the established evaluation order, so a
+        // candidate rejected by a cheap axis is never probed for an
+        // expensive one. Engine derivation failures yield an "unknown"
+        // property (three-valued), never an abort.
         //
         // Encoding characterizes as up to two values: the authored attribute
         // plus — non-strict — the interop-identity twin's encoding (which is
@@ -914,7 +930,11 @@ ColorConfig::Impl::find_color_spaces(
             if (!literal.empty())
                 encoding_values.push_back(literal);
             if (!options.strict) {
-                std::string twin = twin_encoding(name);
+                const auto rec = characterization(name, CField::ColorInteropID);
+                std::string twin = twin_encoding_for_id(
+                    rec.available(CField::ColorInteropID)
+                        ? rec.color_interop_id
+                        : std::string());
                 if (!twin.empty() && twin != literal)
                     encoding_values.push_back(std::move(twin));
             }
@@ -928,24 +948,26 @@ ColorConfig::Impl::find_color_spaces(
 
         std::optional<spvt::Chromaticities> chromaticities;
         if (!chromaticity_terms.empty())
-            chromaticities = deriveChromaticities(name, ctx);
+            chromaticities
+                = characterization(name, CField::Chromaticities).chromaticities_xy;
         if (!chromaticity_axis_accepts(chromaticity_terms, chromaticities))
             continue;
 
         spvt::TransferProperty transfer;
         if (!transfer_terms.empty()) {
-            try {
-                // NOTE: OCIO's isColorSpaceLinear() takes no context (see the
-                // hint-resolution note above); the context-threaded signature
-                // probe below is authoritative for context-sensitive spaces.
-                transfer.identity = isColorSpaceLinear(name);
-                transfer.family   = tf_curve_family(
-                    derive_color_interop_id_impl(*m_self, name));
-            } catch (...) {
-            }
-            if (!transfer.identity)
-                if (auto sig = deriveTransferSignature(name, ctx))
-                    transfer.signature = std::move(*sig);
+            // NOTE: the engine's conservative identity verdict comes from
+            // OCIO's context-free isColorSpaceLinear(), which it consults
+            // only under the ambient context; the context-threaded signature
+            // it probes is authoritative for context-sensitive spaces. The
+            // family key still derives from the interop id even when the
+            // signature probe fails.
+            const auto rec = characterization(name, CField::TransferFunction
+                                                        | CField::ColorInteropID);
+            transfer.identity = rec.transfer_identity;
+            if (rec.available(CField::ColorInteropID))
+                transfer.family = tf_curve_family(rec.color_interop_id);
+            if (rec.transfer_signature)
+                transfer.signature = rec.transfer_signature;
         }
         if (!transfer_axis_accepts(transfer_terms, transfer))
             continue;

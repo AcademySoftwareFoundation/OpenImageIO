@@ -87,11 +87,14 @@ copy_field(spvt::CharacterizationRecord& dst,
     case Field::ImageState: dst.image_state = src.image_state; break;
     case Field::Range: dst.range = src.range; break;
     case Field::Chromaticities:
-        dst.chromaticities = src.chromaticities;
+        dst.chromaticities    = src.chromaticities;
+        dst.chromaticities_xy = src.chromaticities_xy;
         break;
     case Field::TransferFunction:
-        dst.transfer_kind     = src.transfer_kind;
-        dst.transfer_function = src.transfer_function;
+        dst.transfer_kind      = src.transfer_kind;
+        dst.transfer_function  = src.transfer_function;
+        dst.transfer_signature = src.transfer_signature;
+        dst.transfer_identity  = src.transfer_identity;
         break;
     default: break;
     }
@@ -293,6 +296,7 @@ characterize_color_space_impl(const ColorConfig& config,
         } catch (...) {
         }
         if (chr) {
+            rec.chromaticities_xy = chr;  // exact doubles, for search's ==
             rec.chromaticities.reserve(8);
             for (const auto& xy : *chr) {
                 rec.chromaticities.push_back(float(xy[0]));
@@ -316,6 +320,7 @@ characterize_color_space_impl(const ColorConfig& config,
             } catch (...) {
             }
         }
+        rec.transfer_identity = identity;
         if (identity) {
             rec.transfer_kind = ColorTransferFunctionKind::Linear;
         } else if (!is_data) {
@@ -325,6 +330,7 @@ characterize_color_space_impl(const ColorConfig& config,
             } catch (...) {
             }
             if (sig) {
+                rec.transfer_signature = sig;  // raw evidence, for search
                 if (sig->is_linear) {
                     rec.transfer_kind = ColorTransferFunctionKind::Linear;
                 } else if (!sig->family.empty()) {
