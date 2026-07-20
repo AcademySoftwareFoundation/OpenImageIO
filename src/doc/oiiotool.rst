@@ -1882,6 +1882,27 @@ Writing images
 
         oiiotool input.png --colorreadplan
 
+.. option:: --colorinfo <colorspaces>
+
+    Prints the characterization information the color config can supply
+    *cheaply* for each color space in the comma-separated list (each entry
+    may be a color space name, role, alias, or color interop ID). If the
+    list is empty (``""``), the current (top) image's color space is
+    reported instead. The report has one row per field -- image state,
+    color interop ID, encoding, range, equality ID, chromaticities,
+    transfer function -- giving a marker (``available``, ``derived``,
+    ``unavailable``, or ``uncomputed``) and the value. This command never
+    probes transforms or derives missing information: a field no prior
+    query has derived simply prints as ``uncomputed``, and a field that was
+    attempted but has no usable value prints as ``unavailable`` (for
+    example, ``range`` is never guessed). An unknown name in the list is
+    reported as an error through the usual error convention.
+
+    Example::
+
+        oiiotool --colorinfo "srgb_tx,ACEScg"
+        oiiotool input.exr --colorinfo ""
+
 .. option:: --colorcount r1,g1,b1,...:r2,g2,b2,...:...
 
     Given a list of colors separated by colons or semicolons, where each

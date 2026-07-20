@@ -71,6 +71,7 @@ set (libOpenImageIO_srcs
                           color_crossconfig.cpp
                           color_icc_probe.cpp
                           color_search.cpp
+                          color_characterization.cpp
                           interop_id.cpp
                           curve_family.cpp
                           chromaticity_match.cpp

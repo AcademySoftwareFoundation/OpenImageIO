@@ -263,6 +263,26 @@ context_cache_id(const OCIO::ConstContextRcPtr& ctx)
 }
 
 
+// A context carrying a query's per-call variable overrides, layered on the
+// config's current context. Overrides are scoped to the one query. Shared by
+// the characterization search and the characterization engine.
+inline OCIO::ConstContextRcPtr
+make_context_with_overrides(const OCIO::ConstConfigRcPtr& config,
+                            const std::map<std::string, std::string>& vars)
+{
+    if (!config)
+        return nullptr;
+    OCIO::ConstContextRcPtr context = config->getCurrentContext();
+    if (!vars.empty()) {
+        OCIO::ContextRcPtr ctx = context->createEditableCopy();
+        for (const auto& kv : vars)
+            ctx->setStringVar(kv.first.c_str(), kv.second.c_str());
+        context = ctx;
+    }
+    return context;
+}
+
+
 // Hidden implementation of ColorConfig
 class ColorConfig::Impl {
 public:
@@ -907,6 +927,19 @@ isSimpleAtomicTransform(const OCIO::ConstTransformRcPtr& transform);
 // Defined in color_ocio.cpp.
 string_view
 derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace);
+
+// Core of pvt::characterize_color_space() -- the field-selective
+// characterization engine (see color_pvt.h for the contract) -- and its
+// process-global cache's test hooks. Defined in color_characterization.cpp.
+OIIO::pvt::CharacterizationRecord
+characterize_color_space_impl(const ColorConfig& config,
+                              string_view color_space,
+                              uint32_t requested_fields,
+                              const std::map<std::string, std::string>& context);
+size_t
+characterization_cache_size_impl();
+void
+characterization_cache_reset_impl();
 
 // The calibrated fingerprint probe values, normalized into `config`'s
 // reference spaces. Defined in color_fingerprint.cpp.

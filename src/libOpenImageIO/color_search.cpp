@@ -99,24 +99,6 @@ tf_curve_family(string_view id)
     return family;
 }
 
-// A context carrying this query's per-call variable overrides, layered on the
-// config's current context. Overrides are scoped to the one search.
-ConstContextRcPtr
-make_context_with_overrides(const ConstConfigRcPtr& config,
-                            const std::map<std::string, std::string>& vars)
-{
-    if (!config)
-        return nullptr;
-    ConstContextRcPtr context = config->getCurrentContext();
-    if (!vars.empty()) {
-        ContextRcPtr ctx = context->createEditableCopy();
-        for (const auto& kv : vars)
-            ctx->setStringVar(kv.first.c_str(), kv.second.c_str());
-        context = ctx;
-    }
-    return context;
-}
-
 // Run the fixed neutral-axis probe set through a realized CPU processor (encode
 // direction) and reduce it to a behavioral transfer signature. This is the one
 // config-driving step the pure tf_signature_from_probes() left to its caller.

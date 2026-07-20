@@ -6405,6 +6405,91 @@ action_colorreadplan(Oiiotool& ot, cspan<const char*> argv)
 }
 
 
+
+// --colorinfo
+// Print the characterization info the color config can supply cheaply for
+// each named color space (a comma-separated list; an empty list means the
+// current top image's color space): one row per field with its
+// computed/available/derived marker. This is the command-line consumer of
+// the public ColorConfig::get_color_space_info API, and shares its cheap
+// contract -- nothing here probes transforms or derives missing fields;
+// underivable-so-far fields simply print as uncomputed.
+static void
+action_colorinfo(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 2);
+    string_view command  = ot.express(argv[0]);
+    std::string namelist = ot.express(argv[1]);
+
+    std::vector<std::string> names;
+    for (auto& n : Strutil::splitsv(namelist, ","))
+        if (n.size())
+            names.emplace_back(n);
+    if (names.empty()) {
+        // No names given: report on the current top image's color space
+        // (only this form needs an image on the stack).
+        if (ot.postpone_callback(1, action_colorinfo, argv))
+            return;
+        if (!ot.read())
+            return;
+        std::string cs = ot.top()->spec(0, 0)->get_string_attribute(
+            "oiio:ColorSpace");
+        if (cs.empty()) {
+            ot.errorfmt(command,
+                        "the current image has no color space designation");
+            return;
+        }
+        names.push_back(cs);
+    }
+    OTScopedTimer timer(ot, command);
+
+    ColorConfig& cc  = ot.colorconfig();
+    const auto infos = cc.get_color_space_info(names);
+    if (cc.has_error()) {
+        ot.errorfmt(command, "{}", cc.geterror());
+        return;
+    }
+
+    auto status = [](const ColorSpaceInfo& info, ColorSpaceInfoField field) {
+        if (!info.computed(field))
+            return "uncomputed";
+        if (!info.available(field))
+            return "unavailable";
+        return info.derived(field) ? "derived" : "available";
+    };
+    auto row = [&](const ColorSpaceInfo& info, const char* label,
+                   ColorSpaceInfoField field, const std::string& value) {
+        Strutil::print("  {:<17} {:<12} {}\n", label, status(info, field),
+                       value.empty() ? std::string("-") : value);
+    };
+    for (const ColorSpaceInfo& info : infos) {
+        using F = ColorSpaceInfoField;
+        Strutil::print("Color space info for \"{}\":\n", info.name());
+        row(info, "image_state", F::ImageState,
+            std::string(info.image_state()));
+        row(info, "color_interop_id", F::ColorInteropID,
+            std::string(info.color_interop_id()));
+        row(info, "encoding", F::Encoding, std::string(info.encoding()));
+        row(info, "range", F::Range, std::string(info.range()));
+        row(info, "equality_id", F::EqualityID,
+            std::string(info.equality_id()));
+        row(info, "chromaticities", F::Chromaticities,
+            Strutil::join(info.chromaticities(), ","));
+        std::string transfer;
+        switch (info.transfer_function_kind()) {
+        case ColorTransferFunctionKind::Linear: transfer = "linear"; break;
+        case ColorTransferFunctionKind::Named:
+            transfer = info.transfer_function();
+            break;
+        case ColorTransferFunctionKind::Sampled: transfer = "sampled"; break;
+        default: break;
+        }
+        row(info, "transfer_function", F::TransferFunction, transfer);
+    }
+    ot.printed_info = true;
+}
+
+
 namespace pvtcrash {
 size_t crasher = 37;
 }
@@ -7083,6 +7168,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--colorreadplan")
       .help("Print how the current top image's color metadata was resolved: each read-side rule tried in order, its outcome, and the final color space")
       .OTACTION(action_colorreadplan);
+    ap.arg("--colorinfo %s:COLORSPACES")
+      .help("Print the cheaply available characterization info (image state, color interop ID, encoding, range, and any cached derived facts) for each color space in the comma-separated list, or for the current top image's color space if the list is empty (\"\")")
+      .OTACTION(action_colorinfo);
     ap.arg("--colorcount %s:COLORLIST")
        .help("Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)")
        .OTACTION(action_colorcount);

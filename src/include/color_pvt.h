@@ -723,6 +723,113 @@ struct FindColorSpacesOptions {
 OIIO_API std::vector<std::string>
 find_color_spaces(const ColorConfig& config,
                   const FindColorSpacesOptions& options);
+
+
+// ---------------------------------------------------------------------------
+// Field-selective color-space characterization engine -- the one internal
+// entry the public get/derive characterization queries and (in a later
+// convergence) the search walk adapt to. characterize_color_space() always
+// performs the cheap direct-fact pass (canonical name, image state, cheap
+// interop-id subset, authored encoding, intrinsic range) and merges any
+// previously cached derived facts; `requested_fields` selects which fields
+// are additionally attempted by FULL derivation (fingerprint equality,
+// chromaticity probe, transfer probe, the interop-id derivation cascade,
+// the interop-counterpart encoding fallback). Derivation attempts --
+// successful or not -- are published to a process-global characterization
+// cache keyed by (structural config cache id, effective context cache id,
+// canonical space name) with the context-invariant bucket collapse the
+// fingerprint cache uses, so an unprobeable space is never retried on every
+// query. For internal/test use only.
+// ---------------------------------------------------------------------------
+
+/// Bitmask of characterization fields to attempt full derivation for.
+/// `None` is the cheap/direct-only pass (what the public
+/// ColorConfig::get_color_space_info() requests); `All` is the complete
+/// derivation the future public derive verb requests; the search walk
+/// requests only the fields its non-empty axes need.
+enum class CharacterizationField : uint32_t {
+    None             = 0,
+    EqualityID       = 1u << 0,
+    ColorInteropID   = 1u << 1,
+    Encoding         = 1u << 2,
+    ImageState       = 1u << 3,
+    Range            = 1u << 4,
+    Chromaticities   = 1u << 5,
+    TransferFunction = 1u << 6,
+    All              = 0x7f,
+};
+
+constexpr CharacterizationField
+operator|(CharacterizationField a, CharacterizationField b)
+{
+    return CharacterizationField(uint32_t(a) | uint32_t(b));
+}
+constexpr bool
+operator&(CharacterizationField a, CharacterizationField b)
+{
+    return (uint32_t(a) & uint32_t(b)) != 0;
+}
+
+/// One characterization record: the value slots plus the per-field
+/// computed / available / derived tri-state (bitmasks of
+/// CharacterizationField). This is the payload behind the public opaque
+/// ColorSpaceInfo. An empty `name` denotes an invalid record (unknown or
+/// unresolvable query).
+struct CharacterizationRecord {
+    std::string name;            ///< canonical local name; empty = invalid
+    uint32_t computed_mask  = 0; ///< fields whose determination was attempted
+    uint32_t available_mask = 0; ///< attempted fields with a usable value
+    uint32_t derived_mask   = 0; ///< values that required behavioral derivation
+    /// Fields whose FULL derivation tier has been attempted (internal
+    /// bookkeeping, not part of the public tri-state): distinguishes a
+    /// cheap direct attempt from a full one, so an unsuccessful derivation
+    /// is cached as settled and never retried.
+    uint32_t full_attempt_mask = 0;
+    std::string equality_id;
+    std::string color_interop_id;
+    std::string encoding;
+    std::string image_state;     ///< "scene" / "display" / empty
+    std::string range;           ///< "full" / "narrow" / empty; never guessed
+    std::vector<float> chromaticities;  ///< 8 floats (RGBW xy) or empty
+    ColorTransferFunctionKind transfer_kind
+        = ColorTransferFunctionKind::Undetermined;
+    std::string transfer_function;  ///< normalized family, or empty
+
+    bool valid() const { return !name.empty(); }
+    bool computed(CharacterizationField f) const
+    { return (computed_mask & uint32_t(f)) != 0; }
+    bool available(CharacterizationField f) const
+    { return (available_mask & uint32_t(f)) != 0; }
+    bool derived(CharacterizationField f) const
+    { return (derived_mask & uint32_t(f)) != 0; }
+    bool full_attempted(CharacterizationField f) const
+    { return (full_attempt_mask & uint32_t(f)) != 0; }
+};
+
+/// Characterize `color_space` (a name, role, alias, or interop ID) in
+/// `config`: cheap direct facts always, cached derived facts merged,
+/// `requested_fields` additionally derived (and the attempts published to
+/// the shared characterization cache). `context` is a per-call set of OCIO
+/// context variable overrides scoped to this query. Returns an invalid
+/// record (empty name) for an unknown/unresolvable query. Never throws.
+OIIO_API CharacterizationRecord
+characterize_color_space(const ColorConfig& config, string_view color_space,
+                         CharacterizationField requested_fields
+                         = CharacterizationField::None,
+                         const std::map<std::string, std::string>& context
+                         = {});
+
+/// The number of entries currently in the process-global characterization
+/// cache. For internal/test use only.
+OIIO_API size_t
+characterization_cache_size();
+
+/// Empty the process-global characterization cache. For test/debug reset
+/// only. For internal/test use only.
+OIIO_API void
+characterization_cache_reset();
+
+
 // Read-side color-metadata reconciliation -- the one audited precedence
 // cascade that turns the raw color attributes a reader deposited (CICP,
 // ICC blob, chromaticities, gamma, colorInteropID, an ACES-container flag)

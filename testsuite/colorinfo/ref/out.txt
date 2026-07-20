@@ -1,0 +1,76 @@
+consumer: named spaces =
+Color space info for "srgb_rec709_scene":
+  image_state       available    scene
+  color_interop_id  available    srgb_rec709_scene
+  encoding          available    sdr-video
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+Color space info for "rawdata":
+  image_state       unavailable  -
+  color_interop_id  available    data
+  encoding          unavailable  -
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+Color space info for "screen":
+  image_state       available    display
+  color_interop_id  unavailable  -
+  encoding          available    sdr-video
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+Color space info for "plain_space":
+  image_state       available    scene
+  color_interop_id  unavailable  -
+  encoding          unavailable  -
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+consumer: current image =
+Color space info for "srgb_rec709_scene":
+  image_state       available    scene
+  color_interop_id  available    srgb_rec709_scene
+  encoding          available    sdr-video
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+consumer: invalid name =
+oiiotool ERROR: --colorinfo : get_color_space_info[1]: unknown color space "nope_xyzzy"
+Full command line was:
+> oiiotool -echo "consumer: invalid name =" --colorconfig src/colorinfo.ocio --colorinfo plain_space,nope_xyzzy
+binding: scalar, queried by alias =
+  name = srgb_rec709_scene
+  image_state = scene
+  color_interop_id = srgb_rec709_scene
+  encoding = sdr-video
+  range = None
+  equality_id = None
+  chromaticities = None
+  transfer_function_kind = ColorTransferFunctionKind.Undetermined
+  transfer_function = None
+  computed(Encoding) = True
+  derived(Encoding) = False
+  computed(Range) = True
+  available(Range) = False
+  computed(EqualityID) = False
+  computed(Chromaticities) = False
+  computed(TransferFunction) = False
+binding: data space =
+  image_state = None
+  color_interop_id = data
+  encoding = None
+binding: batch order and duplicates =
+  names = ['plain_space', 'rawdata', 'plain_space']
+binding: invalid scalar =
+  result = None
+  error = get_color_space_info: unknown color space "no_such_space"
+binding: invalid batch =
+  result = []
+  error = get_color_space_info[1]: unknown color space "nope"
+Done.

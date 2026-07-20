@@ -53,6 +53,106 @@ declare_colorconfig(py::module& m)
 {
     using namespace pybind11::literals;
 
+    py::enum_<ColorSpaceInfoField>(m, "ColorSpaceInfoField")
+        .value("EqualityID", ColorSpaceInfoField::EqualityID)
+        .value("ColorInteropID", ColorSpaceInfoField::ColorInteropID)
+        .value("Encoding", ColorSpaceInfoField::Encoding)
+        .value("ImageState", ColorSpaceInfoField::ImageState)
+        .value("Range", ColorSpaceInfoField::Range)
+        .value("Chromaticities", ColorSpaceInfoField::Chromaticities)
+        .value("TransferFunction", ColorSpaceInfoField::TransferFunction);
+
+    py::enum_<ColorTransferFunctionKind>(m, "ColorTransferFunctionKind")
+        .value("Undetermined", ColorTransferFunctionKind::Undetermined)
+        .value("Linear", ColorTransferFunctionKind::Linear)
+        .value("Named", ColorTransferFunctionKind::Named)
+        .value("Sampled", ColorTransferFunctionKind::Sampled);
+
+    // A helper for the optional string properties: an unavailable field maps
+    // to None; empty strings are not used to erase the difference between
+    // "unavailable" and a legitimate empty value.
+    auto opt_field = [](const ColorSpaceInfo& self, ColorSpaceInfoField field,
+                        string_view value) -> py::object {
+        if (!self.available(field))
+            return py::none();
+        return py::str(std::string(value));
+    };
+
+    py::class_<ColorSpaceInfo>(m, "ColorSpaceInfo")
+        .def_property_readonly("name",
+                               [](const ColorSpaceInfo& self) {
+                                   return std::string(self.name());
+                               })
+        .def_property_readonly("equality_id",
+                               [opt_field](const ColorSpaceInfo& self) {
+                                   return opt_field(
+                                       self, ColorSpaceInfoField::EqualityID,
+                                       self.equality_id());
+                               })
+        .def_property_readonly(
+            "color_interop_id",
+            [opt_field](const ColorSpaceInfo& self) {
+                return opt_field(self, ColorSpaceInfoField::ColorInteropID,
+                                 self.color_interop_id());
+            })
+        .def_property_readonly("encoding",
+                               [opt_field](const ColorSpaceInfo& self) {
+                                   return opt_field(
+                                       self, ColorSpaceInfoField::Encoding,
+                                       self.encoding());
+                               })
+        .def_property_readonly("image_state",
+                               [opt_field](const ColorSpaceInfo& self) {
+                                   return opt_field(
+                                       self, ColorSpaceInfoField::ImageState,
+                                       self.image_state());
+                               })
+        .def_property_readonly("range",
+                               [opt_field](const ColorSpaceInfo& self) {
+                                   return opt_field(self,
+                                                    ColorSpaceInfoField::Range,
+                                                    self.range());
+                               })
+        .def_property_readonly(
+            "chromaticities",
+            [](const ColorSpaceInfo& self) -> py::object {
+                cspan<float> c = self.chromaticities();
+                if (c.size() != 8)
+                    return py::none();
+                py::tuple t(8);
+                for (int i = 0; i < 8; ++i)
+                    t[i] = py::float_(c[i]);
+                return t;
+            })
+        .def_property_readonly("transfer_function_kind",
+                               &ColorSpaceInfo::transfer_function_kind)
+        .def_property_readonly(
+            "transfer_function",
+            [](const ColorSpaceInfo& self) -> py::object {
+                string_view family = self.transfer_function();
+                if (family.empty())
+                    return py::none();
+                return py::str(std::string(family));
+            })
+        .def(
+            "computed",
+            [](const ColorSpaceInfo& self, ColorSpaceInfoField field) {
+                return self.computed(field);
+            },
+            "field"_a)
+        .def(
+            "available",
+            [](const ColorSpaceInfo& self, ColorSpaceInfoField field) {
+                return self.available(field);
+            },
+            "field"_a)
+        .def(
+            "derived",
+            [](const ColorSpaceInfo& self, ColorSpaceInfoField field) {
+                return self.derived(field);
+            },
+            "field"_a);
+
     py::class_<ColorConfig>(m, "ColorConfig")
 
         .def(py::init<>())
@@ -258,6 +358,44 @@ declare_colorconfig(py::module& m)
             "include_inactive"_a = false,
             "include_context_sensitive"_a = false, "include_complex"_a = false,
             "authored_encoding_only"_a = false,
+            "context_vars"_a = std::map<std::string, std::string>())
+        .def(
+            "get_color_space_info",
+            [](const ColorConfig& self, const std::string& name,
+               const std::map<std::string, std::string>& context_vars)
+                -> py::object {
+                ColorSpaceInfoOptions opts;
+                opts.context = context_vars;
+                // The explicit string_view selects the scalar overload (a
+                // std::string lvalue would otherwise also convert to a
+                // one-element cspan).
+                ColorSpaceInfo info
+                    = self.get_color_space_info(string_view(name), opts);
+                // Invalid input maps to None; the error stays on the
+                // ColorConfig (geterror()).
+                if (!info.valid())
+                    return py::none();
+                return py::cast(info);
+            },
+            "name"_a, py::kw_only(),
+            "context_vars"_a = std::map<std::string, std::string>())
+        .def(
+            "get_color_space_infos",
+            [](const ColorConfig& self, const std::vector<std::string>& names,
+               const std::map<std::string, std::string>& context_vars) {
+                ColorSpaceInfoOptions opts;
+                opts.context = context_vars;
+                std::vector<ColorSpaceInfo> infos;
+                {
+                    // Pure C++ work, no Python objects: release the GIL for
+                    // the batch (invalid batch input returns [] and leaves
+                    // the error on the ColorConfig).
+                    py::gil_scoped_release gil;
+                    infos = self.get_color_space_info(names, opts);
+                }
+                return infos;
+            },
+            "names"_a, py::kw_only(),
             "context_vars"_a = std::map<std::string, std::string>())
         .def("configname", &ColorConfig::configname)
         .def_static("default_colorconfig", []() -> const ColorConfig& {
