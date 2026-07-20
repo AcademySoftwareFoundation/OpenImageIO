@@ -99,14 +99,14 @@ for every table entry that has a CICP mapping).
      - Matrix
      - Notes
    * - ``lin_ap1_scene``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping.
    * - ``lin_ap0_scene``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping. ACES2065-1 (AP0), used for the ACES Container (see
        below).
    * - ``lin_rec709_scene``
@@ -125,9 +125,9 @@ for every table entry that has a CICP mapping).
      - Rec2020_CL (10)
      -
    * - ``lin_adobergb_scene``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping (no CICP code for Adobe RGB primaries).
    * - ``lin_ciexyzd65_scene``
      - XYZD65 (10)
@@ -145,19 +145,19 @@ for every table entry that has a CICP mapping).
      - BT709 (1)
      -
    * - ``g18_rec709_scene``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping.
    * - ``srgb_ap1_scene``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping.
    * - ``g22_ap1_scene``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping.
    * - ``srgb_p3d65_scene``
      - P3D65 (12)
@@ -165,20 +165,20 @@ for every table entry that has a CICP mapping).
      - BT709 (1)
      -
    * - ``g22_adobergb_scene``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping (no CICP code for Adobe RGB primaries).
    * - ``data``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - Not a color space; marks pixel data that is not meant to be color
        managed.
    * - ``unknown``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - Marks pixel data whose color space is not known. On write, OpenImageIO
        never *derives* a bare ``unknown``: a user's explicitly-set
        ``colorInteropID`` attribute of ``unknown`` is written verbatim (the
@@ -233,17 +233,17 @@ for every table entry that has a CICP mapping).
      - Rec2020_NCL (9)
      -
    * - ``g22_rec709_display``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping, by deliberate choice: OpenImageIO's source notes
        that this is left unmapped "to keep previous behavior unchanged, as
        Gamma 2.2 display is more likely meant to be written as sRGB"; on
        read, the scene-referred interop ID is used instead.
    * - ``g22_adobergb_display``
-     - ---
-     - ---
-     - ---
+     - —
+     - —
+     - —
      - No CICP mapping (no CICP code for Adobe RGB primaries).
    * - ``g26_p3d65_display``
      - P3D65 (12)
