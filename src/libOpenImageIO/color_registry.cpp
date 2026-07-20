@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include <OpenImageIO/color_interop_ids.h>
 #include <OpenImageIO/strutil.h>
 
 #include "color_ocio_pvt.h"
@@ -301,12 +302,11 @@ interop_identities_config_names()
 std::vector<std::string>
 embedded_interop_identities_ids()
 {
-    // Line-scan the embedded registry YAML for `interop_id: <token>` -- the
-    // same token scan gen_color_interop_ids.py performs on the source file,
-    // so this is byte-for-byte the set the generated ColorInteropIDs
-    // constants were emitted from, independent of the linked OCIO version
-    // (the parsed composite config's declared names diverge from the
-    // canonical id set with OCIO >= 2.5's studio-config overlay).
+    // Line-scan the embedded registry YAML for `interop_id: <token>`: the
+    // canonical CIID set, independent of the linked OCIO version (the
+    // parsed composite config's declared names diverge from the canonical
+    // id set with OCIO >= 2.5's studio-config overlay). This scan backs
+    // the public ColorInteropIDs::all() lookup below.
     std::set<std::string> ids;
     string_view yaml(kInteropIdentitiesConfig);  // array is NUL-terminated
     for (string_view line : Strutil::splitsv(yaml, "\n")) {
@@ -318,5 +318,20 @@ embedded_interop_identities_ids()
 }
 
 }  // namespace pvt
+
+
+namespace ColorInteropIDs {
+
+cspan<string_view>
+all()
+{
+    // Built once from the embedded registry scan; process lifetime.
+    static const std::vector<std::string> ids
+        = pvt::embedded_interop_identities_ids();
+    static const std::vector<string_view> views(ids.begin(), ids.end());
+    return cspan<string_view>(views.data(), views.size());
+}
+
+}  // namespace ColorInteropIDs
 
 OIIO_NAMESPACE_END

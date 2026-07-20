@@ -21,7 +21,6 @@
 #include <OpenImageIO/Imath.h>
 
 #include <OpenImageIO/color.h>
-#include <OpenImageIO/color_interop_ids.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
@@ -2851,10 +2850,6 @@ enum class CICPRange : int {
 };
 
 struct ColorInteropID {
-    // interop_id is a string_view (not const char*) so entries can be
-    // constructed from OIIO::ColorInteropIDs::* constants (see the table
-    // below) as well as raw literals like "unknown", which the registry
-    // deliberately does not declare.
     constexpr ColorInteropID(string_view interop_id)
         : interop_id(interop_id)
         , cicp({ 0, 0, 0, 0 })
@@ -2881,77 +2876,73 @@ struct ColorInteropID {
 //
 // The `interop_id` string of every entry below (other than the "unknown"
 // utility token, which the registry deliberately does not declare -- see
-// pvt::is_utility_interop_id) is one of the generated
-// OIIO::ColorInteropIDs::* constants (src/include/OpenImageIO/
-// color_interop_ids.h, generated from interop-identities-config.ocio).
-// That makes the registry the sole place these ID
-// strings are spelled -- this table is a derived, hand-curated CICP-tuple
-// annotation *of* that ID set, not a second independent spelling of it. A
-// registry rename shows up here as a compile error (the constant disappears);
-// color_test.cpp's test_legacy_table_registry_sync() additionally guards
-// against an entry quietly falling out of sync in the other direction (a
-// table id no longer resolving in the registry).
+// pvt::is_utility_interop_id) spells a canonical id declared by the
+// embedded interop identities registry (interop-identities-config.ocio).
+// The entries are plain literals because they are data rows; the registry
+// remains the source of truth for id spelling, and color_test.cpp's
+// test_legacy_table_registry_sync() guards against any entry (a typo, a
+// registry rename) quietly drifting out of the registry set.
 constexpr ColorInteropID color_interop_ids[] = {
     // Scene referred interop IDs first so they are the default in automatic
     // conversion from CICP to interop ID. Some are not display color spaces
     // at all, but can be represented by CICP anyway.
-    { ColorInteropIDs::lin_ap1_scene },
-    { ColorInteropIDs::lin_ap0_scene },
-    { ColorInteropIDs::lin_rec709_scene, CICPPrimaries::Rec709,
+    { "lin_ap1_scene" },
+    { "lin_ap0_scene" },
+    { "lin_rec709_scene", CICPPrimaries::Rec709,
       CICPTransfer::Linear, CICPMatrix::BT709 },
-    { ColorInteropIDs::lin_p3d65_scene, CICPPrimaries::P3D65,
+    { "lin_p3d65_scene", CICPPrimaries::P3D65,
       CICPTransfer::Linear, CICPMatrix::BT709 },
-    { ColorInteropIDs::lin_rec2020_scene, CICPPrimaries::Rec2020,
+    { "lin_rec2020_scene", CICPPrimaries::Rec2020,
       CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
-    { ColorInteropIDs::lin_adobergb_scene },
-    { ColorInteropIDs::lin_ciexyzd65_scene, CICPPrimaries::XYZD65,
+    { "lin_adobergb_scene" },
+    { "lin_ciexyzd65_scene", CICPPrimaries::XYZD65,
       CICPTransfer::Linear, CICPMatrix::Unspecified },
     // Rec.709 primaries + transfer 13 (IEC 61966-2-1, the sRGB OETF) is
     // display-referred sRGB, not scene-referred: CICP describes the
     // encoding of the actual (already display-referred) pixel values, per
     // ITU-T H.273. Listed here, ahead of srgb_rec709_scene, so it wins the
     // first-match lookup in get_color_interop_id(const int cicp[4]).
-    { ColorInteropIDs::srgb_rec709_display, CICPPrimaries::Rec709,
+    { "srgb_rec709_display", CICPPrimaries::Rec709,
       CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { ColorInteropIDs::srgb_rec709_scene, CICPPrimaries::Rec709,
+    { "srgb_rec709_scene", CICPPrimaries::Rec709,
       CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { ColorInteropIDs::g22_rec709_scene, CICPPrimaries::Rec709,
+    { "g22_rec709_scene", CICPPrimaries::Rec709,
       CICPTransfer::Gamma22, CICPMatrix::BT709 },
-    { ColorInteropIDs::g18_rec709_scene },
-    { ColorInteropIDs::srgb_ap1_scene },
-    { ColorInteropIDs::g22_ap1_scene },
-    { ColorInteropIDs::srgb_p3d65_scene, CICPPrimaries::P3D65,
+    { "g18_rec709_scene" },
+    { "srgb_ap1_scene" },
+    { "g22_ap1_scene" },
+    { "srgb_p3d65_scene", CICPPrimaries::P3D65,
       CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { ColorInteropIDs::g22_adobergb_scene },
-    { ColorInteropIDs::data },
+    { "g22_adobergb_scene" },
+    { "data" },
     { "unknown" },  // utility token; deliberately not a registry entry.
 
     // Display referred interop IDs. (srgb_rec709_display is listed above,
     // ahead of srgb_rec709_scene, so it resolves first on read.)
-    { ColorInteropIDs::g24_rec709_display, CICPPrimaries::Rec709,
+    { "g24_rec709_display", CICPPrimaries::Rec709,
       CICPTransfer::BT709, CICPMatrix::BT709 },
-    { ColorInteropIDs::srgb_p3d65_display, CICPPrimaries::P3D65,
+    { "srgb_p3d65_display", CICPPrimaries::P3D65,
       CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { ColorInteropIDs::srgbe_p3d65_display, CICPPrimaries::P3D65,
+    { "srgbe_p3d65_display", CICPPrimaries::P3D65,
       CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { ColorInteropIDs::pq_p3d65_display, CICPPrimaries::P3D65, CICPTransfer::PQ,
+    { "pq_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::PQ,
       CICPMatrix::Rec2020_NCL },
-    { ColorInteropIDs::pq_rec2020_display, CICPPrimaries::Rec2020,
+    { "pq_rec2020_display", CICPPrimaries::Rec2020,
       CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
-    { ColorInteropIDs::hlg_rec2020_display, CICPPrimaries::Rec2020,
+    { "hlg_rec2020_display", CICPPrimaries::Rec2020,
       CICPTransfer::HLG, CICPMatrix::Rec2020_NCL },
     // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
     // display is more likely meant to be written as sRGB. On read the
     // scene referred interop ID will be used.
-    { ColorInteropIDs::g22_rec709_display,
+    { "g22_rec709_display",
       /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
     // No CICP code for Adobe RGB primaries.
-    { ColorInteropIDs::g22_adobergb_display },
-    { ColorInteropIDs::g26_p3d65_display, CICPPrimaries::P3D65,
+    { "g22_adobergb_display" },
+    { "g26_p3d65_display", CICPPrimaries::P3D65,
       CICPTransfer::Gamma26, CICPMatrix::BT709 },
-    { ColorInteropIDs::g26_xyzd65_display, CICPPrimaries::XYZD65,
+    { "g26_xyzd65_display", CICPPrimaries::XYZD65,
       CICPTransfer::Gamma26, CICPMatrix::Unspecified },
-    { ColorInteropIDs::pq_xyzd65_display, CICPPrimaries::XYZD65,
+    { "pq_xyzd65_display", CICPPrimaries::XYZD65,
       CICPTransfer::PQ, CICPMatrix::Unspecified },
 };
 }  // namespace

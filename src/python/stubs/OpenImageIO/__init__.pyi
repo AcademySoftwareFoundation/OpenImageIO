@@ -3,7 +3,6 @@
 #
 
 import collections.abc
-import enum
 import numpy
 import typing
 import typing_extensions
@@ -220,91 +219,6 @@ class ColorConfig:
     def geterror(self) -> str: ...
     def parseColorSpaceFromString(self, arg0: str, /) -> str: ...
     def resolve(self, name: str) -> str: ...
-
-class ColorInteropID(str, enum.Enum):
-    DATA = 'data'
-    G18_REC709_SCENE = 'g18_rec709_scene'
-    G22_ADOBERGB_DISPLAY = 'g22_adobergb_display'
-    G22_ADOBERGB_SCENE = 'g22_adobergb_scene'
-    G22_AP1_SCENE = 'g22_ap1_scene'
-    G22_REC709_DISPLAY = 'g22_rec709_display'
-    G22_REC709_SCENE = 'g22_rec709_scene'
-    G24_REC709_DISPLAY = 'g24_rec709_display'
-    G24_REC709_SCENE = 'g24_rec709_scene'
-    G26_P3D65_DISPLAY = 'g26_p3d65_display'
-    G26_XYZD65_DISPLAY = 'g26_xyzd65_display'
-    HLG_REC2020_DISPLAY = 'hlg_rec2020_display'
-    LIN_ADOBERGB_SCENE = 'lin_adobergb_scene'
-    LIN_AP0_SCENE = 'lin_ap0_scene'
-    LIN_AP1_SCENE = 'lin_ap1_scene'
-    LIN_CIEXYZD65_SCENE = 'lin_ciexyzd65_scene'
-    LIN_P3D65_DISPLAY = 'lin_p3d65_display'
-    LIN_P3D65_SCENE = 'lin_p3d65_scene'
-    LIN_REC2020_DISPLAY = 'lin_rec2020_display'
-    LIN_REC2020_SCENE = 'lin_rec2020_scene'
-    LIN_REC709_DISPLAY = 'lin_rec709_display'
-    LIN_REC709_SCENE = 'lin_rec709_scene'
-    OCIO_ACESCC_AP1_SCENE = 'ocio:acescc_ap1_scene'
-    OCIO_ACESCCT_AP1_SCENE = 'ocio:acescct_ap1_scene'
-    OCIO_ADX10_APD_SCENE = 'ocio:adx10_apd_scene'
-    OCIO_ADX16_APD_SCENE = 'ocio:adx16_apd_scene'
-    OCIO_ARRILOGC3_AWG3_SCENE = 'ocio:arrilogc3_awg3_scene'
-    OCIO_ARRILOGC4_AWG4_SCENE = 'ocio:arrilogc4_awg4_scene'
-    OCIO_BMDFILM5_WG5_SCENE = 'ocio:bmdfilm5_wg5_scene'
-    OCIO_CANONLOG2_CGAMUTD55_SCENE = 'ocio:canonlog2_cgamutd55_scene'
-    OCIO_CANONLOG3_CGAMUTD55_SCENE = 'ocio:canonlog3_cgamutd55_scene'
-    OCIO_DAVINCI_DWG_SCENE = 'ocio:davinci_dwg_scene'
-    OCIO_DJILOG_DGAMUT_SCENE = 'ocio:djilog_dgamut_scene'
-    OCIO_ITU709_REC709_SCENE = 'ocio:itu709_rec709_scene'
-    OCIO_LIN_APPLEWG_SCENE = 'ocio:lin_applewg_scene'
-    OCIO_LIN_AWG3_SCENE = 'ocio:lin_awg3_scene'
-    OCIO_LIN_AWG4_SCENE = 'ocio:lin_awg4_scene'
-    OCIO_LIN_BMDWG5_SCENE = 'ocio:lin_bmdwg5_scene'
-    OCIO_LIN_CGAMUTD55_SCENE = 'ocio:lin_cgamutd55_scene'
-    OCIO_LIN_CIEXYZD65_DISPLAY = 'ocio:lin_ciexyzd65_display'
-    OCIO_LIN_DGAMUT_SCENE = 'ocio:lin_dgamut_scene'
-    OCIO_LIN_DWG_SCENE = 'ocio:lin_dwg_scene'
-    OCIO_LIN_RWG_SCENE = 'ocio:lin_rwg_scene'
-    OCIO_LIN_SGAMUT3_SCENE = 'ocio:lin_sgamut3_scene'
-    OCIO_LIN_SGAMUT3CINE_SCENE = 'ocio:lin_sgamut3cine_scene'
-    OCIO_LIN_SGAMUT3CINEVENICE_SCENE = 'ocio:lin_sgamut3cinevenice_scene'
-    OCIO_LIN_SGAMUT3VENICE_SCENE = 'ocio:lin_sgamut3venice_scene'
-    OCIO_LIN_VGAMUT_SCENE = 'ocio:lin_vgamut_scene'
-    OCIO_REDLOG3G10_RWG_SCENE = 'ocio:redlog3g10_rwg_scene'
-    OCIO_SLOG3_SGAMUT3_SCENE = 'ocio:slog3_sgamut3_scene'
-    OCIO_SLOG3_SGAMUT3CINE_SCENE = 'ocio:slog3_sgamut3cine_scene'
-    OCIO_SLOG3_SGAMUT3CINEVENICE_SCENE = 'ocio:slog3_sgamut3cinevenice_scene'
-    OCIO_SLOG3_SGAMUT3VENICE_SCENE = 'ocio:slog3_sgamut3venice_scene'
-    OCIO_VLOG_VGAMUT_SCENE = 'ocio:vlog_vgamut_scene'
-    OIIO_APPLELOG_APPLEWG_SCENE = 'oiio:applelog_applewg_scene'
-    OIIO_APPLELOG_REC2020_SCENE = 'oiio:applelog_rec2020_scene'
-    OIIO_G22_ADOBERGBD50_DISPLAY = 'oiio:g22_adobergbd50_display'
-    OIIO_G22_P3D50_DISPLAY = 'oiio:g22_p3d50_display'
-    OIIO_G22_P3D65_DISPLAY = 'oiio:g22_p3d65_display'
-    OIIO_G24_REC2020_DISPLAY = 'oiio:g24_rec2020_display'
-    OIIO_G24_REC601_DISPLAY = 'oiio:g24_rec601_display'
-    OIIO_G24_REC601PAL_DISPLAY = 'oiio:g24_rec601pal_display'
-    OIIO_G26_P3D60_DISPLAY = 'oiio:g26_p3d60_display'
-    OIIO_G26_P3DCI_DISPLAY = 'oiio:g26_p3dci_display'
-    OIIO_LIN_EGAMUT2_SCENE = 'oiio:lin_egamut2_scene'
-    OIIO_LIN_EGAMUT_SCENE = 'oiio:lin_egamut_scene'
-    OIIO_LIN_P3D60_DISPLAY = 'oiio:lin_p3d60_display'
-    OIIO_LIN_P3DCI_DISPLAY = 'oiio:lin_p3dci_display'
-    OIIO_LIN_PROPHOTO_DISPLAY = 'oiio:lin_prophoto_display'
-    OIIO_LIN_REC601_DISPLAY = 'oiio:lin_rec601_display'
-    OIIO_LIN_REC601PAL_DISPLAY = 'oiio:lin_rec601pal_display'
-    OIIO_PQ_REC709_DISPLAY = 'oiio:pq_rec709_display'
-    OIIO_TLOG_EGAMUT2_SCENE = 'oiio:tlog_egamut2_scene'
-    OIIO_TLOG_EGAMUT_SCENE = 'oiio:tlog_egamut_scene'
-    PQ_P3D65_DISPLAY = 'pq_p3d65_display'
-    PQ_REC2020_DISPLAY = 'pq_rec2020_display'
-    PQ_XYZD65_DISPLAY = 'pq_xyzd65_display'
-    SRGB_AP1_SCENE = 'srgb_ap1_scene'
-    SRGB_P3D65_DISPLAY = 'srgb_p3d65_display'
-    SRGB_P3D65_SCENE = 'srgb_p3d65_scene'
-    SRGB_REC709_DISPLAY = 'srgb_rec709_display'
-    SRGB_REC709_SCENE = 'srgb_rec709_scene'
-    SRGBE_P3D65_DISPLAY = 'srgbe_p3d65_display'
 
 class ColorSpaceInfo:
     @property
@@ -1779,6 +1693,7 @@ def attribute(arg0: str, arg1: typing.SupportsInt, /) -> None: ...
 def attribute(arg0: str, arg1: str, /) -> None: ...
 @overload
 def attribute(arg0: str, arg1: TypeDesc | BASETYPE | str, arg2: object, /) -> None: ...
+def color_interop_ids() -> tuple[str, ...]: ...
 def equivalent_colorspace(arg0: str, arg1: str, /) -> bool: ...
 def get_bytes_attribute(name: str, defaultval: str = ...) -> bytes: ...
 def get_float_attribute(name: str, defaultval: typing.SupportsFloat = ...) -> float: ...

@@ -405,31 +405,18 @@ declare_colorconfig(py::module& m)
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
     m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();
 
-    // ColorInteropID: a Python str enum of every canonical Color Interop
-    // Forum id OIIO's built-in interop identities registry declares -- the same set as the generated C++
-    // OIIO::ColorInteropIDs::* constants (color_interop_ids.h), one member
-    // per id. Defined via a `class ColorInteropID(str, enum.Enum)` source
-    // string rather than enum's functional API so it can override __str__ to
-    // return the plain value (matching stdlib enum.StrEnum's behavior, which
-    // isn't available before Python 3.11 -- this project's floor is 3.9):
-    // members compare equal to, print as, and are accepted anywhere as plain
-    // str, so every existing string-taking API above (including
-    // get_color_interop_id) takes a member unchanged.
-    {
-        std::string src = "import enum\n"
-                          "class ColorInteropID(str, enum.Enum):\n";
-        for (string_view id : ColorInteropIDs::all) {
-            std::string name(id);
-            for (char& c : name)
-                c = (c == ':') ? '_' : char(std::toupper((unsigned char)c));
-            src += "    " + name + " = \"" + std::string(id) + "\"\n";
-        }
-        src += "    def __str__(self):\n"
-               "        return self.value\n";
-        py::dict ns;
-        py::exec(src, py::globals(), ns);
-        m.attr("ColorInteropID") = ns["ColorInteropID"];
-    }
+    // color_interop_ids(): the canonical Color Interop Forum ids declared
+    // by OIIO's built-in interop identities registry (the same data as
+    // C++ OIIO::ColorInteropIDs::all()), as a tuple of plain strings --
+    // registry data, not an enum, because the id grammar is open
+    // (custom/icc/local/user-namespaced ids cannot be enumerated).
+    m.def("color_interop_ids", []() {
+        cspan<string_view> ids = ColorInteropIDs::all();
+        py::tuple result(ids.size());
+        for (size_t i = 0; i < ids.size(); ++i)
+            result[i] = py::str(ids[i].data(), ids[i].size());
+        return result;
+    });
 }
 
 }  // namespace PyOpenImageIO

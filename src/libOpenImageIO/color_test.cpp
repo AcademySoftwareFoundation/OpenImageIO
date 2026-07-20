@@ -442,17 +442,14 @@ test_registry_round_trip()
 
 
 
-// The generated OIIO::ColorInteropIDs::* constants
-// (src/include/OpenImageIO/color_interop_ids.h) must be an exact-set match
-// for the canonical `interop_id:` set declared in the embedded interop
+// The public ColorInteropIDs::all() lookup must be an exact-set match for
+// the canonical `interop_id:` set declared in the embedded interop
 // identities registry source (NOT the composite parsed config, whose
 // declared names diverge from the canonical id set under OCIO >= 2.5's
-// studio-config overlay) -- the header is a checked-in generated artifact,
-// not hand-maintained, and this is its drift guard (run `python
-// src/build-scripts/gen_color_interop_ids.py` and commit the result if the
-// registry has changed and this fails).
+// studio-config overlay), and its storage must be stable for the life of
+// the process.
 static void
-test_color_interop_id_constants_sync()
+test_color_interop_ids_all_sync()
 {
     using OIIO::pvt::embedded_interop_identities_ids;
 
@@ -461,34 +458,37 @@ test_color_interop_id_constants_sync()
 
     std::unordered_set<std::string> registry_set(registry.begin(),
                                                  registry.end());
-    std::unordered_set<std::string> constants_set;
-    for (string_view id : ColorInteropIDs::all)
-        constants_set.emplace(id);
+    cspan<string_view> all = ColorInteropIDs::all();
+    std::unordered_set<std::string> all_set;
+    for (string_view id : all)
+        all_set.emplace(id);
 
-    OIIO_CHECK_EQUAL(constants_set.size(), registry_set.size());
+    OIIO_CHECK_EQUAL(all_set.size(), registry_set.size());
     for (const auto& id : registry_set) {
-        if (constants_set.count(id) != 1)
-            Strutil::print("  registry id missing from constants: {}\n", id);
-        OIIO_CHECK_ASSERT(constants_set.count(id) == 1);
+        if (all_set.count(id) != 1)
+            Strutil::print("  registry id missing from all(): {}\n", id);
+        OIIO_CHECK_ASSERT(all_set.count(id) == 1);
     }
-    for (const auto& id : constants_set) {
+    for (const auto& id : all_set) {
         if (registry_set.count(id) != 1)
-            Strutil::print("  constant not in registry: {}\n", id);
+            Strutil::print("  all() id not in registry: {}\n", id);
         OIIO_CHECK_ASSERT(registry_set.count(id) == 1);
     }
+
+    // Process-lifetime storage: repeated calls return the same data.
+    OIIO_CHECK_ASSERT(ColorInteropIDs::all().data() == all.data());
+    OIIO_CHECK_EQUAL(ColorInteropIDs::all().size(), all.size());
 }
 
 
 
 // The legacy static CICP/interop-id
 // table (color_ocio.cpp's `color_interop_ids[]`) must not drift from the
-// registry that is now its single source of truth for id spelling. Every
-// table entry is built from a generated ColorInteropIDs::* constant already
-// (a rename shows up as a compile error), except the "unknown" utility
-// token, which the registry deliberately omits -- this test is the runtime
-// half of that guarantee, over the table's own accessor rather than the
-// source literals, so it also catches a future hand-edit that reintroduces a
-// raw (mistyped) string literal.
+// registry that is its single source of truth for id spelling. The table
+// spells its ids as plain string literals (they are data rows), so this
+// runtime check is the whole guarantee: every entry except the "unknown"
+// utility token, which the registry deliberately omits, must resolve in
+// the registry set -- a typo or a registry rename fails here.
 static void
 test_legacy_table_registry_sync()
 {
@@ -3641,7 +3641,7 @@ main(int argc, char* argv[])
     test_interop_id_grammar();
     test_registry_invariants();
     test_registry_round_trip();
-    test_color_interop_id_constants_sync();
+    test_color_interop_ids_all_sync();
     test_legacy_table_registry_sync();
     test_color_space_classification();
     test_color_space_fingerprint();

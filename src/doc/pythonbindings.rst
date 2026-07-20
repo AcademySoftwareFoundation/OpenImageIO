@@ -4168,25 +4168,24 @@ is provided for minimal color support.
     This class was added in OpenImageIO 3.2.
 
 
-.. py:class:: ColorInteropID
+.. py:function:: color_interop_ids()
 
-    A ``str`` enum (members compare equal to, and may be passed anywhere as,
-    a plain string) with one member per canonical Color Interop Forum id
-    that OpenImageIO's built-in interop identities registry declares -- the
-    same set as the C++ ``OIIO::ColorInteropIDs::*`` constants
-    (``<OpenImageIO/color_interop_ids.h>``). Member names are the canonical
-    id, upper-cased, with any namespace ``:`` replaced by ``_`` (e.g. id
-    ``"ocio:acescc_ap1_scene"`` is member ``OCIO_ACESCC_AP1_SCENE``).
+    Returns a ``tuple`` of plain strings: the canonical Color Interop Forum
+    ids that OpenImageIO's built-in interop identities registry declares,
+    in deterministic registry order -- the same data as the C++
+    ``OIIO::ColorInteropIDs::all()`` (``<OpenImageIO/color_interop_ids.h>``).
+    This is registry data, not an enum: the id grammar is open (custom,
+    ICC, local, and user-namespaced ids cannot be enumerated), and plain
+    strings remain the parameter type everywhere a CIID is accepted.
 
     Example:
 
     .. code-block:: python
 
-        cid = oiio.ColorInteropID.SRGB_REC709_DISPLAY
-        assert cid == "srgb_rec709_display"
-        interop_id = colorconfig.get_color_interop_id(cid)
+        assert "srgb_rec709_display" in oiio.color_interop_ids()
+        interop_id = colorconfig.get_color_interop_id("srgb_rec709_display")
 
-    This class was added in OpenImageIO 3.2.
+    This function was added in OpenImageIO 3.2.
 
 
 .. _sec-pythonmiscapi:
