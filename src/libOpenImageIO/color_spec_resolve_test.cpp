@@ -43,6 +43,7 @@ environment: {}
 search_path: ""
 roles:
   default: raw_data
+  data: raw_data
   scene_linear: lin_test_scene
 displays:
   disp:
@@ -62,7 +63,58 @@ colorspaces:
   - !<ColorSpace>
     name: srgb_rec709_display
     from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1.0]}
+file_rules:
+  - !<Rule> {name: lin_rule, pattern: "*lin_test_scene*", extension: "*", colorspace: lin_test_scene}
+  - !<Rule> {name: Default, colorspace: default}
 )";
+    f.close();
+    return path;
+}
+
+
+// A strict-parsing config that declares the "error:unknown" catch space
+// the effective-strict failure split honors (with a real transform, so
+// pixels prove which source space a conversion used).
+static std::string
+write_strict_config()
+{
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_csr_strict.ocio";
+    std::ofstream f(path);
+    f << R"(ocio_profile_version: 2
+environment: {}
+search_path: ""
+strictparsing: true
+roles:
+  default: raw_data
+  scene_linear: lin_strict
+displays:
+  disp:
+    - !<View> {name: view, colorspace: lin_strict}
+active_displays: [disp]
+active_views: [view]
+colorspaces:
+  - !<ColorSpace>
+    name: raw_data
+    isdata: true
+  - !<ColorSpace>
+    name: lin_strict
+  - !<ColorSpace>
+    name: "error:unknown"
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1.0]}
+)";
+    f.close();
+    return path;
+}
+
+
+// A minimal identity 1D LUT, for exercising ociofiletransform.
+static std::string
+write_cube_lut(const std::string& basename)
+{
+    std::string path = Filesystem::temp_directory_path() + "/" + basename;
+    std::ofstream f(path);
+    f << "LUT_1D_SIZE 2\n0.0 0.0 0.0\n0.9 0.9 0.9\n";
     f.close();
     return path;
 }
@@ -419,6 +471,283 @@ test_iba_scrub_wiring(const ColorConfig& config)
 }
 
 
+// A hint-laden source buffer: tagged (or not), every provenance fact
+// present, plus pre-existing (stale) current-state descriptors.
+static ImageBuf
+make_hinted_src(const char* space)
+{
+    ImageSpec spec(4, 4, 3, TypeFloat);
+    if (space && space[0])
+        spec.attribute("oiio:ColorSpace", space);
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+    spec.attribute("colorInteropID", "lin_ap1_scene");
+    auto icc = fake_icc_profile();
+    spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, int(icc.size())),
+                   icc.data());
+    spec.attribute("oiio:ColorSpace:range", "narrow");
+    spec.attribute("oiio:ColorSpace:equality_id", "stale_equality_id");
+    ImageBuf buf(spec);
+    ImageBufAlgo::fill(buf, { 0.5f, 0.25f, 0.75f });
+    return buf;
+}
+
+
+// Check a current-state descriptor against the update-or-erase rule: a
+// usable value updates the attribute, an unavailable one erases it.
+static void
+check_descriptor(const ImageSpec& spec, const char* name, string_view value)
+{
+    if (value.size())
+        OIIO_CHECK_EQUAL(spec.get_string_attribute(name), std::string(value));
+    else
+        OIIO_CHECK_ASSERT(!spec.find_attribute(name));
+}
+
+
+// Per-class hygiene outcomes. Identity-known: verdict updated, provenance
+// facts scrubbed (explicit AND inferred source), cheap descriptors
+// maintained update-or-erase. Identity-unknowable: verdict, facts, and
+// descriptors all erased (absence, never a guess). Space-preserving:
+// everything passes through.
+static void
+test_hygiene_per_class(const ColorConfig& config)
+{
+    // Known, explicit source.
+    {
+        ImageBuf src = make_hinted_src("srgb_rec709_scene");
+        ImageBuf out = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
+                                                  "lin_test_scene", true, "",
+                                                  "", &config);
+        OIIO_CHECK_ASSERT(!out.has_error());
+        const ImageSpec& s = out.spec();
+        OIIO_CHECK_EQUAL(s.get_string_attribute("oiio:ColorSpace"),
+                         "lin_test_scene");
+        OIIO_CHECK_ASSERT(!s.find_attribute("CICP"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("colorInteropID"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("ICCProfile"));
+        ColorSpaceInfo info = config.get_color_space_info("lin_test_scene");
+        OIIO_CHECK_ASSERT(info.valid());
+        check_descriptor(s, "oiio:ColorSpace:state", info.image_state());
+        check_descriptor(s, "oiio:ColorSpace:encoding", info.encoding());
+        // Range operation-awareness: an ordinary conversion does not
+        // invent a range, and the stale pre-operation value is gone.
+        check_descriptor(s, "oiio:ColorSpace:range", info.range());
+        OIIO_CHECK_ASSERT(info.range().empty());
+    }
+    // Known, inferred source: identical hygiene (uniform rule).
+    {
+        ImageBuf src = make_hinted_src("");
+        ImageBuf out = ImageBufAlgo::colorconvert(src, "", "lin_test_scene",
+                                                  true, "", "", &config);
+        OIIO_CHECK_ASSERT(!out.has_error());
+        const ImageSpec& s = out.spec();
+        OIIO_CHECK_EQUAL(s.get_string_attribute("oiio:ColorSpace"),
+                         "lin_test_scene");
+        OIIO_CHECK_ASSERT(!s.find_attribute("CICP"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("colorInteropID"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("ICCProfile"));
+    }
+    // Known via ociodisplay, source inferred from a colorInteropID hint:
+    // pixels match the explicit-source call, verdict is the view's space,
+    // facts are scrubbed.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("colorInteropID", "lin_ap1_scene");
+        ImageBuf src(spec);
+        ImageBufAlgo::fill(src, { 0.5f, 0.25f, 0.75f });
+        ImageBuf inferred = ImageBufAlgo::ociodisplay(src, "disp", "view", "",
+                                                      "", true, false, "", "",
+                                                      &config);
+        OIIO_CHECK_ASSERT(!inferred.has_error());
+        ImageBuf explicit_src
+            = ImageBufAlgo::ociodisplay(src, "disp", "view", "lin_ap1_scene",
+                                        "", true, false, "", "", &config);
+        OIIO_CHECK_ASSERT(!explicit_src.has_error());
+        auto cmp = ImageBufAlgo::compare(inferred, explicit_src, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(cmp.nfail, 0);
+        OIIO_CHECK_EQUAL(inferred.spec().get_string_attribute(
+                             "oiio:ColorSpace"),
+                         "srgb_rec709_scene");
+        OIIO_CHECK_ASSERT(!inferred.spec().find_attribute("colorInteropID"));
+    }
+    // Unknowable: an arbitrary LUT whose path names no color space. The
+    // verdict, every provenance fact, and every descriptor are erased --
+    // absence, never "oiio:unknown".
+    {
+        std::string lut = write_cube_lut("oiio_csr_plain.cube");
+        ImageBuf src    = make_hinted_src("srgb_rec709_scene");
+        ImageBuf out = ImageBufAlgo::ociofiletransform(src, lut, false, false,
+                                                       &config);
+        OIIO_CHECK_ASSERT(!out.has_error());
+        const ImageSpec& s = out.spec();
+        OIIO_CHECK_ASSERT(!s.find_attribute("oiio:ColorSpace"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("CICP"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("colorInteropID"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("ICCProfile"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("oiio:ColorSpace:range"));
+        OIIO_CHECK_ASSERT(!s.find_attribute("oiio:ColorSpace:equality_id"));
+        Filesystem::remove(lut);
+    }
+    // ... but a LUT path that names a color space via the config's file
+    // rules declares the identity: full Known hygiene, longstanding
+    // color-space-from-filepath behavior preserved.
+    {
+        std::string lut = write_cube_lut("oiio_csr_to_lin_test_scene.cube");
+        ImageBuf src    = make_hinted_src("srgb_rec709_scene");
+        ImageBuf out = ImageBufAlgo::ociofiletransform(src, lut, false, false,
+                                                       &config);
+        OIIO_CHECK_ASSERT(!out.has_error());
+        OIIO_CHECK_EQUAL(out.spec().get_string_attribute("oiio:ColorSpace"),
+                         "lin_test_scene");
+        OIIO_CHECK_ASSERT(!out.spec().find_attribute("colorInteropID"));
+        Filesystem::remove(lut);
+    }
+    // Preserved: a data-space no-op passes verdict, facts, and
+    // descriptors through untouched (its hints are still true).
+    {
+        ImageBuf src = make_hinted_src("raw_data");
+        ImageBuf out = ImageBufAlgo::colorconvert(src, "raw_data",
+                                                  "lin_test_scene", true, "",
+                                                  "", &config);
+        OIIO_CHECK_ASSERT(!out.has_error());
+        const ImageSpec& s = out.spec();
+        OIIO_CHECK_EQUAL(s.get_string_attribute("oiio:ColorSpace"),
+                         "raw_data");
+        OIIO_CHECK_ASSERT(s.find_attribute("CICP"));
+        OIIO_CHECK_ASSERT(s.find_attribute("colorInteropID"));
+        OIIO_CHECK_ASSERT(s.find_attribute("ICCProfile"));
+        // Range operation-awareness: a space-preserving operation retains
+        // the buffer's range.
+        OIIO_CHECK_EQUAL(s.get_string_attribute("oiio:ColorSpace:range"),
+                         "narrow");
+    }
+}
+
+
+// The disparity rule (treatment and identity are separate axes): the
+// synthetic "oiio:unknown" treatment marker may legally coexist with a
+// definite verdict, and hygiene must not "fix" the disparity -- the
+// marker survives identity-known hygiene untouched.
+static void
+test_hygiene_disparity_pin(const ColorConfig& config)
+{
+    ImageSpec spec(4, 4, 3, TypeFloat);
+    spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
+    spec.attribute("colorInteropID", "oiio:unknown");
+    ImageBuf src(spec);
+    ImageBufAlgo::fill(src, { 0.5f, 0.25f, 0.75f });
+    ImageBuf out = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
+                                              "lin_test_scene", true, "", "",
+                                              &config);
+    OIIO_CHECK_ASSERT(!out.has_error());
+    OIIO_CHECK_EQUAL(out.spec().get_string_attribute("oiio:ColorSpace"),
+                     "lin_test_scene");
+    OIIO_CHECK_EQUAL(out.spec().get_string_attribute("colorInteropID"),
+                     "oiio:unknown");
+}
+
+
+// equality_id maintenance is update-or-erase, never derive: an uncached
+// equality id is erased (the stale pre-operation value must not survive)
+// and the IBA path never computes a fingerprint; once an explicit derive
+// has cached the record, a fresh operation sees the cached value.
+static void
+test_hygiene_equality_id(const ColorConfig& config)
+{
+    const size_t fp_before = color_space_fingerprint_cache_size();
+    ImageBuf src           = make_hinted_src("srgb_rec709_scene");
+    ImageBuf out = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
+                                              "lin_test_scene", true, "", "",
+                                              &config);
+    OIIO_CHECK_ASSERT(!out.has_error());
+    // Uncached: erased, never derived -- and no fingerprint work happened.
+    OIIO_CHECK_ASSERT(
+        !out.spec().find_attribute("oiio:ColorSpace:equality_id"));
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), fp_before);
+
+    // An explicit derive caches the full record; a fresh operation now
+    // sees the cached value (or a settled negative, which stays erased).
+    ColorSpaceInfo derived = config.derive_color_space_info("lin_test_scene");
+    OIIO_CHECK_ASSERT(derived.valid());
+    ImageBuf src2 = make_hinted_src("srgb_rec709_scene");
+    ImageBuf out2 = ImageBufAlgo::colorconvert(src2, "srgb_rec709_scene",
+                                               "lin_test_scene", true, "", "",
+                                               &config);
+    OIIO_CHECK_ASSERT(!out2.has_error());
+    check_descriptor(out2.spec(), "oiio:ColorSpace:equality_id",
+                     derived.equality_id());
+}
+
+
+// The failure split, by consequence: pixel math with an unresolvable
+// source errors via has_error (never a config-default guess into a
+// processor); the config-declared "error:unknown" catch space is honored
+// under effective-strict (strict scope AND config strictparsing); the
+// (default) lenient scope keeps today's behavior exactly.
+static void
+test_hygiene_failure_split(const ColorConfig& config,
+                           const ColorConfig& strict_config)
+{
+    ImageBuf untagged(ImageSpec(4, 4, 3, TypeFloat));
+    ImageBufAlgo::fill(untagged, { 0.5f, 0.25f, 0.75f });
+
+    // A source tagged literally "unknown" errors under any scope.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "unknown");
+        ImageBuf src(spec);
+        ImageBufAlgo::fill(src, { 0.5f, 0.25f, 0.75f });
+        ImageBuf out = ImageBufAlgo::colorconvert(src, "", "lin_test_scene",
+                                                  true, "", "", &config);
+        OIIO_CHECK_ASSERT(out.has_error());
+        (void)out.geterror();
+    }
+
+    OIIO::attribute("oiio:colorpolicy:read:scope", "config_only");
+    // Strict scope, no strictparsing on the config: hard error, the
+    // catch space is not consulted (effective-strict requires both).
+    {
+        ImageBuf out = ImageBufAlgo::colorconvert(untagged, "",
+                                                  "lin_test_scene", true, "",
+                                                  "", &config);
+        OIIO_CHECK_ASSERT(out.has_error());
+        (void)out.geterror();
+    }
+    // Effective-strict with the catch space declared: resolution failure
+    // lands in "error:unknown" and the operation proceeds -- pixel-equal
+    // to naming the catch space explicitly.
+    {
+        ImageBuf out = ImageBufAlgo::colorconvert(untagged, "", "lin_strict",
+                                                  true, "", "",
+                                                  &strict_config);
+        OIIO_CHECK_ASSERT(!out.has_error());
+        ImageBuf explicit_catch
+            = ImageBufAlgo::colorconvert(untagged, "error:unknown",
+                                         "lin_strict", true, "", "",
+                                         &strict_config);
+        OIIO_CHECK_ASSERT(!explicit_catch.has_error());
+        auto cmp = ImageBufAlgo::compare(out, explicit_catch, 0.0f, 0.0f);
+        OIIO_CHECK_EQUAL(cmp.nfail, 0);
+        // The conversion was real (the catch space carries a transform).
+        ImageBuf noop = ImageBufAlgo::colorconvert(untagged, "lin_strict",
+                                                   "lin_strict", true, "", "",
+                                                   &strict_config);
+        auto cmp2 = ImageBufAlgo::compare(out, noop, 0.0f, 0.0f);
+        OIIO_CHECK_ASSERT(cmp2.nfail > 0);
+    }
+    OIIO::attribute("oiio:colorpolicy:read:scope", "lenient");
+
+    // Lenient scope: a hintless untagged source keeps today's
+    // scene_linear default (a tracking gap is not an error).
+    {
+        ImageBuf out = ImageBufAlgo::colorconvert(untagged, "",
+                                                  "srgb_rec709_display", true,
+                                                  "", "", &config);
+        OIIO_CHECK_ASSERT(!out.has_error());
+    }
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -437,14 +766,27 @@ main(int /*argc*/, char* /*argv*/[])
         return 1;
     }
 
+    const std::string strictpath = write_strict_config();
+    ColorConfig strict_config(strictpath);
+    if (strict_config.has_error()) {
+        Strutil::print("Could not load strict test config: {}\n",
+                       strict_config.geterror());
+        return 1;
+    }
+
     test_same_hints_same_answer(config);
     test_config_or_registry_failover(sparse);
     test_infer_helper(config);
     test_iba_inference(config);
     test_scrubber(config);
     test_iba_scrub_wiring(config);
+    test_hygiene_per_class(config);
+    test_hygiene_disparity_pin(config);
+    test_hygiene_equality_id(config);
+    test_hygiene_failure_split(config, strict_config);
 
     Filesystem::remove(cfgpath);
     Filesystem::remove(sparsepath);
+    Filesystem::remove(strictpath);
     return unit_test_failures != 0;
 }

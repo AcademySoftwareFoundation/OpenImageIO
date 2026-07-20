@@ -4068,9 +4068,13 @@ ColorOperationHygiene::finish(ColorOperationIdentity identity,
 
     switch (identity) {
     case ColorOperationIdentity::Preserved:
-        // Space-preserving (or an honest no-op): re-stamp the verdict when
-        // the operation names it; facts and descriptors pass through.
-        if (!target_color_space.empty())
+        // Space-preserving (or an honest no-op): facts and descriptors
+        // pass through, and the verdict is stamped only when the
+        // operation names one the spec doesn't already carry (avoiding
+        // set_colorspace's collateral invalidation of still-true hints).
+        if (!target_color_space.empty()
+            && target_color_space
+                   != spec.get_string_attribute("oiio:ColorSpace"))
             spec.set_colorspace(target_color_space);
         break;
 
