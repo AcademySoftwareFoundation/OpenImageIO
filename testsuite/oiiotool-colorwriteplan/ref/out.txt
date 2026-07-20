@@ -42,7 +42,7 @@ Color write plan for format "png":
   mdcv            omit      format incapable    -
 Color write plan for format "exr":
   cicp            omit      format incapable    -
-  chromaticities  omit      format incapable    -
+  chromaticities  suppress  format incapable    -
   gamma           omit      format incapable    -
   icc             omit      format incapable    -
   interop_id      write     explicit metadata   lin_adobergb_scene

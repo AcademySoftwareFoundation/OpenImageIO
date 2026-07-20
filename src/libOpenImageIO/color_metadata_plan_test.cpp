@@ -761,6 +761,115 @@ test_exr_multipart_first_part_only()
 }
 
 
+// B5 (spec 07): writing a colorInteropID means NOT also writing
+// chromaticities -- a stale/redundant chromaticities attribute is dropped.
+// The B4 exception is an ST 2065-4 / ACES container, which must KEEP its
+// required AP0 chromaticities.
+static void
+test_exr_chromaticities_dropped_and_aces_kept()
+{
+    if (!ImageOutput::create("exr")) {
+        Strutil::print("EXR plugin unavailable; skipping B5 chromaticities\n");
+        return;
+    }
+    static const float ap0[8] = { 0.7347f, 0.2653f, 0.0f,     1.0f,
+                                  0.0001f, -0.077f, 0.32168f, 0.33767f };
+    // A plausible-but-stale non-AP0 chromaticities set (Rec.709 primaries).
+    static const float rec709[8] = { 0.64f, 0.33f, 0.30f,   0.60f,
+                                     0.15f, 0.06f, 0.3127f, 0.3290f };
+    std::vector<float> pix(4 * 4 * 3, 0.5f);
+
+    // (a) colorInteropID + stale chromaticities, not an ACES container: the
+    // chromaticities must be dropped.
+    {
+        const std::string file = Filesystem::temp_directory_path()
+                                 + "/oiio_cmp_b5_drop.exr";
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("colorInteropID", "lin_adobergb_scene");
+        spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), rec709);
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            OIIO_CHECK_EQUAL(
+                in->spec().get_string_attribute("colorInteropID"),
+                "lin_adobergb_scene");
+            OIIO_CHECK_ASSERT(
+                !in->spec().find_attribute("chromaticities"));
+            in->close();
+        }
+        Filesystem::remove(file);
+    }
+
+    // (b) ACES container (B4): the required AP0 chromaticities are kept
+    // alongside colorInteropID = lin_ap0_scene.
+    {
+        const std::string file = Filesystem::temp_directory_path()
+                                 + "/oiio_cmp_b5_aces.exr";
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.channelnames = { "R", "G", "B" };
+        spec.attribute("compression", "none");
+        spec.attribute("acesImageContainerFlag", 1);
+        spec.attribute("colorInteropID", "lin_ap0_scene");
+        spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), ap0);
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            OIIO_CHECK_EQUAL(
+                in->spec().get_string_attribute("colorInteropID"),
+                "lin_ap0_scene");
+            OIIO_CHECK_ASSERT(
+                in->spec().find_attribute("chromaticities") != nullptr);
+            in->close();
+        }
+        Filesystem::remove(file);
+    }
+}
+
+
+// B9.1 (spec 07): an author-supplied colorInteropID must be grammar-valid
+// (spec 01) or be omitted -- a malformed id is never written.
+static void
+test_exr_invalid_id_omitted()
+{
+    if (!ImageOutput::create("exr")) {
+        Strutil::print("EXR plugin unavailable; skipping B9.1 validation\n");
+        return;
+    }
+    const std::string file = Filesystem::temp_directory_path()
+                             + "/oiio_cmp_b91.exr";
+    std::vector<float> pix(4 * 4 * 3, 0.5f);
+    ImageSpec spec(4, 4, 3, TypeHalf);
+    // Uppercase + too many colons -> grammar-invalid per is_valid_interop_id.
+    spec.attribute("colorInteropID", "Totally Bogus:::Name");
+    auto o = ImageOutput::create(file);
+    OIIO_CHECK_ASSERT(o && o->open(file, spec));
+    if (o) {
+        OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+        OIIO_CHECK_ASSERT(o->close());
+    }
+    auto in = ImageInput::open(file);
+    OIIO_CHECK_ASSERT(in.get());
+    if (in) {
+        OIIO_CHECK_ASSERT(
+            !in->spec().find_attribute("colorInteropID", TypeString));
+        in->close();
+    }
+    Filesystem::remove(file);
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -776,6 +885,8 @@ main(int /*argc*/, char* /*argv*/[])
     test_provenance_rule();
     test_exr_consumption();
     test_exr_multipart_first_part_only();
+    test_exr_chromaticities_dropped_and_aces_kept();
+    test_exr_invalid_id_omitted();
 
     const std::string cfgpath = write_test_config();
     ColorConfig config(cfgpath);

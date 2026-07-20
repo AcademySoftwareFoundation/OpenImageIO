@@ -1048,13 +1048,33 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         if (subimage != 0) {
             if (spec.get_string_attribute("colorInteropID") != "data")
                 spec.erase_attribute("colorInteropID");
-        } else if (plan.interop_id.action == pvt::ColorPlanAction::Derive) {
-            spec.attribute("colorInteropID", plan.interop_id.str);
-        } else if (plan.interop_id.action == pvt::ColorPlanAction::Suppress) {
-            // Enforce the Suppress verdict at the writer boundary: an
-            // author-supplied id still sits in extra_attribs, and the
-            // generic metadata loop below would emit it anyway.
-            spec.erase_attribute("colorInteropID");
+        } else {
+            if (plan.interop_id.action == pvt::ColorPlanAction::Derive) {
+                spec.attribute("colorInteropID", plan.interop_id.str);
+            } else if (plan.interop_id.action == pvt::ColorPlanAction::Write) {
+                // B9.1 (spec 07): an author-supplied id (emitted verbatim by
+                // the generic metadata loop below) must be grammar-valid per
+                // spec 01 or be omitted -- never write a malformed id. The
+                // writer does not sanitize on the author's behalf.
+                if (!pvt::is_valid_interop_id(plan.interop_id.str))
+                    spec.erase_attribute("colorInteropID");
+            } else if (plan.interop_id.action
+                       == pvt::ColorPlanAction::Suppress) {
+                // Enforce the Suppress verdict at the writer boundary: an
+                // author-supplied id still sits in extra_attribs, and the
+                // generic metadata loop below would emit it anyway.
+                spec.erase_attribute("colorInteropID");
+            }
+
+            // B5 (spec 07): writing a colorInteropID makes chromaticities
+            // redundant derivable metadata that drifts -- suppress it. The one
+            // exception (B4) is an ST 2065-4 / ACES container, which REQUIRES
+            // AP0 chromaticities (stamped just above by set_aces_container_
+            // attributes and marked by acesImageContainerFlag); keep them
+            // there so this does not fight the container machinery.
+            if (plan.chromaticities.action == pvt::ColorPlanAction::Suppress
+                && spec.get_int_attribute("acesImageContainerFlag", 0) != 1)
+                spec.erase_attribute("chromaticities");
         }
     }
 

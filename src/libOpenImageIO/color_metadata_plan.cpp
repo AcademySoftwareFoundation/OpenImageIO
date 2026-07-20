@@ -223,6 +223,15 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
         plan.chromaticities.action = ColorPlanAction::Suppress;
     }
 
+    // B5 (spec 07): once a colorInteropID is going to be emitted, the
+    // chromaticities attribute is redundant derivable metadata that drifts and
+    // contradicts -- suppress it regardless of whether the author supplied one.
+    // The one exception, an ST 2065-4 / ACES container that REQUIRES its AP0
+    // chromaticities (B4), is enforced by the EXR writer that owns that
+    // container machinery, not here.
+    if (plan.interop_id.emit())
+        plan.chromaticities.action = ColorPlanAction::Suppress;
+
     // Gamma: author's gamma verbatim; no name -> gamma derivation (omit).
     if (caps.gamma && policy.gamma != ColorSignalPolicy::Never) {
         if (auto a = spec.find_attribute("oiio:Gamma", TypeFloat)) {
