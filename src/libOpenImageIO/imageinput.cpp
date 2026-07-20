@@ -1646,6 +1646,35 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
 
 
 bool
+ImageInput::check_compression_ratio(imagesize_t declared_bytes,
+                                    imagesize_t filesize, imagesize_t max_ratio,
+                                    imagesize_t min_declared_bytes)
+{
+    if (filesize == 0 || declared_bytes < min_declared_bytes)
+        return true;
+    if (declared_bytes > filesize * max_ratio) {
+        errorfmt(
+            "{} header claims a {} MB image from a {} byte file; probably a corrupt or malicious header",
+            format_name(), declared_bytes >> 20, filesize);
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+ImageInput::check_compression_ratio(const ImageSpec& spec, imagesize_t filesize,
+                                    imagesize_t max_ratio,
+                                    imagesize_t min_declared_bytes)
+{
+    return check_compression_ratio(spec.image_bytes(true), filesize, max_ratio,
+                                   min_declared_bytes);
+}
+
+
+
+bool
 ImageInput::valid_raw_span_size(cspan<std::byte> buf, const ImageSpec& spec,
                                 int xbegin, int xend, int ybegin, int yend,
                                 int zbegin, int zend, int chbegin, int chend)
