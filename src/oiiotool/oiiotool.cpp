@@ -3352,13 +3352,6 @@ action_flipdiff(Oiiotool& ot, cspan<const char*> argv)
     string_view command = ot.express(argv[0]);
     OTScopedTimer timer(ot, command);
 
-    if (!ot.experimental) {
-        ot.errorfmt(
-            command,
-            "--flipdiff cannot be used without the --experimental flag.");
-        return;
-    }
-
     // Pop reference (deeper) and test (top) images.
     ImageRecRef test = ot.pop();
     ImageRecRef ref  = ot.pop();
@@ -3377,8 +3370,7 @@ action_flipdiff(Oiiotool& ot, cspan<const char*> argv)
     bool do_print        = options.get_int("print", 1);
 
     ImageBuf dst;
-    bool ok = ImageBufAlgo::experimental::FLIP_diff(dst, img_ref, img_test,
-                                                    options);
+    bool ok = ImageBufAlgo::FLIP_diff(dst, img_ref, img_test, options);
     if (!ok) {
         ot.error(command, dst.geterror());
         return;
@@ -7110,7 +7102,7 @@ Oiiotool::getargs(int argc, char* argv[])
       .help("Print report on the Yee perceptual difference of two images (modified by --fail, --failpercent, --hardfail, --warn, --warnpercent --hardwarn)")
       .OTACTION(action_pdiff);
     ap.arg("--flipdiff")
-      .help("[EXPERIMENTAL] Compute FLIP perceptual difference of two images (options: hdr=1, colormap=NAME, ppd=67.02, maxluminance=2.0)")
+      .help("Compute FLIP perceptual difference of two images (options: hdr=1, colormap=NAME, ppd=67.02, maxluminance=2.0)")
       .OTACTION(action_flipdiff);
     ap.arg("--add")
       .help("Add two images")

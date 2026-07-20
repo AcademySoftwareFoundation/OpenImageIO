@@ -1339,8 +1339,7 @@ IBA_FLIP_diff_ret(const ImageBuf& ref, const ImageBuf& test, int hdr = 1,
     if (ppd > 0.0f)
         opts["ppd"] = ppd;
     py::gil_scoped_release gil;
-    return ImageBufAlgo::experimental::FLIP_diff(ref, test, opts, roi,
-                                                 nthreads);
+    return ImageBufAlgo::FLIP_diff(ref, test, opts, roi, nthreads);
 }
 
 static bool
@@ -1358,17 +1357,15 @@ IBA_FLIP_diff(ImageBuf& dst, const ImageBuf& ref, const ImageBuf& test,
     if (ppd > 0.0f)
         opts["ppd"] = ppd;
     py::gil_scoped_release gil;
-    return ImageBufAlgo::experimental::FLIP_diff(dst, ref, test, opts, roi,
-                                                 nthreads);
+    return ImageBufAlgo::FLIP_diff(dst, ref, test, opts, roi, nthreads);
 }
 
 float
 IBA_FLIP_ppd(float monitor_distance_m = 0.7f, float screen_width_px = 3840.0f,
              float screen_width_m = 0.7f)
 {
-    return ImageBufAlgo::experimental::FLIP_ppd(monitor_distance_m,
-                                                screen_width_px,
-                                                screen_width_m);
+    return ImageBufAlgo::FLIP_ppd(monitor_distance_m, screen_width_px,
+                                  screen_width_m);
 }
 
 

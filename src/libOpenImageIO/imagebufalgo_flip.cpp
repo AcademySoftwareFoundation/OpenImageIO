@@ -119,17 +119,7 @@
 //   where the guess of 2.0 max luminance is worse than a more knowlegable
 //   setting, in a way that makes any practical difference.
 //
-// For now, this is all marked as "experimental": The C++ API calls are within
-// the `ImageBufAlgo::experimental` namespace, and the oiiotool `--flipdiff`
-// command will issue an error if the `--experimental` flag is not also used.
-// This should allow people to try it out, and even for us to backport it to
-// 3.1, while making it very clear that it's not officially a part of the
-// public API, and thus exempt from our usual promise not to break back
-// compatibility except at major release boundaries. We intend to remove the
-// experimental designation by the time 3.2 is released in Fall, 2026.
-//
-// List of things still to be done before it's taken out of experimental
-// designation, and beyond:
+// Ideas for future improvement:
 //
 // - [ ] Find a strategy for handling alpha, additional color channels,
 //       additional non-color channels. (And: should that be handled by
@@ -1213,9 +1203,9 @@ flip_impl(ImageBuf& dst, ImageBuf* exposuremap, FLIPResults* result,
 // ---------------------------------------------------------------------------
 
 bool
-ImageBufAlgo::experimental::FLIP_diff(ImageBuf& dst, const ImageBuf& ref,
-                                      const ImageBuf& test, KWArgs options,
-                                      ROI roi, int nthreads)
+ImageBufAlgo::FLIP_diff(ImageBuf& dst, const ImageBuf& ref,
+                        const ImageBuf& test, KWArgs options, ROI roi,
+                        int nthreads)
 {
     FLIPResults flipresults;
     bool ok = flip_impl(dst, nullptr, &flipresults, ref, test, options, roi,
@@ -1238,8 +1228,8 @@ ImageBufAlgo::experimental::FLIP_diff(ImageBuf& dst, const ImageBuf& ref,
 
 
 ImageBuf
-ImageBufAlgo::experimental::FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
-                                      KWArgs options, ROI roi, int nthreads)
+ImageBufAlgo::FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
+                        KWArgs options, ROI roi, int nthreads)
 {
     ImageBuf dst;
     (void)FLIP_diff(dst, ref, test, options, roi, nthreads);

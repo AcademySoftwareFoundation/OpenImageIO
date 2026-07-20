@@ -1441,18 +1441,8 @@ int OIIO_API compare_Yee (const ImageBuf &A, const ImageBuf &B,
                           ROI roi={}, int nthreads=0);
 
 
-#if OIIO_VERSION_GREATER_EQUAL(3, 2, 0) || defined(OIIO_INTERNAL)
-namespace experimental {
-// These FLIP_diff functions are EXPERIMENTAL and subject to change without
-// breaking our rules about backward compatibility. They are present for our
-// own experimentation but not exposed to external users for versions earlier
-// than 3.2, so far.
-
 /// @defgroup FLIP_diff (FLIP perceptual image difference)
 /// @{
-///
-/// WARNING: This is EXPERIMENTAL and may change at any time. Do not rely
-/// on it prior to the release of OIIO 3.2.
 ///
 /// Compute the FLIP perceptual difference between a reference image and a
 /// test image, returning an error map whose pixel values are in [0,1]. FLIP
@@ -1577,10 +1567,6 @@ inline constexpr float FLIP_ppd(float monitor_distance_m = 0.7f,
 {
     return radians(monitor_distance_m * (screen_width_px / screen_width_m));
 }
-
-}  // namespace experimental
-
-#endif
 
 /// @}
 
