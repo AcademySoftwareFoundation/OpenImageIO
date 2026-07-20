@@ -183,6 +183,74 @@ test_derivation(const ColorConfig& config)
 }
 
 
+// A MISLABELED config: a space whose name table-matches one interop id
+// ("srgb_rec709_scene") but whose math (an identity transform against the
+// AP0 interchange anchor) fingerprints to a different registry identity
+// ("lin_ap0_scene"). The cheap declared/table subset is fooled by the name;
+// the full cascade's equality (fingerprint) tier outranks it. The planner's
+// Derive verdict must be the full cascade's answer, reached through the
+// shared characterization engine -- and the direct cascade, the engine's
+// derive tier, the public derive verb, and the plan must all agree
+// bit-exact (the round-2 cheap-first divergence, resolved).
+static void
+test_mislabeled_config_derivation()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    static const char* mislabeled_yaml = R"(ocio_profile_version: 2.1
+name: mislabeled_cfg
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: srgb_rec709_scene
+)";
+    const std::string path             = Filesystem::temp_directory_path()
+                                         + "/oiio_cmp_mislabeled.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(path, mislabeled_yaml));
+    ColorConfig cc(path);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+    characterization_cache_reset();
+
+    // The cheap subset answers the syntactic table match...
+    OIIO_CHECK_EQUAL(cc.get_color_interop_id("srgb_rec709_scene"),
+                     "srgb_rec709_scene");
+    // ...but the full cascade's fingerprint tier outranks it.
+    const std::string cascade(derive_color_interop_id(cc, "srgb_rec709_scene"));
+    OIIO_CHECK_EQUAL(cascade, "lin_ap0_scene");
+
+    // The engine's derive tier (via the public derive verb) agrees with the
+    // cascade bit-exact, and reports the correction as a derived value.
+    ColorSpaceInfo info = cc.derive_color_space_info("srgb_rec709_scene");
+    OIIO_CHECK_ASSERT(info.valid());
+    OIIO_CHECK_EQUAL(info.color_interop_id(), cascade);
+    OIIO_CHECK_ASSERT(info.derived(ColorSpaceInfoField::ColorInteropID));
+
+    // The corrected verdict survives the cache merge with a later fresh
+    // cheap pass (the derived value outranks the table match).
+    ColorSpaceInfo cheap = cc.get_color_space_info("srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(cheap.color_interop_id(), cascade);
+
+    // And the planner's Derive verdict is that same answer.
+    ColorWritePolicy pol;
+    ImageSpec spec(4, 4, 3, TypeHalf);
+    spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
+    auto p = plan_color_metadata(&cc, spec, all_caps(), pol);
+    OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Derive));
+    OIIO_CHECK_EQUAL(p.interop_id.str, cascade);
+
+    characterization_cache_reset();
+    Filesystem::remove(path);
+}
+
+
 // The global oiio:colorpolicy:* tier: a value set through OIIO::attribute()
 // must round-trip through OIIO::getattribute(), be visible to the policy
 // snapshot, and actually change writer behavior end to end (write a file,
@@ -646,6 +714,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_never_suppresses();
     test_incapable_omits();
     test_explicit_chroma_and_gamma();
+    test_mislabeled_config_derivation();
     test_layer_attribution();
     test_global_policy_tier();
     test_policy_hint_plumbing();

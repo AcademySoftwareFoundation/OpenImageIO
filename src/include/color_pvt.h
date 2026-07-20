@@ -108,11 +108,13 @@ legacy_interop_id_table_names();
 ///      and the query resolves to a (sanitization-unique) real space;
 ///   5. otherwise empty -- never a guessed default.
 /// This is the EXPENSIVE path (step 2 can build the registry index and OCIO
-/// processors; step 4 manufactures an id) and is consumed at write-planning
-/// time (plan_color_metadata) and by the characterization machinery. The
-/// public ColorConfig::get_color_interop_id() performs only the cheap subset
+/// processors; step 4 manufactures an id) and is consumed by the
+/// characterization engine's derive tier -- through which the write planner
+/// (plan_color_metadata) and the public derive verbs receive it -- and
+/// directly by tests as the cascade's oracle. The public
+/// ColorConfig::get_color_interop_id() performs only the cheap subset
 /// (steps 1 and 3). The returned view is stable for the process lifetime.
-/// For internal use only; a public wrapper can follow with its in-tree
+/// For internal/test use only; a public wrapper can follow with its in-tree
 /// consumer.
 OIIO_API string_view
 derive_color_interop_id(const ColorConfig& config, string_view colorspace);

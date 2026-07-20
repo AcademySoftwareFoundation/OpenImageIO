@@ -111,9 +111,13 @@ const Field all_fields[] = { Field::EqualityID,     Field::ColorInteropID,
                              Field::TransferFunction };
 
 // Merge `src` into `dst`, field-wise: a field is copied when `dst` has not
-// computed it, or when `dst`'s attempt found no usable value and `src`'s
-// did. Established available values are never overwritten (first-writer-wins
-// per field).
+// computed it, when `dst`'s attempt found no usable value and `src`'s did,
+// or when `src` holds a behaviorally DERIVED value and `dst`'s is merely
+// direct -- the derive tier may correct a cheap verdict (a mislabeled
+// config's syntactic table match, outranked by the fingerprint cascade) and
+// the correction must survive merging with a later fresh cheap pass.
+// Established values of equal provenance are never overwritten
+// (first-writer-wins per field).
 void
 merge_record(spvt::CharacterizationRecord& dst,
              const spvt::CharacterizationRecord& src)
@@ -121,7 +125,8 @@ merge_record(spvt::CharacterizationRecord& dst,
     for (Field f : all_fields) {
         if (!src.computed(f))
             continue;
-        if (!dst.computed(f) || (!dst.available(f) && src.available(f)))
+        if (!dst.computed(f) || (!dst.available(f) && src.available(f))
+            || (src.derived(f) && !dst.derived(f)))
             copy_field(dst, src, f);
     }
     // Full-attempt bookkeeping accumulates regardless of which side's value
@@ -254,17 +259,23 @@ characterize_color_space_impl(const ColorConfig& config,
     }
 
     if ((requested_fields & uint32_t(Field::ColorInteropID))
-        && !rec.available(Field::ColorInteropID)
         && !rec.full_attempted(Field::ColorInteropID)) {
-        // The cheap subset found nothing: run the full declaration ->
-        // equality -> table -> generated-local sequence.
+        // The full declaration -> equality -> table -> generated-local
+        // sequence, run even when the cheap declared/table subset already
+        // answered: the equality (fingerprint) tier outranks a syntactic
+        // table match, so on a mislabeled config the cascade corrects the
+        // cheap verdict. This keeps the derive tier bit-exact with
+        // pvt::derive_color_interop_id, whose intentional consumer is the
+        // write planner. (On a well-formed config the two agree, and the
+        // cascade's declared tier still short-circuits before any
+        // fingerprint work.)
         begin_full_attempt(Field::ColorInteropID);
         std::string id;
         try {
             id = std::string(derive_color_interop_id_impl(config, resolved));
         } catch (...) {
         }
-        if (!id.empty()) {
+        if (!id.empty() && id != rec.color_interop_id) {
             rec.color_interop_id = id;
             mark(rec, Field::ColorInteropID, true, true);
         }

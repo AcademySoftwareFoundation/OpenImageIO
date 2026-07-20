@@ -5,9 +5,11 @@
 // One central write-side color-metadata derivation, replacing the per-plugin
 // "figure out which color attributes to emit for this color space" code that
 // every writer used to hand-roll. A writer now declares which signals its
-// format can carry and consumes the computed plan; all derivation
-// (name -> interop id, name -> CICP, the never-guess omission rule, the
-// provenance suppression rule) lives here.
+// format can carry and consumes the computed plan; all write-side policy
+// (the never-guess omission rule, the provenance suppression rule, the
+// id -> CICP table lookup) lives here, and name -> interop id derivation is
+// consumed from the shared characterization engine (color_characterization
+// .cpp) rather than derived privately.
 //
 // This is the write-side twin of the read-side reconciler and is deliberately
 // kept a separate module: read and write share one policy namespace but no
@@ -167,11 +169,19 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     ColorMetadataPlan plan;
 
     // One full derivation cascade (declared id, registry fingerprint match,
-    // legacy table, config-local id) feeds both derived signals below. This
-    // is deliberately derive_color_interop_id(), NOT the cheap
-    // get_color_interop_id() lookup: write planning is the intentional home
-    // of the expensive derivation.
-    const std::string derived_id(derive_color_interop_id(cfg, colorspace));
+    // legacy table, config-local id) feeds both derived signals below,
+    // consumed through the shared characterization engine's DERIVE tier --
+    // the same cached records the public derive_color_space_info verbs and
+    // the search walk publish, so a space is characterized once, not per
+    // consumer. Write planning is the intentional home of the expensive
+    // derivation, so this requests the interop-id field's full cascade
+    // (never the cheap subset, which a mislabeled config's syntactic table
+    // match could fool). No other field is requested: every other plan
+    // signal consumes only authored metadata today.
+    const std::string derived_id
+        = characterize_color_space(cfg, colorspace,
+                                   CharacterizationField::ColorInteropID)
+              .color_interop_id;
 
     // interop id: author's colorInteropID verbatim, else name -> interop id.
     plan.interop_id

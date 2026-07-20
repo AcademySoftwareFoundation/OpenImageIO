@@ -2955,8 +2955,9 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
     // name/alias/classification match -- all through the syntactic
     // (fingerprint-free) resolution subset. The expensive derivation cascade
     // (fingerprint matching against the built-in registry, config-local id
-    // manufacture) lives in pvt::derive_color_interop_id() and runs at
-    // write-planning time, never inside this getter.
+    // manufacture) lives in pvt::derive_color_interop_id() and runs behind
+    // the characterization engine's derive tier (where write planning
+    // consumes it), never inside this getter.
     if (colorspace.empty())
         return "";
 
@@ -3004,9 +3005,10 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
 // The full write-side derivation cascade behind pvt::derive_color_interop_id
 // (the pvt shim at the end of this file forwards here). This is the
 // EXPENSIVE path -- fingerprint probing can build the registry index and
-// OCIO processors -- so it is a distinct entry point consumed at
-// write-planning time (color_metadata_plan.cpp) and by internal
-// characterization machinery, never hidden behind the cheap public getter.
+// OCIO processors -- so it is a distinct entry point consumed by the
+// characterization engine's derive tier (through which the write planner
+// and the public derive verbs receive it), never hidden behind the cheap
+// public getter.
 string_view
 derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace)
 {
