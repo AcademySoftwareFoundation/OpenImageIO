@@ -12,10 +12,10 @@
 #include <string>
 #include <vector>
 
+#include "color_pvt.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
-#include "color_pvt.h"
 
 #include <OpenImageIO/unittest.h>
 
@@ -31,7 +31,8 @@ using namespace OIIO::pvt;
 static std::string
 write_test_config()
 {
-    std::string path = Filesystem::temp_directory_path() + "/oiio_cmr_test.ocio";
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_cmr_test.ocio";
     std::ofstream f(path);
     f << R"(ocio_profile_version: 2
 environment: {}
@@ -78,10 +79,10 @@ cicp_facts(int p, int t, int m, int r)
 {
     ColorMetadataFacts f;
     f.has_cicp = true;
-    f.cicp[0] = p;
-    f.cicp[1] = t;
-    f.cicp[2] = m;
-    f.cicp[3] = r;
+    f.cicp[0]  = p;
+    f.cicp[1]  = t;
+    f.cicp[2]  = m;
+    f.cicp[3]  = r;
     return f;
 }
 
@@ -92,7 +93,7 @@ test_aces_container()
 {
     ColorMetadataFacts f;
     f.aces_image_container = true;
-    auto e = resolve_color_metadata(nullptr, "", f, {}, {});
+    auto e                 = resolve_color_metadata(nullptr, "", f, { }, { });
     OIIO_CHECK_EQUAL(e.resolved, "lin_ap0_scene");
     OIIO_CHECK_ASSERT(e.has_genuine_metadata_match());
 }
@@ -102,8 +103,8 @@ test_aces_container()
 static void
 test_ciid_registry_bridge()
 {
-    auto e = resolve_color_metadata(nullptr, "", ciid_facts("lin_adobergb_scene"),
-                                    {}, {});
+    auto e = resolve_color_metadata(nullptr, "",
+                                    ciid_facts("lin_adobergb_scene"), { }, { });
     OIIO_CHECK_EQUAL(e.resolved, "lin_adobergb_scene");
     OIIO_CHECK_ASSERT(e.has_genuine_metadata_match());
 }
@@ -119,7 +120,7 @@ test_unknown_ciid_falls_through_to_cicp(const ColorConfig& config)
 {
     ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
     f.color_interop_id   = "unknown";
-    auto e               = resolve_color_metadata(&config, "", f, {}, {});
+    auto e               = resolve_color_metadata(&config, "", f, { }, { });
     OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
     // The interop-id rule was visited and missed; CICP matched.
     bool saw_ciid_missed = false, saw_cicp_matched = false;
@@ -140,10 +141,10 @@ test_unknown_ciid_falls_through_to_cicp(const ColorConfig& config)
 static void
 test_utility_tokens(const ColorConfig& config)
 {
-    auto e = resolve_color_metadata(&config, "", ciid_facts("data"), {}, {});
+    auto e = resolve_color_metadata(&config, "", ciid_facts("data"), { }, { });
     OIIO_CHECK_EQUAL(e.resolved, "raw_data");
 
-    auto e2 = resolve_color_metadata(nullptr, "", ciid_facts("data"), {}, {});
+    auto e2 = resolve_color_metadata(nullptr, "", ciid_facts("data"), { }, { });
     OIIO_CHECK_EQUAL(e2.resolved, "data");
     // Exactly one step, the interop-id rule, matched.
     OIIO_CHECK_EQUAL(e2.steps.size(), size_t(1));
@@ -160,7 +161,7 @@ test_strict_terminal(const ColorConfig& config)
     ColorReadPolicy p;
     p.scope              = ColorResolutionScope::ConfigOnly;
     ColorMetadataFacts f = ciid_facts("lin_ap1_scene");  // must be ignored
-    auto e = resolve_color_metadata(&config, "not-a-space", f, {}, p);
+    auto e = resolve_color_metadata(&config, "not-a-space", f, { }, p);
     OIIO_CHECK_EQUAL(e.resolved, "unknown");
     OIIO_CHECK_EQUAL(e.steps.size(), size_t(2));
     OIIO_CHECK_EQUAL(int(e.steps[0].rule), int(ColorRule::ExplicitAssignment));
@@ -178,7 +179,7 @@ test_garbage_icc_falls_through(const ColorConfig& config)
 {
     ColorMetadataFacts f;
     f.icc_profile = std::vector<unsigned char>(200, 0x42);
-    auto e        = resolve_color_metadata(&config, "", f, {}, {});
+    auto e        = resolve_color_metadata(&config, "", f, { }, { });
     OIIO_CHECK_ASSERT(!e.has_genuine_metadata_match());
     bool icc_invalid = false;
     for (auto& s : e.steps)
@@ -210,7 +211,7 @@ test_icc_synthetic(const ColorConfig& config)
 {
     ColorMetadataFacts f;
     f.icc_profile = fake_icc_profile();
-    auto e        = resolve_color_metadata(&config, "", f, {}, {});
+    auto e        = resolve_color_metadata(&config, "", f, { }, { });
     OIIO_CHECK_ASSERT(Strutil::starts_with(e.resolved, "icc:"));
     OIIO_CHECK_EQUAL(e.resolved, e.registered_synthetic);
 }
@@ -224,7 +225,7 @@ test_cicp_over_icc(const ColorConfig& config)
 {
     ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
     f.icc_profile        = fake_icc_profile();
-    auto e               = resolve_color_metadata(&config, "", f, {}, {});
+    auto e               = resolve_color_metadata(&config, "", f, { }, { });
     OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
     OIIO_CHECK_ASSERT(!Strutil::starts_with(e.resolved, "icc:"));
     for (auto& s : e.steps)
@@ -242,8 +243,8 @@ test_filename_invariance(const ColorConfig& config)
     ColorCallContext no_name;
     ColorCallContext with_name;
     with_name.filename = "/tmp/frame.g24_rec709_display.exr";
-    auto a             = resolve_color_metadata(&config, "", f, no_name, {});
-    auto b             = resolve_color_metadata(&config, "", f, with_name, {});
+    auto a             = resolve_color_metadata(&config, "", f, no_name, { });
+    auto b             = resolve_color_metadata(&config, "", f, with_name, { });
     OIIO_CHECK_EQUAL(a.resolved, b.resolved);
     OIIO_CHECK_EQUAL(a.steps.size(), b.steps.size());
     for (size_t i = 0; i < a.steps.size() && i < b.steps.size(); ++i) {
@@ -256,7 +257,8 @@ test_filename_invariance(const ColorConfig& config)
     for (auto& s : a.steps) {
         if (s.rule == ColorRule::FileRulesFirst
             || s.rule == ColorRule::FileRulesFallback)
-            OIIO_CHECK_EQUAL(int(s.outcome), int(ColorRuleOutcome::Inapplicable));
+            OIIO_CHECK_EQUAL(int(s.outcome),
+                             int(ColorRuleOutcome::Inapplicable));
     }
 }
 
@@ -302,6 +304,24 @@ test_reconcile_entry_point()
 }
 
 
+// render_color_read_plan: the read-side dry-run preview. A spec carrying a
+// CICP tuple resolves through the cascade; the rendered plan names the CICP
+// rule, its matched outcome, the tuple, and the final assignment.
+static void
+test_render_read_plan(const ColorConfig& config)
+{
+    ImageSpec spec(16, 16, 3, TypeDesc::FLOAT);
+    const int cicp[4] = { 1, 13, 0, 1 };
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+    const std::string plan = render_color_read_plan(spec, &config);
+    OIIO_CHECK_ASSERT(Strutil::contains(plan, "rule 5  CICP"));
+    OIIO_CHECK_ASSERT(Strutil::contains(plan, "matched"));
+    OIIO_CHECK_ASSERT(Strutil::contains(plan, "(tuple 1,13,0,1)"));
+    OIIO_CHECK_ASSERT(Strutil::contains(
+        plan, "Resolved color space: 'srgb_rec709_display' (via CICP)"));
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -323,6 +343,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_icc_synthetic(config);
     test_cicp_over_icc(config);
     test_filename_invariance(config);
+    test_render_read_plan(config);
 
     Filesystem::remove(cfgpath);
     return unit_test_failures != 0;

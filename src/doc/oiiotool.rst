@@ -1867,6 +1867,21 @@ Writing images
 
         oiiotool input.exr --colorwriteplan png
 
+.. option:: --colorreadplan
+
+    Prints how the current (top) image's color metadata *was* resolved on
+    read -- the read-side twin of ``--colorwriteplan``. The report lists each
+    reconciliation rule the resolver tried, in precedence order (explicit
+    assignment, ACES container, file rules, color interop ID, CICP, ICC
+    profile, chromaticities, gamma, ...), its outcome (``matched``,
+    ``missed``, ``inapplicable``, or ``invalid``), and the candidate or reason
+    it recorded, followed by the final resolved color space and the rule that
+    decided it. No file is written.
+
+    Example::
+
+        oiiotool input.png --colorreadplan
+
 .. option:: --colorcount r1,g1,b1,...:r2,g2,b2,...:...
 
     Given a list of colors separated by colons or semicolons, where each

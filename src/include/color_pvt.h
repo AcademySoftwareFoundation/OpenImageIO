@@ -222,14 +222,12 @@ struct TransferFunctionSignature {
 /// verdict (known() is false) -- makes an include term miss, a `~` term
 /// reject, and a `-` term preserve, in the three-valued axis evaluation.
 struct TransferProperty {
-    bool identity = false;                           ///< linear/identity curve
-    std::string family;                              ///< "" when unidentified
+    bool identity = false;  ///< linear/identity curve
+    std::string family;     ///< "" when unidentified
     std::optional<TransferFunctionSignature> signature;
 
     bool known() const
-    {
-        return identity || !family.empty() || signature.has_value();
-    }
+    { return identity || !family.empty() || signature.has_value(); }
 };
 
 /// A resolved transfer-function hint: the property a hint term denotes, as one
@@ -289,7 +287,8 @@ transfer_signatures_match(const TransferFunctionSignature& a,
 /// signature comparison); else a probed-signature tolerance compare against
 /// any of the hint's signatures. An unknown candidate property never matches.
 OIIO_API bool
-transfer_hint_matches(const TransferHint& hint, const TransferProperty& property);
+transfer_hint_matches(const TransferHint& hint,
+                      const TransferProperty& property);
 
 
 // ---------------------------------------------------------------------------
@@ -366,7 +365,7 @@ identify_icc_profile(const ColorConfig& config, cspan<uint8_t> iccdata);
 struct MasteringDisplayVolume {
     /// Limiting-gamut primaries + whitepoint as CIE xy, in R, G, B, W
     /// order.
-    float primaries[4][2] = {};
+    float primaries[4][2] = { };
     /// Peak luminance, cd/m^2 (snapped to the nominal mastering targets).
     double max_luminance = 0.0;
     /// Minimum luminance, cd/m^2. Probe-honest (may be exactly 0.0); wire
@@ -441,7 +440,7 @@ color_space_analyzed(const ColorConfig& config, string_view name);
 /// reference kind (scene vs display) selected the probe. `values` is empty
 /// when the space is unknown or cannot be probed.
 struct ColorSpaceFingerprint {
-    int reference_kind = 0;     ///< OCIO ReferenceSpaceType (0 scene, 1 display)
+    int reference_kind = 0;  ///< OCIO ReferenceSpaceType (0 scene, 1 display)
     std::vector<float> values;  ///< probe floats; empty if not computable
     bool computed() const { return !values.empty(); }
 };
@@ -563,8 +562,8 @@ color_config_interopified_cache_off(const ColorConfig& config);
 OIIO_API std::vector<float>
 cross_config_probe(const ColorConfig& src_config, string_view src_name,
                    const ColorConfig& dst_config, string_view dst_name,
-                   cspan<float> probe, string_view context_key = {},
-                   string_view context_value = {});
+                   cspan<float> probe, string_view context_key = { },
+                   string_view context_value = { });
 
 /// Route `local_name` in `config`'s in-memory interop-repaired copy to
 /// `registry_name` in the built-in interop identities config through the pvt
@@ -602,8 +601,8 @@ enum class InteropIdForm {
     BASE,              // base
     INNER_BASE,        // inner:base
     OUTER_INNER_BASE,  // outer:inner:base (an "inner" of "local" is the
-                        // reserved local-namespace form one layer up; the
-                        // grammar itself does not special-case it)
+                       // reserved local-namespace form one layer up; the
+                       // grammar itself does not special-case it)
     OUTER_BLANK_BASE,  // outer::base (blank inner)
 };
 
@@ -686,8 +685,8 @@ parse_search_term(string_view raw);
 /// `~` vs `-` unknown-propagation split. The four per-axis evaluators in the
 /// search walk all route through this one function.
 OIIO_API bool
-three_valued_axis(cspan<SearchTermMode> modes, cspan<unsigned char> term_matches,
-                  bool property_known);
+three_valued_axis(cspan<SearchTermMode> modes,
+                  cspan<unsigned char> term_matches, bool property_known);
 
 /// The internal option set for a characterization search. Each of the four
 /// hint axes is a list of grammar terms (empty = that axis is unconstrained).
@@ -757,13 +756,13 @@ struct ColorMetadataFacts {
     bool aces_image_container = false;
     std::string color_interop_id;
     std::vector<unsigned char> icc_profile;
-    bool has_cicp    = false;
-    int cicp[4]      = { 0, 0, 0, 0 };
+    bool has_cicp           = false;
+    int cicp[4]             = { 0, 0, 0, 0 };
     bool has_chromaticities = false;
     float chromaticities[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    bool has_gamma = false;
-    float gamma    = 0.0f;
-    bool png_srgb  = false;
+    bool has_gamma          = false;
+    float gamma             = 0.0f;
+    bool png_srgb           = false;
 };
 
 /// Per-call context: filenames touch resolution only here, via the two
@@ -780,15 +779,15 @@ struct ColorCallContext {
 /// names and defaults are owned by the color policy attribute spec
 /// (`oiio:colorpolicy:read:*`). Every default reproduces main's behavior.
 struct ColorReadPolicy {
-    ColorResolutionScope scope         = ColorResolutionScope::Lenient;
-    ColorStatePreference state_pref     = ColorStatePreference::Auto;
-    ColorFileRules file_rules           = ColorFileRules::Off;
-    bool ignore_cicp_for_png            = false;
-    bool ignore_sidecar                 = false;
+    ColorResolutionScope scope      = ColorResolutionScope::Lenient;
+    ColorStatePreference state_pref = ColorStatePreference::Auto;
+    ColorFileRules file_rules       = ColorFileRules::Off;
+    bool ignore_cicp_for_png        = false;
+    bool ignore_sidecar             = false;
     /// Whether an all-miss falls back to the config's Default Assignment.
     /// Off reproduces main (a reader that determined nothing leaves the
     /// spec's color space untouched); a later named policy turns it on.
-    bool apply_config_default           = false;
+    bool apply_config_default = false;
 
     /// Read every `oiio:colorpolicy:read:*` value ONCE, under one lock, from
     /// the global attribute table, optionally overridden by per-open config
@@ -908,6 +907,18 @@ infer_color_space_from_spec(const ColorConfig* config, const ImageSpec& spec,
 OIIO_API void
 scrub_color_metadata(ImageSpec& spec, const ColorConfig* config,
                      const ColorReadPolicy& policy);
+
+/// Dry-run preview (read-side twin of render_color_write_plan): render, as
+/// plain aligned text, how `spec`'s color metadata resolves through the
+/// audited read cascade -- each ColorRule visited in precedence order, its
+/// outcome (matched / missed / inapplicable / invalid), the candidate/reason
+/// it recorded, and the final resolved color space and the rule that decided
+/// it. Re-runs the same engine reconcile_color_metadata uses, under the
+/// default read policy; `config` null means the process default color config.
+/// Writes no bytes and never mutates the spec. For internal/test use only.
+OIIO_API std::string
+render_color_read_plan(const ImageSpec& spec,
+                       const ColorConfig* config = nullptr);
 
 
 // ---------------------------------------------------------------------------
