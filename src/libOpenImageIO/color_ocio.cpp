@@ -3640,18 +3640,18 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
         // space the input arrived in: tag that source space, not the space
         // the failed conversion was reaching for (the honest no-op rule),
         // and treat the operation as space-preserving (its still-true
-        // hints pass through).
-        string_view target;
-        if (inverse)
-            target = lenient_passthrough
-                         ? colorconfig->getDisplayViewColorSpaceName(display,
-                                                                     view)
-                         : colorconfig->resolve(from);
-        else
-            target = lenient_passthrough
-                         ? colorconfig->resolve(from)
-                         : colorconfig->getDisplayViewColorSpaceName(display,
-                                                                     view);
+        // hints pass through). Materialized as a std::string because
+        // getDisplayViewColorSpaceName's shared-view path can return a
+        // pointer into its (temporary) argument storage.
+        const bool disp_view_target = inverse == lenient_passthrough;
+        std::string target;
+        if (disp_view_target) {
+            const char* c = colorconfig->getDisplayViewColorSpaceName(display,
+                                                                      view);
+            target        = c ? c : "";
+        } else {
+            target = colorconfig->resolve(from);
+        }
         hygiene.finish(lenient_passthrough
                            ? OIIO::pvt::ColorOperationIdentity::Preserved
                            : OIIO::pvt::ColorOperationIdentity::Known,
