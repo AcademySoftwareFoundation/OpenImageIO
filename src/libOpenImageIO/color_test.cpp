@@ -4,10 +4,12 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 
@@ -3204,6 +3206,128 @@ test_copy_config_default_view_transform()
 
 
 
+// Concurrency stress for the process-global color caches. Many threads race
+// the SHARED lazy state -- the registry fingerprint index (a C++11 magic-static
+// built once on first registry-equivalence resolve), the flyweight
+// ColorSpaceFingerprint cache, and the interopify structural memo -- through
+// resolve(), get_color_interop_id(), equivalent(), and the pvt fingerprint
+// cache. Runs FIRST in main() so the caches are genuinely cold and the workers'
+// opening iterations are the true first touch (the prime suspect for a race).
+// Under ThreadSanitizer this section is the payload; without TSan it is a cheap
+// smoke test that the shared caches survive concurrent use. All threads spin on
+// a start gate so they hit the cold caches simultaneously.
+static void
+test_thread_stress()
+{
+    using OIIO::pvt::color_space_fingerprint_cache_reset;
+    using OIIO::pvt::color_space_fingerprint_cached;
+    using OIIO::pvt::ColorSpaceFingerprint;
+
+    if (!ColorConfig::supportsOpenColorIO()
+        || ColorConfig::OpenColorIO_version_hex() < 0x02020000)
+        return;
+
+    // cc1: built-in ACES config (registry-rich). cc2: a small hand-built
+    // config. Both constructed here, single-threaded -- the workers race the
+    // shared process-global caches, not per-config construction.
+    ColorConfig cc1("ocio://default");
+    if (cc1.has_error())
+        return;  // built-in config unavailable on this OCIO build
+
+    static const char* cfg2_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+  aces_interchange: ref
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ref}
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: gamma22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: doubler
+    from_scene_reference: !<MatrixTransform> {matrix: [2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]}
+)";
+    std::string cfg2_path = Filesystem::temp_directory_path()
+                            + "/oiio_color_test_stress2.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(cfg2_path, cfg2_yaml));
+    ColorConfig cc2(cfg2_path);
+    OIIO_CHECK_ASSERT(!cc2.has_error());
+
+    std::vector<std::string> names1 = cc1.getColorSpaceNames();
+    std::vector<std::string> names2 = cc2.getColorSpaceNames();
+
+    // CIID strings that drive resolve()'s registry-equivalence tier; constant
+    // regardless of config, so resolve() reaches the registry fingerprint index.
+    static const char* ciids[] = {
+        "lin_ap1_scene", "srgb_rec709_scene",  "g24_rec709_display",
+        "data",          "srgb_rec709_display", "unknown",
+    };
+
+    // Cold start: nothing has warmed the shared caches. The workers are the
+    // first touch.
+    color_space_fingerprint_cache_reset();
+
+    const int nthreads = 12;
+    const int iters    = 300;
+    std::atomic<int> ready { 0 };
+    std::atomic<bool> go { false };
+
+    auto worker = [&](int tid) {
+        ready.fetch_add(1);
+        while (!go.load())
+            std::this_thread::yield();  // all workers hit the cold caches together
+        for (int it = 0; it < iters; ++it) {
+            const ColorConfig& cc     = (tid & 1) ? cc2 : cc1;
+            const std::vector<std::string>& names = (tid & 1) ? names2 : names1;
+
+            // resolve() -- registry-equivalence tier -> registry index bootstrap
+            for (const char* id : ciids)
+                (void)cc.resolve(id);
+
+            if (!names.empty()) {
+                const std::string& nm = names[(size_t)(it + tid) % names.size()];
+                // fingerprint + registry + interopify memo
+                (void)cc.get_color_interop_id(nm);
+                // flyweight fingerprint cache: first-insert / publish / hit
+                ColorSpaceFingerprint fp = color_space_fingerprint_cached(cc, nm);
+                (void)fp;
+            }
+
+            // equivalent() -- each side is resolve()d first
+            if (names.size() >= 2)
+                (void)cc.equivalent(names[0], names[1]);
+
+            // cross-config: two distinct configs pushing the same shared index
+            (void)cc1.get_color_interop_id("ACEScg");
+            (void)cc2.get_color_interop_id("doubler");
+        }
+    };
+
+    std::vector<std::thread> pool;
+    pool.reserve(nthreads);
+    for (int t = 0; t < nthreads; ++t)
+        pool.emplace_back(worker, t);
+    while (ready.load() < nthreads)
+        std::this_thread::yield();
+    go.store(true);
+    for (auto& th : pool)
+        th.join();
+
+    // Reaching here without a TSan report, deadlock, or crash is the pass.
+    OIIO_CHECK_ASSERT(true);
+    Filesystem::remove(cfg2_path);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -3221,6 +3345,10 @@ main(int argc, char* argv[])
     // construction measurement -- runs nothing else.
     if (bench_child)
         return bench_child_construct_and_exit();
+
+    // First, while the process-global color caches are still cold, so the
+    // worker threads race the one-time lazy init.
+    test_thread_stress();
 
     test_sRGB_conversion();
     test_Rec709_conversion();
