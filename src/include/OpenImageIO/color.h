@@ -768,17 +768,38 @@ public:
 
     /// Set the spec's metadata to presume that color space is `name` (or to
     /// assume nothing about the color space if `name` is empty). The core
-    /// operation is to set the "oiio:ColorSpace" attribute, but it also removes
-    /// or alters several other attributes that may hint color space in ways that
-    /// might be contradictory or no longer true.
+    /// operation is to set the "oiio:ColorSpace" attribute, and the
+    /// surrounding metadata maintenance follows the two-bucket color
+    /// metadata hygiene:
     ///
-    /// @version 3.0
+    /// - Asserting a different space than the spec already claims scrubs
+    ///   the *file-provenance facts* that described the old claim
+    ///   (`colorInteropID`, `CICP`, `chromaticities`, `ICCProfile`,
+    ///   `oiio:Gamma`, `acesImageContainerFlag` -- the deliberate
+    ///   `*:unknown` marker family excepted), and maintains any
+    ///   *current-state descriptors* the spec carries
+    ///   (`oiio:ColorSpace:state` / `:encoding` / `:range` /
+    ///   `:equality_id`): each is updated from the cheap characterization
+    ///   of the new space when available, erased when not -- never
+    ///   guessed, never derived by this call.
+    /// - An empty `name` erases everything: the verdict, the provenance
+    ///   facts, and the descriptors (absence semantics -- assume nothing).
+    /// - First tagging (no previous claim) leaves the provenance facts in
+    ///   place: at read time the claim is routinely derived from those
+    ///   very facts, which are evidence for it, not contradictions.
+    /// - Re-asserting the space the spec already claims is a no-op.
+    ///
+    /// A few format-specific hints that may contradict the new claim are
+    /// also removed in all cases (`Exif:ColorSpace` unless `name` is
+    /// sRGB-equivalent, `tiff:ColorSpace`, `tiff:PhotometricInterpretation`).
+    ///
+    /// @version 3.0 (two-bucket hygiene since 3.2)
     void set_colorspace(ImageSpec& spec, string_view name) const;
 
     /// Set the spec's metadata to reflect Rec709 color primaries and the given
-    /// gamma. The core operation is to set the "oiio:ColorSpace" attribute, but
-    /// it also removes or alters several other attributes that may hint color
-    /// space in ways that might be contradictory or no longer true.
+    /// gamma. The core operation is to set the "oiio:ColorSpace" attribute
+    /// (via set_colorspace(), whose metadata hygiene applies), and
+    /// additionally record the given gamma as "oiio:Gamma".
     ///
     /// @version 3.0
     void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const;

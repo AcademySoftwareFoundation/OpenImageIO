@@ -721,7 +721,12 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
 .. py:method:: bool ImageSpec.set_colorspace (name)
 
     Set metadata to indicate the presumed color space `name`, or clear all
-    such metadata if `name` is the empty string.
+    such metadata if `name` is the empty string. Asserting a different
+    space than the spec already claims also scrubs now-contradicting color
+    metadata (`colorInteropID`, `CICP`, `chromaticities`, `ICCProfile`,
+    gamma) and updates or erases any `oiio:ColorSpace:*` current-state
+    descriptors present, matching the hygiene the color-aware ImageBufAlgo
+    operations perform.
 
     This function was added in version 2.5.
 
@@ -4301,7 +4306,11 @@ details.
 .. py:method:: set_colorspace (spec, name)
 
     Set the metadata of the `spec` to presume that color space is `name` (or
-    to assume nothing about the color space if `name` is empty).
+    to assume nothing about the color space if `name` is empty), applying
+    the same two-bucket metadata hygiene as `ImageSpec.set_colorspace`:
+    changing an existing claim scrubs now-contradicting color metadata and
+    updates or erases any `oiio:ColorSpace:*` current-state descriptors
+    present.
 
     Example:
 

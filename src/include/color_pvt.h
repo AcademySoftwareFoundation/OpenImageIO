@@ -1101,6 +1101,22 @@ infer_color_space_from_spec(const ColorConfig* config, const ImageSpec& spec,
 OIIO_API void
 scrub_color_metadata(ImageSpec& spec);
 
+/// Update-or-erase maintenance of the four cheap current-state descriptors
+/// (`oiio:ColorSpace:state` / `:encoding` / `:range` / `:equality_id`) from
+/// ColorConfig::get_color_space_info() -- the descriptor half of the
+/// identity-known finish, shared by ColorOperationHygiene::finish() and
+/// ColorConfig::set_colorspace(). Cheap get only: direct or previously
+/// cached values update the sub-attribute, an unavailable value erases it
+/// -- never guessed, never derived here (no fingerprint, no processor).
+OIIO_API void
+maintain_color_state_descriptors(ImageSpec& spec, const ColorConfig& config,
+                                 string_view color_space);
+
+/// Erase all four current-state descriptors (absence semantics -- the
+/// "assume nothing" / identity-unknowable half).
+OIIO_API void
+erase_color_state_descriptors(ImageSpec& spec);
+
 /// How a color-aware ImageBufAlgo operation relates its output's color
 /// space identity to its inputs -- the taxonomy that makes automatic
 /// hygiene honest.

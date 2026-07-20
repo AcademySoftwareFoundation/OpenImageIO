@@ -439,6 +439,164 @@ test_scrubber(const ColorConfig& config)
 }
 
 
+// Check a current-state descriptor against the update-or-erase rule: a
+// usable value updates the attribute, an unavailable one erases it.
+static void
+check_descriptor(const ImageSpec& spec, const char* name, string_view value)
+{
+    if (value.size())
+        OIIO_CHECK_EQUAL(spec.get_string_attribute(name), std::string(value));
+    else
+        OIIO_CHECK_ASSERT(!spec.find_attribute(name));
+}
+
+
+// ColorConfig::set_colorspace routes through the shared identity-known
+// hygiene: changing an existing claim scrubs the provenance-facts bucket
+// and maintains (update-or-erase) any current-state descriptors present;
+// first tagging preserves the facts (they are the evidence read paths
+// derive the claim from); the empty name erases everything; re-asserting
+// the current claim is a no-op. All of it cheap: no fingerprint is ever
+// derived.
+static void
+test_set_colorspace_hygiene(const ColorConfig& config)
+{
+    const float chroma[8] = { 0.64f, 0.33f, 0.30f,   0.60f,
+                              0.15f, 0.06f, 0.3127f, 0.3290f };
+    auto icc              = fake_icc_profile();
+    auto add_facts        = [&](ImageSpec& spec) {
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+        spec.attribute("colorInteropID", "lin_ap1_scene");
+        spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chroma);
+        spec.attribute("oiio:Gamma", 2.4f);
+        spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, int(icc.size())),
+                       icc.data());
+        spec.attribute("Exif:ColorSpace", 1);
+        spec.attribute("tiff:ColorSpace", 1);
+    };
+
+    // Changing an existing claim: verdict updated, the full provenance
+    // bucket (and the format-specific hints) scrubbed -- and no
+    // descriptors are introduced on a spec that carried none.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
+        add_facts(spec);
+        config.set_colorspace(spec, "lin_test_scene");
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "lin_test_scene");
+        for (const char* attr :
+             { "CICP", "colorInteropID", "chromaticities", "oiio:Gamma",
+               "ICCProfile", "Exif:ColorSpace", "tiff:ColorSpace" })
+            OIIO_CHECK_ASSERT(!spec.find_attribute(attr));
+        for (const char* attr :
+             { "oiio:ColorSpace:state", "oiio:ColorSpace:encoding",
+               "oiio:ColorSpace:range", "oiio:ColorSpace:equality_id" })
+            OIIO_CHECK_ASSERT(!spec.find_attribute(attr));
+    }
+
+    // Descriptor maintenance on a change is update-or-erase against the
+    // cheap characterization of the new space -- and never computes a
+    // fingerprint.
+    {
+        const size_t fp_before = color_space_fingerprint_cache_size();
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_display");
+        spec.attribute("oiio:ColorSpace:state", "display");
+        spec.attribute("oiio:ColorSpace:range", "narrow");
+        spec.attribute("oiio:ColorSpace:equality_id", "stale_equality_id");
+        config.set_colorspace(spec, "lin_test_scene");
+        ColorSpaceInfo info = config.get_color_space_info("lin_test_scene");
+        OIIO_CHECK_ASSERT(info.valid());
+        OIIO_CHECK_EQUAL(info.image_state(), "scene");
+        check_descriptor(spec, "oiio:ColorSpace:state", info.image_state());
+        check_descriptor(spec, "oiio:ColorSpace:encoding", info.encoding());
+        // Stale values that the cheap get cannot vouch for are erased,
+        // never retained and never derived.
+        check_descriptor(spec, "oiio:ColorSpace:range", info.range());
+        check_descriptor(spec, "oiio:ColorSpace:equality_id",
+                         info.equality_id());
+        OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), fp_before);
+    }
+
+    // First tagging (no previous claim) preserves the provenance facts:
+    // read paths derive the claim from them. Only the longstanding
+    // hand-invalidated hints (gamma, Exif/tiff) are removed.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        add_facts(spec);
+        config.set_colorspace(spec, "lin_test_scene");
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "lin_test_scene");
+        for (const char* attr :
+             { "CICP", "colorInteropID", "chromaticities", "ICCProfile" })
+            OIIO_CHECK_ASSERT(spec.find_attribute(attr));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("oiio:Gamma"));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("Exif:ColorSpace"));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("tiff:ColorSpace"));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("oiio:ColorSpace:state"));
+    }
+
+    // Empty name: absence semantics -- verdict, facts, and descriptors
+    // are all erased.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
+        add_facts(spec);
+        spec.attribute("oiio:ColorSpace:state", "scene");
+        spec.attribute("oiio:ColorSpace:range", "narrow");
+        config.set_colorspace(spec, "");
+        OIIO_CHECK_ASSERT(!spec.find_attribute("oiio:ColorSpace"));
+        for (const char* attr :
+             { "CICP", "colorInteropID", "chromaticities", "oiio:Gamma",
+               "ICCProfile", "oiio:ColorSpace:state", "oiio:ColorSpace:range" })
+            OIIO_CHECK_ASSERT(!spec.find_attribute(attr));
+    }
+
+    // Re-asserting the current claim is a no-op: facts and descriptors
+    // (even stale ones) are untouched. Refreshes ride an actual change of
+    // claim or the pixel-operation hygiene, keeping redundant re-tagging
+    // read paths (e.g. Exif decode) byte-identical.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "lin_test_scene");
+        add_facts(spec);
+        spec.attribute("oiio:ColorSpace:state", "display");
+        config.set_colorspace(spec, "lin_test_scene");
+        OIIO_CHECK_ASSERT(spec.find_attribute("CICP"));
+        OIIO_CHECK_ASSERT(spec.find_attribute("colorInteropID"));
+        OIIO_CHECK_ASSERT(spec.find_attribute("oiio:Gamma"));
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace:state"),
+                         "display");
+    }
+
+    // set_colorspace_rec709_gamma inherits the routing and still records
+    // the gamma afterward.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "lin_test_scene");
+        config.set_colorspace_rec709_gamma(spec, 2.2f);
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "g22_rec709_scene");
+        OIIO_CHECK_EQUAL(spec.get_float_attribute("oiio:Gamma"), 2.2f);
+    }
+
+    // ImageSpec::set_colorspace routes through ColorConfig::set_colorspace
+    // (default config) and additionally always invalidates CICP -- but the
+    // first-tagging path still preserves the other evidence facts.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
+        spec.attribute("colorInteropID", "lin_ap1_scene");
+        spec.set_colorspace("lin_ap1_scene");
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(!spec.find_attribute("CICP"));
+        OIIO_CHECK_ASSERT(spec.find_attribute("colorInteropID"));
+    }
+}
+
+
 // IBA wiring of the scrubber: identity-known operations scrub the outgoing
 // spec's provenance facts uniformly -- inferred AND explicit sources alike
 // (the facts describe the pre-operation source either way).
@@ -489,18 +647,6 @@ make_hinted_src(const char* space)
     ImageBuf buf(spec);
     ImageBufAlgo::fill(buf, { 0.5f, 0.25f, 0.75f });
     return buf;
-}
-
-
-// Check a current-state descriptor against the update-or-erase rule: a
-// usable value updates the attribute, an unavailable one erases it.
-static void
-check_descriptor(const ImageSpec& spec, const char* name, string_view value)
-{
-    if (value.size())
-        OIIO_CHECK_EQUAL(spec.get_string_attribute(name), std::string(value));
-    else
-        OIIO_CHECK_ASSERT(!spec.find_attribute(name));
 }
 
 
@@ -776,6 +922,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_infer_helper(config);
     test_iba_inference(config);
     test_scrubber(config);
+    test_set_colorspace_hygiene(config);
     test_iba_scrub_wiring(config);
     test_hygiene_per_class(config);
     test_hygiene_disparity_pin(config);

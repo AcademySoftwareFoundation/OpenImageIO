@@ -3848,22 +3848,56 @@ ImageBufAlgo::colorconvert(span<float> color, const ColorProcessor* processor,
 void
 ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
 {
-    // If we're not changing color space, don't mess with anything
+    // Re-asserting the color space the spec already carries is a no-op: it
+    // adds no information, and refreshing state on a pure re-assertion
+    // would perturb read paths that re-assert redundantly (e.g. Exif
+    // decoding re-tags sRGB on virtually every camera file after the
+    // reader already did). Descriptor refreshes ride actual color
+    // operations (ColorOperationHygiene) or an actual change of claim.
     string_view oldspace = spec.get_string_attribute("oiio:ColorSpace");
     if (oldspace.size() && colorspace.size() && oldspace == colorspace)
         return;
 
-    // Set or clear the main "oiio:ColorSpace" attribute
     if (colorspace.empty()) {
+        // Absence semantics: assume NOTHING about the color space. The
+        // verdict, every file-provenance fact, and every current-state
+        // descriptor are erased (could-not-determine is expressed by
+        // absence, never by a guess).
         spec.erase_attribute("oiio:ColorSpace");
+        OIIO::pvt::scrub_color_metadata(spec);
+        OIIO::pvt::erase_color_state_descriptors(spec);
     } else {
         spec.attribute("oiio:ColorSpace", colorspace);
+        if (oldspace.size()) {
+            // Asserting a DIFFERENT space over an existing claim: the
+            // identity-known two-bucket hygiene. File-provenance facts
+            // (colorInteropID, CICP, chromaticities, gamma, ICC, the ACES
+            // container flag) described the old claim and are now stale:
+            // scrub them all. Current-state descriptors are the other
+            // bucket: MAINTAINED, update-or-erase from the cheap
+            // characterization -- but only for a spec that already
+            // carries some; introducing characterization a buffer never
+            // had is the pixel-operation hygiene's job
+            // (ColorOperationHygiene), not the tag's, and tag-only paths
+            // keep their observable output unchanged.
+            OIIO::pvt::scrub_color_metadata(spec);
+            if (spec.find_attribute("oiio:ColorSpace:state")
+                || spec.find_attribute("oiio:ColorSpace:encoding")
+                || spec.find_attribute("oiio:ColorSpace:range")
+                || spec.find_attribute("oiio:ColorSpace:equality_id"))
+                OIIO::pvt::maintain_color_state_descriptors(spec, *this,
+                                                            colorspace);
+        }
+        // First tagging (no previous claim) deliberately does NOT scrub
+        // the provenance facts: at read time the verdict is routinely
+        // DERIVED from those very facts (the metadata reconciler, the
+        // format readers), which are evidence for the claim, not
+        // contradictions of it.
     }
 
-    // Clear a bunch of other metadata that might contradict the colorspace,
-    // including some format-specific things that we don't want to propagate
-    // from input to output if we know that color space transformations have
-    // occurred.
+    // Format-specific color hints outside the provenance bucket that could
+    // contradict the new claim, plus oiio:Gamma for the first-tagging path
+    // (the scrub covers it on the paths above). Longstanding behavior.
     if (!equivalent(colorspace, "srgb_rec709_scene"))
         spec.erase_attribute("Exif:ColorSpace");
     spec.erase_attribute("tiff:ColorSpace");
@@ -4064,10 +4098,6 @@ ColorOperationHygiene::finish(ColorOperationIdentity identity,
         return;  // failed pixel math: leave the spec exactly as it was
     ImageSpec& spec = m_dst->specmod();
 
-    static const char* descriptor_attrs[]
-        = { "oiio:ColorSpace:state", "oiio:ColorSpace:encoding",
-            "oiio:ColorSpace:range", "oiio:ColorSpace:equality_id" };
-
     switch (identity) {
     case ColorOperationIdentity::Preserved:
         // Space-preserving (or an honest no-op): facts and descriptors
@@ -4084,46 +4114,70 @@ ColorOperationHygiene::finish(ColorOperationIdentity identity,
         // The resulting space cannot be known and users must not expect
         // it: absence everywhere (could-not-determine, never-guess) --
         // not "oiio:unknown", which marks treatment, not ignorance.
-        spec.set_colorspace("");  // erases the verdict
-        scrub_color_metadata(spec);
-        for (const char* attr : descriptor_attrs)
-            spec.erase_attribute(attr);
+        // set_colorspace("") carries the full absence semantics: verdict,
+        // provenance facts, and descriptors are all erased.
+        spec.set_colorspace("");
         break;
 
-    case ColorOperationIdentity::Known: {
-        spec.set_colorspace(target_color_space);
+    case ColorOperationIdentity::Known:
+        // Through the operation's own config (not the process default the
+        // ImageSpec convenience method uses).
+        m_config->set_colorspace(spec, target_color_space);
         // Two-bucket rule, applied uniformly (explicit and inferred
         // sources alike): file-provenance facts are stale, scrub them;
         // current-state descriptors are retained and UPDATED below.
+        // (set_colorspace itself only applies this hygiene when changing
+        // an existing claim, and only maintains descriptors a spec
+        // already carries; the pixel operation asserts the change
+        // unconditionally and INTRODUCES the descriptors.)
         scrub_color_metadata(spec);
-        // Cheap descriptor maintenance only: get_color_space_info() does
-        // direct or previously-cached work -- it never builds a processor,
-        // probes a transform, or computes a fingerprint, and this path
-        // never asks for chromaticities or transfer information. Direct/
-        // cached values update the sub-attribute; an unavailable value
-        // erases it -- update-or-erase, never guess.
-        ColorSpaceInfo info = m_config->get_color_space_info(
-            target_color_space);
-        auto set_or_erase = [&](const char* name, string_view value) {
-            if (value.size())
-                spec.attribute(name, value);
-            else
-                spec.erase_attribute(name);
-        };
-        set_or_erase("oiio:ColorSpace:state", info.image_state());
-        set_or_erase("oiio:ColorSpace:encoding", info.encoding());
+        // Cheap descriptor maintenance only: never a processor, a probe,
+        // or a fingerprint, and this path never asks for chromaticities
+        // or transfer information. Update-or-erase, never guess.
         // Range is current-state, operation-aware: a Known conversion sets
         // the target's intrinsic range when one is explicitly known and
         // otherwise does not invent one (the erase removes a stale value);
         // a Preserved operation retains the buffer's range untouched.
-        set_or_erase("oiio:ColorSpace:range", info.range());
-        // An uncomputed equality id is removed, never derived here:
-        // retaining the previous id would be observably wrong, forcing a
-        // fingerprint would violate the cheap-only rule.
-        set_or_erase("oiio:ColorSpace:equality_id", info.equality_id());
+        maintain_color_state_descriptors(spec, *m_config, target_color_space);
         break;
     }
-    }
+}
+
+
+
+void
+maintain_color_state_descriptors(ImageSpec& spec, const ColorConfig& config,
+                                 string_view color_space)
+{
+    // Cheap get only: get_color_space_info() does direct or previously
+    // cached work -- it never builds a processor, probes a transform, or
+    // computes a fingerprint. Direct/cached values update the
+    // sub-attribute; an unavailable value erases it -- update-or-erase,
+    // never guess. (An uncomputed equality id in particular is removed,
+    // never derived here: retaining the previous id would be observably
+    // wrong, forcing a fingerprint would violate the cheap-only rule.)
+    ColorSpaceInfo info = config.get_color_space_info(color_space);
+    auto set_or_erase   = [&](const char* name, string_view value) {
+        if (value.size())
+            spec.attribute(name, value);
+        else
+            spec.erase_attribute(name);
+    };
+    set_or_erase("oiio:ColorSpace:state", info.image_state());
+    set_or_erase("oiio:ColorSpace:encoding", info.encoding());
+    set_or_erase("oiio:ColorSpace:range", info.range());
+    set_or_erase("oiio:ColorSpace:equality_id", info.equality_id());
+}
+
+
+
+void
+erase_color_state_descriptors(ImageSpec& spec)
+{
+    spec.erase_attribute("oiio:ColorSpace:state");
+    spec.erase_attribute("oiio:ColorSpace:encoding");
+    spec.erase_attribute("oiio:ColorSpace:range");
+    spec.erase_attribute("oiio:ColorSpace:equality_id");
 }
 
 }  // namespace pvt
