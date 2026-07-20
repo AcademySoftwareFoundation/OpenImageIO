@@ -695,15 +695,20 @@ public:
     /// Batch version of get_color_space_info(): one record per requested
     /// name, in input order (duplicates included). Every requested name is
     /// validated before any record is built; if any input is invalid, one
-    /// indexed error (e.g. `get_color_space_info[3]: unknown color space
+    /// indexed error (e.g. `get_color_space_infos[3]: unknown color space
     /// "..."`) is reported through has_error()/geterror() and an empty
     /// vector is returned. An empty input span is an empty batch, not "all
     /// spaces". This method does not throw.
     ///
+    /// The batch spelling is deliberately distinct (plural, matching the
+    /// Python binding) rather than an overload: span's one-element
+    /// converting constructor would otherwise make a `std::string` lvalue
+    /// argument ambiguous between the scalar and batch forms.
+    ///
     /// @version 3.2
     OIIO_NODISCARD std::vector<ColorSpaceInfo>
-    get_color_space_info(cspan<std::string> color_spaces,
-                         const ColorSpaceInfoOptions& options = {}) const;
+    get_color_space_infos(cspan<std::string> color_spaces,
+                          const ColorSpaceInfoOptions& options = {}) const;
 
     // See <OpenImageIO/color_interop_ids.h> for `ColorInteropIDs::all()`,
     // which returns every canonical Color Interop Forum id declared by

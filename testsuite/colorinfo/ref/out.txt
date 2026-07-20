@@ -41,7 +41,7 @@ Color space info for "srgb_rec709_scene":
   chromaticities    uncomputed   -
   transfer_function uncomputed   -
 consumer: invalid name =
-oiiotool ERROR: --colorinfo : get_color_space_info[1]: unknown color space "nope_xyzzy"
+oiiotool ERROR: --colorinfo : get_color_space_infos[1]: unknown color space "nope_xyzzy"
 Full command line was:
 > oiiotool -echo "consumer: invalid name =" --colorconfig src/colorinfo.ocio --colorinfo plain_space,nope_xyzzy
 binding: scalar, queried by alias =
@@ -72,5 +72,5 @@ binding: invalid scalar =
   error = get_color_space_info: unknown color space "no_such_space"
 binding: invalid batch =
   result = []
-  error = get_color_space_info[1]: unknown color space "nope"
+  error = get_color_space_infos[1]: unknown color space "nope"
 Done.

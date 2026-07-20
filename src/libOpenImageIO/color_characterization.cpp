@@ -568,8 +568,8 @@ ColorConfig::get_color_space_info(string_view color_space,
 
 
 std::vector<ColorSpaceInfo>
-ColorConfig::get_color_space_info(cspan<std::string> color_spaces,
-                                  const ColorSpaceInfoOptions& options) const
+ColorConfig::get_color_space_infos(cspan<std::string> color_spaces,
+                                   const ColorSpaceInfoOptions& options) const
 {
     try {
         std::vector<ColorSpaceInfo> results;
@@ -583,7 +583,7 @@ ColorConfig::get_color_space_info(cspan<std::string> color_spaces,
                 uint32_t(spvt::CharacterizationField::None), options.context);
             if (!rec.valid()) {
                 getImpl()->error(
-                    "get_color_space_info[{}]: unknown color space \"{}\"", i,
+                    "get_color_space_infos[{}]: unknown color space \"{}\"", i,
                     color_spaces[i]);
                 return {};
             }
@@ -592,7 +592,7 @@ ColorConfig::get_color_space_info(cspan<std::string> color_spaces,
         }
         return results;
     } catch (const std::exception& e) {
-        getImpl()->error("get_color_space_info: {}", e.what());
+        getImpl()->error("get_color_space_infos: {}", e.what());
         return {};
     }
 }

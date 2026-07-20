@@ -3477,7 +3477,7 @@ colorspaces:
     {
         std::vector<std::string> names { "plain_space", "rawdata", "my_srgb",
                                          "plain_space" };
-        std::vector<ColorSpaceInfo> infos = cc.get_color_space_info(names);
+        std::vector<ColorSpaceInfo> infos = cc.get_color_space_infos(names);
         OIIO_CHECK_ASSERT(!cc.has_error());
         OIIO_CHECK_EQUAL(infos.size(), 4);
         if (infos.size() == 4) {
@@ -3487,7 +3487,8 @@ colorspaces:
             OIIO_CHECK_EQUAL(infos[3].name(), "plain_space");
         }
         // An empty input span is an empty batch, not "all spaces".
-        OIIO_CHECK_ASSERT(cc.get_color_space_info(cspan<std::string>()).empty());
+        OIIO_CHECK_ASSERT(
+            cc.get_color_space_infos(cspan<std::string>()).empty());
         OIIO_CHECK_ASSERT(!cc.has_error());
     }
 
@@ -3495,11 +3496,11 @@ colorspaces:
     // one INDEXED error and an empty result.
     {
         std::vector<std::string> names { "ref", "bogus_name", "plain_space" };
-        std::vector<ColorSpaceInfo> infos = cc.get_color_space_info(names);
+        std::vector<ColorSpaceInfo> infos = cc.get_color_space_infos(names);
         OIIO_CHECK_ASSERT(infos.empty());
         OIIO_CHECK_ASSERT(cc.has_error());
         std::string err = cc.geterror();
-        OIIO_CHECK_ASSERT(Strutil::contains(err, "get_color_space_info[1]")
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "get_color_space_infos[1]")
                           && Strutil::contains(err, "bogus_name"));
     }
 

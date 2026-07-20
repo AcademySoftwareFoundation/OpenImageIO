@@ -6444,7 +6444,7 @@ action_colorinfo(Oiiotool& ot, cspan<const char*> argv)
     OTScopedTimer timer(ot, command);
 
     ColorConfig& cc  = ot.colorconfig();
-    const auto infos = cc.get_color_space_info(names);
+    const auto infos = cc.get_color_space_infos(names);
     if (cc.has_error()) {
         ot.errorfmt(command, "{}", cc.geterror());
         return;

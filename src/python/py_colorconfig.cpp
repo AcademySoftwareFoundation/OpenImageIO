@@ -366,11 +366,7 @@ declare_colorconfig(py::module& m)
                 -> py::object {
                 ColorSpaceInfoOptions opts;
                 opts.context = context_vars;
-                // The explicit string_view selects the scalar overload (a
-                // std::string lvalue would otherwise also convert to a
-                // one-element cspan).
-                ColorSpaceInfo info
-                    = self.get_color_space_info(string_view(name), opts);
+                ColorSpaceInfo info = self.get_color_space_info(name, opts);
                 // Invalid input maps to None; the error stays on the
                 // ColorConfig (geterror()).
                 if (!info.valid())
@@ -391,7 +387,7 @@ declare_colorconfig(py::module& m)
                     // the batch (invalid batch input returns [] and leaves
                     // the error on the ColorConfig).
                     py::gil_scoped_release gil;
-                    infos = self.get_color_space_info(names, opts);
+                    infos = self.get_color_space_infos(names, opts);
                 }
                 return infos;
             },
