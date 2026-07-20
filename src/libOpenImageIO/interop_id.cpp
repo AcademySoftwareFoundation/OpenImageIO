@@ -15,6 +15,8 @@
 
 #include <array>
 
+#include <OpenImageIO/strutil.h>
+
 OIIO_NAMESPACE_BEGIN
 
 namespace pvt {
@@ -235,10 +237,51 @@ strip_leftmost_namespace(const std::string& id)
 
 
 
+InteropMarker
+classify_interop_marker(string_view id)
+{
+    // Utility tokens are reserved case-sensitively; the deliberate
+    // unknown-marker family is honored case-insensitively, exactly as the
+    // resolver and scrubber always have.
+    if (id == "data")
+        return InteropMarker::UtilityData;
+    if (id == "bypass")
+        return InteropMarker::UtilityBypass;
+    if (id == "unknown")
+        return InteropMarker::BareUnknown;
+    if (Strutil::iequals(id, "ocio:unknown"))
+        return InteropMarker::OcioUnknown;
+    if (Strutil::iequals(id, "oiio:unknown"))
+        return InteropMarker::OiioUnknown;
+    if (Strutil::iequals(id, "error:unknown"))
+        return InteropMarker::ErrorUnknown;
+    return InteropMarker::Definite;
+}
+
+
+
+bool
+is_unknown_marker(string_view id)
+{
+    switch (classify_interop_marker(id)) {
+    case InteropMarker::OcioUnknown:
+    case InteropMarker::OiioUnknown:
+    case InteropMarker::ErrorUnknown: return true;
+    default: return false;
+    }
+}
+
+
+
 bool
 is_utility_interop_id(const std::string& id)
 {
-    return id == "data" || id == "unknown" || id == "bypass";
+    switch (classify_interop_marker(id)) {
+    case InteropMarker::UtilityData:
+    case InteropMarker::UtilityBypass:
+    case InteropMarker::BareUnknown: return true;
+    default: return false;
+    }
 }
 
 }  // namespace pvt

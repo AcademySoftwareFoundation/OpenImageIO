@@ -648,6 +648,35 @@ strip_leftmost_namespace(const std::string& id);
 OIIO_API bool
 is_utility_interop_id(const std::string& id);
 
+// The marker vocabulary a colorInteropID value can carry beyond an ordinary
+// definite id claim: the reserved utility tokens ("data" / "unknown" /
+// "bypass", case-sensitive) and the deliberate unknown-marker family
+// ("ocio:unknown" / "oiio:unknown" / "error:unknown", case-insensitive) --
+// config-declared unknownness, OIIO's synthetic isData/NoOp treatment
+// marker, and the strict-resolution-failure signal, respectively.
+// Everything else (including an empty string) classifies as Definite.
+enum class InteropMarker {
+    Definite,       //< an ordinary definite id claim (or empty)
+    UtilityData,    //< "data"
+    UtilityBypass,  //< "bypass"
+    BareUnknown,    //< "unknown"
+    OcioUnknown,    //< "ocio:unknown" -- config-declared unknown
+    OiioUnknown,    //< "oiio:unknown" -- synthetic isData/NoOp treatment
+    ErrorUnknown,   //< "error:unknown" -- strict-resolution failure
+};
+
+// The one classifier for that vocabulary: every site that branches on what
+// a marker MEANS consults this instead of re-testing strings (what a caller
+// DOES about it stays per-caller). For internal/test use only.
+OIIO_API InteropMarker
+classify_interop_marker(string_view id);
+
+// True iff `id` classifies as one of the deliberate unknown-marker family
+// (ocio:unknown / oiio:unknown / error:unknown) -- the markers resolution
+// and scrubbing honor: never scrubbed, never inferred over.
+OIIO_API bool
+is_unknown_marker(string_view id);
+
 
 // ---------------------------------------------------------------------------
 // Color-space search by characterization -- find a config's color spaces whose

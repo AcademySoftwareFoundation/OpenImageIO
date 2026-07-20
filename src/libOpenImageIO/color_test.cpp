@@ -267,6 +267,39 @@ test_interop_id_grammar()
     OIIO_CHECK_ASSERT(is_utility_interop_id("unknown"));
     OIIO_CHECK_ASSERT(is_utility_interop_id("bypass"));
     OIIO_CHECK_FALSE(is_utility_interop_id("Data"));
+
+    // The one marker classifier: utility tokens case-sensitive, the
+    // deliberate unknown-marker family case-insensitive, everything else
+    // (including empty) an ordinary definite claim.
+    using OIIO::pvt::classify_interop_marker;
+    using OIIO::pvt::InteropMarker;
+    using OIIO::pvt::is_unknown_marker;
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("data"),
+                     (int)InteropMarker::UtilityData);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("bypass"),
+                     (int)InteropMarker::UtilityBypass);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("unknown"),
+                     (int)InteropMarker::BareUnknown);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("ocio:unknown"),
+                     (int)InteropMarker::OcioUnknown);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("oiio:unknown"),
+                     (int)InteropMarker::OiioUnknown);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("error:unknown"),
+                     (int)InteropMarker::ErrorUnknown);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("OIIO:Unknown"),
+                     (int)InteropMarker::OiioUnknown);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("Data"),
+                     (int)InteropMarker::Definite);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("Unknown"),
+                     (int)InteropMarker::Definite);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker("lin_ap0_scene"),
+                     (int)InteropMarker::Definite);
+    OIIO_CHECK_EQUAL((int)classify_interop_marker(""),
+                     (int)InteropMarker::Definite);
+    OIIO_CHECK_ASSERT(is_unknown_marker("error:unknown"));
+    OIIO_CHECK_ASSERT(is_unknown_marker("OCIO:UNKNOWN"));
+    OIIO_CHECK_FALSE(is_unknown_marker("unknown"));
+    OIIO_CHECK_FALSE(is_unknown_marker(""));
 }
 
 
