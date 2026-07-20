@@ -3195,36 +3195,15 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
     OIIO::pvt::LoggedTimer logtime("IBA::colorconvert");
     if (!colorconfig)
         colorconfig = &ColorConfig::default_colorconfig();
-    // One locked snapshot of the read-policy state per call (only populated
-    // and consulted on the inferred-source path below).
-    OIIO::pvt::ColorReadPolicy policy;
-    bool inferred_source = false;
-    if (from.empty() || from == "current") {
-        from = src.spec().get_string_attribute("oiio:Colorspace",
-                                               "scene_linear");
-        // A fully untagged source (no color space attribute at all): infer
-        // one from the color hints the spec carries (colorInteropID, CICP,
-        // ICC, chromaticities/gamma) before standing on the scene_linear
-        // default. An explicit `from` argument or a tagged source never
-        // reaches this, and a hintless source keeps today's default exactly.
-        if (!src.spec().find_attribute("oiio:ColorSpace", TypeString)) {
-            policy = OIIO::pvt::ColorReadPolicy::snapshot();
-            OIIO::pvt::ColorCallContext ctx;
-            ctx.filename       = std::string(src.name());
-            ctx.format         = std::string(src.file_format_name());
-            std::string hinted = OIIO::pvt::infer_color_space_from_spec(
-                colorconfig, src.spec(), ctx, policy);
-            if (!hinted.empty()) {
-                Strutil::debug("IBA::colorconvert inferred source color "
-                               "space \"{}\" from the input's color "
-                               "metadata\n",
-                               hinted);
-                from            = ustring(hinted);
-                inferred_source = true;
-            }
-        }
-    }
-    if (from.empty() || from == "unknown" || to.empty() || to == "unknown") {
+    // Automatic metadata hygiene around the operation: prepare() resolves
+    // the source (explicit -> tagged -> inferred from the spec's color
+    // hints -> lenient default, with the unresolvable-source failure
+    // split); finish() below maintains the output spec.
+    OIIO::pvt::ColorOperationHygiene hygiene;
+    if (!hygiene.prepare(src, dst, *colorconfig, from))
+        return false;
+    from = hygiene.source();
+    if (to.empty() || to == "unknown") {
         dst.errorfmt("Unknown color space name (from=\"{}\", to=\"{}\")", from,
                      to);
         return false;
@@ -3262,23 +3241,18 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src, string_view from,
 
     logtime.stop(-1);  // transition to other colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
-    if (ok) {
-        // Coming from a non-color space, or a lenient pass-through no-op,
-        // preserves the original space
-        // DBG("done, setting output colorspace to {}\n", to);
-        if (colorconfig->isData(from) || lenient_passthrough)
-            to = from;
-        dst.specmod().set_colorspace(to);
-        // Inferred-source hygiene: the hints that named the (pre-conversion)
-        // source now describe a state the output no longer has. Scrub the
-        // ones the resolver proves determinate; leave the rest. Explicit-
-        // source calls are deliberately untouched (identical to main); a
-        // pass-through or data no-op keeps its still-true hints.
-        if (inferred_source && !lenient_passthrough
-            && !colorconfig->isData(from))
-            OIIO::pvt::scrub_color_metadata(dst.specmod(), colorconfig,
-                                            policy);
+    // Coming from a non-color space, or a lenient pass-through no-op, the
+    // pixels never changed space: the operation is space-preserving and
+    // the output keeps documenting its true (source) space with its
+    // still-true hints. Otherwise the identity is Known: verdict stamped,
+    // stale provenance facts scrubbed (uniformly -- explicit and inferred
+    // sources alike), cheap current-state descriptors maintained.
+    auto identity = OIIO::pvt::ColorOperationIdentity::Known;
+    if (colorconfig->isData(from) || lenient_passthrough) {
+        to       = from;
+        identity = OIIO::pvt::ColorOperationIdentity::Preserved;
     }
+    hygiene.finish(identity, to, ok);
     return ok;
 }
 
@@ -3554,22 +3528,22 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
                        const ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::ociolook");
-    if (from.empty() || from == "current") {
-        auto linearspace = colorconfig->resolve("scene_linear");
-        from = src.spec().get_string_attribute("oiio:Colorspace", linearspace);
-    }
-    if (to.empty() || to == "current") {
-        auto linearspace = colorconfig->resolve("scene_linear");
-        to = src.spec().get_string_attribute("oiio:Colorspace", linearspace);
-    }
-    if (from.empty() || to.empty()) {
+    if (!colorconfig)
+        colorconfig = &ColorConfig::default_colorconfig();
+    // Hygiene resolves the operation's source; an unspecified `to` means
+    // the look leaves the image in that same (resolved) space.
+    OIIO::pvt::ColorOperationHygiene hygiene;
+    if (!hygiene.prepare(src, dst, *colorconfig, from))
+        return false;
+    from = hygiene.source();
+    if (to.empty() || to == "current")
+        to = hygiene.source();
+    if (to.empty()) {
         dst.errorfmt("Unknown color space name");
         return false;
     }
     ColorProcessorHandle processor;
     {
-        if (!colorconfig)
-            colorconfig = &ColorConfig::default_colorconfig();
         processor = colorconfig->createLookTransform(looks,
                                                      colorconfig->resolve(from),
                                                      colorconfig->resolve(to),
@@ -3586,8 +3560,8 @@ ImageBufAlgo::ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
-    if (ok)
-        dst.specmod().set_colorspace(to);
+    // The look declares its output space: identity-known, full hygiene.
+    hygiene.finish(OIIO::pvt::ColorOperationIdentity::Known, to, ok);
     return ok;
 }
 
@@ -3617,19 +3591,14 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
                           const ColorConfig* colorconfig, ROI roi, int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::ociodisplay");
+    if (!colorconfig)
+        colorconfig = &ColorConfig::default_colorconfig();
+    OIIO::pvt::ColorOperationHygiene hygiene;
+    if (!hygiene.prepare(src, dst, *colorconfig, from))
+        return false;
+    from = hygiene.source();
     ColorProcessorHandle processor;
     {
-        if (!colorconfig)
-            colorconfig = &ColorConfig::default_colorconfig();
-        if (from.empty() || from == "current") {
-            auto linearspace = colorconfig->resolve("scene_linear");
-            from = src.spec().get_string_attribute("oiio:ColorSpace",
-                                                   linearspace);
-        }
-        if (from.empty()) {
-            dst.errorfmt("Unknown color space name");
-            return false;
-        }
         processor
             = colorconfig->createDisplayTransform(display, view,
                                                   colorconfig->resolve(from),
@@ -3665,25 +3634,28 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
         if (view.empty() || view == "default")
             view = colorconfig->getDefaultViewName(display,
                                                    colorconfig->resolve(from));
-        if (inverse) {
-            // Inverse: pixels land in the scene `from` space -- unless the
-            // conversion fell back to a no-op, in which case they never left
-            // the (display, view) encoding the input arrived in. Tag that
-            // source space, not the `from` we failed to reach (mirror of
-            // the forward branch's honest source-tag rule).
-            dst.specmod().set_colorspace(
-                lenient_passthrough
-                    ? colorconfig->getDisplayViewColorSpaceName(display, view)
-                    : colorconfig->resolve(from));
-        } else {
-            // Forward: pixels land in the (display, view) space -- unless the
-            // no-op left them in the source scene `from` space.
-            dst.specmod().set_colorspace(
-                lenient_passthrough
-                    ? colorconfig->resolve(from)
-                    : colorconfig->getDisplayViewColorSpaceName(display,
-                                                                view));
-        }
+        // The pixels land in the (display, view) space forward, or the
+        // scene `from` space inverse -- unless the conversion fell back to
+        // a lenient pass-through no-op, in which case they never left the
+        // space the input arrived in: tag that source space, not the space
+        // the failed conversion was reaching for (the honest no-op rule),
+        // and treat the operation as space-preserving (its still-true
+        // hints pass through).
+        string_view target;
+        if (inverse)
+            target = lenient_passthrough
+                         ? colorconfig->getDisplayViewColorSpaceName(display,
+                                                                     view)
+                         : colorconfig->resolve(from);
+        else
+            target = lenient_passthrough
+                         ? colorconfig->resolve(from)
+                         : colorconfig->getDisplayViewColorSpaceName(display,
+                                                                     view);
+        hygiene.finish(lenient_passthrough
+                           ? OIIO::pvt::ColorOperationIdentity::Preserved
+                           : OIIO::pvt::ColorOperationIdentity::Known,
+                       target, true);
     }
     return ok;
 }
@@ -3718,10 +3690,12 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
         dst.errorfmt("Unknown filetransform name");
         return false;
     }
+    if (!colorconfig)
+        colorconfig = &ColorConfig::default_colorconfig();
+    OIIO::pvt::ColorOperationHygiene hygiene;
+    hygiene.prepare(src, dst, *colorconfig);
     ColorProcessorHandle processor;
     {
-        if (!colorconfig)
-            colorconfig = &ColorConfig::default_colorconfig();
         processor = colorconfig->createFileTransform(name, inverse);
         if (!processor) {
             if (colorconfig->has_error())
@@ -3735,15 +3709,19 @@ ImageBufAlgo::ociofiletransform(ImageBuf& dst, const ImageBuf& src,
 
     logtime.stop();  // transition to colorconvert
     bool ok = colorconvert(dst, src, processor.get(), unpremult, roi, nthreads);
-    if (ok)
-        // If we can parse a color space from the file name, and we're not inverting
-        // the transform, then we'll use the color space name from the file.
-        // Otherwise, we'll leave `oiio:ColorSpace` alone.
-        // TODO: Use OCIO to extract InputDescription and OutputDescription CLF
-        // metadata attributes, if present.
-        if (!colorconfig->filepathOnlyMatchesDefaultRule(name))
-            dst.specmod().set_colorspace(
-                colorconfig->getColorSpaceFromFilepath(name));
+    // An arbitrary file/LUT transform's resulting space cannot generally
+    // be known, and users must not expect it: identity-unknowable, so
+    // hygiene erases the verdict, the stale provenance facts, and the
+    // current-state descriptors (absence = could-not-determine, never a
+    // guess). The one exception is when the file name itself names the
+    // result via the config's file rules -- then the identity is declared
+    // and full Known hygiene applies, preserving the longstanding
+    // color-space-from-filepath behavior.
+    if (!colorconfig->filepathOnlyMatchesDefaultRule(name))
+        hygiene.finish(OIIO::pvt::ColorOperationIdentity::Known,
+                       colorconfig->getColorSpaceFromFilepath(name), ok);
+    else
+        hygiene.finish(OIIO::pvt::ColorOperationIdentity::Unknowable, {}, ok);
     return ok;
 }
 
@@ -3987,6 +3965,159 @@ color_space_analyzed(const ColorConfig& config, string_view name)
 {
     auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
     return impl ? impl->analysisComputed(name) : false;
+}
+
+
+// Automatic metadata hygiene around the color-aware IBA operations.
+// (Contract and per-identity-class semantics: see color_pvt.h.)
+
+
+void
+ColorOperationHygiene::prepare(const ImageBuf& src, ImageBuf& dst,
+                               const ColorConfig& config)
+{
+    m_config = &config;
+    m_dst    = &dst;
+    (void)src;
+    // One locked snapshot of the read-policy state per operation.
+    m_policy = ColorReadPolicy::snapshot();
+}
+
+
+
+bool
+ColorOperationHygiene::prepare(const ImageBuf& src, ImageBuf& dst,
+                               const ColorConfig& config, string_view from)
+{
+    prepare(src, dst, config);
+    if (!from.empty() && from != "current") {
+        // Explicit source: verbatim (the operation resolves it).
+        m_source = from;
+        if (m_source != "unknown")
+            return true;
+    } else {
+        m_source = src.spec().get_string_attribute("oiio:ColorSpace");
+        if (m_source.empty()) {
+            // A fully untagged source: infer one from the color hints the
+            // spec carries (colorInteropID, CICP, ICC, chromaticities/
+            // gamma) before standing on any default.
+            ColorCallContext ctx;
+            ctx.filename = std::string(src.name());
+            ctx.format   = std::string(src.file_format_name());
+            std::string hinted
+                = infer_color_space_from_spec(&config, src.spec(), ctx,
+                                              m_policy);
+            if (!hinted.empty()) {
+                Strutil::debug("color operation inferred source color space "
+                               "\"{}\" from the input's color metadata\n",
+                               hinted);
+                m_source = hinted;
+            }
+        }
+        if (!m_source.empty() && m_source != "unknown")
+            return true;
+    }
+
+    // Unresolvable source (nothing determined it, or it is the literal
+    // "unknown"). Failure split, by consequence:
+    // - Lenient scope, hintless: today's scene_linear default stands (a
+    //   tracking gap is not an error -- convenience, not contract).
+    // - A literal "unknown" source, or any unresolved source under a
+    //   strict scope, is an ERROR for pixel math -- never a config-default
+    //   guess into a processor -- except that a config-declared
+    //   "error:unknown" catch space is honored under effective-strict
+    //   (strict scope AND the config's own strictparsing).
+    const bool lenient = m_policy.scope == ColorResolutionScope::Lenient;
+    if (lenient && m_source.empty()) {
+        m_source = "scene_linear";
+        return true;
+    }
+    if (!lenient) {
+        bool config_strict = false;
+        try {
+            auto impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+            config_strict = impl->config_
+                            && impl->config_->isStrictParsingEnabled();
+        } catch (...) {
+        }
+        if (config_strict && config.getColorSpaceIndex("error:unknown") >= 0) {
+            m_source = "error:unknown";
+            return true;
+        }
+    }
+    dst.errorfmt("Could not determine the source color space (from=\"{}\")",
+                 m_source);
+    m_source.clear();
+    return false;
+}
+
+
+
+void
+ColorOperationHygiene::finish(ColorOperationIdentity identity,
+                              string_view target_color_space,
+                              bool pixels_succeeded)
+{
+    if (!m_dst || !pixels_succeeded)
+        return;  // failed pixel math: leave the spec exactly as it was
+    ImageSpec& spec = m_dst->specmod();
+
+    static const char* descriptor_attrs[]
+        = { "oiio:ColorSpace:state", "oiio:ColorSpace:encoding",
+            "oiio:ColorSpace:range", "oiio:ColorSpace:equality_id" };
+
+    switch (identity) {
+    case ColorOperationIdentity::Preserved:
+        // Space-preserving (or an honest no-op): re-stamp the verdict when
+        // the operation names it; facts and descriptors pass through.
+        if (!target_color_space.empty())
+            spec.set_colorspace(target_color_space);
+        break;
+
+    case ColorOperationIdentity::Unknowable:
+        // The resulting space cannot be known and users must not expect
+        // it: absence everywhere (could-not-determine, never-guess) --
+        // not "oiio:unknown", which marks treatment, not ignorance.
+        spec.set_colorspace("");  // erases the verdict
+        scrub_color_metadata(spec);
+        for (const char* attr : descriptor_attrs)
+            spec.erase_attribute(attr);
+        break;
+
+    case ColorOperationIdentity::Known: {
+        spec.set_colorspace(target_color_space);
+        // Two-bucket rule, applied uniformly (explicit and inferred
+        // sources alike): file-provenance facts are stale, scrub them;
+        // current-state descriptors are retained and UPDATED below.
+        scrub_color_metadata(spec);
+        // Cheap descriptor maintenance only: get_color_space_info() does
+        // direct or previously-cached work -- it never builds a processor,
+        // probes a transform, or computes a fingerprint, and this path
+        // never asks for chromaticities or transfer information. Direct/
+        // cached values update the sub-attribute; an unavailable value
+        // erases it -- update-or-erase, never guess.
+        ColorSpaceInfo info = m_config->get_color_space_info(
+            target_color_space);
+        auto set_or_erase = [&](const char* name, string_view value) {
+            if (value.size())
+                spec.attribute(name, value);
+            else
+                spec.erase_attribute(name);
+        };
+        set_or_erase("oiio:ColorSpace:state", info.image_state());
+        set_or_erase("oiio:ColorSpace:encoding", info.encoding());
+        // Range is current-state, operation-aware: a Known conversion sets
+        // the target's intrinsic range when one is explicitly known and
+        // otherwise does not invent one (the erase removes a stale value);
+        // a Preserved operation retains the buffer's range untouched.
+        set_or_erase("oiio:ColorSpace:range", info.range());
+        // An uncomputed equality id is removed, never derived here:
+        // retaining the previous id would be observably wrong, forcing a
+        // fingerprint would violate the cheap-only rule.
+        set_or_erase("oiio:ColorSpace:equality_id", info.equality_id());
+        break;
+    }
+    }
 }
 
 }  // namespace pvt

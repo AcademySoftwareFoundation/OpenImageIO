@@ -304,12 +304,14 @@ test_iba_inference(const ColorConfig& config)
 }
 
 
-// The scrubber erases a hint only when the resolver proves what it claims
-// (redundant or contradictory either way); indeterminate hints and honored
-// declarations stay.
+// The scrubber applies the two-bucket rule categorically: after an
+// identity-known color change (which the caller asserts), every
+// file-provenance fact is stale and erased -- no per-signal re-resolution
+// -- while the deliberate unknown-marker family is honored.
 static void
 test_scrubber(const ColorConfig& config)
 {
+    (void)config;  // categorical scrubbing needs no config
     {
         ImageSpec spec(4, 4, 3, TypeFloat);
         spec.attribute("oiio:ColorSpace", "lin_test_scene");
@@ -322,9 +324,8 @@ test_scrubber(const ColorConfig& config)
         auto icc = fake_icc_profile();
         spec.attribute("ICCProfile",
                        TypeDesc(TypeDesc::UINT8, int(icc.size())), icc.data());
-        scrub_color_metadata(spec, &config, {});
-        // All provable: CICP and CIID resolve, chroma+gamma and the ICC
-        // resolve to their synthetics -- every claim is determinate.
+        scrub_color_metadata(spec);
+        // Every provenance fact is gone.
         OIIO_CHECK_ASSERT(!spec.find_attribute("CICP"));
         OIIO_CHECK_ASSERT(!spec.find_attribute("colorInteropID"));
         OIIO_CHECK_ASSERT(!spec.find_attribute("chromaticities"));
@@ -335,8 +336,9 @@ test_scrubber(const ColorConfig& config)
                          "lin_test_scene");
     }
     {
-        // Indeterminate claims survive: an unresolvable vendor id, a
-        // garbage (undecodable) ICC blob.
+        // Categorical: even claims no resolver could decide (a vendor id,
+        // a garbage ICC blob) are provenance and go -- never persist stale
+        // information.
         ImageSpec spec(4, 4, 3, TypeFloat);
         spec.attribute("oiio:ColorSpace", "lin_test_scene");
         spec.attribute("colorInteropID", "vendorx_mystery");
@@ -344,20 +346,21 @@ test_scrubber(const ColorConfig& config)
         spec.attribute("ICCProfile",
                        TypeDesc(TypeDesc::UINT8, int(garbage.size())),
                        garbage.data());
-        scrub_color_metadata(spec, &config, {});
-        OIIO_CHECK_ASSERT(spec.find_attribute("colorInteropID"));
-        OIIO_CHECK_ASSERT(spec.find_attribute("ICCProfile"));
+        scrub_color_metadata(spec);
+        OIIO_CHECK_ASSERT(!spec.find_attribute("colorInteropID"));
+        OIIO_CHECK_ASSERT(!spec.find_attribute("ICCProfile"));
     }
     {
         // The deliberate unknown-marker family (ocio:unknown /
-        // oiio:unknown / error:unknown) is honored, never scrubbed; a bare
-        // "unknown" claim is contradicted by any definite color space.
+        // oiio:unknown / error:unknown) is honored, never scrubbed
+        // (treatment/error state, not provenance); a bare "unknown" claim
+        // named the pre-operation state and goes.
         for (const char* marker :
              { "ocio:unknown", "oiio:unknown", "error:unknown" }) {
             ImageSpec spec(4, 4, 3, TypeFloat);
             spec.attribute("oiio:ColorSpace", "lin_test_scene");
             spec.attribute("colorInteropID", marker);
-            scrub_color_metadata(spec, &config, {});
+            scrub_color_metadata(spec);
             OIIO_CHECK_EQUAL(spec.get_string_attribute("colorInteropID"),
                              marker);
         }
@@ -365,21 +368,28 @@ test_scrubber(const ColorConfig& config)
         ImageSpec spec(4, 4, 3, TypeFloat);
         spec.attribute("oiio:ColorSpace", "lin_test_scene");
         spec.attribute("colorInteropID", "unknown");
-        scrub_color_metadata(spec, &config, {});
+        scrub_color_metadata(spec);
         OIIO_CHECK_ASSERT(!spec.find_attribute("colorInteropID"));
     }
     {
-        // No established color space: nothing to judge against, no scrub.
+        // Current-state descriptors are the other bucket: never touched by
+        // the provenance scrub.
         ImageSpec spec(4, 4, 3, TypeFloat);
-        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
-        scrub_color_metadata(spec, &config, {});
-        OIIO_CHECK_ASSERT(spec.find_attribute("CICP"));
+        spec.attribute("oiio:ColorSpace", "lin_test_scene");
+        spec.attribute("oiio:ColorSpace:state", "scene");
+        spec.attribute("oiio:ColorSpace:range", "narrow");
+        scrub_color_metadata(spec);
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace:state"),
+                         "scene");
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace:range"),
+                         "narrow");
     }
 }
 
 
-// IBA wiring of the scrubber: the inferred-source path scrubs the outgoing
-// spec; the explicit-source path is byte-identical to main (hints kept).
+// IBA wiring of the scrubber: identity-known operations scrub the outgoing
+// spec's provenance facts uniformly -- inferred AND explicit sources alike
+// (the facts describe the pre-operation source either way).
 static void
 test_iba_scrub_wiring(const ColorConfig& config)
 {
@@ -403,9 +413,9 @@ test_iba_scrub_wiring(const ColorConfig& config)
         = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
                                      "lin_test_scene", true, "", "", &config);
     OIIO_CHECK_ASSERT(!explicit_src.has_error());
-    // Explicit source: no scrub, stale hints intentionally untouched
-    // (CICP is still cleared by set_colorspace, as on main).
-    OIIO_CHECK_ASSERT(explicit_src.spec().find_attribute("ICCProfile"));
+    // Uniform two-bucket scrub: the explicit-source path scrubs too.
+    OIIO_CHECK_ASSERT(!explicit_src.spec().find_attribute("ICCProfile"));
+    OIIO_CHECK_ASSERT(!explicit_src.spec().find_attribute("CICP"));
 }
 
 

@@ -1083,18 +1083,95 @@ infer_color_space_from_spec(const ColorConfig* config, const ImageSpec& spec,
                             const ColorCallContext& ctx,
                             const ColorReadPolicy& policy);
 
-/// Post-IBA color-attribute scrubber: remove the color hint attributes an
-/// outgoing spec carries when the resolver's trace proves what they claim
-/// (each signal judged in isolation; a determinate claim is either
-/// redundant with or contradicted by the spec's established color space --
-/// stale either way). Couldn't-determine leaves the attribute; the
-/// deliberate unknown-marker family ("ocio:unknown" / "oiio:unknown" /
-/// "error:unknown") is always honored; a bare "unknown" claim is
-/// contradicted by any definite color space. Never touches the color
+/// Post-operation provenance-fact scrub -- the file-provenance half of the
+/// two-bucket rule. The facts a file deposited about the SOURCE
+/// (colorInteropID, acesImageContainerFlag, ICCProfile, CICP,
+/// chromaticities, oiio:Gamma) categorically no longer describe a buffer
+/// after an identity-known color change: erase them all, no per-signal
+/// re-resolution (the bucket is a static property of the attribute, not a
+/// per-input verdict). The deliberate unknown-marker family (see
+/// is_unknown_marker) survives -- those are treatment/error state, not
+/// provenance. Current-state descriptors (the `oiio:ColorSpace:xxxx`
+/// family) are the other bucket: retained and maintained by
+/// ColorOperationHygiene, never scrubbed here. The caller asserts that a
+/// color change actually happened; this function never touches the color
 /// space itself.
 OIIO_API void
-scrub_color_metadata(ImageSpec& spec, const ColorConfig* config,
-                     const ColorReadPolicy& policy);
+scrub_color_metadata(ImageSpec& spec);
+
+/// How a color-aware ImageBufAlgo operation relates its output's color
+/// space identity to its inputs -- the taxonomy that makes automatic
+/// hygiene honest.
+enum class ColorOperationIdentity {
+    Known,       ///< the target space is named or derivable: full hygiene
+    Unknowable,  ///< arbitrary transform: erase verdict, facts, descriptors
+    Preserved,   ///< space-preserving or no-op: everything passes through
+};
+
+/// Automatic metadata hygiene around a color-aware ImageBufAlgo operation:
+/// prepare() before the pixel math resolves the operation's source color
+/// space (explicit argument -> spec attribute -> inference from the color
+/// hints the spec carries -> lenient default) and applies the
+/// unresolvable-source failure split; finish() after it maintains the
+/// output spec per the operation's identity class. Automatic color-space
+/// tracking is a best-effort CONVENIENCE, NOT A CONTRACT: tracking gaps
+/// are not API errors, and both halves are explicit calls around the
+/// operation -- no error-producing work ever runs in a destructor.
+///
+/// finish() semantics per class (no-op unless the pixel math succeeded):
+/// - Known: stamp the verdict with `target_color_space`, scrub stale
+///   file-provenance facts (uniformly -- explicit and inferred sources
+///   alike), and maintain the cheap current-state descriptors
+///   `oiio:ColorSpace:state` / `:encoding` / `:range` / `:equality_id`
+///   from ColorConfig::get_color_space_info(): direct or cached values
+///   update the sub-attribute, unavailable values erase it -- never
+///   guessed, never derived by this path (no chromaticities or transfer
+///   information is requested).
+/// - Unknowable: the resulting space cannot be known and users must not
+///   expect it -- erase the verdict, the provenance facts, and the
+///   descriptors (absence = could-not-determine; never "oiio:unknown",
+///   which marks treatment, not ignorance). Deliberate unknown markers
+///   survive here too.
+/// - Preserved: re-stamp the verdict with `target_color_space` when the
+///   operation names one (the honest no-op tag); facts and descriptors
+///   pass through untouched.
+class OIIO_API ColorOperationHygiene {
+public:
+    /// Record the operation (finish() maintains `dst`'s spec) and resolve
+    /// its source color space, available afterwards from source(). An
+    /// explicit `from` (anything but empty/"current") passes through
+    /// verbatim; otherwise the source's tagged space, then inference from
+    /// its color hints, then the "scene_linear" default under the
+    /// (default) lenient read policy. Failure split, by consequence: an
+    /// unresolvable source is an error for pixel math (returns false, the
+    /// error set on `dst` per the usual has_error() convention) -- never a
+    /// config-default guess into a processor -- except that a
+    /// config-declared "error:unknown" catch space is honored under
+    /// effective-strict (non-lenient resolution scope AND the config's own
+    /// strictparsing).
+    bool prepare(const ImageBuf& src, ImageBuf& dst,
+                 const ColorConfig& config, string_view from);
+
+    /// The source-less form, for operations with no source-space concept
+    /// (e.g. ociofiletransform): records the operation only, never fails.
+    void prepare(const ImageBuf& src, ImageBuf& dst,
+                 const ColorConfig& config);
+
+    /// The resolved source color space (valid after a successful
+    /// prepare()).
+    const std::string& source() const { return m_source; }
+
+    /// The post-operation half; see the class comment for the per-class
+    /// semantics. Must be called explicitly after the pixel operation.
+    void finish(ColorOperationIdentity identity,
+                string_view target_color_space, bool pixels_succeeded);
+
+private:
+    const ColorConfig* m_config = nullptr;
+    ImageBuf* m_dst             = nullptr;
+    ColorReadPolicy m_policy;
+    std::string m_source;
+};
 
 /// Dry-run preview (read-side twin of render_color_write_plan): render, as
 /// plain aligned text, how `spec`'s color metadata resolves through the

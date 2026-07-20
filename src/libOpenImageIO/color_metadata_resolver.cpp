@@ -805,82 +805,24 @@ infer_color_space_from_spec(const ColorConfig* config, const ImageSpec& spec,
 }
 
 void
-scrub_color_metadata(ImageSpec& spec, const ColorConfig* config,
-                     const ColorReadPolicy& policy)
+scrub_color_metadata(ImageSpec& spec)
 {
-    // Judge hints only against an established, definite color space.
-    const std::string current = spec.get_string_attribute("oiio:ColorSpace");
-    if (current.empty() || current == "unknown")
-        return;
-
-    const ColorMetadataFacts facts = color_facts_from_spec(spec);
-    const ColorCallContext ctx;  // filenames never influence scrubbing
-
-    // A signal is scrubbed only when its lone-fact resolution genuinely
-    // matches -- the trace's proof that the claim is determinate. A
-    // determinate claim either names the current space (redundant) or a
-    // different one (contradicted by the spec's post-operation state);
-    // stale either way. Anything the resolver can't decide stays.
-    auto proven = [&](const ColorMetadataFacts& f) {
-        return resolve_color_metadata(config, "", f, ctx, policy)
-            .has_genuine_metadata_match();
-    };
-
-    if (!facts.color_interop_id.empty()) {
-        if (is_unknown_marker(facts.color_interop_id)) {
-            // The deliberate unknown-marker family (config-declared,
-            // OIIO-synthetic-treatment, strict-resolution-failure) is
-            // honored: never scrubbed and never inferred over.
-        } else if (facts.color_interop_id == "unknown") {
-            // A bare "unknown" claim is contradicted by any definite
-            // color space.
-            spec.erase_attribute("colorInteropID");
-        } else {
-            ColorMetadataFacts f;
-            f.color_interop_id = facts.color_interop_id;
-            if (proven(f))
-                spec.erase_attribute("colorInteropID");
-        }
-    }
-    if (facts.aces_image_container) {
-        ColorMetadataFacts f;
-        f.aces_image_container = true;
-        if (proven(f))
-            spec.erase_attribute("acesImageContainerFlag");
-    }
-    if (!facts.icc_profile.empty()) {
-        ColorMetadataFacts f;
-        f.icc_profile = facts.icc_profile;
-        if (proven(f))
-            spec.erase_attribute("ICCProfile");
-    }
-    if (facts.has_cicp) {
-        ColorMetadataFacts f;
-        f.has_cicp = true;
-        for (int i = 0; i < 4; ++i)
-            f.cicp[i] = facts.cicp[i];
-        if (proven(f))
-            spec.erase_attribute("CICP");
-    }
-    if (facts.has_chromaticities) {
-        ColorMetadataFacts f;
-        f.has_chromaticities = true;
-        for (int i = 0; i < 8; ++i)
-            f.chromaticities[i] = facts.chromaticities[i];
-        f.has_gamma = facts.has_gamma;
-        f.gamma     = facts.gamma;
-        if (proven(f)) {
-            spec.erase_attribute("chromaticities");
-            if (facts.has_gamma)
-                spec.erase_attribute("oiio:Gamma");
-        }
-    } else if (facts.has_gamma) {
-        ColorMetadataFacts f;
-        f.has_gamma = true;
-        f.gamma     = facts.gamma;
-        if (proven(f))
-            spec.erase_attribute("oiio:Gamma");
-    }
+    // Two-bucket rule: the file-provenance facts describe the SOURCE the
+    // pixels came from; after an identity-known color change (which the
+    // caller asserts) they are categorically stale -- never persist stale
+    // information. No per-signal re-resolution: the bucket is a static
+    // property of each attribute, not a per-input verdict.
+    const std::string id = spec.get_string_attribute("colorInteropID");
+    if (!id.empty() && !is_unknown_marker(id))
+        // A definite (or bare-"unknown") claim named the pre-operation
+        // space; the deliberate unknown-marker family is honored -- those
+        // markers carry treatment/error state, not provenance.
+        spec.erase_attribute("colorInteropID");
+    spec.erase_attribute("acesImageContainerFlag");
+    spec.erase_attribute("ICCProfile");
+    spec.erase_attribute("CICP");
+    spec.erase_attribute("chromaticities");
+    spec.erase_attribute("oiio:Gamma");
 }
 
 void
