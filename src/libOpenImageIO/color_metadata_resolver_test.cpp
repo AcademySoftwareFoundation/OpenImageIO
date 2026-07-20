@@ -331,6 +331,63 @@ test_reconcile_entry_point()
 }
 
 
+// ColorReadCaps: the per-format consulted-signals table (the read-direction
+// mirror of ColorWriteCaps) and the caps-narrowed spec->facts extraction.
+// Zero-diff proof: every wired format's row is today's format-invariant
+// consulted trio, so reconciliation under any format name -- or none -- is
+// identical; the caps-narrowed extraction drops exactly the disabled
+// signals.
+static void
+test_read_caps()
+{
+    // The table: wired readers and the unknown-format default share the
+    // consulted trio; signals resolution does not consult stay off.
+    for (string_view fmt : { "openexr", "png", "" }) {
+        const ColorReadCaps caps = color_read_caps_for_format(fmt);
+        OIIO_CHECK_ASSERT(caps.aces_container && caps.interop_id && caps.cicp);
+        OIIO_CHECK_ASSERT(!caps.icc && !caps.chromaticities && !caps.gamma);
+    }
+
+    // Caps-narrowed extraction: enabled signals extract exactly as the
+    // unrestricted overload does; disabled ones stay absent.
+    ImageSpec spec(4, 4, 3, TypeFloat);
+    spec.attribute("colorInteropID", "srgb_rec709_scene");
+    const int cicp[4] = { 1, 13, 0, 1 };
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+    const float chroma[8] = { 0.64f, 0.33f, 0.30f,   0.60f,
+                              0.15f, 0.06f, 0.3127f, 0.329f };
+    spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chroma);
+    spec.attribute("oiio:Gamma", 2.2f);
+
+    const ColorMetadataFacts full = color_facts_from_spec(spec);
+    OIIO_CHECK_ASSERT(full.has_cicp && full.has_chromaticities
+                      && full.has_gamma
+                      && full.color_interop_id == "srgb_rec709_scene");
+    const ColorMetadataFacts narrowed
+        = color_facts_from_spec(spec, color_read_caps_for_format("png"));
+    OIIO_CHECK_ASSERT(narrowed.has_cicp
+                      && narrowed.color_interop_id == "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(narrowed.has_chromaticities, false);
+    OIIO_CHECK_EQUAL(narrowed.has_gamma, false);
+
+    // Zero-diff: reconciliation stamps the same result under every wired
+    // format name and with no format at all (the rows coincide by design).
+    for (string_view fmt : { "openexr", "png", "" }) {
+        ImageSpec a(4, 4, 3, TypeFloat);
+        a.attribute("colorInteropID", "lin_adobergb_scene");
+        reconcile_color_metadata(a, ColorReadPolicy(), fmt);
+        OIIO_CHECK_EQUAL(a.get_string_attribute("oiio:ColorSpace"),
+                         "lin_adobergb_scene");
+        ImageSpec b(4, 4, 3, TypeFloat);
+        b.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        reconcile_color_metadata(b, ColorReadPolicy(), fmt);
+        OIIO_CHECK_EQUAL(b.get_string_attribute("oiio:ColorSpace"),
+                         "srgb_rec709_display");
+        OIIO_CHECK_EQUAL(b.find_attribute("CICP") != nullptr, true);
+    }
+}
+
+
 // render_color_read_plan: the read-side dry-run preview. A spec carrying a
 // CICP tuple resolves through the cascade; the rendered plan names the CICP
 // rule, its matched outcome, the tuple, and the final assignment.
@@ -355,6 +412,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_aces_container();
     test_ciid_registry_bridge();
     test_reconcile_entry_point();
+    test_read_caps();
 
     const std::string cfgpath = write_test_config();
     ColorConfig config(cfgpath);

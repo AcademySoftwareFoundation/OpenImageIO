@@ -373,7 +373,8 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     // Per-open config hints (if any) override the global policy tier. With
     // policy at its defaults the resolved color space is identical.
     pvt::reconcile_color_metadata(spec,
-                                  pvt::ColorReadPolicy::snapshot(config_hints));
+                                  pvt::ColorReadPolicy::snapshot(config_hints),
+                                  "png");
 
     return ok;
 }

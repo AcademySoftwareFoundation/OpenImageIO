@@ -703,32 +703,64 @@ resolve_color_metadata(const ColorConfig* config,
     return expl;
 }
 
+ColorReadCaps
+color_read_caps_for_format(string_view format_name)
+{
+    // Every wired reader's consulted set is currently the same trio: the
+    // signals the readers historically consulted (EXR: the ACES-container
+    // flag and colorInteropID; PNG: CICP), applied format-invariantly
+    // exactly as the reconciler's former inline extraction did -- including
+    // for an unknown/empty format name, which preserves the historical
+    // behavior for any caller that has no format to declare.
+    // ponytail: identical rows today by design (behavior-preserving);
+    // per-format divergence is a future data edit here, not inline code.
+    (void)format_name;
+    ColorReadCaps caps;
+    caps.aces_container = true;
+    caps.interop_id     = true;
+    caps.cicp           = true;
+    return caps;
+}
+
 ColorMetadataFacts
-color_facts_from_spec(const ImageSpec& spec)
+color_facts_from_spec(const ImageSpec& spec, const ColorReadCaps& caps)
 {
     ColorMetadataFacts f;
-    f.aces_image_container = spec.get_int_attribute("acesImageContainerFlag")
-                             == 1;
-    if (auto c = spec.find_attribute("colorInteropID", TypeString))
-        f.color_interop_id = c->get_ustring().string();
-    if (auto icc = spec.find_attribute("ICCProfile")) {
-        const auto* d = static_cast<const unsigned char*>(icc->data());
-        f.icc_profile.assign(d, d + icc->datasize());
-    }
-    if (spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4), f.cicp))
+    if (caps.aces_container)
+        f.aces_image_container
+            = spec.get_int_attribute("acesImageContainerFlag") == 1;
+    if (caps.interop_id)
+        if (auto c = spec.find_attribute("colorInteropID", TypeString))
+            f.color_interop_id = c->get_ustring().string();
+    if (caps.icc)
+        if (auto icc = spec.find_attribute("ICCProfile")) {
+            const auto* d = static_cast<const unsigned char*>(icc->data());
+            f.icc_profile.assign(d, d + icc->datasize());
+        }
+    if (caps.cicp
+        && spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4), f.cicp))
         f.has_cicp = true;
-    if (spec.getattribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8),
-                          f.chromaticities))
+    if (caps.chromaticities
+        && spec.getattribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8),
+                             f.chromaticities))
         f.has_chromaticities = true;
-    float g = spec.get_float_attribute("oiio:Gamma", 0.0f);
-    if (g > 0.0f) {
-        f.has_gamma = true;
-        f.gamma     = g;
+    if (caps.gamma) {
+        float g = spec.get_float_attribute("oiio:Gamma", 0.0f);
+        if (g > 0.0f) {
+            f.has_gamma = true;
+            f.gamma     = g;
+        }
     }
     // png_srgb has no ImageSpec carrier: the PNG reader folds its sRGB chunk
     // straight into oiio:ColorSpace. It becomes extractable when a reader
     // deposits it as an asset-fact attribute (a per-format change, later PR).
     return f;
+}
+
+ColorMetadataFacts
+color_facts_from_spec(const ImageSpec& spec)
+{
+    return color_facts_from_spec(spec, ColorReadCaps::all());
 }
 
 ColorResolutionExplanation
@@ -854,24 +886,23 @@ scrub_color_metadata(ImageSpec& spec, const ColorConfig* config,
 }
 
 void
-reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy)
+reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy,
+                         string_view format_name)
 {
     // Each reader deposits the raw color attributes it read; this central
     // entry point reproduces the precedence that reader used to hand-roll.
-    // Only the signals a reader historically consulted are wired in -- pulling
-    // a reader's remaining signals into resolution is a per-format behavior
-    // change and lands in its own later PR.
+    // Only the signals the format's read caps declare consulted enter
+    // resolution -- extraction goes through the one shared spec->facts
+    // reader, narrowed by the per-format table, so pulling a reader's
+    // remaining signals into resolution is a caps data edit (a per-format
+    // behavior change, its own later PR), not new inline code.
+    const ColorMetadataFacts facts
+        = color_facts_from_spec(spec, color_read_caps_for_format(format_name));
 
     // The ACES-container flag and colorInteropID: the signals the EXR reader
     // consulted. When either is present, reproduce its former inline
     // special-casing (set_colorspace, which also clears now-contradictory
     // CICP).
-    ColorMetadataFacts facts;
-    facts.aces_image_container
-        = spec.get_int_attribute("acesImageContainerFlag") == 1;
-    if (auto c = spec.find_attribute("colorInteropID", TypeString))
-        facts.color_interop_id = c->get_ustring().string();
-
     if (facts.aces_image_container || !facts.color_interop_id.empty()) {
         ColorCallContext ctx;
         const auto expl = resolve_color_metadata(nullptr, "", facts, ctx,
@@ -892,12 +923,11 @@ reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy)
     // through the same cascade. The override is applied with a plain attribute
     // set -- keeping the CICP source attribute in place -- exactly as the PNG
     // reader used to do inline.
-    int cicp[4];
-    if (spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp)) {
+    if (facts.has_cicp) {
         ColorMetadataFacts cf;
         cf.has_cicp = true;
         for (int i = 0; i < 4; ++i)
-            cf.cicp[i] = cicp[i];
+            cf.cicp[i] = facts.cicp[i];
         ColorCallContext ctx;
         const auto expl = resolve_color_metadata(nullptr, "", cf, ctx, policy);
         if (expl.has_genuine_metadata_match())

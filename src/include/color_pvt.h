@@ -867,6 +867,26 @@ enum class ColorStatePreference { Auto, Scene, Display };
 /// influence resolution only through the two rungs this axis gates.
 enum class ColorFileRules { Off, First, FallbackOnly };
 
+/// Which raw color signals the read-side reconciler consults for a format
+/// -- the read-direction mirror of ColorWriteCaps. Extraction populates
+/// only the enabled signals; everything else stays absent (and its cascade
+/// rule inapplicable). For internal/test use only.
+struct ColorReadCaps {
+    bool aces_container = false;
+    bool interop_id     = false;
+    bool cicp           = false;
+    bool icc            = false;
+    bool chromaticities = false;
+    bool gamma          = false;
+
+    /// Every signal enabled: the unrestricted spec->facts extraction the
+    /// scrubber, planners, and spec-side resolve use.
+    static ColorReadCaps all()
+    {
+        return { true, true, true, true, true, true };
+    }
+};
+
 /// Immutable facts a reader read out of the asset. An absent field makes
 /// its rule inapplicable; a present-but-unusable field misses and falls
 /// through. Format-derived facts (png_srgb, aces_image_container) are
@@ -978,18 +998,38 @@ resolve_color_metadata(const ColorConfig* config,
                        const ColorReadPolicy& policy);
 
 /// The central read-side entry point. Extracts the facts a reader deposited
-/// on `spec`, runs the cascade, and stamps the resolved color space. With
-/// policy at its defaults this is observably identical to the per-plugin
-/// precedence it replaces. Call once in the ImageInput open path.
+/// on `spec` -- narrowed to the signals `format_name`'s read caps declare
+/// consulted (see color_read_caps_for_format) -- runs the cascade, and
+/// stamps the resolved color space. With policy at its defaults this is
+/// observably identical to the per-plugin precedence it replaces. Call once
+/// in the ImageInput open path, passing the reader's format name.
 OIIO_API void
-reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy);
+reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy,
+                         string_view format_name = {});
 
-/// Extract every ColorMetadataFacts signal `spec` carries (ACES container
-/// flag, colorInteropID, ICC profile blob, CICP, chromaticities, gamma).
-/// This is the one spec->facts extraction; reconcile_color_metadata above
-/// still reads its historically-consulted signals itself and can adopt this
-/// when per-format signals are deliberately widened (a per-format behavior
-/// change, its own later PR).
+/// The one format-name -> consulted-read-signals table, the read-direction
+/// mirror of color_write_caps_for_format. This is what
+/// reconcile_color_metadata extracts through, so widening (or narrowing) a
+/// format's consulted signals is a data edit here -- a per-format behavior
+/// change, its own PR -- not new inline branching. Today every wired
+/// reader's row (and the unknown-format default) is the same trio -- ACES
+/// container flag, colorInteropID, CICP -- exactly the format-invariant
+/// selection the reconciler's former inline extraction applied. For
+/// internal/test use only.
+OIIO_API ColorReadCaps
+color_read_caps_for_format(string_view format_name);
+
+/// Extract the ColorMetadataFacts signals `spec` carries (ACES container
+/// flag, colorInteropID, ICC profile blob, CICP, chromaticities, gamma),
+/// narrowed to the signals `caps` enables. This is the ONE spec->facts
+/// extraction: reconcile_color_metadata reads through it with the
+/// per-format caps, and the unrestricted overload below is it with
+/// ColorReadCaps::all().
+OIIO_API ColorMetadataFacts
+color_facts_from_spec(const ImageSpec& spec, const ColorReadCaps& caps);
+
+/// Extract every ColorMetadataFacts signal `spec` carries: the
+/// caps-narrowed extraction above with every signal enabled.
 OIIO_API ColorMetadataFacts
 color_facts_from_spec(const ImageSpec& spec);
 

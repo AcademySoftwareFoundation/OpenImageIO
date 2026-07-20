@@ -822,7 +822,8 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     // Per-open config hints override the global policy tier. With policy at
     // its defaults the result is identical.
     pvt::reconcile_color_metadata(spec,
-                                  pvt::ColorReadPolicy::snapshot(&in->m_config));
+                                  pvt::ColorReadPolicy::snapshot(&in->m_config),
+                                  "openexr");
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);
