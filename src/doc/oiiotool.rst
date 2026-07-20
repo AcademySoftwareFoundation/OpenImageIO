@@ -1849,6 +1849,24 @@ Writing images
         image. (The default is given by whether or not the `-a` option was
         used.)
 
+.. option:: --colorwriteplan <format>
+
+    Prints, without writing any file, the color metadata OIIO would write
+    for the current (top) image if it were output to a file of the named
+    format (e.g. ``png``, ``openexr``) -- and why. The report has one row
+    per color signal (CICP, chromaticities, gamma, ICC profile, color
+    interop ID, mastering display volume) giving the verdict (``write`` an
+    author-supplied value verbatim, ``derive`` a value from the color
+    space, ``suppress`` by policy, or ``omit``), the value that would be
+    written, and which layer decided it: the builtin default behavior, a
+    global ``oiio:colorpolicy:write:*`` attribute, a per-spec attribute on
+    the image, explicit metadata present on the image, or the format being
+    incapable of carrying the signal.
+
+    Example::
+
+        oiiotool input.exr --colorwriteplan png
+
 .. option:: --colorcount r1,g1,b1,...:r2,g2,b2,...:...
 
     Given a list of colors separated by colons or semicolons, where each

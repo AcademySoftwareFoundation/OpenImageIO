@@ -919,11 +919,27 @@ scrub_color_metadata(ImageSpec& spec, const ColorConfig* config,
 // Per-open / per-write config hints win over the global attribute table. For
 // internal/test use only.
 // ---------------------------------------------------------------------------
+/// Which layer of the policy/metadata stack decided a planned signal (or,
+/// for the first three values, supplied a policy setting). The snapshot
+/// reports only the policy tiers (BuiltinDefault / GlobalAttribute /
+/// PerSpecAttribute); the planner additionally attributes a field to the
+/// author's explicit metadata or to the format's declared incapability.
+enum class ColorPlanDecider {
+    BuiltinDefault,    ///< no policy attribute set anywhere -- default behavior
+    GlobalAttribute,   ///< a global `oiio:colorpolicy:write:*` attribute
+    PerSpecAttribute,  ///< a per-write config hint on the spec
+    ExplicitMetadata,  ///< author-supplied metadata present on the spec
+    FormatIncapable,   ///< the format cannot carry the signal
+};
+
 class OIIO_API ColorPolicySnapshot {
 public:
     explicit ColorPolicySnapshot(const ImageSpec* hints = nullptr);
     /// String colorpolicy attribute: config hint, else global, else "".
-    std::string get_string(const char* name) const;
+    /// `layer`, if non-null, receives which tier supplied the value
+    /// (PerSpecAttribute / GlobalAttribute / BuiltinDefault for unset).
+    std::string get_string(const char* name,
+                           ColorPlanDecider* layer = nullptr) const;
     /// Int colorpolicy attribute: config hint, else global, else `dflt`.
     int get_int(const char* name, int dflt) const;
 
@@ -957,6 +973,10 @@ enum class ColorPlanAction {
 /// `gamma` for a scalar. `emit()` is true iff the writer should put bytes down.
 struct ColorPlanField {
     ColorPlanAction action = ColorPlanAction::Omit;
+    /// Who decided `action`: format incapability, the author's explicit
+    /// metadata, or the policy tier (builtin / global / per-spec) that was
+    /// in force when the signal was resolved.
+    ColorPlanDecider decider = ColorPlanDecider::BuiltinDefault;
     std::string str;
     std::vector<int> ints;
     std::vector<float> floats;
@@ -1007,6 +1027,15 @@ struct ColorWritePolicy {
     ColorSignalPolicy icc            = ColorSignalPolicy::Auto;
     ColorSignalPolicy interop_id     = ColorSignalPolicy::Auto;
     ColorSignalPolicy mdcv           = ColorSignalPolicy::Auto;
+    // Which tier supplied each signal's policy above (BuiltinDefault /
+    // GlobalAttribute / PerSpecAttribute only), recorded by snapshot() so
+    // the plan can attribute its verdicts.
+    ColorPlanDecider cicp_layer           = ColorPlanDecider::BuiltinDefault;
+    ColorPlanDecider chromaticities_layer = ColorPlanDecider::BuiltinDefault;
+    ColorPlanDecider gamma_layer          = ColorPlanDecider::BuiltinDefault;
+    ColorPlanDecider icc_layer            = ColorPlanDecider::BuiltinDefault;
+    ColorPlanDecider interop_id_layer     = ColorPlanDecider::BuiltinDefault;
+    ColorPlanDecider mdcv_layer           = ColorPlanDecider::BuiltinDefault;
     std::string custom_namespace_for_generated_ids;
     bool aces_container_allow_lossless_compression = false;
     bool cicp_custom_gama                          = false;
@@ -1027,6 +1056,24 @@ struct ColorWritePolicy {
 OIIO_API ColorMetadataPlan
 plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
                     const ColorWriteCaps& caps, const ColorWritePolicy& policy);
+
+/// The one format-name -> declared-write-caps table. This is what each wired
+/// writer plugin passes to plan_color_metadata (the plugins consume this
+/// function, so the table cannot drift from the writers); a format with no
+/// wired plan consumer returns all-false caps. Case-insensitive; "exr" is
+/// accepted for "openexr". For internal/test use only.
+OIIO_API ColorWriteCaps
+color_write_caps_for_format(string_view format_name);
+
+/// Dry-run preview: render, as a plain aligned text table (one row per
+/// signal, fixed row order, deterministic), the color-metadata write plan
+/// OIIO would execute if `spec` were written to format `format_name` -- each
+/// signal's verdict, the value that would be written, and which layer
+/// decided it (see ColorPlanDecider). Pure: derives the same plan the writer
+/// would (process-default color config, policy snapshot honoring per-spec
+/// hints on `spec`) and writes no bytes. For internal/test use only.
+OIIO_API std::string
+render_color_write_plan(const ImageSpec& spec, string_view format_name);
 }  // namespace pvt
 
 

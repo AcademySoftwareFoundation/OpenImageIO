@@ -173,6 +173,7 @@ macro (oiio_add_all_tests)
                     iinfo igrep
                     nonwhole-tiles
                     oiiotool
+                    oiiotool-colorwriteplan
                     oiiotool-composite
                     oiiotool-control
                     oiiotool-copy

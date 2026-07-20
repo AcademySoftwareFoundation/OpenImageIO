@@ -1035,8 +1035,7 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     // existing (ACES-container) machinery -- generalizing those into the plan
     // is a follow-on.
     {
-        pvt::ColorWriteCaps caps;
-        caps.interop_id = true;
+        pvt::ColorWriteCaps caps = pvt::color_write_caps_for_format("openexr");
         pvt::ColorMetadataPlan plan
             = pvt::plan_color_metadata(nullptr, spec, caps,
                                        pvt::ColorWritePolicy::snapshot(&spec));

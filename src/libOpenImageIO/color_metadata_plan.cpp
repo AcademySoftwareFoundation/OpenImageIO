@@ -21,6 +21,7 @@
 
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/strutil.h>
 
 #include "imageio_pvt.h"
 #include "color_pvt.h"
@@ -46,14 +47,20 @@ ColorPolicySnapshot::ColorPolicySnapshot(const ImageSpec* hints)
 }
 
 std::string
-ColorPolicySnapshot::get_string(const char* name) const
+ColorPolicySnapshot::get_string(const char* name, ColorPlanDecider* layer) const
 {
     if (m_hints) {
-        if (auto a = m_hints->find_attribute(name, TypeString))
+        if (auto a = m_hints->find_attribute(name, TypeString)) {
+            if (layer)
+                *layer = ColorPlanDecider::PerSpecAttribute;
             return a->get_ustring().string();
+        }
     }
     std::string v;
     OIIO::getattribute(name, v);
+    if (layer)
+        *layer = v.empty() ? ColorPlanDecider::BuiltinDefault
+                           : ColorPlanDecider::GlobalAttribute;
     return v;
 }
 
@@ -117,14 +124,20 @@ ColorWritePolicy::snapshot(const ImageSpec* config_hints)
     ColorWritePolicy p;
     ColorPolicySnapshot snap(config_hints);
 
-    p.cicp = parse_signal(snap.get_string("oiio:colorpolicy:write:cicp"));
+    p.cicp = parse_signal(
+        snap.get_string("oiio:colorpolicy:write:cicp", &p.cicp_layer));
     p.chromaticities
-        = parse_signal(snap.get_string("oiio:colorpolicy:write:chromaticities"));
-    p.gamma = parse_signal(snap.get_string("oiio:colorpolicy:write:gamma"));
-    p.icc   = parse_signal(snap.get_string("oiio:colorpolicy:write:icc"));
-    p.interop_id
-        = parse_signal(snap.get_string("oiio:colorpolicy:write:interop_id"));
-    p.mdcv = parse_signal(snap.get_string("oiio:colorpolicy:write:mdcv"));
+        = parse_signal(snap.get_string("oiio:colorpolicy:write:chromaticities",
+                                       &p.chromaticities_layer));
+    p.gamma = parse_signal(
+        snap.get_string("oiio:colorpolicy:write:gamma", &p.gamma_layer));
+    p.icc = parse_signal(
+        snap.get_string("oiio:colorpolicy:write:icc", &p.icc_layer));
+    p.interop_id = parse_signal(
+        snap.get_string("oiio:colorpolicy:write:interop_id",
+                        &p.interop_id_layer));
+    p.mdcv = parse_signal(
+        snap.get_string("oiio:colorpolicy:write:mdcv", &p.mdcv_layer));
 
     p.custom_namespace_for_generated_ids
         = snap.get_string("oiio:colorpolicy:write:custom_namespace_for_generated_ids");
@@ -227,10 +240,118 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     if (caps.mdcv && policy.mdcv == ColorSignalPolicy::Never)
         plan.mdcv.action = ColorPlanAction::Suppress;
 
+    // Attribute each verdict: format incapability and the author's explicit
+    // metadata trump the policy tier; everything else was decided by
+    // whichever tier supplied the signal's policy.
+    auto decider = [](bool capable, ColorPlanAction action,
+                      ColorPlanDecider policy_layer) {
+        if (!capable)
+            return ColorPlanDecider::FormatIncapable;
+        if (action == ColorPlanAction::Write)
+            return ColorPlanDecider::ExplicitMetadata;
+        return policy_layer;
+    };
+    plan.cicp.decider = decider(caps.cicp, plan.cicp.action, policy.cicp_layer);
+    plan.chromaticities.decider = decider(caps.chromaticities,
+                                          plan.chromaticities.action,
+                                          policy.chromaticities_layer);
+    plan.gamma.decider = decider(caps.gamma, plan.gamma.action,
+                                 policy.gamma_layer);
+    plan.icc.decider = decider(caps.icc, plan.icc.action, policy.icc_layer);
+    plan.interop_id.decider = decider(caps.interop_id, plan.interop_id.action,
+                                      policy.interop_id_layer);
+    plan.mdcv.decider = decider(caps.mdcv, plan.mdcv.action, policy.mdcv_layer);
+
     // Provenance write rule: drop oiio:SourcePath, keep oiio:SourceFormat.
     plan.suppress_source_path = true;
     plan.keep_source_format   = true;
     return plan;
+}
+
+
+ColorWriteCaps
+color_write_caps_for_format(string_view format_name)
+{
+    ColorWriteCaps caps;
+    if (Strutil::iequals(format_name, "png")) {
+        caps.cicp = true;
+    } else if (Strutil::iequals(format_name, "openexr")
+               || Strutil::iequals(format_name, "exr")) {
+        caps.interop_id = true;
+    }
+    return caps;
+}
+
+
+namespace {
+
+const char*
+action_name(ColorPlanAction a)
+{
+    switch (a) {
+    case ColorPlanAction::Write: return "write";
+    case ColorPlanAction::Derive: return "derive";
+    case ColorPlanAction::Suppress: return "suppress";
+    default: return "omit";
+    }
+}
+
+const char*
+decider_name(ColorPlanDecider d)
+{
+    switch (d) {
+    case ColorPlanDecider::GlobalAttribute: return "global attribute";
+    case ColorPlanDecider::PerSpecAttribute: return "per-spec attribute";
+    case ColorPlanDecider::ExplicitMetadata: return "explicit metadata";
+    case ColorPlanDecider::FormatIncapable: return "format incapable";
+    default: return "builtin default";
+    }
+}
+
+// Render the one populated value carrier of a field ("-" when the plan says
+// to emit nothing). ICC bytes are summarized, never dumped.
+std::string
+field_value(const ColorPlanField& f, bool is_icc)
+{
+    if (!f.emit())
+        return "-";
+    if (is_icc)
+        return Strutil::fmt::format("<{} bytes>", f.ints.size());
+    if (!f.str.empty())
+        return f.str;
+    if (f.ints.size())
+        return Strutil::join(f.ints, "/");
+    if (f.floats.size())
+        return Strutil::join(f.floats, ",");
+    return Strutil::fmt::format("{:g}", f.gamma);
+}
+
+}  // namespace
+
+
+std::string
+render_color_write_plan(const ImageSpec& spec, string_view format_name)
+{
+    const ColorWriteCaps caps = color_write_caps_for_format(format_name);
+    const ColorMetadataPlan plan
+        = plan_color_metadata(nullptr, spec, caps,
+                              ColorWritePolicy::snapshot(&spec));
+    std::string out = Strutil::fmt::format(
+        "Color write plan for format \"{}\":\n", format_name);
+    auto row = [&](const char* signal, const ColorPlanField& f,
+                   bool is_icc = false) {
+        out += Strutil::fmt::format("  {:<15} {:<9} {:<19} {}\n", signal,
+                                    action_name(f.action),
+                                    decider_name(f.decider),
+                                    field_value(f, is_icc));
+    };
+    row("cicp", plan.cicp);
+    row("chromaticities", plan.chromaticities);
+    row("gamma", plan.gamma);
+    row("icc", plan.icc, true);
+    row("interop_id", plan.interop_id);
+    row("mdcv", plan.mdcv);
+    return out;
 }
 
 }  // namespace pvt

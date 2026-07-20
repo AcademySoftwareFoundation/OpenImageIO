@@ -39,6 +39,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 
+#include "color_pvt.h"
+
 #ifndef NDEBUG
 #    define OIIO_UNIT_TEST_QUIET_SUCCESS
 #    include <OpenImageIO/unittest.h>
@@ -6386,6 +6388,27 @@ action_printinfo(Oiiotool& ot, cspan<const char*> argv)
 }
 
 
+
+// --colorwriteplan
+static void
+action_colorwriteplan(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 2);
+    if (ot.postpone_callback(1, action_colorwriteplan, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+    std::string format = ot.express(argv[1]);
+
+    if (!ot.read())
+        return;
+    ImageRecRef top = ot.top();
+    std::cout << pvt::render_color_write_plan(*top->spec(0, 0), format);
+    std::cout.flush();
+    ot.printed_info = true;
+}
+
+
 namespace pvtcrash {
 size_t crasher = 37;
 }
@@ -7062,6 +7085,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--printstats")
       .help("Print pixel statistics of the current top image (options: allsubimages=, window=<geom>)")
       .OTACTION(action_printstats);
+    ap.arg("--colorwriteplan %s:FORMAT")
+      .help("Print the color metadata that would be written for the current top image if it were output to a file of the given format, and why (no file is written)")
+      .OTACTION(action_colorwriteplan);
     ap.arg("--colorcount %s:COLORLIST")
        .help("Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)")
        .OTACTION(action_colorcount);

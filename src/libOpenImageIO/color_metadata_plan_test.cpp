@@ -481,6 +481,87 @@ test_writer_level_suppress()
 }
 
 
+// Layer attribution: every planned field records who decided it -- format
+// incapability, the author's explicit metadata, or the policy tier (builtin
+// default / global attribute / per-spec attribute) that was in force.
+static void
+test_layer_attribution()
+{
+    // Builtin default (no policy set anywhere) and format incapability.
+    {
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        auto p = plan_color_metadata(nullptr, spec, all_caps(),
+                                     ColorWritePolicy::snapshot());
+        OIIO_CHECK_EQUAL(int(p.cicp.decider),
+                         int(ColorPlanDecider::BuiltinDefault));
+        ColorWriteCaps none;  // nothing supported
+        auto p2 = plan_color_metadata(nullptr, spec, none,
+                                      ColorWritePolicy::snapshot());
+        OIIO_CHECK_EQUAL(int(p2.cicp.decider),
+                         int(ColorPlanDecider::FormatIncapable));
+        OIIO_CHECK_EQUAL(int(p2.interop_id.decider),
+                         int(ColorPlanDecider::FormatIncapable));
+    }
+
+    // Author-supplied metadata wins the attribution on a Write verdict.
+    {
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("colorInteropID", "lin_adobergb_scene");
+        auto p = plan_color_metadata(nullptr, spec, all_caps(),
+                                     ColorWritePolicy::snapshot());
+        OIIO_CHECK_EQUAL(int(p.interop_id.decider),
+                         int(ColorPlanDecider::ExplicitMetadata));
+    }
+
+    // A global attribute decides -- even an explicit value bows to its
+    // "never" -- and a per-spec hint outranks (and re-attributes) it.
+    {
+        OIIO_CHECK_ASSERT(
+            OIIO::attribute("oiio:colorpolicy:write:interop_id", "never"));
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("colorInteropID", "lin_adobergb_scene");
+        auto p = plan_color_metadata(nullptr, spec, all_caps(),
+                                     ColorWritePolicy::snapshot(&spec));
+        OIIO_CHECK_EQUAL(int(p.interop_id.action),
+                         int(ColorPlanAction::Suppress));
+        OIIO_CHECK_EQUAL(int(p.interop_id.decider),
+                         int(ColorPlanDecider::GlobalAttribute));
+
+        spec.attribute("oiio:colorpolicy:write:interop_id", "auto");
+        auto p2 = plan_color_metadata(nullptr, spec, all_caps(),
+                                      ColorWritePolicy::snapshot(&spec));
+        OIIO_CHECK_EQUAL(int(p2.interop_id.action), int(ColorPlanAction::Write));
+        OIIO_CHECK_EQUAL(int(p2.interop_id.decider),
+                         int(ColorPlanDecider::ExplicitMetadata));
+
+        spec.attribute("oiio:colorpolicy:write:interop_id", "never");
+        auto p3 = plan_color_metadata(nullptr, spec, all_caps(),
+                                      ColorWritePolicy::snapshot(&spec));
+        OIIO_CHECK_EQUAL(int(p3.interop_id.action),
+                         int(ColorPlanAction::Suppress));
+        OIIO_CHECK_EQUAL(int(p3.interop_id.decider),
+                         int(ColorPlanDecider::PerSpecAttribute));
+        // Restore to UNSET ("") -- not "auto", which would leave the global
+        // tier attributed for everything after us.
+        OIIO_CHECK_ASSERT(
+            OIIO::attribute("oiio:colorpolicy:write:interop_id", ""));
+    }
+
+    // The name->caps table matches what the wired writers declare.
+    {
+        ColorWriteCaps png = color_write_caps_for_format("png");
+        OIIO_CHECK_ASSERT(png.cicp && !png.interop_id && !png.icc);
+        ColorWriteCaps exr = color_write_caps_for_format("openexr");
+        OIIO_CHECK_ASSERT(exr.interop_id && !exr.cicp);
+        ColorWriteCaps exr2 = color_write_caps_for_format("EXR");
+        OIIO_CHECK_ASSERT(exr2.interop_id);
+        ColorWriteCaps none = color_write_caps_for_format("tiff");
+        OIIO_CHECK_ASSERT(!none.cicp && !none.interop_id && !none.icc
+                          && !none.chromaticities && !none.gamma && !none.mdcv);
+    }
+}
+
+
 // The provenance write rule: suppress oiio:SourcePath, keep oiio:SourceFormat.
 static void
 test_provenance_rule()
@@ -565,6 +646,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_never_suppresses();
     test_incapable_omits();
     test_explicit_chroma_and_gamma();
+    test_layer_attribution();
     test_global_policy_tier();
     test_policy_hint_plumbing();
     test_writer_level_suppress();

@@ -776,8 +776,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     // chunk was already written; an explicitly authored tuple is always
     // emitted.
     {
-        pvt::ColorWriteCaps caps;
-        caps.cicp = true;
+        pvt::ColorWriteCaps caps = pvt::color_write_caps_for_format("png");
         pvt::ColorMetadataPlan plan
             = pvt::plan_color_metadata(nullptr, spec, caps,
                                        pvt::ColorWritePolicy::snapshot(&spec));
