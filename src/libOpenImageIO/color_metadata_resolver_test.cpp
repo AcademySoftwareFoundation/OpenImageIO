@@ -233,6 +233,33 @@ test_cicp_over_icc(const ColorConfig& config)
 }
 
 
+// Spec-impossible CICP values are log-only (debugfmt): resolution behavior
+// is exactly as before. A reserved primaries/transfer of 0 misses the
+// identity mapping and falls through; a non-zero matrix byte never affects
+// identification (primaries + transfer only). The debug line itself is not
+// asserted here -- debugfmt is env-gated and capturing stderr isn't worth
+// the plumbing for a log-only path.
+static void
+test_spec_impossible_cicp(const ColorConfig& config)
+{
+    // Reserved (0,0): no identity mapping, no genuine match, CICP missed.
+    auto e = resolve_color_metadata(&config, "", cicp_facts(0, 0, 0, 0), { },
+                                    { });
+    OIIO_CHECK_ASSERT(!e.has_genuine_metadata_match());
+    bool cicp_missed = false;
+    for (auto& s : e.steps)
+        if (s.rule == ColorRule::Cicp && s.outcome == ColorRuleOutcome::Missed)
+            cicp_missed = true;
+    OIIO_CHECK_ASSERT(cicp_missed);
+
+    // Non-zero matrix byte: identical resolution to the (1,13,0,*) vectors.
+    auto e2 = resolve_color_metadata(&config, "", cicp_facts(1, 13, 5, 1), { },
+                                     { });
+    OIIO_CHECK_EQUAL(e2.resolved, "srgb_rec709_display");
+    OIIO_CHECK_ASSERT(e2.has_genuine_metadata_match());
+}
+
+
 // Vector 7: under metadata-only file-rules placement, the same metadata with
 // and without a FileRules-matching filename produces equal resolved values
 // AND byte-identical step traces, with both FileRules rungs inapplicable.
@@ -342,6 +369,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_garbage_icc_falls_through(config);
     test_icc_synthetic(config);
     test_cicp_over_icc(config);
+    test_spec_impossible_cicp(config);
     test_filename_invariance(config);
     test_render_read_plan(config);
 

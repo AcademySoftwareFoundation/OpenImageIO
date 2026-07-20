@@ -14,6 +14,10 @@
 // so the same code path serves resolve() and its explain() trace (explain
 // is just resolve with the reason strings kept), and a unit test can drive
 // it directly through color_pvt.h.
+//
+// Carve-out: the CICP matrix and range bytes do not participate in
+// identification (primaries + transfer only); they are writer-side/format
+// concerns.
 
 #include <algorithm>
 #include <cctype>
@@ -343,6 +347,24 @@ namespace {
     {
         if (!f.has_cicp)
             return { };
+        // Spec-impossibility watch: log-only, never an error, never a
+        // correction -- identification below is unaffected and still keys on
+        // primaries + transfer alone. primaries==0 / transfer==0 are ITU-T
+        // H.273 reserved values. A non-zero matrix from a format whose stored
+        // essence is RGB-only (e.g. PNG) is likewise impossible, but format
+        // identity is not available in this layer (source-provenance
+        // attributes are deposited after read), so only the reserved-value
+        // cases are reported.
+        if (f.cicp[0] == 0)
+            OIIO::debugfmt(
+                "color reconcile: CICP tuple {},{},{},{} carries reserved "
+                "primaries value 0 (ITU-T H.273)\n",
+                f.cicp[0], f.cicp[1], f.cicp[2], f.cicp[3]);
+        if (f.cicp[1] == 0)
+            OIIO::debugfmt(
+                "color reconcile: CICP tuple {},{},{},{} carries reserved "
+                "transfer value 0 (ITU-T H.273)\n",
+                f.cicp[0], f.cicp[1], f.cicp[2], f.cicp[3]);
         // CICP -> interop-id mapping routes through the same central resolve the
         // config exposes (primaries + transfer only; matrix/range are unused).
         // The mapping is a built-in table lookup; a config is only constructed
