@@ -282,6 +282,7 @@ macro (oiio_add_all_tests)
                 python-texturesys
                 python-typedesc
                 sourceprovenance
+                cicp-write-strip
                 filters
                 ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
