@@ -6,10 +6,14 @@ roles:
   scene_linear: lin_ap1_scene
 file_rules:
   # Spec 09 Feature B: oiio:default declares the write-canonical space mapping
-  # (g26_p3d65_display -> g26_xyzd65_display, the XYZ DCDM form). The rule
-  # carries policy only (regex $^ so it never matches a file); no OIIO attribute
-  # is set anywhere -- the policy comes from the CONFIG.
+  # (g26_p3d65_display -> g26_xyzd65_display, the XYZ DCDM form). Spec 09
+  # Feature A: oiio:broadcast is a selectable profile that routes P3 content
+  # into the broadcast container (Rec.2020 signal + P3 MDCV + narrow range),
+  # superseding the default mapping. Both rules carry policy only (regex $^ so
+  # they never match a file); no OIIO attribute is set anywhere -- the policy
+  # comes from the CONFIG.
   - !<Rule> {name: oiio:default, colorspace: raw_data, regex: "$^", custom: {oiio:colorpolicy:write:canonicalize: "1"}}
+  - !<Rule> {name: oiio:broadcast, colorspace: raw_data, regex: "$^", custom: {oiio:colorpolicy:write:broadcast: "1"}}
   - !<Rule> {name: Default, colorspace: raw_data}
 displays:
   disp:

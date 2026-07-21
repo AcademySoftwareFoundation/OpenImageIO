@@ -13,3 +13,8 @@
     colorInteropID: "srgb_rec709_display"
 === g26 default: canonicalized to g26_xyzd65_display on write ===
     colorInteropID: "g26_xyzd65_display"
+=== broadcast: P3 -> Rec.2020 signal + narrow range (PNG cICP readback) ===
+    CICP: 9, 17, 0, 0
+=== broadcast: write plan for png -- Rec.2020 cICP + P3 MDCV volume ===
+  cicp            derive    builtin default     9/17/0/0
+  mdcv            derive    builtin default     0.68,0.32,0.265,0.69,0.15,0.06,0.3127,0.329

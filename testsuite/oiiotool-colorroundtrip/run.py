@@ -104,4 +104,24 @@ command += ("env OCIO=" + bcfg + " " + ot + " " + g26src + "-o g26def.exr"
 command += ("( env OCIO=" + bcfg + " " + ot + " --info -v g26def.exr"
             + " 2>/dev/null | grep -E 'colorInteropID' || true )" + redirect + " ;\n")
 
+
+# Spec 09 Feature A: the oiio:broadcast profile. Selecting it (env-var layer 3)
+# routes P3 display content into the broadcast delivery container -- Rec.2020
+# encoding primaries SIGNALED (CICP primaries code 9), narrow (limited) range
+# (video_full_range_flag 0), and the true P3(D65) gamut carried in the MDCV
+# mastering-display volume (not re-gamut'd). This supersedes the oiio:default
+# canonicalize mapping for P3 content. PNG carries the tuple as a cICP chunk, so
+# the primaries + range read back; the MDCV volume is shown via --colorwriteplan
+# (no format in this build carries mDCV to a file yet).
+bcast = "env OCIO=" + bcfg + " OPENIMAGEIO_COLORPOLICY=oiio:broadcast "
+
+command += "echo '=== broadcast: P3 -> Rec.2020 signal + narrow range (PNG cICP readback) ==='" + redirect + " ;\n"
+command += (bcast + ot + " " + g26src + "-o bcast.png >/dev/null 2>&1 ;\n")
+command += ("( env OCIO=" + bcfg + " " + ot + " --info -v bcast.png"
+            + " 2>/dev/null | grep -E '^    CICP:' || true )" + redirect + " ;\n")
+
+command += "echo '=== broadcast: write plan for png -- Rec.2020 cICP + P3 MDCV volume ==='" + redirect + " ;\n"
+command += (bcast + ot + " " + g26src + "--colorwriteplan png"
+            + " 2>/dev/null | grep -E 'cicp|mdcv'" + redirect + " ;\n")
+
 outputs = ["out.txt"]

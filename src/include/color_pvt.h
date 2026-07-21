@@ -1459,8 +1459,15 @@ struct ColorWritePolicy {
     // Feature B (spec 09): apply oiio:default's declared write-canonical space
     // mappings. Default 0 preserves the source id; 1 canonicalizes on write
     // (the locked mapping: g26_p3d65_display -> g26_xyzd65_display, the XYZ
-    // DCDM form -- gamma 2.6 + DCI white scaling, alias dcdm_xyzd65).
+    // DCDM form -- gamma 2.6 + DCI white scaling, alias dcdm_xyzd65). Superseded
+    // by broadcast for P3 content.
     bool canonicalize = false;
+    // Feature A (spec 09): oiio:broadcast delivery mapping. Default 0; 1 routes
+    // P3 display content into the broadcast container -- Rec.2020 encoding
+    // primaries signaled (CICP pri 9), narrow (limited) range, and the true P3
+    // gamut carried in the MDCV mastering-display volume (not re-gamut'd). This
+    // supersedes the oiio:default canonicalize mapping for P3 content.
+    bool broadcast = false;
 
     /// Read every `oiio:colorpolicy:write:*` value ONCE, under one lock, from
     /// the global attribute table, optionally overridden by per-write config

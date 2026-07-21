@@ -248,6 +248,13 @@ gamma_from_id(string_view interop_id)
     return 0.0f;
 }
 
+// True when an interop id names P3-D65 gamut content (a `p3d65` gamut token).
+bool
+is_p3d65_content(string_view interop_id)
+{
+    return Strutil::lower(interop_id).find("p3d65") != std::string::npos;
+}
+
 // Feature B (spec 09): oiio:default's declared write-canonical space mappings.
 // The one locked mapping: g26_p3d65_display (the P3-primaries DCDM form) is
 // canonicalized to g26_xyzd65_display -- a P3->XYZ primaries conversion WITHIN
@@ -304,6 +311,7 @@ ColorWritePolicy::snapshot(const ImageSpec* config_hints,
     p.verbose = snap.get_int("oiio:colorpolicy:write:verbose", 0) != 0;
     p.canonicalize
         = snap.get_int("oiio:colorpolicy:write:canonicalize", 0) != 0;
+    p.broadcast = snap.get_int("oiio:colorpolicy:write:broadcast", 0) != 0;
     return p;
 }
 
@@ -336,7 +344,10 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
               .color_interop_id;
 
     // Feature B (spec 09): the config's oiio:default write-canonical mapping.
-    if (policy.canonicalize)
+    // broadcast (a profile composing over oiio:default, layer 3 > 2) supersedes
+    // it for P3 content -- broadcast routes P3 itself below, so the default
+    // remap is skipped when broadcast is active.
+    if (policy.canonicalize && !policy.broadcast)
         derived_id = canonical_write_id(derived_id);
 
     // interop id: author's colorInteropID verbatim, else name -> interop id.
@@ -356,6 +367,18 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
         if (spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4), explicit_cicp)) {
             plan.cicp.action = ColorPlanAction::Write;
             plan.cicp.ints.assign(explicit_cicp, explicit_cicp + 4);
+        } else if (policy.broadcast && is_p3d65_content(derived_id)) {
+            // Feature A (spec 09): P3 -> broadcast container. Rec.2020 encoding
+            // primaries are SIGNALED (CICP primaries code 9) and the range is
+            // narrow (limited, video_full_range_flag = 0); the transfer is
+            // carried from the source's own CICP (else gamma 2.6, code 17), and
+            // the matrix is RGB (code 0, matching PNG's RGB constraint). The P3
+            // gamut is NOT re-gamut'd to Rec.2020 -- its true volume is carried
+            // in the MDCV mastering-display metadata below.
+            cspan<int> src     = cfg.get_cicp(derived_id);
+            const int transfer = src.size() == 4 ? src[1] : 17;
+            plan.cicp.action   = ColorPlanAction::Derive;
+            plan.cicp.ints     = { 9, transfer, 0, 0 };
         } else {
             cspan<int> derived = derived_id.empty() ? cspan<int>()
                                                     : cfg.get_cicp(derived_id);
@@ -439,10 +462,26 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
         plan.icc.action = ColorPlanAction::Suppress;
     }
 
-    // mDCV (mastering-display volume): opt-in, format-supplied only; no
-    // in-tree derivation, so it stays Omit unless a policy suppresses it.
-    if (caps.mdcv && policy.mdcv == ColorSignalPolicy::Never)
+    // mDCV (mastering-display volume). No in-tree derivation in general, so it
+    // stays Omit. Feature A (spec 09): under broadcast, DERIVE the true P3(D65)
+    // gamut volume (R,G,B,W xy) the Rec.2020-signaled container is actually
+    // carrying, and make it emittable -- the plan consumers' static caps do not
+    // enable mDCV, so broadcast is OR-ed into the gate, mirroring the verbose
+    // cHRM/gAMA gates above.
+    const bool mdcv_capable = caps.mdcv || policy.broadcast;
+    if (mdcv_capable && policy.mdcv != ColorSignalPolicy::Never) {
+        if (policy.broadcast && is_p3d65_content(derived_id)) {
+            if (auto c = reserved_chromaticities_for_id(derived_id)) {
+                plan.mdcv.action = ColorPlanAction::Derive;
+                for (const auto& xy : *c) {  // R,G,B,W (x,y) -> flat float[8]
+                    plan.mdcv.floats.push_back(float(xy[0]));
+                    plan.mdcv.floats.push_back(float(xy[1]));
+                }
+            }
+        }
+    } else if (mdcv_capable) {
         plan.mdcv.action = ColorPlanAction::Suppress;
+    }
 
     // Attribute each verdict: format incapability and the author's explicit
     // metadata trump the policy tier; everything else was decided by
@@ -464,7 +503,8 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     plan.icc.decider = decider(caps.icc, plan.icc.action, policy.icc_layer);
     plan.interop_id.decider = decider(interop_capable, plan.interop_id.action,
                                       policy.interop_id_layer);
-    plan.mdcv.decider = decider(caps.mdcv, plan.mdcv.action, policy.mdcv_layer);
+    plan.mdcv.decider = decider(mdcv_capable, plan.mdcv.action,
+                                policy.mdcv_layer);
 
     // Provenance write rule: drop oiio:SourcePath, keep oiio:SourceFormat.
     plan.suppress_source_path = true;
