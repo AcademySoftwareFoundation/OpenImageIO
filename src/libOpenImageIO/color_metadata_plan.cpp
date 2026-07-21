@@ -169,10 +169,11 @@ plan_string_signal(ColorSignalPolicy pol, bool capable,
 
 
 ColorWritePolicy
-ColorWritePolicy::snapshot(const ImageSpec* config_hints)
+ColorWritePolicy::snapshot(const ImageSpec* config_hints,
+                          const ColorConfig* config)
 {
     ColorWritePolicy p;
-    ColorPolicySnapshot snap(config_hints);
+    ColorPolicySnapshot snap(config_hints, config);
 
     p.cicp = parse_signal(
         snap.get_string("oiio:colorpolicy:write:cicp", &p.cicp_layer));

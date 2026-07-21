@@ -613,6 +613,48 @@ test_config_declared_read_policy(const ColorConfig& plaincfg)
 }
 
 
+// WRITE proof: the SAME FileRules mechanism drives write policy. A config
+// declaring `oiio:colorpolicy:write:cicp: never` must suppress the CICP tuple
+// a PNG write would otherwise emit for srgb_rec709_display -- with NO OIIO
+// attribute set. Contrast: the baseline config emits the author's tuple.
+static void
+test_config_declared_write_policy(const ColorConfig& plaincfg)
+{
+    OIIO::attribute("oiio:colorpolicy:write:cicp", "");
+
+    const std::string declpath
+        = write_policy_config("oiio:colorpolicy:write:cicp", "never");
+    ColorConfig declcfg(declpath);
+    OIIO_CHECK_ASSERT(!declcfg.has_error());
+
+    // Snapshot picks the declared write key up as the ConfigDeclared tier.
+    const ColorWritePolicy wp_plain
+        = ColorWritePolicy::snapshot(nullptr, &plaincfg);
+    const ColorWritePolicy wp_decl
+        = ColorWritePolicy::snapshot(nullptr, &declcfg);
+    OIIO_CHECK_ASSERT(wp_plain.cicp == ColorSignalPolicy::Auto);
+    OIIO_CHECK_ASSERT(wp_decl.cicp == ColorSignalPolicy::Never);
+    OIIO_CHECK_ASSERT(wp_decl.cicp_layer == ColorPlanDecider::ConfigDeclared);
+
+    // The emitted-metadata plan flips: a PNG write emits the author's CICP
+    // tuple by default, but the config's declared `never` suppresses it.
+    ImageSpec spec(4, 4, 3, TypeFloat);
+    spec.set_colorspace("srgb_rec709_display");
+    const int cicp[4] = { 1, 13, 0, 1 };
+    spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+    const ColorWriteCaps caps = color_write_caps_for_format("png");
+    const ColorMetadataPlan plan_plain
+        = plan_color_metadata(&plaincfg, spec, caps, wp_plain);
+    const ColorMetadataPlan plan_decl
+        = plan_color_metadata(&declcfg, spec, caps, wp_decl);
+    OIIO_CHECK_ASSERT(plan_plain.cicp.emit());   // default: emit the tuple
+    OIIO_CHECK_ASSERT(!plan_decl.cicp.emit());   // config-declared: suppressed
+    OIIO_CHECK_ASSERT(plan_decl.cicp.decider == ColorPlanDecider::ConfigDeclared);
+
+    Filesystem::remove(declpath);
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -639,6 +681,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_render_read_plan(config);
     test_deferred_cicp(config);
     test_config_declared_read_policy(config);
+    test_config_declared_write_policy(config);
 
     Filesystem::remove(cfgpath);
     return unit_test_failures != 0;

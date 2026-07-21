@@ -1400,8 +1400,12 @@ struct ColorWritePolicy {
 
     /// Read every `oiio:colorpolicy:write:*` value ONCE, under one lock, from
     /// the global attribute table, optionally overridden by per-write config
-    /// hints on the output spec. No mid-call re-reads.
+    /// hints on the output spec. No mid-call re-reads. `config`, if non-null,
+    /// additionally feeds the config author's declared write policy (spec 09
+    /// FileRule custom keys) in as a layer below the global attributes.
     static OIIO_API ColorWritePolicy snapshot(const ImageSpec* config_hints
+                                              = nullptr,
+                                              const ColorConfig* config
                                               = nullptr);
 };
 
