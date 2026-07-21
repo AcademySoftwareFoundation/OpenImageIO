@@ -426,9 +426,14 @@ std::string
 render_color_write_plan(const ImageSpec& spec, string_view format_name)
 {
     const ColorWriteCaps caps = color_write_caps_for_format(format_name);
+    // Preview the write plan under the ambient config's declared write policy
+    // (spec 09), the same as a real write would. --colorwriteplan takes a
+    // format, not an output path, so layer 5 (matched output-rule) does not
+    // apply here; layers 2/3 (config default/profiles) and 4/6 do.
     const ColorMetadataPlan plan
         = plan_color_metadata(nullptr, spec, caps,
-                              ColorWritePolicy::snapshot(&spec));
+                              ColorWritePolicy::snapshot(&spec,
+                                                         ambient_color_config()));
     std::string out = Strutil::fmt::format(
         "Color write plan for format \"{}\":\n", format_name);
     auto row = [&](const char* signal, const ColorPlanField& f,

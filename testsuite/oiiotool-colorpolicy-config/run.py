@@ -63,4 +63,42 @@ command += read_cs(layer5cfg, "matched")
 command += read_cs(layer5cfg, "matched-vs-global",
                    "--oiioattrib oiio:colorpolicy:read:cicp_state display ")
 
+
+# --- Write side (spec 09): the ambient config drives write policy too. ---
+wdeclcfg = "src/wdecl.ocio"
+
+# An image carrying an explicit CICP tuple. A PNG write emits that tuple by
+# default; a config declaring `write:cicp never` suppresses it.
+mk = ("--pattern constant:color=0.5,0.5,0.5 16x16 3 "
+      "--attrib oiio:ColorSpace srgb_rec709_display "
+      "'--attrib:type=int[4]' CICP 1,13,0,1 ")
+
+# (6) --colorwriteplan under the plain config: the cicp tuple is written,
+# attributed to the explicit metadata. Under wdecl: suppressed, attributed to
+# the config-declared tier -- with NO OIIO attribute set. (Grep to the cicp row
+# so the reference is stable.)
+command += ("env OCIO=" + plaincfg + " " + oiio_app("oiiotool") + " " + mk
+            + "--colorwriteplan png | grep '^  cicp' " + redirect + " ;\n")
+command += ("env OCIO=" + wdeclcfg + " " + oiio_app("oiiotool") + " " + mk
+            + "--colorwriteplan png | grep '^  cicp' " + redirect + " ;\n")
+
+# (7) Actual writes: emit real PNGs, then read the CICP chunk back. Under the
+# plain config the cICP chunk is present in the file; under wdecl it was
+# suppressed at write time and is absent. `grep CICP` prints the line when
+# present and nothing when absent (|| true so a no-match is not a failure);
+# echo labels each so the reference is self-describing.
+command += ("env OCIO=" + plaincfg + " " + oiio_app("oiiotool") + " " + mk
+            + "-o w_plain.png " + redirect + " ;\n")
+command += ("env OCIO=" + wdeclcfg + " " + oiio_app("oiiotool") + " " + mk
+            + "-o w_wdecl.png " + redirect + " ;\n")
+command += ("echo 'w_plain CICP chunk:' " + redirect + " ;\n")
+command += ("( env OCIO=" + plaincfg + " " + oiio_app("oiiotool")
+            + " --info -v w_plain.png 2>&1 | grep CICP || true )" + redirect
+            + " ;\n")
+command += ("echo 'w_wdecl CICP chunk (suppressed by config):' " + redirect
+            + " ;\n")
+command += ("( env OCIO=" + plaincfg + " " + oiio_app("oiiotool")
+            + " --info -v w_wdecl.png 2>&1 | grep CICP || true )" + redirect
+            + " ;\n")
+
 outputs = ["out.txt"]

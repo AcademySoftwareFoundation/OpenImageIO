@@ -625,7 +625,7 @@ put_parameter(png_structp& sp, png_infop& ip, const std::string& _name,
 inline const std::string
 write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
            std::vector<png_text>& text, bool& convert_alpha, bool& srgb,
-           float& gamma)
+           float& gamma, string_view filename = {})
 {
     // Force either 16 or 8 bit integers
     if (spec.format == TypeDesc::UINT8 || spec.format == TypeDesc::INT8)
@@ -781,9 +781,10 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     // emitted.
     {
         pvt::ColorWriteCaps caps = pvt::color_write_caps_for_format("png");
-        pvt::ColorMetadataPlan plan
-            = pvt::plan_color_metadata(nullptr, spec, caps,
-                                       pvt::ColorWritePolicy::snapshot(&spec));
+        pvt::ColorMetadataPlan plan = pvt::plan_color_metadata(
+            nullptr, spec, caps,
+            pvt::ColorWritePolicy::snapshot(&spec, pvt::ambient_color_config(),
+                                            filename));
         const bool emit = plan.cicp.action == pvt::ColorPlanAction::Write
                           || (plan.cicp.action == pvt::ColorPlanAction::Derive
                               && !wrote_colorspace);

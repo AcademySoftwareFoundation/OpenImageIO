@@ -1036,9 +1036,13 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     // is a follow-on.
     {
         pvt::ColorWriteCaps caps = pvt::color_write_caps_for_format("openexr");
-        pvt::ColorMetadataPlan plan
-            = pvt::plan_color_metadata(nullptr, spec, caps,
-                                       pvt::ColorWritePolicy::snapshot(&spec));
+        // Ambient config drives write policy (spec 09 layers 2/3). Layer-5
+        // (matched output-rule) is skipped here -- OpenEXROutput does not keep
+        // the output path handy, and EXR write caps are interop_id only; wiring
+        // the path through for EXR-write layer 5 is a small follow-up.
+        pvt::ColorMetadataPlan plan = pvt::plan_color_metadata(
+            nullptr, spec, caps,
+            pvt::ColorWritePolicy::snapshot(&spec, pvt::ambient_color_config()));
         // B7 (spec 07): color identity is scoped to the whole file and
         // belongs in the FIRST part's header only. Later parts are additional
         // layers of one image, not independently-tagged images; the only

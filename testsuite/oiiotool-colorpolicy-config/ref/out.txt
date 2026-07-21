@@ -3,3 +3,8 @@ decl: srgb_rec709_scene
 override: srgb_rec709_display
 matched: srgb_rec709_scene
 matched-vs-global: srgb_rec709_scene
+  cicp            write     explicit metadata   1/13/0/1
+  cicp            suppress  config declared     -
+w_plain CICP chunk:
+    CICP: 1, 13, 0, 1
+w_wdecl CICP chunk (suppressed by config):
