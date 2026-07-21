@@ -99,4 +99,18 @@ else :
                          + "--ociodisplay:from=lin_ap1_scene:inverse=1 disp view1 "
                          + "-echo \"inverse strict-off fallback colorspace tag: {TOP[\\\"oiio:ColorSpace\\\"]}\"")
 
-outputs = [ "xconv-cross.exr", "xdisp-cross.exr", "xconv-local.exr", "out.txt" ]
+    # (7) Display-referred CIID cross-config convert (spec 10 B2): the source is
+    # a well-known DISPLAY-referred identity ("srgb_rec709_display") this config
+    # never defines, converted to a local scene space. It has no local
+    # equivalent, yet the registry lowers it colorimetrically to the scene
+    # reference through its own default view transform -- so it bridges through
+    # the interchange even under OCIO strict parsing (unlike a scene CIID). The
+    # result is colorimetric (white stays white, no tonescale); compare as an
+    # image (version-dependent precision) like (1)/(2).
+    command += oiiotool ("--colorconfig src/interop-strict.ocio probe.exr "
+                         + "--colorconvert srgb_rec709_display ap0 "
+                         + "-echo \"display-CIID convert: wrote xconv-disp.exr\" "
+                         + "-o xconv-disp.exr")
+
+outputs = [ "xconv-cross.exr", "xdisp-cross.exr", "xconv-local.exr",
+            "xconv-disp.exr", "out.txt" ]

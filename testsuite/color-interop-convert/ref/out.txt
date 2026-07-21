@@ -1,4 +1,4 @@
-OIIO DEBUG: OpenImageIO ColorConfig("src/interop.ocio"): reconciling color conversion across configs -- source "ap0" (this config) -> destination "ACEScg" (interop identities config)
+OIIO DEBUG: OpenImageIO ColorConfig("src/interop.ocio"): reconciling color conversion across configs -- source "ap0" (this config) -> destination "ACEScg" (interop identities config) via aces_interchange
 cross-config convert: wrote xconv-cross.exr
 OIIO DEBUG: OpenImageIO ColorConfig("src/interop.ocio"): reconciling display transform across configs -- source "ACEScg" (interop identities config) -> display "disp" view "view1" (this config)
 cross-config display: wrote xdisp-cross.exr
@@ -14,9 +14,13 @@ local-only convert: wrote xconv-local.exr
 OIIO DEBUG: OpenImageIO ColorConfig "src/noninterop.ocio" is not color-interoperable: no scene interchange role (aces_interchange) could be found or repaired. Cross-config color conversions and display transforms are unavailable for this config -- OCIO strict parsing will error on them, non-strict parsing will pass them through unchanged. Add the aces_interchange role (and a matching color space) to this config to enable cross-config features.
 OIIO DEBUG: OpenImageIO ColorConfig("src/noninterop.ocio"): Could not reconcile display transform "lin_ap1_scene" -> display "disp" view "view1": config "src/noninterop.ocio" is not color-interoperable (no scene interchange role could be found or repaired). "lin_ap1_scene" is a registry-known interop identity this config does not define; add the aces_interchange role (and a matching color space) to "src/noninterop.ocio", or use a color space name this config defines. Continuing with a pass-through (non-strict parsing).
 inverse strict-off fallback colorspace tag: enc
+OIIO DEBUG: OpenImageIO ColorConfig("src/interop-strict.ocio"): reconciling color conversion across configs -- source "sRGB - Display" (interop identities config) -> destination "ap0" (this config) via cie_xyz_d65_interchange
+display-CIID convert: wrote xconv-disp.exr
 Comparing "xconv-cross.exr" and "ref/xconv-cross.exr"
 PASS
 Comparing "xdisp-cross.exr" and "ref/xdisp-cross.exr"
 PASS
 Comparing "xconv-local.exr" and "ref/xconv-local.exr"
+PASS
+Comparing "xconv-disp.exr" and "ref/xconv-disp.exr"
 PASS

@@ -413,7 +413,8 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
                        const OCIO::ConstConfigRcPtr& dst_config,
                        string_view dst_name, std::string& errmsg,
                        const OCIO::ConstContextRcPtr& src_context,
-                       const OCIO::ConstContextRcPtr& dst_context)
+                       const OCIO::ConstContextRcPtr& dst_context,
+                       const char* interchange_role)
 {
     errmsg.clear();
     if (!src_config || !dst_config) {
@@ -422,15 +423,19 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
     }
     const std::string src(src_name);
     const std::string dst(dst_name);
-    const bool explicit_interchange
-        = src_config->hasRole(OCIO::ROLE_INTERCHANGE_SCENE)
-          && dst_config->hasRole(OCIO::ROLE_INTERCHANGE_SCENE);
+    // `interchange_role` is the anchor both configs bridge through -- normally
+    // aces_interchange (scene), but cie_xyz_d65_interchange (display) when a
+    // display-referred endpoint prefers the display anchor (spec 10 B2). Both
+    // are colorimetric; the fast path only fires when BOTH configs carry the
+    // chosen role, otherwise OCIO's own discovery form runs.
+    const bool explicit_interchange = src_config->hasRole(interchange_role)
+                                      && dst_config->hasRole(interchange_role);
     try {
         if (!src_context && !dst_context) {
             if (explicit_interchange)
                 return OCIO::Config::GetProcessorFromConfigs(
-                    src_config, src.c_str(), OCIO::ROLE_INTERCHANGE_SCENE,
-                    dst_config, dst.c_str(), OCIO::ROLE_INTERCHANGE_SCENE);
+                    src_config, src.c_str(), interchange_role, dst_config,
+                    dst.c_str(), interchange_role);
             return OCIO::Config::GetProcessorFromConfigs(src_config, src.c_str(),
                                                          dst_config, dst.c_str());
         }
@@ -440,8 +445,8 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
                                                    : dst_config->getCurrentContext();
         if (explicit_interchange)
             return OCIO::Config::GetProcessorFromConfigs(
-                sctx, src_config, src.c_str(), OCIO::ROLE_INTERCHANGE_SCENE,
-                dctx, dst_config, dst.c_str(), OCIO::ROLE_INTERCHANGE_SCENE);
+                sctx, src_config, src.c_str(), interchange_role, dctx, dst_config,
+                dst.c_str(), interchange_role);
         return OCIO::Config::GetProcessorFromConfigs(sctx, src_config, src.c_str(),
                                                      dctx, dst_config, dst.c_str());
     } catch (OCIO::Exception& e) {
@@ -766,16 +771,46 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
         if (dst_name.empty())
             dst_name = d;
 
-        // R2(b)/R4(b): narrate every cross-config route as one complete message.
-        Strutil::debug(
-            "OpenImageIO ColorConfig(\"{}\"): reconciling color conversion "
-            "across configs -- source \"{}\" ({}) -> destination \"{}\" ({})\n",
-            configname(), src_name,
-            src_foreign ? "interop identities config" : "this config", dst_name,
-            dst_foreign ? "interop identities config" : "this config");
-
-        proc = processor_from_configs(src_cfg, src_name, dst_cfg, dst_name,
-                                      ocio_err);
+        // Interchange selection (spec 10 B2): a display-referred foreign CIID
+        // PREFERS the display anchor (cie_xyz_d65_interchange) when both configs
+        // resolve it -- the registry always does, the interopified copy does
+        // when bootstrap_display_interchange synthesized it. The display anchor
+        // is the only one that reaches a display-referred TARGET in the user's
+        // config by a single colorimetric matrix (the display->display case);
+        // the scene anchor is what reaches a scene-referred target (and is the
+        // Step-1 route). Neither anchor is universal for a given config (a
+        // display-having config may lack a scene<->display view transform, a
+        // scene-only config lacks a display target), so try the preferred anchor
+        // then fall back to the other -- both are colorimetric, so whichever
+        // OCIO can build is correct.
+        bool prefer_display = false;
+        if (display_foreign) {
+            try {
+                prefer_display = ids->hasRole(OCIO::ROLE_INTERCHANGE_DISPLAY)
+                                 && bridge->hasRole(OCIO::ROLE_INTERCHANGE_DISPLAY);
+            } catch (...) {
+            }
+        }
+        std::array<const char*, 2> roles
+            = prefer_display ? std::array<const char*, 2> { OCIO::ROLE_INTERCHANGE_DISPLAY,
+                                                            OCIO::ROLE_INTERCHANGE_SCENE }
+                             : std::array<const char*, 2> { OCIO::ROLE_INTERCHANGE_SCENE,
+                                                            OCIO::ROLE_INTERCHANGE_SCENE };
+        const int n_roles = prefer_display ? 2 : 1;
+        for (int r = 0; r < n_roles && !proc; ++r) {
+            // R2(b)/R4(b): narrate every cross-config route as one complete msg.
+            Strutil::debug(
+                "OpenImageIO ColorConfig(\"{}\"): reconciling color conversion "
+                "across configs -- source \"{}\" ({}) -> destination \"{}\" ({}) "
+                "via {}\n",
+                configname(), src_name,
+                src_foreign ? "interop identities config" : "this config",
+                dst_name,
+                dst_foreign ? "interop identities config" : "this config",
+                roles[r]);
+            proc = processor_from_configs(src_cfg, src_name, dst_cfg, dst_name,
+                                          ocio_err, nullptr, nullptr, roles[r]);
+        }
         if (proc) {
             try {
                 return ColorProcessorHandle(new ColorProcessor_OCIO(proc));
@@ -1201,6 +1236,39 @@ identities_display_route_probe(const ColorConfig& config,
                                                      display, view,
                                                      OCIO::TRANSFORM_DIR_FORWARD,
                                                      err);
+    if (!proc)
+        return out;
+    out.assign(probe.begin(), probe.end());
+    try {
+        proc->getDefaultCPUProcessor()->applyRGB(out.data());
+    } catch (OCIO::Exception&) {
+        out.clear();
+    }
+    return out;
+}
+
+
+std::vector<float>
+interopified_display_interchange_probe(const ColorConfig& config,
+                                       string_view scene_name, cspan<float> probe)
+{
+    std::vector<float> out;
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    if (!impl || probe.size() != 3)
+        return out;
+    OCIO::ConstConfigRcPtr bridge = impl->interopifiedConfig();
+    if (!bridge)
+        return out;
+    OCIO::ConstProcessorRcPtr proc;
+    try {
+        // The synthesized display interchange -> a scene space, entirely within
+        // the interopified copy. Colorimetric by construction; the caller feeds
+        // XYZ-D65 white and asserts it lands on the scene space's white.
+        proc = bridge->getProcessor(OCIO::ROLE_INTERCHANGE_DISPLAY,
+                                    std::string(scene_name).c_str());
+    } catch (OCIO::Exception&) {
+        return out;
+    }
     if (!proc)
         return out;
     out.assign(probe.begin(), probe.end());

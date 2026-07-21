@@ -1013,7 +1013,9 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
                        const OCIO::ConstConfigRcPtr& dst_config,
                        string_view dst_name, std::string& errmsg,
                        const OCIO::ConstContextRcPtr& src_context = nullptr,
-                       const OCIO::ConstContextRcPtr& dst_context = nullptr);
+                       const OCIO::ConstContextRcPtr& dst_context = nullptr,
+                       const char* interchange_role
+                       = OCIO::ROLE_INTERCHANGE_SCENE);
 
 // Display-view sibling of the cross-config chokepoint. Defined in
 // color_crossconfig.cpp.

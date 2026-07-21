@@ -589,6 +589,16 @@ identities_display_route_probe(const ColorConfig& config,
                                string_view registry_name, string_view display,
                                string_view view, cspan<float> probe);
 
+/// Apply the interopified copy's own cie_xyz_d65_interchange -> `scene_name`
+/// processor to the 3-channel `probe`. Used to assert the synthesized display
+/// interchange is COLORIMETRIC: feeding XYZ-D65 white must land on the scene
+/// space's white, matrix-only (no tonescale). Returns an empty vector if the
+/// copy resolves no display interchange or the processor can't be built. For
+/// internal/test use only.
+OIIO_API std::vector<float>
+interopified_display_interchange_probe(const ColorConfig& config,
+                                       string_view scene_name, cspan<float> probe);
+
 
 // ---------------------------------------------------------------------------
 // Color interop ID grammar and sanitization -- the ID grammar and

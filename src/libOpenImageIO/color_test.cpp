@@ -1408,6 +1408,114 @@ colorspaces:
 
 
 
+// Step 2 (spec 10 B2): the display interchange. interopify synthesizes a
+// colorimetric cie_xyz_d65_interchange on the in-memory copy, and a
+// display-referred CIID PREFERS it -- enabling a colorimetric display->display
+// route (a display CIID to a display-referred space in the user's config) that
+// the scene anchor cannot express by a single matrix. The local display space
+// here uses P3-D65 primaries (distinct from the sRGB CIID) so resolve() cannot
+// map the CIID to it locally, forcing the cross-config bridge.
+static void
+test_cross_config_display_interchange()
+{
+    using OIIO::pvt::interopified_display_interchange_probe;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02030000)
+        return;
+    if (!OIIO::pvt::interop_identities_config_resolves("srgb_rec709_display"))
+        return;
+
+    // Interoperable config with a P3-D65 display space and NO cie_xyz_d65
+    // interchange of its own -- interopify must synthesize one.
+    static const char* yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: ACEScg
+  scene_linear: ACEScg
+  aces_interchange: ACES2065-1
+displays:
+  P3:
+    - !<View> {name: Raw, colorspace: my_p3_display}
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: ACEScg
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.6954522414, 0.1406786965, 0.1638690622, 0, 0.0447945634, 0.8596711185, 0.0955343182, 0, -0.0055258826, 0.0040252103, 1.0015006723, 0, 0, 0, 0, 1]}
+display_colorspaces:
+  - !<ColorSpace>
+    name: my_p3_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+)";
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_xconv_disp_interchange.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(path, yaml));
+    ColorConfig cc(path);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+
+    // --- (c) The synthesized cie_xyz_d65_interchange is colorimetric: XYZ-D65
+    //     white -> scene white, matrix-only (no tonescale/offset). ------------
+    {
+        // XYZ-D65 white (the CIE white point). A colorimetric anchor maps it to
+        // the scene space's white (1,1,1).
+        const float xyz_white[3] = { 0.95047f, 1.0f, 1.08883f };
+        auto w = interopified_display_interchange_probe(cc, "ACEScg", xyz_white);
+        OIIO_CHECK_EQUAL(w.size(), size_t(3));
+        if (w.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(w[c], 1.0f, 2e-3f);
+
+        // Matrix-only (linear, no offset): scaling the input scales the output.
+        const float xyz_half[3] = { 0.475235f, 0.5f, 0.544415f };
+        auto h = interopified_display_interchange_probe(cc, "ACEScg", xyz_half);
+        OIIO_CHECK_EQUAL(h.size(), size_t(3));
+        if (w.size() == 3 && h.size() == 3)
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(h[c], 0.5f * w[c], 2e-3f);
+    }
+
+    // --- (b) display CIID -> a display-referred space in the user's config,
+    //     bridged through the display interchange, colorimetric (white->white,
+    //     neutral stays neutral, no tonescale/blow-up). ----------------------
+    {
+        auto handle = cc.createColorProcessor("srgb_rec709_display",
+                                              "my_p3_display");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        if (handle) {
+            OIIO_CHECK_FALSE(handle->isNoOp());  // real cross-config transform
+
+            float white[3] = { 1.0f, 1.0f, 1.0f };
+            handle->apply(white);
+            for (int c = 0; c < 3; ++c) {
+                OIIO_CHECK_EQUAL_THRESH(white[c], 1.0f, 3e-3f);  // white->white
+                OIIO_CHECK_ASSERT(white[c] < 1.05f);             // no blow-up
+            }
+
+            // Mid-gray stays neutral (equal channels) and bounded -- an
+            // encoding change, never a tonescale.
+            float mid[3] = { 0.5f, 0.5f, 0.5f };
+            handle->apply(mid);
+            OIIO_CHECK_EQUAL_THRESH(mid[0], mid[1], 2e-3f);
+            OIIO_CHECK_EQUAL_THRESH(mid[1], mid[2], 2e-3f);
+            OIIO_CHECK_ASSERT(mid[0] > 0.0f && mid[0] < 1.0f);
+        }
+        OIIO_CHECK_FALSE(cc.has_error());
+    }
+
+    Filesystem::remove(path);
+}
+
+
+
 // Exercise the cross-config DISPLAY route in ColorConfig::createDisplayTransform:
 // when the INPUT color space is absent from the current config
 // but is a registry-known interop identity, and the config defines the requested
@@ -4158,6 +4266,7 @@ main(int argc, char* argv[])
     test_cross_config_processor();
     test_cross_config_conversion();
     test_cross_config_display_ciid_convert();
+    test_cross_config_display_interchange();
     test_cross_config_display();
     test_color_space_fingerprint_cache();
     test_interop_resolve();
