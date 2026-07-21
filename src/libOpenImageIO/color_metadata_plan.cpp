@@ -24,6 +24,7 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/sysutil.h>
 
 #include "imageio_pvt.h"
 #include "color_pvt.h"
@@ -42,6 +43,54 @@ color_policy_mutex()
     return m;
 }
 
+void
+apply_profile_selection(std::map<std::string, std::string>& keys,
+                        const ColorConfig& config, string_view selection)
+{
+    for (string_view raw : Strutil::splitsv(selection, ",")) {
+        std::string entry(Strutil::strip(raw));
+        if (entry.empty())
+            continue;
+        bool remove = false;
+        if (entry.front() == '+') {
+            entry.erase(0, 1);
+        } else if (entry.front() == '-') {
+            remove = true;
+            entry.erase(0, 1);
+        }
+        entry = Strutil::strip(entry);
+        if (entry.empty())
+            continue;
+
+        // A target on the policy axis (`read:...`/`write:...`) is a single
+        // key; anything else is a whole profile name (a config rule name).
+        if (Strutil::starts_with(entry, "read:")
+            || Strutil::starts_with(entry, "write:")) {
+            std::string key = entry, value;
+            if (auto eq = entry.find('='); eq != std::string::npos) {
+                key   = entry.substr(0, eq);
+                value = entry.substr(eq + 1);
+            }
+            const std::string full = "oiio:colorpolicy:" + key;
+            if (remove)
+                keys.erase(full);
+            else
+                keys[full] = value;  // set (value may be empty for a bare +key)
+        } else {
+            // Profile: merge (or erase) its declared keys. An undefined profile
+            // yields no keys -- a graceful fall-through (spec 09).
+            const auto profile_keys = config_declared_policy_keys(config, entry);
+            for (const auto& kv : profile_keys) {
+                if (remove)
+                    keys.erase(kv.first);
+                else
+                    keys[kv.first] = kv.second;  // cascades over earlier entries
+            }
+        }
+    }
+}
+
+
 ColorPolicySnapshot::ColorPolicySnapshot(const ImageSpec* hints,
                                          const ColorConfig* config,
                                          string_view filepath)
@@ -58,28 +107,19 @@ ColorPolicySnapshot::ColorPolicySnapshot(const ImageSpec* hints,
         // alteration of OIIO's builtin defaults.
         m_config_keys = config_declared_policy_keys(*config, "oiio:default");
 
-        // Layer 3 (optional, spec 09): active profiles selected via the
-        // `oiio:colorpolicy:profile` key -- itself resolved through the
-        // layers already established (hint > global > the oiio:default key
-        // just read). Comma-separated; later profiles override earlier, and
-        // every profile overrides the oiio:default baseline.
-        std::string sel;
-        if (m_hints)
-            if (auto a = m_hints->find_attribute("oiio:colorpolicy:profile",
-                                                 TypeString))
-                sel = a->get_ustring().string();
-        if (sel.empty())
-            OIIO::getattribute("oiio:colorpolicy:profile", sel);
-        if (sel.empty()) {
-            auto it = m_config_keys.find("oiio:colorpolicy:profile");
-            if (it != m_config_keys.end())
-                sel = it->second;
-        }
-        for (string_view name : Strutil::splitsv(sel, ",")) {
-            const std::string rule = "oiio:" + std::string(Strutil::strip(name));
-            for (auto& kv : config_declared_policy_keys(*config, rule))
-                m_config_keys[kv.first] = kv.second;  // profile wins over default
-        }
+        // Layer 3 (spec 09): active profiles, a composable +/- selection. Two
+        // entry points compose over the layer-2 baseline just loaded: the env
+        // var OPENIMAGEIO_COLORPOLICY is the base, then the global attribute
+        // `oiio:colorpolicy:profile` composes on top (more explicit /
+        // programmatic wins, so an attribute `-entry` can subtract what the env
+        // var added). Each mutates m_config_keys, which get_string/get_int read
+        // BELOW the global individual-key table (layer 4), so an absolute
+        // per-key OIIO::attribute still overrides a selected profile.
+        apply_profile_selection(m_config_keys, *config,
+                                Sysutil::getenv("OPENIMAGEIO_COLORPOLICY"));
+        std::string attrsel;
+        OIIO::getattribute("oiio:colorpolicy:profile", attrsel);
+        apply_profile_selection(m_config_keys, *config, attrsel);
 
         // Layer 5 (spec 09): the per-file opinions of the config file-rule that
         // MATCHES this file's path. Kept separate from m_config_keys because it

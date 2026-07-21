@@ -1301,6 +1301,23 @@ OIIO_API std::map<std::string, std::string>
 config_matched_rule_policy_keys(const ColorConfig& config,
                                 string_view filepath);
 
+/// Feature 3 (spec 09): apply one composable layer-3 profile-selection
+/// expression to `keys` (the accumulating layer-2/3 policy map). `selection` is
+/// a comma-separated list; each entry is `[+|-]<target>` where `<target>` is
+/// EITHER a whole profile name (a config rule name, e.g. `oiio:blender:textures`
+/// -- looked up via config_declared_policy_keys) OR a single policy key
+/// (`read:cicp_state`, optionally `=value`; the full attribute name is
+/// `oiio:colorpolicy:<target>`). No prefix / `+` adds a profile (its keys
+/// cascade over earlier entries) or sets a key; `-` removes a profile (erases
+/// its keys) or unsets a key. A target starting with `read:`/`write:` is a key,
+/// otherwise a profile. An undefined profile contributes nothing (fall
+/// through). Entries apply left to right so later ones override earlier; call
+/// once for the env-var base then again for the composed-on-top attribute. For
+/// internal/test use only.
+OIIO_API void
+apply_profile_selection(std::map<std::string, std::string>& keys,
+                        const ColorConfig& config, string_view selection);
+
 class OIIO_API ColorPolicySnapshot {
 public:
     /// `config`, if non-null, additionally exposes the config author's own

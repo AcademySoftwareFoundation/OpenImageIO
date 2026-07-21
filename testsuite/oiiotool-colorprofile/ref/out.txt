@@ -1,0 +1,12 @@
+=== baseline: no selection -> display ===
+  srgb_rec709_display
+=== env selects profile -> scene ===
+  srgb_rec709_scene
+=== profile then -key drops the key -> display ===
+  srgb_rec709_display
+=== +key=value sets a key directly -> scene ===
+  srgb_rec709_scene
+=== attribute subtracts env-added profile -> display ===
+  srgb_rec709_display
+=== attribute alone selects profile -> scene ===
+  srgb_rec709_scene

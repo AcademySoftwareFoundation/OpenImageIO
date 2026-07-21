@@ -311,6 +311,7 @@ macro (oiio_add_all_tests)
                     oiiotool-colorpolicy-config
                     oiiotool-colorroundtrip
                     oiiotool-colorverbose
+                    oiiotool-colorprofile
                     FOUNDVAR OpenColorIO_FOUND)
 
     # Tests to run with HWY enabled.

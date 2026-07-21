@@ -64,6 +64,92 @@ colorspaces:
 }
 
 
+// Feature 3 (spec 09): a config carrying named policy profiles for the
+// layer-3 selection test. oiio:default declares a layer-2 key (write:verbose)
+// distinct from the profile's keys, so a `-profile` removal is shown to leave
+// the layer-2 baseline untouched.
+static std::string
+write_profile_config()
+{
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_cmp_profiles.ocio";
+    std::ofstream f(path);
+    f << R"(ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: raw_data
+file_rules:
+  - !<Rule> {name: oiio:default, colorspace: raw_data, regex: "$^", custom: {oiio:colorpolicy:write:verbose: "1"}}
+  - !<Rule> {name: oiio:blender:textures, colorspace: raw_data, regex: "$^", custom: {oiio:colorpolicy:read:cicp_state: scene, oiio:colorpolicy:read:display_to_scene: invert_view}}
+  - !<Rule> {name: Default, colorspace: raw_data}
+colorspaces:
+  - !<ColorSpace>
+    name: raw_data
+    isdata: true
+    aliases: [data]
+)";
+    f.close();
+    return path;
+}
+
+
+// Feature 3 (spec 09): the composable +/- layer-3 profile selection. Exercises
+// the parse/compose directly (apply_profile_selection), independent of any
+// reader: profile activation, per-key subtract, direct key set, whole-profile
+// subtract composed on top, and undefined-profile fall-through.
+static void
+test_profile_selection(const ColorConfig& config)
+{
+    using Keys           = std::map<std::string, std::string>;
+    const std::string CS  = "oiio:colorpolicy:read:cicp_state";
+    const std::string DTS = "oiio:colorpolicy:read:display_to_scene";
+    const std::string VB  = "oiio:colorpolicy:write:verbose";
+    // The layer-2 baseline the snapshot ctor seeds before selection.
+    auto base = [&] { return config_declared_policy_keys(config, "oiio:default"); };
+
+    // (1) Selecting a profile activates its keys, cascading over layer 2.
+    {
+        Keys k = base();
+        apply_profile_selection(k, config, "oiio:blender:textures");
+        OIIO_CHECK_EQUAL(k[CS], "scene");
+        OIIO_CHECK_EQUAL(k[DTS], "invert_view");
+        OIIO_CHECK_EQUAL(k[VB], "1");  // layer-2 baseline preserved
+    }
+    // (2) Profile then -key drops just that one key; the profile stays.
+    {
+        Keys k = base();
+        apply_profile_selection(k, config,
+                                "oiio:blender:textures,-read:display_to_scene");
+        OIIO_CHECK_EQUAL(k[CS], "scene");
+        OIIO_CHECK_ASSERT(k.find(DTS) == k.end());
+    }
+    // (3) +key=value sets a key directly (no profile).
+    {
+        Keys k = base();
+        apply_profile_selection(k, config, "+read:cicp_state=scene");
+        OIIO_CHECK_EQUAL(k[CS], "scene");
+        OIIO_CHECK_EQUAL(k[VB], "1");
+    }
+    // (4) Composition: the env-var base adds the profile, the attribute on top
+    //     subtracts the whole profile -- its keys go, the layer-2 key remains.
+    {
+        Keys k = base();
+        apply_profile_selection(k, config, "oiio:blender:textures");   // env base
+        apply_profile_selection(k, config, "-oiio:blender:textures");  // attr
+        OIIO_CHECK_ASSERT(k.find(CS) == k.end());
+        OIIO_CHECK_ASSERT(k.find(DTS) == k.end());
+        OIIO_CHECK_EQUAL(k[VB], "1");
+    }
+    // (5) An undefined profile contributes nothing (graceful fall-through).
+    {
+        Keys k = base();
+        apply_profile_selection(k, config, "oiio:does:not:exist");
+        OIIO_CHECK_EQUAL(k.size(), base().size());
+    }
+}
+
+
 static ColorWriteCaps
 all_caps()
 {
@@ -896,6 +982,16 @@ main(int /*argc*/, char* /*argv*/[])
     }
     test_derivation(config);
     Filesystem::remove(cfgpath);
+
+    const std::string profpath = write_profile_config();
+    ColorConfig profconfig(profpath);
+    if (profconfig.has_error()) {
+        Strutil::print("Could not load profile config: {}\n",
+                       profconfig.geterror());
+        return 1;
+    }
+    test_profile_selection(profconfig);
+    Filesystem::remove(profpath);
 
     return unit_test_failures != 0;
 }
