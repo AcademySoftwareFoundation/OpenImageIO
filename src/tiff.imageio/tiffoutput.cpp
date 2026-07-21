@@ -24,6 +24,7 @@
 #include <OpenImageIO/timer.h>
 
 #include "imageio_pvt.h"
+#include "color_pvt.h"
 
 
 // clang-format off
@@ -931,6 +932,11 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         TIFFSetField(m_tif, TIFFTAG_XPOSITION, std::max(0.0f, x));
         TIFFSetField(m_tif, TIFFTAG_YPOSITION, std::max(0.0f, y));
     }
+
+    // Feature 1 (spec 09): TIFF has no native colorInteropID slot. Under the
+    // force_interop_id policy, stamp the derived id so the XMP emission below
+    // carries it; otherwise strip it so the file stays untagged.
+    pvt::apply_forced_interop_id(m_spec, "tiff", name);
 
     // Deal with all other params
     for (const auto& p : m_spec.extra_attribs)

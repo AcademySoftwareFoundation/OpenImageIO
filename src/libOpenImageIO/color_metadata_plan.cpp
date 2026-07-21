@@ -224,6 +224,8 @@ ColorWritePolicy::snapshot(const ImageSpec* config_hints,
     p.write_narrow_range
         = snap.get_int("oiio:colorpolicy:write:write_narrow_range", 0) != 0;
     p.write_yuv = snap.get_int("oiio:colorpolicy:write:write_yuv", 0) != 0;
+    p.force_interop_id
+        = snap.get_int("oiio:colorpolicy:write:force_interop_id", 0) != 0;
     return p;
 }
 
@@ -256,8 +258,12 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
               .color_interop_id;
 
     // interop id: author's colorInteropID verbatim, else name -> interop id.
+    // Feature 1 (spec 09): force_interop_id makes a slotless format capable of
+    // carrying the id (emitted as an aux attribute), so a set policy flips the
+    // capability gate on for the interop-id signal specifically.
+    const bool interop_capable = caps.interop_id || policy.force_interop_id;
     plan.interop_id
-        = plan_string_signal(policy.interop_id, caps.interop_id,
+        = plan_string_signal(policy.interop_id, interop_capable,
                              spec.get_string_attribute("colorInteropID"),
                              derived_id);
 
@@ -349,7 +355,7 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     plan.gamma.decider = decider(caps.gamma, plan.gamma.action,
                                  policy.gamma_layer);
     plan.icc.decider = decider(caps.icc, plan.icc.action, policy.icc_layer);
-    plan.interop_id.decider = decider(caps.interop_id, plan.interop_id.action,
+    plan.interop_id.decider = decider(interop_capable, plan.interop_id.action,
                                       policy.interop_id_layer);
     plan.mdcv.decider = decider(caps.mdcv, plan.mdcv.action, policy.mdcv_layer);
 
@@ -450,6 +456,35 @@ render_color_write_plan(const ImageSpec& spec, string_view format_name)
     row("interop_id", plan.interop_id);
     row("mdcv", plan.mdcv);
     return out;
+}
+
+
+void
+apply_forced_interop_id(ImageSpec& spec, string_view format_name,
+                        string_view filepath)
+{
+    const ColorWriteCaps caps = color_write_caps_for_format(format_name);
+    if (caps.interop_id)
+        return;  // native slot -- the format's own plan path owns the id
+
+    const ColorConfig* config = ambient_color_config();
+    const ColorWritePolicy policy
+        = ColorWritePolicy::snapshot(&spec, config, filepath);
+    if (!policy.force_interop_id) {
+        // Default contract: a slotless format carries no transport identity.
+        // Strip any authored/passthrough id so it stays untagged (the id would
+        // otherwise leak out through the writer's generic XMP emission).
+        spec.erase_attribute("colorInteropID");
+        return;
+    }
+    // Forced: keep an already-authored id; otherwise derive one from the color
+    // space and stamp it so the writer's generic emission (XMP) carries it.
+    if (!spec.get_string_attribute("colorInteropID").empty())
+        return;
+    const ColorMetadataPlan plan
+        = plan_color_metadata(config, spec, caps, policy);
+    if (plan.interop_id.emit() && is_valid_interop_id(plan.interop_id.str))
+        spec.attribute("colorInteropID", plan.interop_id.str);
 }
 
 }  // namespace pvt

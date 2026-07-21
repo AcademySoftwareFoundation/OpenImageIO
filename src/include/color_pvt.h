@@ -1428,6 +1428,11 @@ struct ColorWritePolicy {
     bool cicp_custom_gama                          = false;
     bool write_narrow_range                        = false;
     bool write_yuv                                 = false;
+    // Feature 1 (spec 09): force the colorInteropID into formats with no
+    // native slot (TIFF/JPEG), emitted as an aux string attribute that
+    // round-trips via XMP. Default 0 keeps slotless formats untagged (the
+    // per-format round-trip contract); 1 opts in per config/profile/call.
+    bool force_interop_id = false;
 
     /// Read every `oiio:colorpolicy:write:*` value ONCE, under one lock, from
     /// the global attribute table, optionally overridden by per-write config
@@ -1466,6 +1471,21 @@ color_write_caps_for_format(string_view format_name);
 /// hints on `spec`) and writes no bytes. For internal/test use only.
 OIIO_API std::string
 render_color_write_plan(const ImageSpec& spec, string_view format_name);
+
+/// Feature 1 (spec 09): apply the `oiio:colorpolicy:write:force_interop_id`
+/// policy for a slotless format (one whose write caps cannot natively carry a
+/// colorInteropID, e.g. TIFF/JPEG). A slotless writer calls this after its
+/// spec is finalized and before it emits generic/XMP attributes. When the
+/// policy is set, derives the colorInteropID (if not already authored) and
+/// stamps it as a plain string attribute so the writer's generic emission
+/// (XMP) carries it; when unset, strips any colorInteropID so the format stays
+/// untagged (matching the current per-format contract). No-op for formats with
+/// a native interop-id slot -- those manage the id through their plan path.
+/// `filepath`, if given, additionally consults the matched output-rule (layer
+/// 5). For internal/writer-plugin use only.
+OIIO_API void
+apply_forced_interop_id(ImageSpec& spec, string_view format_name,
+                        string_view filepath = {});
 }  // namespace pvt
 
 

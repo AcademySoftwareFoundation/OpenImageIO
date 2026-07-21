@@ -62,4 +62,29 @@ command += section("png", "round-trips as cICP chunk -- not colorInteropID")
 command += section("tif", "color identity dropped -- reads back untagged")
 command += section("jpg", "reader fixed sRGB assumption -- srgb_rec709_scene")
 
+
+# Spec 09 Feature 1: force_interop_id. The same slotless formats (TIFF, JPEG)
+# now DO carry colorInteropID when the CONFIG declares
+# oiio:colorpolicy:write:force_interop_id -- with NO attribute set (the policy
+# is config-declared, layer 2). The forced id is emitted as an aux string
+# attribute that round-trips through XMP and reads back. Contrast with the TIF
+# section above (same source, plain config -> untagged).
+forcecfg = "src/force_interop.ocio"
+
+
+def forced_section(fmt, note):
+    out = "force." + fmt
+    lines = ""
+    lines += "echo '=== " + fmt.upper() + " forced: " + note + " ==='" + redirect + " ;\n"
+    lines += ("env OCIO=" + forcecfg + " " + ot + " " + mksrc + "-o " + out
+              + " >/dev/null 2>&1 ;\n")
+    lines += ("( env OCIO=" + forcecfg + " " + ot + " --info -v " + out
+              + " 2>/dev/null | grep -E 'colorInteropID' || true )"
+              + redirect + " ;\n")
+    return lines
+
+
+command += forced_section("tif", "config-declared force -- colorInteropID carried")
+command += forced_section("jpg", "config-declared force -- colorInteropID carried")
+
 outputs = ["out.txt"]

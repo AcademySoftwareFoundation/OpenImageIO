@@ -7,3 +7,7 @@
 === TIF: color identity dropped -- reads back untagged ===
 === JPG: reader fixed sRGB assumption -- srgb_rec709_scene ===
     oiio:ColorSpace: "srgb_rec709_scene"
+=== TIF forced: config-declared force -- colorInteropID carried ===
+    colorInteropID: "srgb_rec709_display"
+=== JPG forced: config-declared force -- colorInteropID carried ===
+    colorInteropID: "srgb_rec709_display"

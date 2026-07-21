@@ -1,0 +1,22 @@
+ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: raw_data
+  scene_linear: lin_ap1_scene
+file_rules:
+  # Spec 09 Feature 1: the config author declares force_interop_id in the
+  # reserved oiio:default profile rule (regex $^ so it never matches a file).
+  # No OIIO attribute is set anywhere -- the policy comes from the CONFIG.
+  - !<Rule> {name: oiio:default, colorspace: raw_data, regex: "$^", custom: {oiio:colorpolicy:write:force_interop_id: "1"}}
+  - !<Rule> {name: Default, colorspace: raw_data}
+displays:
+  disp:
+    - !<View> {name: view, colorspace: srgb_rec709_display}
+active_displays: [disp]
+active_views: [view]
+colorspaces:
+  - !<ColorSpace> {name: raw_data, isdata: true, aliases: [data]}
+  - !<ColorSpace> {name: lin_ap1_scene}
+  - !<ColorSpace> {name: srgb_rec709_scene}
+  - !<ColorSpace> {name: srgb_rec709_display}
