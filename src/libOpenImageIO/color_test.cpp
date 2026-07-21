@@ -3558,6 +3558,53 @@ colorspaces:
     ColorConfig cc2(cfg2_path);
     OIIO_CHECK_ASSERT(!cc2.has_error());
 
+    // cc3: an interoperable scene+display config that LACKS every registry CIID
+    // the workers request, so a createColorProcessor with a registry endpoint
+    // can never resolve locally and MUST take the cross-config bridge. It carries
+    // aces_interchange (scene bridge) and a P3-D65 display space but NO
+    // cie_xyz_d65 interchange (interopify must synthesize the display interchange).
+    // Sharing ONE cc3 across all workers is deliberate: it races both the
+    // per-Impl ensure_interop() lazy publish AND the process-global interopify_config
+    // memo (s_memo, first-writer-wins, keyed by structural config id) on their
+    // genuinely cold first touch -- the state the prior stress predates. Gated on
+    // OCIO >= 2.3 (two-config display bridge) and registry CIID availability.
+    const bool do_xconfig
+        = ColorConfig::OpenColorIO_version_hex() >= 0x02030000
+          && OIIO::pvt::interop_identities_config_resolves("lin_ap1_scene")
+          && OIIO::pvt::interop_identities_config_resolves("srgb_rec709_display");
+    static const char* cfg3_yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: ACEScg
+  scene_linear: ACEScg
+  aces_interchange: ACES2065-1
+displays:
+  P3:
+    - !<View> {name: Raw, colorspace: my_p3_display}
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: ACEScg
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.6954522414, 0.1406786965, 0.1638690622, 0, 0.0447945634, 0.8596711185, 0.0955343182, 0, -0.0055258826, 0.0040252103, 1.0015006723, 0, 0, 0, 0, 1]}
+display_colorspaces:
+  - !<ColorSpace>
+    name: my_p3_display
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+)";
+    std::string cfg3_path = Filesystem::temp_directory_path()
+                            + "/oiio_color_test_stress3.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(cfg3_path, cfg3_yaml));
+    ColorConfig cc3(cfg3_path);
+    OIIO_CHECK_ASSERT(!cc3.has_error());
+
     std::vector<std::string> names1 = cc1.getColorSpaceNames();
     std::vector<std::string> names2 = cc2.getColorSpaceNames();
 
@@ -3605,6 +3652,21 @@ colorspaces:
             // cross-config: two distinct configs pushing the same shared index
             (void)cc1.get_color_interop_id("ACEScg");
             (void)cc2.get_color_interop_id("doubler");
+
+            // Cross-config createColorProcessor bridge on the SHARED cc3: cold
+            // first touch of ensure_interop() + the process-global interopify
+            // memo + bootstrap_display_interchange, hit concurrently by every
+            // worker. Both scene CIIDs (via aces_interchange) and a display CIID
+            // (via the synthesized display interchange) exercise reconcile_cross_
+            // config / reconcile_cross_config_display. Handles are discarded; the
+            // point is the shared construction/caching, not the transform.
+            if (do_xconfig) {
+                (void)cc3.createColorProcessor("ACEScg", "lin_ap1_scene");
+                (void)cc3.createColorProcessor("lin_ap0_scene", "ACEScg");
+                (void)cc3.createColorProcessor("srgb_rec709_display", "ACEScg");
+                (void)cc3.createColorProcessor("srgb_rec709_display",
+                                               "my_p3_display");
+            }
         }
     };
 
@@ -3621,6 +3683,7 @@ colorspaces:
     // Reaching here without a TSan report, deadlock, or crash is the pass.
     OIIO_CHECK_ASSERT(true);
     Filesystem::remove(cfg2_path);
+    Filesystem::remove(cfg3_path);
 }
 
 
