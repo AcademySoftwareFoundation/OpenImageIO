@@ -926,14 +926,16 @@ resolve_pending_cicp(ImageSpec& spec, const ColorReadPolicy& policy,
 }
 
 ColorReadPolicy
-ColorReadPolicy::snapshot(const ImageSpec* config_hints)
+ColorReadPolicy::snapshot(const ImageSpec* config_hints,
+                         const ColorConfig* config)
 {
     // One locked read of the whole policy state, via the shared snapshot
     // primitive (the same mechanism the write-side policy uses). Per-open
-    // config hints (if any) win over the global attribute table; both win over
-    // the built-in defaults, which are calibrated to reproduce main.
+    // config hints (if any) win over the global attribute table, which wins
+    // over the config author's declared FileRule policy (spec 09), which wins
+    // over the built-in defaults, calibrated to reproduce main.
     ColorReadPolicy p;
-    ColorPolicySnapshot snap(config_hints);
+    ColorPolicySnapshot snap(config_hints, config);
     auto get_string = [&](const char* name) { return snap.get_string(name); };
     auto get_int    = [&](const char* name, int dflt) {
         return snap.get_int(name, dflt);

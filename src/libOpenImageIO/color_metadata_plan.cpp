@@ -42,10 +42,44 @@ color_policy_mutex()
     return m;
 }
 
-ColorPolicySnapshot::ColorPolicySnapshot(const ImageSpec* hints)
+ColorPolicySnapshot::ColorPolicySnapshot(const ImageSpec* hints,
+                                         const ColorConfig* config)
     : m_hints(hints)
     , m_lock(color_policy_mutex())
 {
+    // Config-declared policy (spec 09): the config author's own opinions,
+    // read here under the same lock so the whole snapshot is one consistent
+    // view. Merged weakest->strongest into m_config_keys, which get_string /
+    // get_int consult as ONE layer BELOW the global attribute table (so an
+    // explicit OIIO::attribute still overrides -- ladder layer 4 > 2/3).
+    if (config) {
+        // Layer 2: the config's `oiio:default` profile -- its baseline
+        // alteration of OIIO's builtin defaults.
+        m_config_keys = config_declared_policy_keys(*config, "oiio:default");
+
+        // Layer 3 (optional, spec 09): active profiles selected via the
+        // `oiio:colorpolicy:profile` key -- itself resolved through the
+        // layers already established (hint > global > the oiio:default key
+        // just read). Comma-separated; later profiles override earlier, and
+        // every profile overrides the oiio:default baseline.
+        std::string sel;
+        if (m_hints)
+            if (auto a = m_hints->find_attribute("oiio:colorpolicy:profile",
+                                                 TypeString))
+                sel = a->get_ustring().string();
+        if (sel.empty())
+            OIIO::getattribute("oiio:colorpolicy:profile", sel);
+        if (sel.empty()) {
+            auto it = m_config_keys.find("oiio:colorpolicy:profile");
+            if (it != m_config_keys.end())
+                sel = it->second;
+        }
+        for (string_view name : Strutil::splitsv(sel, ",")) {
+            const std::string rule = "oiio:" + std::string(Strutil::strip(name));
+            for (auto& kv : config_declared_policy_keys(*config, rule))
+                m_config_keys[kv.first] = kv.second;  // profile wins over default
+        }
+    }
 }
 
 std::string
@@ -59,11 +93,21 @@ ColorPolicySnapshot::get_string(const char* name, ColorPlanDecider* layer) const
         }
     }
     std::string v;
-    OIIO::getattribute(name, v);
+    if (OIIO::getattribute(name, v) && !v.empty()) {
+        if (layer)
+            *layer = ColorPlanDecider::GlobalAttribute;
+        return v;
+    }
+    // Below the global table: the config author's declared policy (spec 09).
+    auto it = m_config_keys.find(name);
+    if (it != m_config_keys.end() && !it->second.empty()) {
+        if (layer)
+            *layer = ColorPlanDecider::ConfigDeclared;
+        return it->second;
+    }
     if (layer)
-        *layer = v.empty() ? ColorPlanDecider::BuiltinDefault
-                           : ColorPlanDecider::GlobalAttribute;
-    return v;
+        *layer = ColorPlanDecider::BuiltinDefault;
+    return {};
 }
 
 int
@@ -74,8 +118,12 @@ ColorPolicySnapshot::get_int(const char* name, int dflt) const
             return a->get_int();
     }
     int v = dflt;
-    OIIO::getattribute(name, v);
-    return v;
+    if (OIIO::getattribute(name, v))
+        return v;
+    auto it = m_config_keys.find(name);
+    if (it != m_config_keys.end())
+        return Strutil::from_string<int>(it->second);
+    return dflt;
 }
 
 
@@ -319,6 +367,7 @@ const char*
 decider_name(ColorPlanDecider d)
 {
     switch (d) {
+    case ColorPlanDecider::ConfigDeclared: return "config declared";
     case ColorPlanDecider::GlobalAttribute: return "global attribute";
     case ColorPlanDecider::PerSpecAttribute: return "per-spec attribute";
     case ColorPlanDecider::ExplicitMetadata: return "explicit metadata";

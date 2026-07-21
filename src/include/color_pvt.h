@@ -985,8 +985,12 @@ struct ColorReadPolicy {
 
     /// Read every `oiio:colorpolicy:read:*` value ONCE, under one lock, from
     /// the global attribute table, optionally overridden by per-open config
-    /// hints. No mid-call re-reads.
+    /// hints. No mid-call re-reads. `config`, if non-null, additionally feeds
+    /// the config author's own declared policy (spec 09 FileRule custom keys)
+    /// in as a layer below the global attributes.
     static OIIO_API ColorReadPolicy snapshot(const ImageSpec* config_hints
+                                             = nullptr,
+                                             const ColorConfig* config
                                              = nullptr);
 };
 
@@ -1258,26 +1262,46 @@ render_color_read_plan(const ImageSpec& spec,
 /// author's explicit metadata or to the format's declared incapability.
 enum class ColorPlanDecider {
     BuiltinDefault,    ///< no policy attribute set anywhere -- default behavior
+    ConfigDeclared,    ///< a policy key the OCIO config declared (spec 09)
     GlobalAttribute,   ///< a global `oiio:colorpolicy:write:*` attribute
     PerSpecAttribute,  ///< a per-write config hint on the spec
     ExplicitMetadata,  ///< author-supplied metadata present on the spec
     FormatIncapable,   ///< the format cannot carry the signal
 };
 
+/// Config-declared policy keys (spec 09, RFC POC). Read the
+/// `oiio:colorpolicy:*` custom key/value pairs an OCIO config author attached
+/// to the FileRule named exactly `rule_name` (e.g. "oiio:default"), returned
+/// name->value. The rule carries policy, not file matching (its regex never
+/// matches). Empty when OCIO support is off, the config has no such rule, or
+/// the rule has no custom keys. Never throws. For internal/test use only.
+OIIO_API std::map<std::string, std::string>
+config_declared_policy_keys(const ColorConfig& config, string_view rule_name);
+
 class OIIO_API ColorPolicySnapshot {
 public:
-    explicit ColorPolicySnapshot(const ImageSpec* hints = nullptr);
-    /// String colorpolicy attribute: config hint, else global, else "".
-    /// `layer`, if non-null, receives which tier supplied the value
-    /// (PerSpecAttribute / GlobalAttribute / BuiltinDefault for unset).
+    /// `config`, if non-null, additionally exposes the config author's own
+    /// declared policy (spec 09): FileRule custom keys, read as a layer BELOW
+    /// the global attribute table so an explicit OIIO::attribute still wins.
+    explicit ColorPolicySnapshot(const ImageSpec* hints = nullptr,
+                                 const ColorConfig* config = nullptr);
+    /// String colorpolicy attribute: config hint, else global attribute, else
+    /// config-declared FileRule key, else "". `layer`, if non-null, receives
+    /// which tier supplied the value.
     std::string get_string(const char* name,
                            ColorPlanDecider* layer = nullptr) const;
-    /// Int colorpolicy attribute: config hint, else global, else `dflt`.
+    /// Int colorpolicy attribute: config hint, else global, else
+    /// config-declared FileRule key, else `dflt`.
     int get_int(const char* name, int dflt) const;
 
 private:
     const ImageSpec* m_hints;
     std::lock_guard<std::mutex> m_lock;  // held for the snapshot's lifetime
+    // Config-declared policy keys (spec 09), merged weakest->strongest:
+    // the `oiio:default` profile (layer 2) then any active profiles selected
+    // via `oiio:colorpolicy:profile` (layer 3, later ones override). Populated
+    // in the ctor while the lock is held; empty when no config was given.
+    std::map<std::string, std::string> m_config_keys;
 };
 
 

@@ -11,6 +11,7 @@
 #include <optional>
 #include <set>
 #include <sstream>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -4001,6 +4002,42 @@ color_space_analyzed(const ColorConfig& config, string_view name)
 {
     auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
     return impl ? impl->analysisComputed(name) : false;
+}
+
+
+// Config-declared metadata policy (spec 09, RFC POC). An OCIO config author
+// can attach `oiio:colorpolicy:*` custom keys to a FileRule that exists purely
+// to carry policy (rule name `oiio:<profile>`, regex `$^` so it never matches
+// a file). OCIO round-trips those custom keys byte-stably and other apps
+// ignore them, so this is a zero-new-API channel for the config to DECLARE
+// policy. This reads back the keys OIIO's policy snapshot then honors.
+std::map<std::string, std::string>
+config_declared_policy_keys(const ColorConfig& config, string_view rule_name)
+{
+    std::map<std::string, std::string> keys;
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    if (!impl || !impl->config_)
+        return keys;
+    OCIO::ConstFileRulesRcPtr rules;
+    try {
+        rules = impl->config_->getFileRules();
+    } catch (...) {
+        return keys;  // a malformed config never breaks policy resolution
+    }
+    if (!rules)
+        return keys;
+    for (size_t i = 0, e = rules->getNumEntries(); i < e; ++i) {
+        const char* rname = rules->getName(i);
+        if (!rname || rule_name != rname)
+            continue;
+        for (size_t k = 0, nk = rules->getNumCustomKeys(i); k < nk; ++k) {
+            const char* kn = rules->getCustomKeyName(i, k);
+            const char* kv = rules->getCustomKeyValue(i, k);
+            if (kn && kv)
+                keys[kn] = kv;
+        }
+    }
+    return keys;
 }
 
 

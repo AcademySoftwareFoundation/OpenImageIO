@@ -513,6 +513,106 @@ test_deferred_cicp(const ColorConfig& config)
 }
 
 
+// ---------------------------------------------------------------------------
+// Spec 09 (RFC POC) -- config-declared metadata policy via OCIO FileRule
+// custom keys. A config author attaches `oiio:colorpolicy:*` custom keys to
+// the reserved `oiio:default` FileRule (regex `$^`, so it never matches a file
+// -- it exists only to carry policy). OCIO round-trips those keys byte-stably
+// and other apps ignore them; here we prove OIIO READS them and applies them
+// as policy, one layer below an explicit OIIO::attribute.
+// ---------------------------------------------------------------------------
+
+// Write a config carrying exactly one declared policy key on `oiio:default`.
+static std::string
+write_policy_config(const std::string& full_key, const std::string& value)
+{
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_cmr_policy.ocio";
+    std::ofstream f(path);
+    f << R"(ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: raw_data
+  scene_linear: lin_ap1_scene
+file_rules:
+  - !<Rule> {name: oiio:default, colorspace: raw_data, regex: "$^", custom: {")"
+      << full_key << R"(": ")" << value << R"("}}
+  - !<Rule> {name: Default, colorspace: raw_data}
+displays:
+  disp:
+    - !<View> {name: view, colorspace: srgb_rec709_display}
+active_displays: [disp]
+active_views: [view]
+colorspaces:
+  - !<ColorSpace>
+    name: raw_data
+    isdata: true
+    aliases: [data]
+  - !<ColorSpace>
+    name: lin_ap1_scene
+  - !<ColorSpace>
+    name: srgb_rec709_scene
+  - !<ColorSpace>
+    name: srgb_rec709_display
+)";
+    f.close();
+    return path;
+}
+
+
+// READ proof: a config declaring `oiio:colorpolicy:read:cicp_state: scene`
+// must flip a CICP (1,13,0,1) tuple from the display twin to the scene twin,
+// with NO OIIO attribute set -- the policy came from the CONFIG. Contrast: the
+// baseline config (no such key) still resolves to the display twin.
+static void
+test_config_declared_read_policy(const ColorConfig& plaincfg)
+{
+    // Guard: no global attribute anywhere -- prove the config is the source.
+    OIIO::attribute("oiio:colorpolicy:read:cicp_state", "");
+
+    const std::string declpath
+        = write_policy_config("oiio:colorpolicy:read:cicp_state", "scene");
+    ColorConfig declcfg(declpath);
+    OIIO_CHECK_ASSERT(!declcfg.has_error());
+
+    // The FileRules custom-key reader returns the declared key verbatim, and
+    // the baseline config declares nothing.
+    auto keys = config_declared_policy_keys(declcfg, "oiio:default");
+    OIIO_CHECK_EQUAL(keys["oiio:colorpolicy:read:cicp_state"], "scene");
+    OIIO_CHECK_EQUAL(
+        config_declared_policy_keys(plaincfg, "oiio:default").size(), size_t(0));
+
+    const ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
+
+    // Baseline: no declared key -> Auto -> the display twin (builtin default).
+    {
+        const ColorReadPolicy p = ColorReadPolicy::snapshot(nullptr, &plaincfg);
+        OIIO_CHECK_ASSERT(p.cicp_state == ColorStatePreference::Auto);
+        const auto e = resolve_color_metadata(&plaincfg, "", f, {}, p);
+        OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
+    }
+    // Config-declared: the config's key alone flips resolution to the scene
+    // twin -- no OIIO attribute set.
+    {
+        const ColorReadPolicy p = ColorReadPolicy::snapshot(nullptr, &declcfg);
+        OIIO_CHECK_ASSERT(p.cicp_state == ColorStatePreference::Scene);
+        const auto e = resolve_color_metadata(&declcfg, "", f, {}, p);
+        OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_scene");
+    }
+    // Precedence: an explicit global attribute (layer 4) still overrides the
+    // config's declared key (layer 2).
+    {
+        OIIO::attribute("oiio:colorpolicy:read:cicp_state", "display");
+        const ColorReadPolicy p = ColorReadPolicy::snapshot(nullptr, &declcfg);
+        OIIO_CHECK_ASSERT(p.cicp_state == ColorStatePreference::Display);
+        OIIO::attribute("oiio:colorpolicy:read:cicp_state", "");
+    }
+
+    Filesystem::remove(declpath);
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -538,6 +638,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_filename_invariance(config);
     test_render_read_plan(config);
     test_deferred_cicp(config);
+    test_config_declared_read_policy(config);
 
     Filesystem::remove(cfgpath);
     return unit_test_failures != 0;
