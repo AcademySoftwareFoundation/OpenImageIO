@@ -701,11 +701,36 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
 
     const std::string foreign_name = src_foreign ? s : d;
 
-    if (strict) {
-        // Strict mode never touches the interopify/repair machinery -- the
-        // membership check above (against the already-built, memoized
-        // identities config) is all that is needed to compose the hard
-        // error, so skip interopifiedConfig()'s repair/bootstrap entirely.
+    // Is the foreign endpoint a DISPLAY-referred registry identity (e.g.
+    // srgb_rec709_display)? Such a CIID can never have a local equivalent in a
+    // config that defines no display space, yet the registry lowers it
+    // colorimetrically to the scene reference through its own default view
+    // transform (scene_to_display_bridge). So it is not a "typo the user should
+    // fix by adding the space" the way a scene CIID is -- bridging it is the
+    // correct behavior, and it is exempt from the strict hard-error opt-out
+    // below. Scene CIIDs keep that opt-out unchanged.
+    auto foreign_is_display = [&ids](const std::string& reg_name) {
+        if (reg_name.empty())
+            return false;
+        try {
+            auto cs = ids->getColorSpace(reg_name.c_str());
+            return cs
+                   && cs->getReferenceSpaceType() == OCIO::REFERENCE_SPACE_DISPLAY;
+        } catch (...) {
+            return false;
+        }
+    };
+    const bool display_foreign
+        = (src_foreign && foreign_is_display(s_reg))
+          || (dst_foreign && foreign_is_display(d_reg));
+
+    if (strict && !display_foreign) {
+        // Strict mode never touches the interopify/repair machinery for a
+        // scene CIID -- the membership check above (against the already-built,
+        // memoized identities config) is all that is needed to compose the
+        // hard error, so skip interopifiedConfig()'s repair/bootstrap entirely.
+        // (A display-referred foreign CIID takes the bridge below instead: spec
+        // 10 B2 fallback routes it through the scene interchange.)
         errmsg = Strutil::fmt::format(
             "Could not reconcile color conversion \"{}\" -> \"{}\": OCIO "
             "strict parsing is enabled. \"{}\" is a registry-known interop "

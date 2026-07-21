@@ -1330,6 +1330,84 @@ colorspaces:
 
 
 
+// A DISPLAY-referred registry CIID (e.g. srgb_rec709_display) as a --colorconvert
+// endpoint against a config that defines NO display space. It can never have a
+// local equivalent, yet the registry lowers it colorimetrically to the scene
+// reference through its own default view transform; so the cross-config bridge
+// routes it through the scene interchange (spec 10 B2 fallback). Unlike a scene
+// CIID, it is NOT subject to the strict-parsing hard-error opt-out -- it bridges
+// under both strict and non-strict parsing. The conversion is colorimetric: white
+// stays white, mid-gray follows the inverse sRGB EOTF, no tonescale/blow-up.
+static void
+test_cross_config_display_ciid_convert()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02030000)
+        return;
+    if (!OIIO::pvt::interop_identities_config_resolves("srgb_rec709_display"))
+        return;
+
+    // An interoperable, scene-only config (aces_interchange -> ACES2065-1,
+    // ACEScg via matrix) with NO display space. Two variants: default OCIO
+    // strict parsing, and explicit non-strict.
+    auto yaml = [](bool strict) {
+        return Strutil::fmt::format(R"(ocio_profile_version: 2.1
+strictparsing: {}
+search_path: ""
+roles:
+  default: ACEScg
+  scene_linear: ACEScg
+  aces_interchange: ACES2065-1
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: ACEScg
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {{matrix: [0.6954522414, 0.1406786965, 0.1638690622, 0, 0.0447945634, 0.8596711185, 0.0955343182, 0, -0.0055258826, 0.0040252103, 1.0015006723, 0, 0, 0, 0, 1]}}
+)",
+                                   strict ? "true" : "false");
+    };
+
+    for (bool strict : { true, false }) {
+        std::string path = Filesystem::temp_directory_path()
+                           + (strict ? "/oiio_xconv_disp_strict.ocio"
+                                     : "/oiio_xconv_disp_nonstrict.ocio");
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(path, yaml(strict)));
+        ColorConfig cc(path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        auto handle = cc.createColorProcessor("srgb_rec709_display", "ACEScg");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);  // bridges under BOTH modes
+        if (handle) {
+            OIIO_CHECK_FALSE(handle->isNoOp());  // a real colorimetric transform
+
+            // Colorimetric: display white -> scene white (no blow-up), matrix
+            // preserves neutral (equal channels stay equal).
+            float white[3] = { 1.0f, 1.0f, 1.0f };
+            handle->apply(white);
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(white[c], 1.0f, 2e-3f);
+
+            // Mid-gray 0.5 follows the inverse sRGB EOTF (~0.214), NOT a
+            // tonescale and NOT a pass-through (which would leave 0.5).
+            float mid[3] = { 0.5f, 0.5f, 0.5f };
+            handle->apply(mid);
+            for (int c = 0; c < 3; ++c) {
+                OIIO_CHECK_EQUAL_THRESH(mid[c], 0.214f, 3e-3f);
+                OIIO_CHECK_ASSERT(mid[c] < 0.49f);  // definitely not a no-op
+            }
+        }
+        // No error recorded on a clean bridge success (either parsing mode).
+        OIIO_CHECK_FALSE(cc.has_error());
+        Filesystem::remove(path);
+    }
+}
+
+
+
 // Exercise the cross-config DISPLAY route in ColorConfig::createDisplayTransform:
 // when the INPUT color space is absent from the current config
 // but is a registry-known interop identity, and the config defines the requested
@@ -4079,6 +4157,7 @@ main(int argc, char* argv[])
     test_config_interoperability();
     test_cross_config_processor();
     test_cross_config_conversion();
+    test_cross_config_display_ciid_convert();
     test_cross_config_display();
     test_color_space_fingerprint_cache();
     test_interop_resolve();
