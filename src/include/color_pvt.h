@@ -1433,6 +1433,12 @@ struct ColorWritePolicy {
     // round-trips via XMP. Default 0 keeps slotless formats untagged (the
     // per-format round-trip contract); 1 opts in per config/profile/call.
     bool force_interop_id = false;
+    // Feature 2 (spec 09): verbose/redundant emission. Default 0 emits the
+    // minimal consistent signal set for a space; 1 emits the FULL
+    // redundant-but-correct set (colorInteropID + CICP + chromaticities +
+    // gamma where each applies and is derivable), so every consumer finds a
+    // signal it understands. Blender opts this on; OIIO's builtin default is 0.
+    bool verbose = false;
 
     /// Read every `oiio:colorpolicy:write:*` value ONCE, under one lock, from
     /// the global attribute table, optionally overridden by per-write config

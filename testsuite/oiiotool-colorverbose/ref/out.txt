@@ -1,0 +1,25 @@
+=== PLAN PNG minimal: just cICP ===
+  cicp            derive    builtin default     1/1/1/1
+  chromaticities  omit      format incapable    -
+  gamma           omit      format incapable    -
+  interop_id      omit      format incapable    -
+=== PLAN PNG verbose: cICP + cHRM + gAMA ===
+  cicp            derive    builtin default     1/1/1/1
+  chromaticities  derive    builtin default     0.64,0.33,0.3,0.6,0.15,0.06,0.3127,0.329
+  gamma           derive    builtin default     2.4
+  interop_id      omit      format incapable    -
+=== PLAN EXR minimal: just colorInteropID ===
+  cicp            omit      format incapable    -
+  chromaticities  suppress  format incapable    -
+  gamma           omit      format incapable    -
+  interop_id      derive    builtin default     g24_rec709_display
+=== PLAN EXR verbose: colorInteropID + chromaticities ===
+  cicp            omit      format incapable    -
+  chromaticities  derive    builtin default     0.64,0.33,0.3,0.6,0.15,0.06,0.3127,0.329
+  gamma           derive    builtin default     2.4
+  interop_id      derive    builtin default     g24_rec709_display
+=== WRITE EXR verbose: colorInteropID + chromaticities read back ===
+    chromaticities: 0.64, 0.33, 0.3, 0.6, 0.15, 0.06, 0.3127, 0.329
+    colorInteropID: "g24_rec709_display"
+=== WRITE PNG verbose: gAMA reads back as oiio:Gamma ===
+    oiio:Gamma: 2.4

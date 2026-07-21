@@ -188,6 +188,26 @@ plan_string_signal(ColorSignalPolicy pol, bool capable,
     return f;  // else stays Omit
 }
 
+// Feature 2 (spec 09): derive a display gamma from an interop id whose transfer
+// is a *pure* power law, probed as a `g<digits>_` prefix token on the lowered
+// id (g18/g22/g24/g26 -> 1.8/2.2/2.4/2.6). Returns 0 when the id names no pure
+// power-law transfer (e.g. sRGB piecewise, log, PQ) -- verbose never guesses a
+// gamma for a curve that is not a single exponent, so the emitted gAMA stays
+// consistent with the space. Mirrors the pure-gamma cases the PNG writer
+// already special-cases inline.
+float
+gamma_from_id(string_view interop_id)
+{
+    const std::string lo = Strutil::lower(interop_id);
+    static const std::pair<const char*, float> table[] = {
+        { "g18_", 1.8f }, { "g22_", 2.2f }, { "g24_", 2.4f }, { "g26_", 2.6f },
+    };
+    for (const auto& [tok, g] : table)
+        if (Strutil::starts_with(lo, tok))
+            return g;
+    return 0.0f;
+}
+
 }  // namespace
 
 
@@ -226,6 +246,7 @@ ColorWritePolicy::snapshot(const ImageSpec* config_hints,
     p.write_yuv = snap.get_int("oiio:colorpolicy:write:write_yuv", 0) != 0;
     p.force_interop_id
         = snap.get_int("oiio:colorpolicy:write:force_interop_id", 0) != 0;
+    p.verbose = snap.get_int("oiio:colorpolicy:write:verbose", 0) != 0;
     return p;
 }
 
@@ -286,18 +307,32 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
         plan.cicp.action = ColorPlanAction::Suppress;
     }
 
-    // Chromaticities: author's chromaticities float[8] verbatim. There is no
-    // reliable in-tree name -> chromaticities derivation, so an unspecified one
-    // omits rather than guessing. A future chromaticity engine can supply
-    // derived cHRM for formats that need it without an authored attribute.
-    if (caps.chromaticities && policy.chromaticities != ColorSignalPolicy::Never) {
+    // Chromaticities: author's chromaticities float[8] verbatim. Minimally
+    // there is no name -> chromaticities derivation, so an unspecified one omits
+    // rather than guessing. Feature 2 (spec 09): under verbose, DERIVE cHRM from
+    // the space's reserved gamut (a consistent, table-driven value) so the full
+    // redundant set is emitted; verbose also makes the signal emittable for the
+    // plan-consuming formats (PNG cHRM, EXR chromaticities), whose static caps
+    // understate what they can carry. ponytail: verbose OR-ed into the gate
+    // because both plan consumers can carry cHRM; the writer still gates the
+    // actual emission on emit().
+    const bool chrom_capable = caps.chromaticities || policy.verbose;
+    if (chrom_capable && policy.chromaticities != ColorSignalPolicy::Never) {
         float chrm[8];
         if (spec.getattribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8),
                               chrm)) {
             plan.chromaticities.action = ColorPlanAction::Write;
             plan.chromaticities.floats.assign(chrm, chrm + 8);
+        } else if (policy.verbose && !derived_id.empty()) {
+            if (auto c = reserved_chromaticities_for_id(derived_id)) {
+                plan.chromaticities.action = ColorPlanAction::Derive;
+                for (const auto& xy : *c) {  // R,G,B,W (x,y) -> flat float[8]
+                    plan.chromaticities.floats.push_back(float(xy[0]));
+                    plan.chromaticities.floats.push_back(float(xy[1]));
+                }
+            }
         }
-    } else if (caps.chromaticities) {
+    } else if (chrom_capable) {
         plan.chromaticities.action = ColorPlanAction::Suppress;
     }
 
@@ -306,17 +341,28 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     // contradicts -- suppress it regardless of whether the author supplied one.
     // The one exception, an ST 2065-4 / ACES container that REQUIRES its AP0
     // chromaticities (B4), is enforced by the EXR writer that owns that
-    // container machinery, not here.
-    if (plan.interop_id.emit())
+    // container machinery, not here. Feature 2: verbose deliberately KEEPS the
+    // redundant chromaticities alongside the id (the whole point of verbose),
+    // so the B5 minimization is skipped when verbose is on.
+    if (plan.interop_id.emit() && !policy.verbose)
         plan.chromaticities.action = ColorPlanAction::Suppress;
 
-    // Gamma: author's gamma verbatim; no name -> gamma derivation (omit).
-    if (caps.gamma && policy.gamma != ColorSignalPolicy::Never) {
+    // Gamma: author's gamma verbatim. Feature 2 (spec 09): under verbose,
+    // DERIVE gamma from a pure-power-law transfer token (gamma_from_id); a
+    // non-power-law space (sRGB piecewise, log, PQ) yields 0 and stays omitted
+    // so the emitted gAMA is never inconsistent with the curve.
+    const bool gamma_capable = caps.gamma || policy.verbose;
+    if (gamma_capable && policy.gamma != ColorSignalPolicy::Never) {
         if (auto a = spec.find_attribute("oiio:Gamma", TypeFloat)) {
             plan.gamma.action = ColorPlanAction::Write;
             plan.gamma.gamma  = a->get_float();
+        } else if (policy.verbose) {
+            if (float g = gamma_from_id(derived_id); g > 0.0f) {
+                plan.gamma.action = ColorPlanAction::Derive;
+                plan.gamma.gamma  = g;
+            }
         }
-    } else if (caps.gamma) {
+    } else if (gamma_capable) {
         plan.gamma.action = ColorPlanAction::Suppress;
     }
 
@@ -349,10 +395,10 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
         return policy_layer;
     };
     plan.cicp.decider = decider(caps.cicp, plan.cicp.action, policy.cicp_layer);
-    plan.chromaticities.decider = decider(caps.chromaticities,
+    plan.chromaticities.decider = decider(chrom_capable,
                                           plan.chromaticities.action,
                                           policy.chromaticities_layer);
-    plan.gamma.decider = decider(caps.gamma, plan.gamma.action,
+    plan.gamma.decider = decider(gamma_capable, plan.gamma.action,
                                  policy.gamma_layer);
     plan.icc.decider = decider(caps.icc, plan.icc.action, policy.icc_layer);
     plan.interop_id.decider = decider(interop_capable, plan.interop_id.action,

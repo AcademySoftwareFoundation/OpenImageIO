@@ -1079,6 +1079,16 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
             if (plan.chromaticities.action == pvt::ColorPlanAction::Suppress
                 && spec.get_int_attribute("acesImageContainerFlag", 0) != 1)
                 spec.erase_attribute("chromaticities");
+
+            // Feature 2 (spec 09): verbose keeps the redundant chromaticities
+            // alongside the id. When the plan derived them (no authored value),
+            // stamp them so EXR's native chromaticities attribute carries them.
+            if (plan.chromaticities.action == pvt::ColorPlanAction::Derive
+                && plan.chromaticities.floats.size() == 8
+                && !spec.find_attribute("chromaticities"))
+                spec.attribute("chromaticities",
+                               OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                               plan.chromaticities.floats.data());
         }
     }
 

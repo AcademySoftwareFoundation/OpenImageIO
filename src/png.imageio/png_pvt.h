@@ -773,25 +773,28 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
                      (png_uint_32)(yres * scale), unittype);
     }
 
+    // Central write plan (spec 09): consume it instead of deriving inline.
+    // Drives the CICP chunk (below) and, under the verbose policy, the
+    // redundant cHRM/gAMA chunks (Feature 2).
+    const pvt::ColorMetadataPlan color_plan = pvt::plan_color_metadata(
+        nullptr, spec, pvt::color_write_caps_for_format("png"),
+        pvt::ColorWritePolicy::snapshot(&spec, pvt::ambient_color_config(),
+                                        filename));
+
 #ifdef PNG_cICP_SUPPORTED
-    // CICP: consume the central write plan instead of deriving inline. The
-    // plan emits an author-supplied CICP tuple verbatim, or one derived from
-    // the color space. PNG only auto-derives a tuple when no other color-space
-    // chunk was already written; an explicitly authored tuple is always
-    // emitted.
+    // CICP: the plan emits an author-supplied CICP tuple verbatim, or one
+    // derived from the color space. PNG only auto-derives a tuple when no other
+    // color-space chunk was already written; an explicitly authored tuple is
+    // always emitted.
     {
-        pvt::ColorWriteCaps caps = pvt::color_write_caps_for_format("png");
-        pvt::ColorMetadataPlan plan = pvt::plan_color_metadata(
-            nullptr, spec, caps,
-            pvt::ColorWritePolicy::snapshot(&spec, pvt::ambient_color_config(),
-                                            filename));
-        const bool emit = plan.cicp.action == pvt::ColorPlanAction::Write
-                          || (plan.cicp.action == pvt::ColorPlanAction::Derive
+        const auto& cicp = color_plan.cicp;
+        const bool emit  = cicp.action == pvt::ColorPlanAction::Write
+                          || (cicp.action == pvt::ColorPlanAction::Derive
                               && !wrote_colorspace);
-        if (emit && plan.cicp.ints.size() == 4) {
+        if (emit && cicp.ints.size() == 4) {
             png_byte vals[4];
             for (int i = 0; i < 4; ++i)
-                vals[i] = static_cast<png_byte>(plan.cicp.ints[i]);
+                vals[i] = static_cast<png_byte>(cicp.ints[i]);
             if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
                 return "Could not set PNG cICP chunk";
             // libpng will only write the chunk if the third byte is 0
@@ -799,6 +802,28 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         }
     }
 #endif
+
+    // Feature 2 (spec 09): verbose/redundant emission. When the plan derives a
+    // chromaticities set and/or a pure-gamma value for a space that did not
+    // already write a color-space chunk, emit the redundant cHRM/gAMA chunks so
+    // every consumer finds a signal it understands. `floats` is R,G,B,W (x,y).
+    if (!wrote_colorspace) {
+        const auto& chrm = color_plan.chromaticities;
+        if (chrm.emit() && chrm.floats.size() == 8) {
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG cHRM chunk";
+            png_set_cHRM(sp, ip, chrm.floats[6], chrm.floats[7],  // white x,y
+                         chrm.floats[0], chrm.floats[1],          // red x,y
+                         chrm.floats[2], chrm.floats[3],          // green x,y
+                         chrm.floats[4], chrm.floats[5]);         // blue x,y
+        }
+        const auto& g = color_plan.gamma;
+        if (g.emit() && g.gamma > 0.0f) {
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG gAMA chunk";
+            png_set_gAMA(sp, ip, 1.0f / g.gamma);  // PNG stores file gamma
+        }
+    }
 
 #ifdef PNG_eXIf_SUPPORTED
     std::vector<char> exifBlob;
