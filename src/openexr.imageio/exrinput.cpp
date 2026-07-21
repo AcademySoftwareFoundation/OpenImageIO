@@ -720,9 +720,11 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     // cascade (replacing this reader's former inline ACES-flag/colorInteropID
     // special-casing). Per-open config hints override the global policy tier.
     // With policy at its defaults the result is identical.
-    pvt::reconcile_color_metadata(spec,
-                                  pvt::ColorReadPolicy::snapshot(&in->m_config),
-                                  "openexr");
+    pvt::reconcile_color_metadata(
+        spec,
+        pvt::ColorReadPolicy::snapshot(&in->m_config,
+                                       pvt::ambient_color_config()),
+        "openexr");
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);

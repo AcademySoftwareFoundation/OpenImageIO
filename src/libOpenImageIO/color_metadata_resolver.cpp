@@ -925,6 +925,21 @@ resolve_pending_cicp(ImageSpec& spec, const ColorReadPolicy& policy,
     return committed;
 }
 
+const ColorConfig*
+ambient_color_config()
+{
+    // Spec 09: the ambient config drives I/O color-metadata policy. When OCIO
+    // support is unavailable there is no config to consult -- return null so
+    // readers/writers behave exactly as the historical null-config snapshot.
+    // ponytail: default_colorconfig() is a cached singleton; the only per-read
+    // cost is one FileRules scan in config_declared_policy_keys (a handful of
+    // rules). Cache the extracted keys on the config if that ever shows up hot.
+    if (!ColorConfig::supportsOpenColorIO())
+        return nullptr;
+    return &ColorConfig::default_colorconfig();
+}
+
+
 ColorReadPolicy
 ColorReadPolicy::snapshot(const ImageSpec* config_hints,
                          const ColorConfig* config)

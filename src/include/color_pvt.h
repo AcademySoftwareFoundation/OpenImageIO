@@ -1056,6 +1056,17 @@ resolve_color_metadata(const ColorConfig* config,
                        const ColorCallContext& ctx,
                        const ColorReadPolicy& policy);
 
+/// The ambient/current OCIO config that declares I/O metadata policy (spec
+/// 09). Readers/writers pass this into ColorRead/WritePolicy::snapshot so a
+/// config that DECLARES policy (via `oiio:` FileRule custom keys) drives real
+/// reads/writes -- not just direct snapshot calls. Returns the process default
+/// ColorConfig (backed by $OCIO), or nullptr when OCIO support is unavailable
+/// (no-color-management opt-out: with no config to consult, snapshot behaves
+/// exactly as a null-config snapshot did before). A config declaring no policy
+/// keys changes nothing (no-surprise: empty keys => today's behavior).
+OIIO_API const ColorConfig*
+ambient_color_config();
+
 /// The central read-side entry point. Extracts the facts a reader deposited
 /// on `spec` -- narrowed to the signals `format_name`'s read caps declare
 /// consulted (see color_read_caps_for_format) -- runs the cascade, and
