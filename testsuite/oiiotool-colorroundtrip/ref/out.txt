@@ -1,0 +1,9 @@
+=== EXR: colorInteropID preserved -- CICP stripped ===
+    colorInteropID: "srgb_rec709_display"
+    oiio:ColorSpace: "srgb_rec709_display"
+=== PNG: round-trips as cICP chunk -- not colorInteropID ===
+    CICP: 1, 13, 0, 1
+    oiio:ColorSpace: "srgb_rec709_display"
+=== TIF: color identity dropped -- reads back untagged ===
+=== JPG: reader fixed sRGB assumption -- srgb_rec709_scene ===
+    oiio:ColorSpace: "srgb_rec709_scene"

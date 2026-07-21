@@ -736,6 +736,97 @@ colorspaces:
 }
 
 
+// Robustness (spec 09 / spec 08 rule 6): config-declared policy is best-effort
+// and must NEVER break resolution. A malformed config, an unknown key, or a
+// garbage value for a known key are all ignored -- resolution falls through to
+// the built-in default exactly as if nothing were declared, and nothing throws.
+static void
+test_config_declared_robustness()
+{
+    OIIO::attribute("oiio:colorpolicy:read:cicp_state", "");  // clean slate
+    const ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
+
+    // (a) Malformed config: a nonexistent path yields an errored ColorConfig
+    // whose impl has no OCIO config. The key readers must return empty (guarded,
+    // never throwing) and the snapshot must fall through to the default.
+    {
+        ColorConfig bad("/no/such/oiio_cmr_missing.ocio");
+        OIIO_CHECK_ASSERT(bad.has_error());
+        OIIO_CHECK_EQUAL(config_declared_policy_keys(bad, "oiio:default").size(),
+                         size_t(0));
+        OIIO_CHECK_EQUAL(config_matched_rule_policy_keys(bad, "a.png").size(),
+                         size_t(0));
+        const ColorReadPolicy p = ColorReadPolicy::snapshot(nullptr, &bad);
+        OIIO_CHECK_ASSERT(p.cicp_state == ColorStatePreference::Auto);
+    }
+
+    // (b) Unknown key: the config declares an `oiio:`-prefixed key OIIO does not
+    // recognize. It is read verbatim but never consulted by the snapshot, so
+    // resolution is unchanged (warn-once-ignore, spec 08 rule 6).
+    {
+        const std::string path
+            = write_policy_config("oiio:colorpolicy:read:totally_bogus", "1");
+        ColorConfig cfg(path);
+        OIIO_CHECK_ASSERT(!cfg.has_error());
+        auto keys = config_declared_policy_keys(cfg, "oiio:default");
+        OIIO_CHECK_EQUAL(keys["oiio:colorpolicy:read:totally_bogus"], "1");
+        const ColorReadPolicy p = ColorReadPolicy::snapshot(nullptr, &cfg);
+        OIIO_CHECK_ASSERT(p.cicp_state == ColorStatePreference::Auto);
+        const auto e = resolve_color_metadata(&cfg, "", f, {}, p);
+        OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");  // default, unmoved
+        Filesystem::remove(path);
+    }
+
+    // (c) Garbage value for a KNOWN key: `cicp_state` accepts only scene/display;
+    // any other value is ignored (stays Auto), never misparsed into a state.
+    {
+        const std::string path
+            = write_policy_config("oiio:colorpolicy:read:cicp_state", "banana");
+        ColorConfig cfg(path);
+        OIIO_CHECK_ASSERT(!cfg.has_error());
+        const ColorReadPolicy p = ColorReadPolicy::snapshot(nullptr, &cfg);
+        OIIO_CHECK_ASSERT(p.cicp_state == ColorStatePreference::Auto);
+        const auto e = resolve_color_metadata(&cfg, "", f, {}, p);
+        OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");  // default, unmoved
+        Filesystem::remove(path);
+    }
+}
+
+
+// No-color-management opt-out (spec 09): with NO active config there is nothing
+// to consult, so the policy snapshot is exactly the built-in default -- and a
+// config that declares no keys is indistinguishable from it. This is the
+// property `pvt::ambient_color_config()` relies on when it returns nullptr.
+static void
+test_policy_optout(const ColorConfig& plaincfg)
+{
+    OIIO::attribute("oiio:colorpolicy:read:cicp_state", "");
+    OIIO::attribute("oiio:colorpolicy:write:cicp", "");
+
+    // Null config == a real config with zero declared keys == all defaults.
+    const ColorReadPolicy r_null = ColorReadPolicy::snapshot(nullptr, nullptr);
+    const ColorReadPolicy r_plain = ColorReadPolicy::snapshot(nullptr, &plaincfg);
+    OIIO_CHECK_ASSERT(r_null.cicp_state == ColorStatePreference::Auto);
+    OIIO_CHECK_ASSERT(r_plain.cicp_state == ColorStatePreference::Auto);
+    OIIO_CHECK_ASSERT(r_null.state_pref == r_plain.state_pref);
+    OIIO_CHECK_ASSERT(r_null.scope == r_plain.scope);
+    OIIO_CHECK_ASSERT(r_null.defer_cicp == r_plain.defer_cicp);
+
+    const ColorWritePolicy w_null = ColorWritePolicy::snapshot(nullptr, nullptr);
+    const ColorWritePolicy w_plain
+        = ColorWritePolicy::snapshot(nullptr, &plaincfg);
+    OIIO_CHECK_ASSERT(w_null.cicp == ColorSignalPolicy::Auto);
+    OIIO_CHECK_ASSERT(w_plain.cicp == ColorSignalPolicy::Auto);
+
+    // An ambiguous CICP resolves to the display twin under both -- the opt-out
+    // changes nothing about the historical null-config behavior.
+    const ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
+    OIIO_CHECK_EQUAL(
+        resolve_color_metadata(nullptr, "", f, {}, r_null).resolved,
+        "srgb_rec709_display");
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -764,6 +855,8 @@ main(int /*argc*/, char* /*argv*/[])
     test_config_declared_read_policy(config);
     test_config_declared_write_policy(config);
     test_config_declared_layer_precedence();
+    test_config_declared_robustness();
+    test_policy_optout(config);
 
     Filesystem::remove(cfgpath);
     return unit_test_failures != 0;
