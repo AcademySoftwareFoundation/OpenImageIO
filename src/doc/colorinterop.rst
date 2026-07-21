@@ -366,3 +366,153 @@ compile-time version gate for this support.
 There is no `colorInteropID` string-attribute round-trip in the PNG,
 HEIF, or JPEG XL plugins; all three only work in terms of `"CICP"` plus
 `ColorConfig`'s interop ID / CICP conversion.
+
+
+Color policy
+============
+
+The rules that turn file color metadata into an `"oiio:ColorSpace"` on
+read, and decide which color signals a writer emits, are collectively the
+*color policy*. The policy is not hard-wired: it is driven by the ambient
+OCIO configuration and, layered on top, by explicit settings.
+
+The ambient config drives I/O
+-----------------------------
+
+Reads and writes consult the ambient OCIO configuration -- the one named
+by the ``$OCIO`` environment variable (or otherwise the current config).
+A configuration author can therefore make policy decisions *in the config
+itself*, and every OIIO reader and writer honors them without any change
+to the I/O call.
+
+If OpenImageIO is built without OCIO support, or no configuration is
+active, there is nothing to consult and behavior is exactly as it has
+always been -- the built-in defaults, unchanged. This is the
+no-color-management opt-out: with no config, no config-declared policy
+can apply.
+
+Config-declared policy
+----------------------
+
+An OCIO configuration already lets its author attach arbitrary custom
+key/value pairs to each file rule. OCIO round-trips those keys byte-for-
+byte and other applications ignore them, so they are a ready-made,
+author-owned channel for a config to declare its own color policy. OIIO
+reads the keys whose names begin with ``oiio:`` and applies them.
+
+Policy is carried on a *profile* rule: a file rule whose regex is ``$^``
+(so it never matches a real file -- it exists only to hold policy) and
+whose custom keys are the policy settings. The reserved profile
+``oiio:default`` is the config author's hook for adjusting OIIO's own
+defaults:
+
+.. code-block:: yaml
+
+   file_rules:
+     - !<Rule>
+       name: oiio:default
+       colorspace: raw_data
+       regex: "$^"
+       custom:
+         oiio:colorpolicy:read:cicp_state: scene
+         oiio:colorpolicy:write:cicp: never
+     - !<Rule> {name: Default, colorspace: raw_data}
+
+With this config active, a state-ambiguous CICP tuple read from a file
+resolves to its scene-referred interpretation instead of the default
+display-referred one, and writers suppress the CICP signal they would
+otherwise emit -- with no OIIO attribute set anywhere. A config that
+declares no ``oiio:`` keys changes nothing.
+
+Naming
+------
+
+Every profile name is ``oiio:``-prefixed; there is no bare ``default``
+namespace (which also avoids colliding with OCIO's own catch-all
+``Default`` rule). ``oiio:default`` adjusts OIIO's shipped defaults.
+Named profiles follow the pattern ``oiio:<app>:<context>`` -- for
+example ``oiio:blender:textures`` -- so an application declares its own
+policy bundles without claiming the bare ``oiio:`` prefix, which is
+reserved for the standard. An unknown ``oiio:`` key, or an unrecognized
+value for a known key, is ignored (warn-once); a malformed configuration
+never breaks resolution -- policy reading is best-effort and always falls
+through to the built-in default.
+
+Precedence
+----------
+
+Several sources may express an opinion about the same policy key. They
+resolve into one snapshot per call, weakest to strongest:
+
+.. list-table:: Color-policy precedence, weakest to strongest
+   :widths: 6 36 58
+   :header-rows: 1
+
+   * - Layer
+     - Name
+     - Authored by
+   * - 1
+     - Built-in defaults
+     - OpenImageIO, at ship time.
+   * - 2
+     - The active config's ``oiio:default`` profile
+     - Config author.
+   * - 4
+     - Global individual keys (``OIIO::attribute``)
+     - User / application, for the session.
+   * - 5
+     - The config file rule matching *this* file
+     - Config author, per file pattern.
+   * - 6
+     - Per-call arguments on this open / write call
+     - The caller, now.
+
+The non-intuitive rung is that layer 5 beats layer 4: a rule that matches
+``*.png`` overrides a user's "global" per-key attribute for PNG files.
+The rationale is CSS-specificity -- the more specific selector wins
+regardless of who authored it -- and the escape hatch is the per-call
+argument (layer 6), which always wins. (Layer 3, composable profile
+selection, is planned; see below.)
+
+Per-format round-trip
+---------------------
+
+Not every format round-trips color identity 1:1, but each format's
+behavior is predictable. Writing a tagged image and reading it back
+yields:
+
+.. list-table:: Per-format color-identity round-trip
+   :widths: 12 88
+   :header-rows: 1
+
+   * - Format
+     - What survives a write / read round-trip
+   * - OpenEXR
+     - ``colorInteropID`` is preserved (native slot). CICP is never
+       written -- even an explicit ``"CICP"`` tuple is stripped, since
+       EXR has no CICP convention.
+   * - PNG
+     - A display identity is carried as a ``cICP`` chunk and read back as
+       ``"CICP"``, resolving to the display space. It round-trips as
+       CICP, not as ``colorInteropID``.
+   * - TIFF
+     - No color identity is carried: a round-tripped TIFF reads back
+       untagged. Lossy but predictable.
+   * - JPEG
+     - No color identity is carried; the reader's fixed sRGB assumption
+       resolves every JPEG to ``srgb_rec709_scene`` regardless of the
+       source tag.
+
+Planned
+-------
+
+The following extend the same mechanism and are not yet available:
+
+- **Composable profile selection** (layer 3): an environment variable and
+  a global attribute that select active profiles as a ``+``/``-``
+  expression at profile and individual-key granularity.
+- **Verbose write emission** and **forcing** ``colorInteropID`` into
+  formats that have no native slot (``write:verbose``,
+  ``write:force_interop_id``).
+- The ``oiio:broadcast`` delivery profile, which changes write-time
+  gamut/container mapping for broadcast delivery.
