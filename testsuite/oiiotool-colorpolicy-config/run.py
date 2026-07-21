@@ -46,8 +46,21 @@ command += read_cs(plaincfg, "plain")
 command += read_cs(declcfg, "decl")
 
 # (3) Precedence: an explicit global attribute (layer 4) overrides the
-# config-declared key (layer 2) -> back to display, even under the decl config.
+# config-declared default key (layer 2) -> back to display, under the decl
+# config (whose oiio:default declares scene).
 command += read_cs(declcfg, "override",
+                   "--oiioattrib oiio:colorpolicy:read:cicp_state display ")
+
+# (4) Layer 5 (matched file-rule per-file opinion) outranks layer 2: layer5.ocio
+# declares the oiio:default baseline as display, but a rule matching *.png as
+# scene. Reading a .png resolves scene -- the more specific rule wins.
+layer5cfg = "src/layer5.ocio"
+command += read_cs(layer5cfg, "matched")
+
+# (5) The documented CSS-specificity footgun: layer 5 beats layer 4. Even with
+# an explicit global attribute set to display, the matched .png rule (scene)
+# still wins.
+command += read_cs(layer5cfg, "matched-vs-global",
                    "--oiioattrib oiio:colorpolicy:read:cicp_state display ")
 
 outputs = ["out.txt"]

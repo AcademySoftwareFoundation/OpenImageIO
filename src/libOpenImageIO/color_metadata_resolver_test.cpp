@@ -655,6 +655,87 @@ test_config_declared_write_policy(const ColorConfig& plaincfg)
 }
 
 
+// Full spec-09 precedence ladder (layers 2-6). A config declares a baseline
+// `oiio:default` opinion (layer 2) AND a per-file opinion on a rule that
+// matches *.png (layer 5). The matched-rule opinion outranks both the config
+// default (layer 2) and an explicit global attribute (layer 4) -- the
+// documented CSS-specificity rung -- while a per-call hint (layer 6) still
+// wins over everything. A non-matching path (*.exr) never picks up the png
+// rule, so it falls back to the config default.
+static void
+test_config_declared_layer_precedence()
+{
+    OIIO::attribute("oiio:colorpolicy:read:cicp_state", "");  // clean slate
+
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_cmr_layers.ocio";
+    {
+        std::ofstream f(path);
+        f << R"(ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: raw_data
+  scene_linear: lin_ap1_scene
+file_rules:
+  - !<Rule> {name: oiio:default, colorspace: raw_data, regex: "$^", custom: {oiio:colorpolicy:read:cicp_state: display}}
+  - !<Rule> {name: pngscene, colorspace: raw_data, pattern: "*", extension: "png", custom: {oiio:colorpolicy:read:cicp_state: scene}}
+  - !<Rule> {name: Default, colorspace: raw_data}
+displays:
+  disp:
+    - !<View> {name: view, colorspace: srgb_rec709_display}
+active_displays: [disp]
+active_views: [view]
+colorspaces:
+  - !<ColorSpace> {name: raw_data, isdata: true, aliases: [data]}
+  - !<ColorSpace> {name: lin_ap1_scene}
+  - !<ColorSpace> {name: srgb_rec709_scene}
+  - !<ColorSpace> {name: srgb_rec709_display}
+)";
+    }
+    ColorConfig cfg(path);
+    OIIO_CHECK_ASSERT(!cfg.has_error());
+
+    // The matched-rule reader returns the png rule's key for a .png path and
+    // nothing for a .exr path (the png rule does not match it).
+    OIIO_CHECK_EQUAL(
+        config_matched_rule_policy_keys(cfg, "a.png")
+            ["oiio:colorpolicy:read:cicp_state"],
+        "scene");
+    OIIO_CHECK_EQUAL(config_matched_rule_policy_keys(cfg, "a.exr").count(
+                         "oiio:colorpolicy:read:cicp_state"),
+                     size_t(0));
+
+    // Layer 5 > layer 2: the .png rule (scene) beats the config default
+    // (display).
+    OIIO_CHECK_ASSERT(ColorReadPolicy::snapshot(nullptr, &cfg, "a.png").cicp_state
+                      == ColorStatePreference::Scene);
+    // Non-matching path: only the config default applies -> display.
+    OIIO_CHECK_ASSERT(ColorReadPolicy::snapshot(nullptr, &cfg, "a.exr").cicp_state
+                      == ColorStatePreference::Display);
+
+    // Layer 5 > layer 4: an explicit global attribute (display) does NOT
+    // override the matched .png rule (scene) -- the CSS-specificity footgun.
+    OIIO::attribute("oiio:colorpolicy:read:cicp_state", "display");
+    OIIO_CHECK_ASSERT(ColorReadPolicy::snapshot(nullptr, &cfg, "a.png").cicp_state
+                      == ColorStatePreference::Scene);
+    // ...but for a non-matching path, the global attribute (layer 4) rules.
+    OIIO_CHECK_ASSERT(ColorReadPolicy::snapshot(nullptr, &cfg, "a.exr").cicp_state
+                      == ColorStatePreference::Display);
+    OIIO::attribute("oiio:colorpolicy:read:cicp_state", "");
+
+    // Layer 6 > layer 5: a per-call hint (display) overrides even the matched
+    // .png rule (scene).
+    ImageSpec hints;
+    hints.attribute("oiio:colorpolicy:read:cicp_state", "display");
+    OIIO_CHECK_ASSERT(
+        ColorReadPolicy::snapshot(&hints, &cfg, "a.png").cicp_state
+        == ColorStatePreference::Display);
+
+    Filesystem::remove(path);
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -682,6 +763,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_deferred_cicp(config);
     test_config_declared_read_policy(config);
     test_config_declared_write_policy(config);
+    test_config_declared_layer_precedence();
 
     Filesystem::remove(cfgpath);
     return unit_test_failures != 0;

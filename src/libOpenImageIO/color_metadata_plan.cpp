@@ -43,7 +43,8 @@ color_policy_mutex()
 }
 
 ColorPolicySnapshot::ColorPolicySnapshot(const ImageSpec* hints,
-                                         const ColorConfig* config)
+                                         const ColorConfig* config,
+                                         string_view filepath)
     : m_hints(hints)
     , m_lock(color_policy_mutex())
 {
@@ -79,6 +80,14 @@ ColorPolicySnapshot::ColorPolicySnapshot(const ImageSpec* hints,
             for (auto& kv : config_declared_policy_keys(*config, rule))
                 m_config_keys[kv.first] = kv.second;  // profile wins over default
         }
+
+        // Layer 5 (spec 09): the per-file opinions of the config file-rule that
+        // MATCHES this file's path. Kept separate from m_config_keys because it
+        // sits ABOVE the global attribute table (layer 4), not below it -- the
+        // documented CSS-specificity rung (a file-matching rule outranks a
+        // user's "absolute" global key; only the per-call hint, layer 6, wins).
+        if (!filepath.empty())
+            m_matched_keys = config_matched_rule_policy_keys(*config, filepath);
     }
 }
 
@@ -90,6 +99,15 @@ ColorPolicySnapshot::get_string(const char* name, ColorPlanDecider* layer) const
             if (layer)
                 *layer = ColorPlanDecider::PerSpecAttribute;
             return a->get_ustring().string();
+        }
+    }
+    // Layer 5: the matched file-rule's per-file key -- above the global table.
+    {
+        auto it = m_matched_keys.find(name);
+        if (it != m_matched_keys.end() && !it->second.empty()) {
+            if (layer)
+                *layer = ColorPlanDecider::MatchedRule;
+            return it->second;
         }
     }
     std::string v;
@@ -116,6 +134,11 @@ ColorPolicySnapshot::get_int(const char* name, int dflt) const
     if (m_hints) {
         if (auto a = m_hints->find_attribute(name, TypeInt))
             return a->get_int();
+    }
+    {
+        auto it = m_matched_keys.find(name);  // layer 5, above the global table
+        if (it != m_matched_keys.end())
+            return Strutil::from_string<int>(it->second);
     }
     int v = dflt;
     if (OIIO::getattribute(name, v))
@@ -170,10 +193,10 @@ plan_string_signal(ColorSignalPolicy pol, bool capable,
 
 ColorWritePolicy
 ColorWritePolicy::snapshot(const ImageSpec* config_hints,
-                          const ColorConfig* config)
+                          const ColorConfig* config, string_view filepath)
 {
     ColorWritePolicy p;
-    ColorPolicySnapshot snap(config_hints, config);
+    ColorPolicySnapshot snap(config_hints, config, filepath);
 
     p.cicp = parse_signal(
         snap.get_string("oiio:colorpolicy:write:cicp", &p.cicp_layer));
@@ -370,6 +393,7 @@ decider_name(ColorPlanDecider d)
     switch (d) {
     case ColorPlanDecider::ConfigDeclared: return "config declared";
     case ColorPlanDecider::GlobalAttribute: return "global attribute";
+    case ColorPlanDecider::MatchedRule: return "matched rule";
     case ColorPlanDecider::PerSpecAttribute: return "per-spec attribute";
     case ColorPlanDecider::ExplicitMetadata: return "explicit metadata";
     case ColorPlanDecider::FormatIncapable: return "format incapable";

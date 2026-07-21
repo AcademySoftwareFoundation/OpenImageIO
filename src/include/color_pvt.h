@@ -991,7 +991,8 @@ struct ColorReadPolicy {
     static OIIO_API ColorReadPolicy snapshot(const ImageSpec* config_hints
                                              = nullptr,
                                              const ColorConfig* config
-                                             = nullptr);
+                                             = nullptr,
+                                             string_view filepath = {});
 };
 
 /// The 13 cascade rules, in exact tested precedence order (CICP above ICC,
@@ -1273,9 +1274,10 @@ render_color_read_plan(const ImageSpec& spec,
 /// author's explicit metadata or to the format's declared incapability.
 enum class ColorPlanDecider {
     BuiltinDefault,    ///< no policy attribute set anywhere -- default behavior
-    ConfigDeclared,    ///< a policy key the OCIO config declared (spec 09)
-    GlobalAttribute,   ///< a global `oiio:colorpolicy:write:*` attribute
-    PerSpecAttribute,  ///< a per-write config hint on the spec
+    ConfigDeclared,    ///< a config `oiio:default`/profile policy key (layer 2/3)
+    GlobalAttribute,   ///< a global `oiio:colorpolicy:*` attribute (layer 4)
+    MatchedRule,       ///< the config file-rule matching this file (layer 5)
+    PerSpecAttribute,  ///< a per-call config hint on the spec (layer 6)
     ExplicitMetadata,  ///< author-supplied metadata present on the spec
     FormatIncapable,   ///< the format cannot carry the signal
 };
@@ -1289,20 +1291,35 @@ enum class ColorPlanDecider {
 OIIO_API std::map<std::string, std::string>
 config_declared_policy_keys(const ColorConfig& config, string_view rule_name);
 
+/// Config-declared policy carried by the file rule that MATCHES `filepath`
+/// (spec 09 layer 5, "matched-rule per-file opinions"): OCIO evaluates its
+/// own file-rule patterns against the path and this returns the winning rule's
+/// `oiio:colorpolicy:*` custom keys. Profile rules (regex `$^`) never match a
+/// real path, so they are never returned here. Empty when OCIO support is off,
+/// `filepath` is empty, or the matched rule has no custom keys. Never throws.
+OIIO_API std::map<std::string, std::string>
+config_matched_rule_policy_keys(const ColorConfig& config,
+                                string_view filepath);
+
 class OIIO_API ColorPolicySnapshot {
 public:
     /// `config`, if non-null, additionally exposes the config author's own
-    /// declared policy (spec 09): FileRule custom keys, read as a layer BELOW
-    /// the global attribute table so an explicit OIIO::attribute still wins.
+    /// declared policy (spec 09): FileRule custom keys, read as layers BELOW
+    /// the per-call/global attribute tiers so those still win. `filepath`, if
+    /// non-empty, additionally consults the config file-rule that MATCHES it
+    /// (layer 5), which sits ABOVE the global attribute table (layer 4) but
+    /// below the per-call hints (layer 6) -- the documented CSS-specificity
+    /// rung (spec 09): a file-matching rule outranks a user's global key.
     explicit ColorPolicySnapshot(const ImageSpec* hints = nullptr,
-                                 const ColorConfig* config = nullptr);
-    /// String colorpolicy attribute: config hint, else global attribute, else
-    /// config-declared FileRule key, else "". `layer`, if non-null, receives
-    /// which tier supplied the value.
+                                 const ColorConfig* config = nullptr,
+                                 string_view filepath      = {});
+    /// String colorpolicy attribute, strongest tier first: per-call hint
+    /// (layer 6), matched-rule key (layer 5), global attribute (layer 4),
+    /// config default/profile key (layer 2/3), else "". `layer`, if non-null,
+    /// receives which tier supplied the value.
     std::string get_string(const char* name,
                            ColorPlanDecider* layer = nullptr) const;
-    /// Int colorpolicy attribute: config hint, else global, else
-    /// config-declared FileRule key, else `dflt`.
+    /// Int colorpolicy attribute, same tier order as get_string, else `dflt`.
     int get_int(const char* name, int dflt) const;
 
 private:
@@ -1313,6 +1330,9 @@ private:
     // via `oiio:colorpolicy:profile` (layer 3, later ones override). Populated
     // in the ctor while the lock is held; empty when no config was given.
     std::map<std::string, std::string> m_config_keys;
+    // Layer 5: the keys of the config file-rule that matched this file's path.
+    // Consulted ABOVE the global attribute table, below the per-call hints.
+    std::map<std::string, std::string> m_matched_keys;
 };
 
 
@@ -1417,7 +1437,8 @@ struct ColorWritePolicy {
     static OIIO_API ColorWritePolicy snapshot(const ImageSpec* config_hints
                                               = nullptr,
                                               const ColorConfig* config
-                                              = nullptr);
+                                              = nullptr,
+                                              string_view filepath = {});
 };
 
 /// Build the write plan for `spec` under `caps` and `policy`. `config` may be

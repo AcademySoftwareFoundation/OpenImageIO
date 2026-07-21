@@ -4041,6 +4041,44 @@ config_declared_policy_keys(const ColorConfig& config, string_view rule_name)
 }
 
 
+// Config-declared metadata policy carried by the file rule that actually
+// MATCHES `filepath` (spec 09 layer 5, "matched-rule per-file opinions"). OCIO
+// evaluates its own file-rule patterns against the path and reports which rule
+// won; this reads that rule's `oiio:colorpolicy:*` custom keys. Profile rules
+// (regex `$^`) never match a real path, so they are never picked up here --
+// only genuine pattern/extension/Default rules are. Empty when OCIO support is
+// off, `filepath` is empty, or the matched rule carries no custom keys.
+std::map<std::string, std::string>
+config_matched_rule_policy_keys(const ColorConfig& config, string_view filepath)
+{
+    std::map<std::string, std::string> keys;
+    if (filepath.empty())
+        return keys;
+    auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
+    if (!impl || !impl->config_)
+        return keys;
+    try {
+        OCIO::ConstFileRulesRcPtr rules = impl->config_->getFileRules();
+        if (!rules)
+            return keys;
+        // Ask OCIO which rule this path matches (index is an out-param; the
+        // returned color space is unused -- we only want the rule).
+        size_t ruleIdx = 0;
+        impl->config_->getColorSpaceFromFilepath(std::string(filepath).c_str(),
+                                                 ruleIdx);
+        for (size_t k = 0, nk = rules->getNumCustomKeys(ruleIdx); k < nk; ++k) {
+            const char* kn = rules->getCustomKeyName(ruleIdx, k);
+            const char* kv = rules->getCustomKeyValue(ruleIdx, k);
+            if (kn && kv)
+                keys[kn] = kv;
+        }
+    } catch (...) {
+        return keys;  // a malformed config never breaks policy resolution
+    }
+    return keys;
+}
+
+
 // Automatic metadata hygiene around the color-aware IBA operations.
 // (Contract and per-identity-class semantics: see color_pvt.h.)
 

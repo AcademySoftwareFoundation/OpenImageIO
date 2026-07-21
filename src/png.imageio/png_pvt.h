@@ -186,7 +186,8 @@ decode_png_text_exif(string_view raw, ImageSpec& spec)
 inline bool
 read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
           int& interlace_type, Imath::Color3f& bg, ImageSpec& spec,
-          bool keep_unassociated_alpha, const ImageSpec* config_hints)
+          bool keep_unassociated_alpha, const ImageSpec* config_hints,
+          string_view filename = {})
 {
     // Must call this setjmp in every function that does PNG reads
     if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
@@ -375,7 +376,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     pvt::reconcile_color_metadata(
         spec,
         pvt::ColorReadPolicy::snapshot(config_hints,
-                                       pvt::ambient_color_config()),
+                                       pvt::ambient_color_config(), filename),
         "png");
 
     return ok;

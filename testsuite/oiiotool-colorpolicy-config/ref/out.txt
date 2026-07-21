@@ -1,3 +1,5 @@
 plain: srgb_rec709_display
 decl: srgb_rec709_scene
 override: srgb_rec709_display
+matched: srgb_rec709_scene
+matched-vs-global: srgb_rec709_scene

@@ -942,15 +942,16 @@ ambient_color_config()
 
 ColorReadPolicy
 ColorReadPolicy::snapshot(const ImageSpec* config_hints,
-                         const ColorConfig* config)
+                         const ColorConfig* config, string_view filepath)
 {
     // One locked read of the whole policy state, via the shared snapshot
-    // primitive (the same mechanism the write-side policy uses). Per-open
-    // config hints (if any) win over the global attribute table, which wins
-    // over the config author's declared FileRule policy (spec 09), which wins
-    // over the built-in defaults, calibrated to reproduce main.
+    // primitive (the same mechanism the write-side policy uses). Full spec-09
+    // ladder, strongest first: per-call hints (layer 6) > the config file-rule
+    // matching `filepath` (layer 5) > global attribute table (layer 4) > the
+    // config author's declared `oiio:default`/profile policy (layer 2/3) > the
+    // built-in defaults (layer 1), calibrated to reproduce main.
     ColorReadPolicy p;
-    ColorPolicySnapshot snap(config_hints, config);
+    ColorPolicySnapshot snap(config_hints, config, filepath);
     auto get_string = [&](const char* name) { return snap.get_string(name); };
     auto get_int    = [&](const char* name, int dflt) {
         return snap.get_int(name, dflt);
@@ -1033,7 +1034,11 @@ render_color_read_plan(const ImageSpec& spec, const ColorConfig* config)
     ColorCallContext ctx;
     ctx.filename = spec.get_string_attribute("oiio:SourcePath");
     ctx.format   = spec.get_string_attribute("oiio:SourceFormat");
-    const ColorReadPolicy policy          = ColorReadPolicy::snapshot();
+    // Preview the full spec-09 ladder: consult the config's declared policy
+    // (layer 2/3) and the file-rule matching this source path (layer 5), the
+    // same as a real read of this file would.
+    const ColorReadPolicy policy = ColorReadPolicy::snapshot(nullptr, &cfg,
+                                                             ctx.filename);
     const ColorMetadataFacts facts        = color_facts_from_spec(spec);
     const ColorResolutionExplanation expl = resolve_color_metadata(&cfg, spec,
                                                                    ctx, policy);

@@ -723,7 +723,8 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     pvt::reconcile_color_metadata(
         spec,
         pvt::ColorReadPolicy::snapshot(&in->m_config,
-                                       pvt::ambient_color_config()),
+                                       pvt::ambient_color_config(),
+                                       in->m_filename),
         "openexr");
 
     // Squash some problematic texture metadata if we suspect it's wrong
