@@ -385,10 +385,16 @@ namespace {
                     : std::string { },
                 { }
             };
+        // CICP state is governed by its own one-shot axis (cicp_state). Auto
+        // falls back to the general state_pref so an unset cicp_state
+        // reproduces main exactly.
+        ColorReadPolicy pc = p;
+        if (p.cicp_state != ColorStatePreference::Auto)
+            pc.state_pref = p.cicp_state;
         std::string candidate(raw);
-        for (const auto& c : state_preference_order(candidate, p)) {
+        for (const auto& c : state_preference_order(candidate, pc)) {
             std::string selected;
-            const std::string resolved = resolve_ciid(config, c, p, &selected);
+            const std::string resolved = resolve_ciid(config, c, pc, &selected);
             if (!resolved.empty())
                 return { ColorRuleOutcome::Matched,
                          diag ? (selected.empty() ? c : selected)
@@ -821,6 +827,7 @@ scrub_color_metadata(ImageSpec& spec)
     spec.erase_attribute("acesImageContainerFlag");
     spec.erase_attribute("ICCProfile");
     spec.erase_attribute("CICP");
+    spec.erase_attribute("oiio:cicp:pending");
     spec.erase_attribute("chromaticities");
     spec.erase_attribute("oiio:Gamma");
 }
@@ -864,6 +871,15 @@ reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy,
     // set -- keeping the CICP source attribute in place -- exactly as the PNG
     // reader used to do inline.
     if (facts.has_cicp) {
+        // Deferred option (spec 09): a CICP tuple is state-ambiguous, so under
+        // a defer_cicp policy the reader deposits the tuple as *pending* --
+        // marker only, no color-space commit -- giving the caller a window to
+        // set cicp_state before resolve_pending_cicp fires. Default policy
+        // stays eager (main's behavior).
+        if (policy.defer_cicp) {
+            spec.attribute("oiio:cicp:pending", 1);
+            return;
+        }
         ColorMetadataFacts cf;
         cf.has_cicp = true;
         for (int i = 0; i < 4; ++i)
@@ -873,6 +889,40 @@ reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy,
         if (expl.has_genuine_metadata_match())
             spec.attribute("oiio:ColorSpace", expl.resolved);
     }
+}
+
+bool
+resolve_pending_cicp(ImageSpec& spec, const ColorReadPolicy& policy,
+                     const ColorConfig* config)
+{
+    // No-op unless a deferred read left a pending CICP tuple.
+    if (spec.get_int_attribute("oiio:cicp:pending") != 1)
+        return false;
+
+    const ColorMetadataFacts facts = color_facts_from_spec(spec);
+    bool committed                 = false;
+    if (facts.has_cicp) {
+        ColorMetadataFacts cf;
+        cf.has_cicp = true;
+        for (int i = 0; i < 4; ++i)
+            cf.cicp[i] = facts.cicp[i];
+        ColorCallContext ctx;
+        const auto expl = resolve_color_metadata(config, "", cf, ctx, policy);
+        if (expl.has_genuine_metadata_match()) {
+            spec.attribute("oiio:ColorSpace", expl.resolved);
+            committed = true;
+        }
+    }
+
+    // Consume-once: the pending tuple is now resolved, so the marker and the
+    // one-shot global cicp_state key no longer apply -- clearing the global
+    // stops it silently re-applying to the next file. A per-call/config-hint
+    // or config-profile cicp_state is intentionally NOT consumed (it is
+    // scoped or declared policy, not a lingering global override); this
+    // preserves the per-call > profile > global-default precedence.
+    spec.erase_attribute("oiio:cicp:pending");
+    OIIO::attribute("oiio:colorpolicy:read:cicp_state", "");
+    return committed;
 }
 
 ColorReadPolicy
@@ -911,6 +961,15 @@ ColorReadPolicy::snapshot(const ImageSpec* config_hints)
     p.ignore_cicp_for_png
         = get_int("oiio:colorpolicy:read:ignore_cicp_for_png", 0) != 0;
     p.ignore_sidecar = get_int("oiio:colorpolicy:read:ignore_sidecar", 0) != 0;
+
+    // CICP-specific one-shot state axis; empty/unset -> Auto (reproduces main).
+    const std::string cicp_state = get_string(
+        "oiio:colorpolicy:read:cicp_state");
+    if (cicp_state == "scene")
+        p.cicp_state = ColorStatePreference::Scene;
+    else if (cicp_state == "display")
+        p.cicp_state = ColorStatePreference::Display;
+    p.defer_cicp = get_int("oiio:colorpolicy:read:defer_cicp", 0) != 0;
     return p;
 }
 

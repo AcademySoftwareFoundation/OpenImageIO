@@ -406,6 +406,113 @@ test_render_read_plan(const ColorConfig& config)
 }
 
 
+// Deferred + consume-once CICP resolution (spec 09, "Deferred resolution and
+// consume-once policy"). A CICP tuple is state-ambiguous, so a defer_cicp read
+// deposits it as pending without committing a color space; the caller then
+// sets cicp_state and resolves. Resolution consumes the pending tuple and the
+// one-shot global cicp_state key.
+static void
+test_deferred_cicp(const ColorConfig& config)
+{
+    // Rec.709 primaries + sRGB transfer: maps to srgb_rec709_display, whose
+    // scene twin (srgb_rec709_scene) also exists in the config.
+    const int cicp[4] = { 1, 13, 0, 1 };
+
+    // Deferred, then policy set AFTER read decides the twin: SCENE.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        ColorReadPolicy defer;
+        defer.defer_cicp = true;
+        reconcile_color_metadata(spec, defer, "png");
+        // Pending: no color space committed, marker present, CICP kept.
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"), "");
+        OIIO_CHECK_EQUAL(spec.get_int_attribute("oiio:cicp:pending"), 1);
+        OIIO_CHECK_EQUAL(spec.find_attribute("CICP") != nullptr, true);
+
+        ColorReadPolicy scene;
+        scene.cicp_state = ColorStatePreference::Scene;
+        const bool did = resolve_pending_cicp(spec, scene, &config);
+        OIIO_CHECK_ASSERT(did);
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "srgb_rec709_scene");
+        // Consumed: the pending marker is gone.
+        OIIO_CHECK_EQUAL(spec.find_attribute("oiio:cicp:pending"), nullptr);
+        // Second resolve is a no-op (nothing pending).
+        OIIO_CHECK_EQUAL(resolve_pending_cicp(spec, scene, &config), false);
+    }
+
+    // Same tuple, DISPLAY policy set after read -> display twin. Proves the
+    // post-read policy, not the tuple, decides the result.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        ColorReadPolicy defer;
+        defer.defer_cicp = true;
+        reconcile_color_metadata(spec, defer, "png");
+        ColorReadPolicy display;
+        display.cicp_state = ColorStatePreference::Display;
+        resolve_pending_cicp(spec, display, &config);
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "srgb_rec709_display");
+    }
+
+    // No-op: setting cicp_state when nothing is pending changes nothing.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("oiio:ColorSpace", "lin_ap1_scene");
+        ColorReadPolicy scene;
+        scene.cicp_state = ColorStatePreference::Scene;
+        OIIO_CHECK_EQUAL(resolve_pending_cicp(spec, scene, &config), false);
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "lin_ap1_scene");
+    }
+
+    // Consume-once via the GLOBAL cicp_state key: after a pending resolve it is
+    // cleared, so it does NOT silently re-apply to the next file.
+    {
+        OIIO::attribute("oiio:colorpolicy:read:defer_cicp", 1);
+        OIIO::attribute("oiio:colorpolicy:read:cicp_state", "scene");
+
+        // File 1: deferred read + resolve under the global scene policy.
+        ImageSpec s1(4, 4, 3, TypeFloat);
+        s1.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        reconcile_color_metadata(s1, ColorReadPolicy::snapshot(), "png");
+        OIIO_CHECK_EQUAL(s1.get_int_attribute("oiio:cicp:pending"), 1);
+        resolve_pending_cicp(s1, ColorReadPolicy::snapshot(), &config);
+        OIIO_CHECK_EQUAL(s1.get_string_attribute("oiio:ColorSpace"),
+                         "srgb_rec709_scene");
+
+        // The global cicp_state was consumed by that resolve.
+        std::string leftover;
+        OIIO::getattribute("oiio:colorpolicy:read:cicp_state", leftover);
+        OIIO_CHECK_EQUAL(leftover, "");
+
+        // File 2: same deferred read, but the prior scene policy is gone, so
+        // the default (display) twin wins -- consume-once proven.
+        ImageSpec s2(4, 4, 3, TypeFloat);
+        s2.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        reconcile_color_metadata(s2, ColorReadPolicy::snapshot(), "png");
+        resolve_pending_cicp(s2, ColorReadPolicy::snapshot(), &config);
+        OIIO_CHECK_EQUAL(s2.get_string_attribute("oiio:ColorSpace"),
+                         "srgb_rec709_display");
+
+        OIIO::attribute("oiio:colorpolicy:read:defer_cicp", 0);
+    }
+
+    // Eager path unchanged: without defer_cicp the default policy commits the
+    // display twin at read time and leaves no pending marker.
+    {
+        ImageSpec spec(4, 4, 3, TypeFloat);
+        spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
+        reconcile_color_metadata(spec, ColorReadPolicy(), "png");
+        OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                         "srgb_rec709_display");
+        OIIO_CHECK_EQUAL(spec.find_attribute("oiio:cicp:pending"), nullptr);
+    }
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -430,6 +537,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_spec_impossible_cicp(config);
     test_filename_invariance(config);
     test_render_read_plan(config);
+    test_deferred_cicp(config);
 
     Filesystem::remove(cfgpath);
     return unit_test_failures != 0;

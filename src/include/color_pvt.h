@@ -964,6 +964,20 @@ struct ColorReadPolicy {
     ColorFileRules file_rules       = ColorFileRules::Off;
     bool ignore_cicp_for_png        = false;
     bool ignore_sidecar             = false;
+    /// The scene/display state preference applied specifically to a CICP
+    /// tuple's resolution (`oiio:colorpolicy:read:cicp_state`). A CICP tuple
+    /// is state-ambiguous; this axis governs which twin wins. Auto (the
+    /// default) reproduces main: the CICP rule falls back to `state_pref`,
+    /// and the registry's own display-biased mapping decides. It is a
+    /// one-shot governing a pending tuple -- resolve_pending_cicp consumes
+    /// the global key after it fires (spec 09, "Deferred resolution and
+    /// consume-once policy").
+    ColorStatePreference cicp_state = ColorStatePreference::Auto;
+    /// When set, reconcile_color_metadata deposits the CICP tuple as a
+    /// *pending* resolution (marker attribute `oiio:cicp:pending`) instead of
+    /// eagerly committing a color space. The caller may then set `cicp_state`
+    /// and call resolve_pending_cicp. Default false = eager (main's behavior).
+    bool defer_cicp = false;
     /// Whether an all-miss falls back to the config's Default Assignment.
     /// Off reproduces main (a reader that determined nothing leaves the
     /// spec's color space untouched); a later named policy turns it on.
@@ -1047,6 +1061,21 @@ resolve_color_metadata(const ColorConfig* config,
 OIIO_API void
 reconcile_color_metadata(ImageSpec& spec, const ColorReadPolicy& policy,
                          string_view format_name = {});
+
+/// Complete a *deferred* CICP resolution (spec 09, "Deferred resolution and
+/// consume-once policy"). A reader that ran reconcile_color_metadata under a
+/// `defer_cicp` policy left the CICP tuple pending (marker
+/// `oiio:cicp:pending`) without committing a color space, giving the caller a
+/// window to set `oiio:colorpolicy:read:cicp_state`. This resolves that
+/// pending tuple under `policy` (whose `cicp_state` the caller just set),
+/// stamps `oiio:ColorSpace`, and *consumes* both: it clears the pending
+/// marker and resets the one-shot global `cicp_state` key so it does not
+/// silently re-apply to the next file. No-op (returns false) when nothing is
+/// pending. `config` scopes resolution; null = built-in registry (matching
+/// the eager reconcile path). Returns true iff a color space was committed.
+OIIO_API bool
+resolve_pending_cicp(ImageSpec& spec, const ColorReadPolicy& policy,
+                     const ColorConfig* config = nullptr);
 
 /// The one format-name -> consulted-read-signals table, the read-direction
 /// mirror of color_write_caps_for_format. This is what
