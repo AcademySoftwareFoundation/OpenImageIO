@@ -1456,6 +1456,11 @@ struct ColorWritePolicy {
     // gamma where each applies and is derivable), so every consumer finds a
     // signal it understands. Blender opts this on; OIIO's builtin default is 0.
     bool verbose = false;
+    // Feature B (spec 09): apply oiio:default's declared write-canonical space
+    // mappings. Default 0 preserves the source id; 1 canonicalizes on write
+    // (the locked mapping: g26_p3d65_display -> g26_xyzd65_display, the XYZ
+    // DCDM form -- gamma 2.6 + DCI white scaling, alias dcdm_xyzd65).
+    bool canonicalize = false;
 
     /// Read every `oiio:colorpolicy:write:*` value ONCE, under one lock, from
     /// the global attribute table, optionally overridden by per-write config

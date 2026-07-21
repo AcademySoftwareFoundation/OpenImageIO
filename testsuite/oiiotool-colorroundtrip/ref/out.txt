@@ -11,3 +11,5 @@
     colorInteropID: "srgb_rec709_display"
 === JPG forced: config-declared force -- colorInteropID carried ===
     colorInteropID: "srgb_rec709_display"
+=== g26 default: canonicalized to g26_xyzd65_display on write ===
+    colorInteropID: "g26_xyzd65_display"

@@ -87,4 +87,21 @@ def forced_section(fmt, note):
 command += forced_section("tif", "config-declared force -- colorInteropID carried")
 command += forced_section("jpg", "config-declared force -- colorInteropID carried")
 
+
+# Spec 09 Feature B: write-canonical mapping in oiio:default. The config's
+# oiio:default profile declares oiio:colorpolicy:write:canonicalize, so a
+# g26_p3d65_display source is written with the CANONICAL id g26_xyzd65_display
+# (the XYZ DCDM form -- gamma 2.6 + DCI white scaling, alias dcdm_xyzd65), a
+# P3->XYZ primaries conversion within the DCI-white-scaled family. No attribute
+# is set anywhere -- the mapping is config-declared (layer 2). EXR carries the
+# id in its native slot, so it reads back as the mapped id.
+bcfg = "src/broadcast.ocio"
+g26src = "--create 8x8 3 --attrib oiio:ColorSpace g26_p3d65_display "
+
+command += "echo '=== g26 default: canonicalized to g26_xyzd65_display on write ==='" + redirect + " ;\n"
+command += ("env OCIO=" + bcfg + " " + ot + " " + g26src + "-o g26def.exr"
+            + " >/dev/null 2>&1 ;\n")
+command += ("( env OCIO=" + bcfg + " " + ot + " --info -v g26def.exr"
+            + " 2>/dev/null | grep -E 'colorInteropID' || true )" + redirect + " ;\n")
+
 outputs = ["out.txt"]

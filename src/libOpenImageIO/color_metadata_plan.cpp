@@ -248,6 +248,21 @@ gamma_from_id(string_view interop_id)
     return 0.0f;
 }
 
+// Feature B (spec 09): oiio:default's declared write-canonical space mappings.
+// The one locked mapping: g26_p3d65_display (the P3-primaries DCDM form) is
+// canonicalized to g26_xyzd65_display -- a P3->XYZ primaries conversion WITHIN
+// the DCI-white-scaled DCDM family (gamma 2.6 + DCI white headroom, alias
+// dcdm_xyzd65), NOT a headroom change and NOT the P3-primaries form. Any other
+// id passes through unchanged. See spec 09 "Write-canonical mapping in
+// oiio:default".
+std::string
+canonical_write_id(string_view interop_id)
+{
+    if (interop_id == "g26_p3d65_display")
+        return "g26_xyzd65_display";
+    return std::string(interop_id);
+}
+
 }  // namespace
 
 
@@ -287,6 +302,8 @@ ColorWritePolicy::snapshot(const ImageSpec* config_hints,
     p.force_interop_id
         = snap.get_int("oiio:colorpolicy:write:force_interop_id", 0) != 0;
     p.verbose = snap.get_int("oiio:colorpolicy:write:verbose", 0) != 0;
+    p.canonicalize
+        = snap.get_int("oiio:colorpolicy:write:canonicalize", 0) != 0;
     return p;
 }
 
@@ -313,10 +330,14 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     // (never the cheap subset, which a mislabeled config's syntactic table
     // match could fool). No other field is requested: every other plan
     // signal consumes only authored metadata today.
-    const std::string derived_id
+    std::string derived_id
         = characterize_color_space(cfg, colorspace,
                                    CharacterizationField::ColorInteropID)
               .color_interop_id;
+
+    // Feature B (spec 09): the config's oiio:default write-canonical mapping.
+    if (policy.canonicalize)
+        derived_id = canonical_write_id(derived_id);
 
     // interop id: author's colorInteropID verbatim, else name -> interop id.
     // Feature 1 (spec 09): force_interop_id makes a slotless format capable of

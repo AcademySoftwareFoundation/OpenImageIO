@@ -141,6 +141,7 @@ display_colorspaces:
 
   - !<ColorSpace>
     name: g26_xyzd65_display
+    aliases: [dcdm_xyzd65]
     interop_id: g26_xyzd65_display
     encoding: sdr-cinema
     from_display_reference: !<GroupTransform>
