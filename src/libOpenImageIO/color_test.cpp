@@ -1130,12 +1130,90 @@ colorspaces:
                 OIIO_CHECK_EQUAL_THRESH(got[c], ref[c], 1e-6f);
     }
 
+    // --- Reverse direction (registry src -> local dst): the foreign endpoint
+    //     may be either side. "lin_ap1_scene" (registry) -> "ap0" (local) is the
+    //     inverse of the block above and must bridge symmetrically. ------------
+    {
+        ColorConfig cc(interop_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        // identities_route_probe models only the local-src -> registry-dst
+        // direction, so the real, non-identity registry-src -> local-dst
+        // processor is the demonstration here.
+        auto handle = cc.createColorProcessor("lin_ap1_scene", "ap0");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        if (handle)
+            OIIO_CHECK_FALSE(handle->isNoOp());  // real AP1->AP0 transform
+        OIIO_CHECK_FALSE(cc.has_error());
+    }
+
+    // --- Both endpoints registry-known and locally absent: the route runs
+    //     registry -> registry (both drawn from the identities config).
+    //     "lin_ap0_scene" -> "lin_ap1_scene" is a real AP0->AP1 transform. -----
+    if (OIIO::pvt::interop_identities_config_resolves("lin_ap0_scene")) {
+        ColorConfig cc(interop_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+
+        // The route runs registry -> registry (both from the identities
+        // config); the local->registry identities_route_probe reference does
+        // not model that path, so the real, non-identity processor is the
+        // demonstration here.
+        auto handle = cc.createColorProcessor("lin_ap0_scene", "lin_ap1_scene");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        if (handle)
+            OIIO_CHECK_FALSE(handle->isNoOp());  // real AP0->AP1 transform
+        OIIO_CHECK_FALSE(cc.has_error());
+    }
+
+    // --- Case 2 (CIID with a local equivalent): a valid registry CIID the
+    //     config defines locally (here as an alias) resolves same-config and
+    //     never touches the cross-config bridge. "lin_ap0_scene" aliases the
+    //     local "ap0", so the conversion to "ap0" is a plain local no-op. ------
+    {
+        static const char* alias_yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: ap0
+  scene_linear: ap0
+  aces_interchange: ap0
+colorspaces:
+  - !<ColorSpace>
+    name: ap0
+    aliases: [lin_ap0_scene]
+)";
+        std::string alias_path = Filesystem::temp_directory_path()
+                                 + "/oiio_color_test_xconv_alias.ocio";
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(alias_path, alias_yaml));
+        ColorConfig cc(alias_path);
+        OIIO_CHECK_ASSERT(!cc.has_error());
+        // resolve() maps the CIID to its local equivalent -- the case-2 test.
+        OIIO_CHECK_EQUAL(cc.resolve("lin_ap0_scene"), "ap0");
+        auto handle = cc.createColorProcessor("lin_ap0_scene", "ap0");
+        OIIO_CHECK_ASSERT(handle.get() != nullptr);
+        if (handle)
+            OIIO_CHECK_ASSERT(handle->isNoOp());  // same-config, not bridged
+        OIIO_CHECK_FALSE(cc.has_error());
+        Filesystem::remove(alias_path);
+    }
+
     // --- Zero behavior change: a name this config defines still resolves -------
     {
         ColorConfig cc(interop_path);
         auto handle = cc.createColorProcessor("ap0", "ap0");
         OIIO_CHECK_ASSERT(handle.get() != nullptr);  // local no-op, unchanged
         OIIO_CHECK_FALSE(cc.has_error());
+    }
+
+    // --- Case 4 (unresolvable): a name that is neither local nor registry-known
+    //     is a genuine unknown -- the bridge declines and today's hard error
+    //     stands (no pass-through masking a typo). ------------------------------
+    {
+        ColorConfig cc(interop_path);
+        auto handle = cc.createColorProcessor("ap0", "no_such_space_xyzzy");
+        OIIO_CHECK_ASSERT(handle.get() == nullptr);
+        OIIO_CHECK_ASSERT(cc.has_error());
+        (void)cc.geterror();
     }
 
     // --- Gate respects interop state: a non-interoperable config does not
