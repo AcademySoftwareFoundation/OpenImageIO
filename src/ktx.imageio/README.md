@@ -1,9 +1,9 @@
 # About
 
 This KTX plugin support obviously nullifies the benefits of using KTX in the
-first place (i.e., to reduce upload time to GPUs or totally eliminate the need for
-transcoding to GPU-conformant format before uploading). That being said, this
-plugin is still useful so that end users don't have to convert back and forth
+first place (i.e., to reduce upload time to GPUs or totally eliminate the need
+for transcoding to GPU-conformant formats before uploading). This plugin is,
+however, still useful so that end users don't have to convert back and forth
 between KTX <-> supported format (e.g., PNG). It is also useful to convert to
 and from KTX2 format.
 
@@ -13,30 +13,76 @@ An important note about DDS -> KTX conversion:
    without having to decode then encode to KTX format. A PR is currently being
    worked on.
  - If you use OIIO for this conversion, then the quality will almost certainly
-   degrade.
+   degrade (well, if the input KTX2 file is compressed using a lossy method,
+   which is almost always the case with KTX files).
 
 An example use-case would be Blender and its glTf import/export plugin.
 
 Ideally, at some point in the future, OIIO may introduce a new API to
-accommodate texture formats that are mainly used for fast texture uploads tow
+accommodate texture formats that are mainly used for fast texture uploads to
 GPUs. This is outside the scope of this basic format support addition.
 
-Below you will find a set of notes on why this plugin is implemented the way
-it is. It took me some time to understand how libktx works and what it provides
-(and why). Some terminology is also defined here.
+Below, you will find a set of notes on why this plugin is implemented the way
+it is. It took some time to understand how libktx works and what it provides
+(and why). Some terminology is also defined here (to avoid confusion, since KTX
+may use multiple layers of compression).
 
 ## KTX2 - Brief Introduction
 
-KTX2 (the 2 here is to distinguish it from deprecated KTX/KTX1) is a binary
-container format that is intended for usage for fast loading of textures to the
-GPU. KTX2 contains GPU-native formats (e.g., block-compressed format BC7) with
-an optional additional layer of compression (hereafter referred to as
-*supercompression*).
+KTX2 (`2` to distinguish it from deprecated KTX/KTX1) is a lightweight container
+format for very fast loading of textures to the GPU.
 
-As per the specs, KTX2 formats may store downsampled texture data for each mip
+KTX2 is mainly centered around the *intermediate* GPU codecs provided by Basis
+Universal. Contrary to the *usual* GPU-block-compressed textures such as
+BC1-BC7, ASTC, or ETC, the codecs introduced by Basis Universal provide
+additional flexibility, universal support (with fallback), and
+highly-configurable parameters for storage-size/compression/c. These codecs come
+at the additional cost, relative to native GPU formats, of very fast transcoding
+to the most compatible supported GPU format for the current GPU. To understand
+these better, refer to Basis Universal's [Wiki][basisu-wiki].
+
+KTX2 may also simply contain GPU-native formats (e.g., block-compressed format
+BC7) with an optional additional layer of compression (hereafter referred to as
+*supercompression*), usually ZStandard or ZLIB. These offer less flexibility
+relative to UASTC or ETC1S (Basis Universal's main codecs) but can be directly
+loaded to the GPU (no transcoding step if we don't count decompressing the
+supercompression).
+
+As per the specs, KTX2 formats may store downsampled texture data for each MIP
 level (not necessarily the whole pyramid). This introduces problems for the
 KTX2 writer (at `ktxoutput.cpp`) because the spec doesn't force the mention of
-which filter/downsampler was used to create the mip levels.
+which filter/downsampler was used to create the mipmaps. That being said,
+this limitation only occurs when trying to regenerate a KTX2 file which is not
+the intended use-case for this plugin in OIIO (nor is the intended use of KTX
+format, each read-write cycle of a KTX2 file significantly worsens its texture
+quality).
+
+## KTX vs. DDS
+
+KTX is comparable, to some degree, with DDS formats when storing ready-to-upload
+BC1-BC7 GPU block-compressed texture data or plain uncompressed pixels. GPU
+block-compressed formats stay compressed in video memory and are decoded by
+the GPU on the fly while sampling. This has the drawback that each GPU format
+only works on hardware that supports it. KTX has additional support for latent
+codecs that can be transcoded on the fly to the most compatible and supported
+GPU format.
+
+## Basis Universal Codecs
+
+### UASTC
+
+
+
+### ETC1S
+
+From [basis-ETC1S][Basis Universal's ETC1S wiki]:
+
+> ETC1S is a simplified subset of the Khronos ETC1 GPU texture format, which is
+very popular on Android. ... ETC1S is still 100% standard ETC1, so
+transcoding to ETC1 or the color block of ETC2 is a no-op. We chose ETC1S
+because it has the very valuable property that it can be quickly transcoded to
+almost any other GPU texture format at very high quality using only simple
+per-block operations with small 1D lookup tables. ...
 
 ## GPU Block Compression Formats
 
@@ -46,7 +92,7 @@ requirements:
 
  - Random access (to some degree, you still pay the price for decoding a very
  small number of neighboring pixels to access a given pixel).
- - Fixed-rate encoding (requirement for random access)
+ - Fixed-rate encoding (consequent requirement for random access)
  - Support for hardware-decoding on the GPU (i.e., extremely fast to decode
  and results in better performance due to lower cache usage).
 
@@ -64,7 +110,8 @@ formats is offloaded to libktx.
 ### ASTC
 
 libktx provides ASTC encoders/decoders and we don't have to deal with ASTC's
-extreme complexity (e.g., there are many different block sizes).
+extreme complexity (e.g., there are many different block sizes with many
+different bitrates).
 
 ### ETC2
 
@@ -244,8 +291,8 @@ To test (of course, make sure image assets are downloaded - see the CMake flag a
 
 ## Misc Notes for Developers
 
-Use `clang-format-17` for formatting and not whatever newest version you have
-on your machine (in my case, clang-format v18 caused clang-format CI to fail):
+Use `clang-format-17` for formatting and not whatever version you have on your
+machine (in my case, clang-format v18 caused clang-format CI to fail):
 
 ```bash
 find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\)' -exec clang-format-17 -style=file -i {} \;
@@ -257,5 +304,8 @@ find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\)' -exec clang-format-17 -style=file -i {
 - [Official Implementation (KTX-Software)](https://github.com/KhronosGroup/KTX-Software)
 - [Basis Universal Supercompression Implementation (used by libktx)](https://github.com/BinomialLLC/basis_universal)
 - [Comparing-BCn-texture-decoders](https://aras-p.info/blog/2022/06/23/Comparing-BCn-texture-decoders/)
+- [basisu-wiki](https://github.com/BinomialLLC/basis_universal/wiki)
+- [gpu-textures-are-infrastructure](https://github.com/BinomialLLC/basis_universal/wiki#conceptual-architecture-gpu-textures-are-infrastructure)
+- [basis-ETC1S](https://github.com/BinomialLLC/basis_universal/wiki/.basis-File-Format-and-ETC1S-Texture-Video-Specification)
 
 [libktx]: https://github.com/KhronosGroup/KTX-Software.git

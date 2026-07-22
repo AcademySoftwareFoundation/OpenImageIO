@@ -420,33 +420,33 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
     case VK_FORMAT_BC7_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_SRGB }; return true;
 
         // ASTC formats (2D blocks)
-    case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_4x4_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_5x4_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_5x5_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_6x5_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_6x6_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_8x5_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_8x6_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_8x8_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_10x5_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_10x6_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_10x8_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_10x10_UNORM_BLOCK: 
+    case VK_FORMAT_ASTC_12x10_UNORM_BLOCK: 
     case VK_FORMAT_ASTC_12x12_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_UNORM }; return true;
-    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: 
     case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB }; return true;
     default: break;
     }
@@ -459,27 +459,86 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
 inline VkFormat
 get_vkformat_from_info(int nchannels, TypeDesc format, bool srgb_colorspace)
 {
-    if (format != TypeDesc::UINT8)
+    if (format != TypeDesc::UINT8 && format != TypeDesc::UINT16
+        && format != TypeDesc::HALF)
         return VK_FORMAT_UNDEFINED;
+
+    const bool is_ldr = format == TypeDesc::UINT8;
 
     switch (nchannels) {
     case 1:
-        return srgb_colorspace ? VK_FORMAT_R8_SRGB : VK_FORMAT_R8_UNORM;
-        break;
+        return is_ldr
+                   ? (srgb_colorspace ? VK_FORMAT_R8_SRGB : VK_FORMAT_R8_UNORM)
+                   : VK_FORMAT_R16_SFLOAT;
     case 2:
-        return srgb_colorspace ? VK_FORMAT_R8G8_SRGB : VK_FORMAT_R8G8_UNORM;
-        break;
+        return is_ldr ? (srgb_colorspace ? VK_FORMAT_R8G8_SRGB
+                                         : VK_FORMAT_R8G8_UNORM)
+                      : VK_FORMAT_R16G16_SFLOAT;
     case 3:
-        return srgb_colorspace ? VK_FORMAT_R8G8B8_SRGB : VK_FORMAT_R8G8B8_UNORM;
-        break;
+        return is_ldr ? (srgb_colorspace ? VK_FORMAT_R8G8B8_SRGB
+                                         : VK_FORMAT_R8G8B8_UNORM)
+                      : VK_FORMAT_R16G16B16_SFLOAT;
     case 4:
-        return srgb_colorspace ? VK_FORMAT_R8G8B8A8_SRGB
-                               : VK_FORMAT_R8G8B8A8_UNORM;
-        break;
-    default: break;
+        return is_ldr ? (srgb_colorspace ? VK_FORMAT_R8G8B8A8_SRGB
+                                         : VK_FORMAT_R8G8B8A8_UNORM)
+                      : VK_FORMAT_R16G16B16A16_SFLOAT;
+    default: return VK_FORMAT_UNDEFINED;
     }
+}
 
-    return VK_FORMAT_UNDEFINED;
+
+
+inline uint32_t
+get_astc_block_size(VkFormat format)
+{
+    switch (format) {
+    case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK: return 4 * 4;
+    case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK: return 5 * 4;
+    case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK: return 5 * 5;
+    case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK: return 6 * 5;
+    case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK: return 6 * 6;
+    case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK: return 8 * 5;
+    case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK: return 8 * 6;
+    case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK: return 8 * 8;
+    case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK: return 10 * 5;
+    case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK: return 10 * 6;
+    case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK: return 10 * 8;
+    case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: return 10 * 10;
+    case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: return 12 * 10;
+    case VK_FORMAT_ASTC_12x12_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: return 12 * 12;
+    default: return 0;
+    }
+}
+
+
+
+inline bool
+ichar_equals(unsigned char a, unsigned char b)
+{
+    return std::tolower(a) == std::tolower(b);
+}
+
+
+
+inline bool
+iequals(std::string_view lhs, std::string_view rhs)
+{
+    return std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend(),
+                      ichar_equals);
 }
 
 

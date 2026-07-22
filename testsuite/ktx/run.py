@@ -5,10 +5,11 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 # All of the test files here are copied, as is, from KTX-Software repo and fall
-# under the license of KTX-Software:
+# under the Apache-2.0 license of KTX-Software:
 #
 #   Copyright 2013-2020 Mark Callow SPDX-License-Identifier: Apache-2.0
 
+#
 # KTX-Software has two sets of ktx2 test files:
 #   - a relatively small set for libktx: https://github.com/KhronosGroup/KTX-Software/tree/e2f948066c108b56b8d0052b460b2ac7d34886aa/tests/resources/ktx2
 #   - a very larget tests set for ktx tools: https://github.com/KhronosGroup/KTX-Software-CTS/tree/6d23ae9e52cce2ebc6495c4692ec89f632ff70d4
@@ -16,6 +17,13 @@
 # commit hashse:
 #   - libktx test files: 6c474d8627999de8acf07d819c196f83d025cd44
 #   - ktx tools test files (CTS): 6d23ae9e52cce2ebc6495c4692ec89f632ff70d4
+# 
+# Since OIIO KTX2 plugin simply forwards all operations to libktx, there is no
+# need to do extensive testing on encoding/decoding functionalities. libktx
+# already does very extensive testing on thousands of ktx2 inputs. What we do
+# instead is that we test that we call libktx correctly and that parameters
+# (which are numerous) are passed correctly.
+#
 
 # save the error output
 redirect = ' >> out.txt 2>&1 '
@@ -74,13 +82,26 @@ files = [
 ]
 
 for f in files:
+    # Just test `oiiotool --info` on libktx main test files
     command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/" + f)
+
+# Create a simple checker pattern RGBA PNG (has to be RGBA because Basis
+# Universal codecs cannot transcode to opaque uncompressed formats)
+command += (oiio_app("oiiotool") 
+            + " --pattern checker 64x64 4 -d uint8 -o checker_original.png >> out.txt ;\n")
+
+# UASTC write test: check generation of an UASTC-based KTX2 file
+command += oiiotool ("checker_original.png --attrib ktx:codec uastc -o checker_uastc.ktx2")
+command += diff_command ("checker_original.png", "checker_uastc.ktx2", "--fail 0.0005 --warn 0.0005")
+
+# ETC1S write test: check generation of an ETC1S-based KTX2 file
+command += oiiotool ("checker_original.png --attrib ktx:codec etc1s -o checker_etc1s.ktx2")
+command += diff_command ("checker_original.png", "checker_etc1s.ktx2", "--fail 0.0005 --warn 0.0005")
 
 # We do not test read-write of compressed-ktx2 files because any read-write
 # cycle worsens quality and is absolutely not the intended purpose of ktx usage
-# within OIIO
+# within OIIO (or ktx usage in general).
 
-# Test write of PNG inputs
-
-# Default write (with nothing specified) should default to a loseless format + supercompression scheme
+# Default write (with nothing specified) should default to a loseless format
+# + supercompression scheme and should match exactly with original input
 

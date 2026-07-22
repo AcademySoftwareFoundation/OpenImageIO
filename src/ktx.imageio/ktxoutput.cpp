@@ -60,15 +60,8 @@ private:
 
     bool m_initialized { false };  ///< Has open() with mode == Create was
 
-    /// Vulkan format fetched from "ktx:vkformat" attribute or set from current
-    /// image spec.
+    /// Uncompressed Vulkan format to create the initial texture with.
     VkFormat m_vkformat { VK_FORMAT_UNDEFINED };
-
-    /// Uncompressed Vulkan format to create the texture with in case original
-    /// vkforma is a GPU-block-compressed format. This might be different that
-    /// the actual format supplied via the "ktx:vkformat" attribute in the case
-    /// of GPU-block-compressed formats (e.g., VK_FORMAT_ASTC_4x4_SRGB_BLOCK).
-    VkFormat m_vkformat_uncompressed { VK_FORMAT_UNDEFINED };
 
     uint32_t m_miplevel_idx { 0 };  ///< Current MIP level
 
@@ -131,7 +124,7 @@ private:
 
     bool write_ktx2();
 
-    bool construct_basis_params(ktxBasisParams& params, uint32_t codec,
+    bool construct_basis_params(ktxBasisParams& params, std::string_view codec,
                                 uint32_t threads = 1) const;
 
     // bool construct_astc_params(ktxAstcParams& param) const;
@@ -205,10 +198,24 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         //     m_texturekind = TextureKind::SINGLE_TEXTURE_2D;
         // }
 
-        std::string colorspace
-            = m_spec.get_string_attribute("oiio:ColorSpace",
-                                          "srgb_rec709_scene");
-        bool is_srgb = colorspace == "srgb_rec709_scene";
+        const auto compression = m_spec.get_string_attribute("compression",
+                                                             "NONE");
+        if (iequals(compression, "NONE")) {
+            m_cmp = BlockCompression::NONE;
+        } else if (iequals(compression, "ASTC")) {
+            m_cmp = BlockCompression::ASTC;
+        } else {
+            errorfmt(
+                "Unsupported/Unknown compression from string attribute \"compression\": ",
+                compression);
+            return false;
+        }
+
+        // Currently only two colorspaces are tested, linear or REC709 sRGB
+        const auto colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
+                                                            "srgb_rec709_scene");
+        bool is_srgb          = colorspace == "srgb_rec709_scene";
+        m_spec.set_colorspace(colorspace);
 
         // TODO: get_int_attribute causes a segfault and I have no idea why ...
         // Weirdly, calling find_attribute directly (and checking the resulting
@@ -221,17 +228,28 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // disk filesizes and on-the-fly transcoding to a supported native GPU
         // format.
         //
-        if (auto Q = m_spec.find_attribute("ktx:supercompressionscheme",
-                                           TypeDesc::UINT32)) {
+        const auto& supercompression_str
+            = m_spec.get_string_attribute("ktx:supercompressionscheme", "NONE");
+        if (iequals(supercompression_str, "NONE")) {
+            m_superCmp = ktxSupercmpScheme::KTX_SS_NONE;
+        } else if (iequals(supercompression_str, "ZSTD")) {
+            m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
+        } else if (iequals(supercompression_str, "ZLIB")) {
+            m_superCmp = ktxSupercmpScheme::KTX_SS_ZLIB;
+        } else {
+            close();
+            errorfmt("unsupported super compression scheme: {}",
+                     static_cast<uint32_t>(m_superCmp));
+            return false;
+        }
+        if (auto Q = m_spec.find_attribute("", TypeDesc::STRING)) {
+            const auto& supercompression_str = Q->get_string();
+
             m_superCmp = static_cast<ktxSupercmpScheme>(
                 *(uint32_t*)(Q->data()));
             // Do an early check on supported supercompressionscheme values
             if (m_superCmp != KTX_SS_BASIS_LZ && m_superCmp != KTX_SS_NONE) {
                 // doing an `errorfmt()` then `close()` causes a seg fault...
-                close();
-                errorfmt("unsupported super compression scheme: {}",
-                         static_cast<uint32_t>(m_superCmp));
-                return false;
             }
             DBG std::cout << "[ktxoutput] supercompression scheme: "
                           << m_superCmp << '\n';
@@ -239,7 +257,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 
         if (auto Q = m_spec.find_attribute("ktx:generatemipmaps",
                                            TypeDesc::INT)) {
-            m_generate_mipmaps = static_cast<bool>(*(int*)Q->data());
+            m_generate_mipmaps = static_cast<bool>(Q->get_int());
             DBG std::cout << "[ktxoutput] generate mipmaps: " << std::boolalpha
                           << m_generate_mipmaps << '\n';
         }
@@ -247,94 +265,42 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // We can check m_basis_params.codec != NONE but this won't work for
         // libktx 4.3.2 which is why we just use a bool var
         m_use_basis_universal = false;
-        if (auto Q = m_spec.find_attribute("ktx:codec", TypeDesc::UINT32)) {
-            auto codec = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:codec", TypeDesc::STRING)) {
+            const auto& codec = Q->get_string();
             if (!construct_basis_params(m_basis_params, codec)) {
                 close();
                 // construct_basis_params calls errorfmt
                 return false;
             }
-            m_use_basis_universal = true;
+            m_use_basis_universal = m_basis_params.codec
+                                    != KTX_BASIS_CODEC_NONE;
             DBG std::cout
                 << "[ktxoutput] basis universal codec (from \"ktx:codec\"): "
                 << codec << '\n';
         }
 
         //
-        // If provided, get target VkFormat explicitly set via the "ktx:vkformat"
-        // attribute.
+        // User provided nothing about neither the target GPU block compression
+        // nor the target Basis Universal codec. Default to writing uncompressed
+        // VK_FORMAT with ZSTD supercompression (write as losseless KTX2
+        // output).
         //
-        if (auto Q = m_spec.find_attribute("ktx:vkformat", TypeDesc::UINT32)) {
-            m_vkformat = static_cast<VkFormat>(*(uint32_t*)(Q->data()));
-            if (m_vkformat != VK_FORMAT_UNDEFINED) {
-                FormatInfo format_info;
-                if (!get_info_from_vkformat(m_vkformat, format_info)) {
-                    close();
-                    errorfmt(
-                        "Could not extract format info from provided "
-                        "VkFormat: {}. This format is probably unsupported.",
-                        static_cast<uint32_t>(m_vkformat));
-                    return false;
-                }
-                if (m_spec.format != format_info.typedesc
-                    || m_spec.nchannels != format_info.nbrchannels) {
-                    errorfmt(
-                        "Provided image spec is not aligned with provided VkFormat {}",
-                        static_cast<uint32_t>(m_vkformat));
-                    return false;
-                }
-                m_cmp                   = format_info.compression;
-                m_vkformat_uncompressed = format_info.uncompressed_format;
-                DBG std::cout << "[ktxoutput] found vkformat: " << m_vkformat
-                              << '\n';
-                DBG std::cout << "[ktxoutput] set uncompressed vkformat: "
-                              << m_vkformat_uncompressed << '\n';
-            }
-        }
-
+        // If we intend to compress to BasisLZ/ETC1S or UASTC then we need to
+        // figure the VkFormat so that ktxTexture_SetImageFromMemory does not
+        // segfault. (makes sense, since we are creating a KTX texture and
+        // telling it to allocate storage, how would it know the size of a given
+        // subimage if we provide it with VK_FORMAT_UNDEFINED?)
         //
-        // User provided nothing about neither the target VkFormat nor the
-        // target super-compression scheme. Default to writing raw VK_FORMAT
-        // with ZSTD supercompression (write as losseless KTX2 output).
-        //
-        if (m_vkformat == VK_FORMAT_UNDEFINED && m_basis_params.codec == 0) {
-            m_vkformat = get_vkformat_from_info(m_spec.nchannels, m_spec.format,
-                                                is_srgb);
-        }
-
-        //
-        // If a Basis Universal format compression is not requested and
-        // "ktx:vkformat" is VK_FORMAT_UNDEFINED, then we error out. The user has to
-        // set the vkformat so that we know in which format we write the texture to.
-        //
-        if (!m_use_basis_universal && m_vkformat == VK_FORMAT_UNDEFINED) {
+        m_vkformat = get_vkformat_from_info(m_spec.nchannels, m_spec.format,
+                                            is_srgb);
+        if (m_vkformat == VK_FORMAT_UNDEFINED) {
             close();
             errorfmt(
-                "VkFormat is set to VK_FORMAT_UNDEFINED even though the "
-                "supercompression scheme is not BasisLZ. You have to set the "
-                "target VkFormat by setting the ImageSpec's attribute 'ktx:vkformat'.");
+                "Failed to determine VkFormat from nchannels={} format={} colorspace={}",
+                m_spec.nchannels, m_spec.format, colorspace);
             return false;
         }
 
-        //
-        // If we intend to compress to BasisLZ/ETC1S or UASTC then we need to figure
-        // the VkFormat so that ktxTexture_SetImageFromMemory does not segfault.
-        // (makes sense, since we are creating a KTX texture and telling it to
-        // allocate storage, how would it know the size of a given subimage if we
-        // provide it with VK_FORMAT_UNDEFINED?)
-        //
-        if (m_use_basis_universal && m_vkformat == VK_FORMAT_UNDEFINED) {
-            m_vkformat = get_vkformat_from_info(m_spec.nchannels, m_spec.format,
-                                                is_srgb);
-        } else if (m_use_basis_universal) {
-            // TODO: It could be that the user explicitly provided a vkformat - in which
-            // case we have to make sure it aligns with the spec.
-            // if (!is_vkformat_aligned_with_spec()) ...
-            close();
-            errorfmt("Expected vkformat to be VK_FORMAT_UNDEFINED for Basis "
-                     "Universal textures.");
-            return false;
-        }
 
         if (m_spec.depth > 1)
             m_max_nmiplevels
@@ -354,9 +320,9 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 
         // Initialize slices/faces container if not already initialized by a
         // previous call to open(name, subimages, specs)
-        OIIO_ASSERT(m_imgs.empty()
-                    && "Expected mip levels container to be empty");
-        OIIO_ASSERT(m_miplevel_idx == 0);
+        OIIO_DASSERT_MSG(m_imgs.empty(),
+                         "Expected mip levels container to be empty");
+        OIIO_DASSERT(m_miplevel_idx == 0);
 
         // Reserve space for base-level mipmap (level 0)
         append_mipmaps_vector();
@@ -438,14 +404,9 @@ KtxOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
             ybegin, yend, z, height, m_basedepth);
         return false;
     }
-    // std::cout << "write_scanlines called with: ybegin=" << ybegin
-    //           << "; yend=" << yend << "; z=" << z << "; format=" << format
-    //           << "; xstride=" << xstride << '\n';
-
     stride_t zstride = AutoStride;
     m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
                        width, height);
-
     //
     // Convert to the native format the current specs expects. This is needed,
     // for instance, to convert a given TypeDesc::FLOAT into native format that
@@ -465,7 +426,6 @@ KtxOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     auto pSrc          = reinterpret_cast<const uint8_t*>(data);
     size_t offset      = ybegin * pitch;
     size_t datalen     = (yend - ybegin) * pitch;
-
     memcpy(m_imgs[m_miplevel_idx][z].data() + offset, pSrc, datalen);
     DBG std::cout << "write_scanlines wrote " << datalen << " bytes"
                   << std::endl;
@@ -478,7 +438,7 @@ bool
 KtxOutput::close()
 {
     DBG std::cout << "[ktxoutput] close() called" << std::endl;
-    // TODO: sure about returning true? (closing an un-opened ImageOutput instance is fine, right?)
+    // closing an un-opened ImageOutput instance is fine
     if (!m_initialized)
         return true;
     // Check if already closed => if so, then the KTX2 file is already saved
@@ -508,21 +468,20 @@ void
 KtxOutput::init()
 {
     // TODO: calling open() after close() on this hasn't been tested yet ...
-    m_initialized           = false;
-    m_filename              = std::string();
-    m_vkformat              = VK_FORMAT_UNDEFINED;
-    m_vkformat_uncompressed = VK_FORMAT_UNDEFINED;
-    m_miplevel_idx          = 0;
-    m_max_nmiplevels        = 1;
-    m_basewidth             = 0;
-    m_baseheight            = 0;
-    m_basedepth             = 0;
-    m_superCmp              = KTX_SS_NONE;
-    m_generate_mipmaps      = false;
-    m_cmp                   = BlockCompression::NONE;
-    m_use_basis_universal   = false;
-    m_basis_params          = { 0 };
-    m_astc_params           = { 0 };
+    m_initialized         = false;
+    m_filename            = std::string();
+    m_vkformat            = VK_FORMAT_UNDEFINED;
+    m_miplevel_idx        = 0;
+    m_max_nmiplevels      = 1;
+    m_basewidth           = 0;
+    m_baseheight          = 0;
+    m_basedepth           = 0;
+    m_superCmp            = KTX_SS_NONE;
+    m_generate_mipmaps    = false;
+    m_cmp                 = BlockCompression::NONE;
+    m_use_basis_universal = false;
+    m_basis_params        = { 0 };
+    m_astc_params         = { 0 };
     // m_bcn_params = { 0 };
     m_zlib_level = 9;
     m_zstd_level = 22;
@@ -558,68 +517,72 @@ KtxOutput::init()
 /// For the moment, option 2) option 2) is opted for.
 ///
 bool
-KtxOutput::construct_basis_params(ktxBasisParams& params, uint32_t codec,
+KtxOutput::construct_basis_params(ktxBasisParams& params,
+                                  std::string_view codec,
                                   uint32_t threads) const
 {
     // Set defaults
-    params            = { 0 };
-    params.structSize = sizeof(ktxBasisParams);
-    // params.codec       = KTX_BASIS_CODEC_UASTC_LDR_4x4;
-    params.verbose     = false;
-    params.noSSE       = false;
+    params             = { 0 };
+    params.structSize  = sizeof(ktxBasisParams);
     params.threadCount = threads;
 
     params.etc1sCompressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
 
     params.uastcFlags = KTX_PACK_UASTC_LEVEL_DEFAULT;
-    params.uastcRDO   = false;
 
-    if (codec == ktx_basis_codec_e::KTX_BASIS_CODEC_NONE
-        || codec
-               >= ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE) {
-        errorfmt("Provided Basis codec is invalid");
+    if (iequals(codec, "NONE")) {
+        // no need to fill remaining struct members
+        params.codec = KTX_BASIS_CODEC_NONE;
+        return true;
+    }
+
+    if (iequals(codec, "uastc") || iequals(codec, "uastc-ldr")
+        || iequals(codec, "uastc-ldr-4x4")) {
+        params.codec = KTX_BASIS_CODEC_UASTC_LDR_4x4;
+    } else if (iequals(codec, "uastc-hdr") || iequals(codec, "uastc-hdr-4x4")) {
+        params.codec = KTX_BASIS_CODEC_UASTC_HDR_4x4;
+    } else if (iequals(codec, "etc1s")) {
+        params.codec = KTX_BASIS_CODEC_ETC1S;
+    } else if (iequals(codec, "uastc-hdr-6x6")) {
+        params.codec = KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE;
+    } else {
+        errorfmt(
+            "Provided Basis Universal codec \"{}\" is invalid. Supported values: \"uastc\" \"etc1s\" \"uastc-hdr-4x4\" \"uastc-hdr-6x6\"",
+            codec);
         return false;
     }
-    params.codec = codec;
 
-    if (params.codec == ktx_basis_codec_e::KTX_BASIS_CODEC_ETC1S) {
+    if (params.codec == KTX_BASIS_CODEC_ETC1S) {
         // Params that only apply to ETC1S
         if (auto Q = m_spec.find_attribute("ktx:etc1sCompressionLevel",
                                            TypeDesc::UINT32))
             params.etc1sCompressionLevel = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:qualityLevel", TypeDesc::UINT32))
+        if (auto Q = m_spec.find_attribute("ktx:etc1sQualityLevel",
+                                           TypeDesc::UINT32))
             params.qualityLevel = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:maxEndpoints", TypeDesc::UINT32))
+        if (auto Q = m_spec.find_attribute("ktx:etc1sMaxEndpoints",
+                                           TypeDesc::UINT32))
             params.maxEndpoints = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:endpointRDOThreshold",
+        if (auto Q = m_spec.find_attribute("ktx:etc1sEndpointRDOThreshold",
                                            TypeDesc::FLOAT))
             params.endpointRDOThreshold = *(float*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:maxSelectors", TypeDesc::UINT32))
+        if (auto Q = m_spec.find_attribute("ktx:etc1sMaxSelectors",
+                                           TypeDesc::UINT32))
             params.maxSelectors = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:selectorRDOThreshold",
+        if (auto Q = m_spec.find_attribute("ktx:etc1sSelectorRDOThreshold",
                                            TypeDesc::FLOAT))
             params.selectorRDOThreshold = *(float*)Q->data();
-        if (m_spec.find_attribute("ktx:normalMap"))
-            params.normalMap = true;
-        if (m_spec.find_attribute("ktx:separateRGToRGB_A"))
-            params.separateRGToRGB_A = true;
-        if (m_spec.find_attribute("ktx:preSwizzle"))
-            params.preSwizzle = true;
-        if (m_spec.find_attribute("ktx:noEndpointRDO"))
-            params.noEndpointRDO = true;
-        if (m_spec.find_attribute("ktx:noSelectorRDO"))
-            params.noSelectorRDO = true;
-    } else if (params.codec == ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_LDR_4x4
-               || params.codec
-                      == ktx_basis_codec_e::KTX_BASIS_CODEC_UASTC_HDR_4x4
-               || params.codec
-                      == ktx_basis_codec_e::
-                          KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE) {
+        if (auto Q = m_spec.find_attribute("ktx:etc1sNoEndpointRDO"))
+            params.noEndpointRDO = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:etc1sNoSelectorRDO",
+                                           TypeDesc::INT))
+            params.noSelectorRDO = static_cast<bool>(Q->get_int());
+    } else if (params.codec == KTX_BASIS_CODEC_UASTC_LDR_4x4) {
         // Params that only apply to UASTC
         if (auto Q = m_spec.find_attribute("ktx:uastcFlags", TypeDesc::UINT32))
             params.uastcFlags = *(uint32_t*)Q->data();
-        if (m_spec.find_attribute("ktx:uastcRDO"))
-            params.uastcRDO = true;
+        if (auto Q = m_spec.find_attribute("ktx:uastcRDO", TypeDesc::INT))
+            params.uastcRDO = static_cast<bool>(Q->get_int());
         if (auto Q = m_spec.find_attribute("ktx:uastcRDOQualityScalar",
                                            TypeDesc::FLOAT))
             params.uastcRDOQualityScalar = *(float*)Q->data();
@@ -633,19 +596,27 @@ KtxOutput::construct_basis_params(ktxBasisParams& params, uint32_t codec,
         if (auto Q = m_spec.find_attribute("ktx:uastcRDOMaxSmoothBlockStdDev",
                                            TypeDesc::FLOAT))
             params.uastcRDOMaxSmoothBlockStdDev = *(float*)Q->data();
-        if (m_spec.find_attribute("ktx:uastcRDODontFavorSimplerModes"))
-            params.uastcRDODontFavorSimplerModes = true;
-        if (m_spec.find_attribute("ktx:uastcRDONoMultithreading"))
-            params.uastcRDONoMultithreading = true;
+        if (auto Q = m_spec.find_attribute("ktx:uastcRDODontFavorSimplerModes",
+                                           TypeDesc::INT))
+            params.uastcRDODontFavorSimplerModes = static_cast<bool>(
+                Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:uastcRDONoMultithreading",
+                                           TypeDesc::INT))
+            params.uastcRDONoMultithreading = static_cast<bool>(Q->get_int());
+    } else if (params.codec == KTX_BASIS_CODEC_UASTC_HDR_4x4
+               || params.codec == KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE) {
         if (auto Q = m_spec.find_attribute("ktx:uastcHDRQuality",
                                            TypeDesc::UINT32))
             params.uastcHDRQuality = *(uint32_t*)Q->data();
-        if (m_spec.find_attribute("ktx:uastcHDRUberMode"))
-            params.uastcHDRUberMode = true;
-        if (m_spec.find_attribute("ktx:uastcHDRUltraQuant"))
-            params.uastcHDRUltraQuant = true;
-        if (m_spec.find_attribute("ktx:uastcHDRFavorAstc"))
-            params.uastcHDRFavorAstc = true;
+        if (auto Q = m_spec.find_attribute("ktx:uastcHDRUberMode",
+                                           TypeDesc::INT))
+            params.uastcHDRUberMode = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:uastcHDRUltraQuant",
+                                           TypeDesc::INT))
+            params.uastcHDRUltraQuant = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:uastcHDRFavorAstc",
+                                           TypeDesc::INT))
+            params.uastcHDRFavorAstc = static_cast<bool>(Q->get_int());
         if (auto Q = m_spec.find_attribute("ktx:uastcHDRLambda",
                                            TypeDesc::FLOAT))
             params.uastcHDRLambda = *(float*)Q->data();
@@ -655,9 +626,15 @@ KtxOutput::construct_basis_params(ktxBasisParams& params, uint32_t codec,
     }
 
     // Params that apply to both ETC1S and UASTC
+    if (auto Q = m_spec.find_attribute("ktx:noSSE", TypeDesc::INT))
+        params.noSSE = static_cast<bool>(Q->get_int());
+    if (auto Q = m_spec.find_attribute("ktx:normalMap", TypeDesc::INT))
+        params.normalMap = static_cast<bool>(Q->get_int());
     if (auto Q = m_spec.find_attribute("ktx:inputSwizzle",
                                        TypeDesc(TypeDesc::CHAR, 4)))
         memcpy(params.inputSwizzle, Q->data(), 4);
+    if (auto Q = m_spec.find_attribute("ktx:preSwizzle", TypeDesc::INT))
+        params.preSwizzle = static_cast<bool>(Q->get_int());
 
     return true;
 }
@@ -679,24 +656,23 @@ KtxOutput::write_ktx2()
         nullptr, ktxTexture2_Destroy
     };
 
-    uint32_t vkformat = m_cmp == BlockCompression::NONE
-                            ? m_vkformat
-                            : m_vkformat_uncompressed;
-
-    OIIO_ASSERT(vkformat != VK_FORMAT_UNDEFINED);  // otherwise segfault
-    ktxTextureCreateInfo create_info;
-    create_info.glInternalformat = 0;  // Ignored as this is not a KTX1 texture
-    create_info.vkFormat         = vkformat;
-    create_info.pDfd             = nullptr;
-    create_info.baseWidth        = m_basewidth;
-    create_info.baseHeight       = m_baseheight;
-    create_info.baseDepth        = m_basedepth;
-    create_info.numDimensions    = m_basedepth > 1 ? 3 : 2;
-    create_info.numLevels        = m_miplevel_idx + 1;
-    create_info.numLayers = 1;  // Can't support this with current OIIO API
-    create_info.numFaces  = 1;
-    create_info.isArray = KTX_FALSE;  // Can't support this with current OIIO API
-    create_info.generateMipmaps = m_generate_mipmaps;
+    OIIO_DASSERT_MSG(
+        m_vkformat != VK_FORMAT_UNDEFINED,
+        "VkFormat should never be VK_FORMAT_UNDEFINED when creating a KTX2 texture");
+    ktxTextureCreateInfo create_info {
+        .glInternalformat = 0,  // Ignored as this is not a KTX1 texture
+        .vkFormat         = m_vkformat,
+        .pDfd             = nullptr,
+        .baseWidth        = m_basewidth,
+        .baseHeight       = m_baseheight,
+        .baseDepth        = m_basedepth,
+        .numDimensions    = static_cast<ktx_uint32_t>(m_basedepth > 1 ? 3 : 2),
+        .numLevels        = m_miplevel_idx + 1,
+        .numLayers        = 1,  // Can't support this with current OIIO API
+        .numFaces         = 1,  // TODO
+        .isArray = KTX_FALSE,   // Can't support this with current OIIO API
+        .generateMipmaps = m_generate_mipmaps,
+    };
 
     DBG std::cout << "calling ktxTexture2_Create with: "
                   << "vkFormat=" << create_info.vkFormat << "; "
@@ -746,15 +722,6 @@ KtxOutput::write_ktx2()
              ++layer_idx) {
             for (uint32_t face_idx = 0; face_idx < tex->numFaces; ++face_idx) {
                 for (uint32_t slice_idx = 0; slice_idx < depth; ++slice_idx) {
-                    // ImageBuf mipmap_data = generate_miplevel(make_cspan(m_img[m_miplevel_idx]), level_idx, m_mipmap_generation_params.filtername);
-                    //
-                    // TODO: can this not be contiguous? If so, add another loop
-                    // (and another loop if scanlines are not contiguous). Might end in a black hole at this rate ...
-                    // OIIO_ASSERT(mipmap_data.contiguous());
-                    // auto mipmap_data_span = mipmap_data.localpixels_as_byte_image_span();
-                    // auto data_ptr = (const ktx_uint8_t*)mipmap_data_span.data();
-                    // auto data_size = mipmap_data_span.size_bytes();
-
                     // Faces and Slices are mutually exclusive, addition is fine
                     auto data_ptr
                         = m_imgs[level_idx][slice_idx + face_idx].data();

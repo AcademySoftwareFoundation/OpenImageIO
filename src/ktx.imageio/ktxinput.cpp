@@ -130,21 +130,7 @@ bool
 KtxInput::open(const std::string& name, ImageSpec& newspec,
                const ImageSpec& config)
 {
-    //
-    // OIIO API is limited for certain KTX texture types (e.g., 3D array
-    // textures, cubemap array textures). Therefore we add the option to specify
-    // which layer to use in case these textures are used. This is ignored for
-    // other types of textures (e.g., 2D array textures, cubemaps, etc.)
-    //
-    // m_array_layer_idx = config.get_int_attribute("ktx:ArrayLayerIndex",
-    //                                              m_array_layer_idx);
-
     // Check 'config' for any special requests
-    // if (config.get_int_attribute("oiio:UnassociatedAlpha", 0) == 1)
-    //     m_keep_unassociated_alpha = true;
-    // m_linear_premult = config.get_int_attribute("png:linear_premult",
-    //                                             OIIO::get_int_attribute(
-    //                                                 "png:linear_premult"));
     ioproxy_retrieve_from_config(config);
     m_config.reset(new ImageSpec(config));  // save config spec
     return open(name, newspec);
@@ -229,7 +215,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             return false;
         }
     } else /* (proxytype == "memreader") */ {
-        OIIO_ASSERT(proxytype == "memreader");
+        OIIO_DASSERT(proxytype == "memreader");
         auto buff = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
         ktxTexture2* p_tex = nullptr;
         auto res = ktxTexture2_CreateFromMemory(buff.data(), buff.size(),
@@ -258,10 +244,11 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                              TypeDesc::UINT8);
     m_spec.depth = m_spec.full_depth = m_tex->baseDepth;
     std::string colorspace           = get_colorspace();
+    if (iequals(colorspace, "unknown"))
+        return false;
     m_spec.set_colorspace(colorspace);
 
     // Set textureformat attribute
-    // TODO: we don't use this in ktxoutput, is this needed?
     if (m_tex->numDimensions == 2) {
         if (m_tex->numFaces > 1)
             m_spec.attribute("textureformat", "CubeFace Environment");
@@ -287,16 +274,16 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.extra_attribs.attribute("ktx:supercompressionscheme",
                                    (uint32_t)m_tex->supercompressionScheme);
     // save as string (for future use, in case KTX1 is added)
-    m_spec.extra_attribs.attribute("ktx:version", 2.0f);
+    m_spec.extra_attribs.attribute("ktx:version", "2.0");
     // Contrary to the specs' layerCount, numLayers is always >= 1
-    m_spec.extra_attribs.attribute("ktx:nlayers", m_tex->numLayers);
-    m_spec.extra_attribs.attribute("ktx:miplevels", m_tex->numLevels);
-    m_spec.extra_attribs.attribute("ktx:generatemipmaps",
-                                   m_tex->generateMipmaps);
-    // TODO: do we need this?
-    m_spec.extra_attribs.attribute("ktx:colormodel",
-                                   (uint32_t)KHR_DFDVAL(m_tex->pDfd + 1, MODEL));
-    m_spec.extra_attribs.attribute("ktx:vkformat", (uint32_t)m_tex->vkFormat);
+    if (m_tex->numLayers > 1)
+        m_spec.extra_attribs.attribute("ktx:nlayers", m_tex->numLayers);
+    if (m_tex->numFaces > 1)
+        m_spec.extra_attribs.attribute("ktx:nfaces", m_tex->numFaces);
+    if (m_tex->numLevels > 1)
+        m_spec.extra_attribs.attribute("ktx:miplevels", m_tex->numLevels);
+    if (m_tex->generateMipmaps)
+        m_spec.extra_attribs.attribute("ktx:generatemipmaps", 1);
 
     //
     // Save arbitrary metadata. KTX allows for the storage of arbitrary
@@ -360,7 +347,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 // auto char_ptr = reinterpret_cast<const char*>(val);
 
             } else if (attr_name == "KTXcubemapIncomplete") {
-                OIIO_ASSERT(vallen == 1);
+                OIIO_DASSERT(vallen == 1);
                 // TODO: handle KTXcubemapIncomplete
             } else if (attr_name == KTX_ORIENTATION_KEY) {
                 //
@@ -372,7 +359,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
                 // TODO: set orientation functions
             } else if (attr_name == "KTXglFormat") {
-                OIIO_ASSERT(vallen == sizeof(KTXglFormat) /* 12 bytes */);
+                OIIO_DASSERT(vallen == sizeof(KTXglFormat) /* 12 bytes */);
                 KTXglFormat glFormat;
                 glFormat.glInternalformat = *reinterpret_cast<uint32_t*>(val);
                 glFormat.glFormat = *(reinterpret_cast<uint32_t*>(val) + 1);
@@ -382,12 +369,12 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                     ktx_prefixed_attr_name, TypeDesc::UINT32, 3,
                     make_cspan(reinterpret_cast<const uint32_t*>(val), 3));
             } else if (attr_name == "KTXdxgiFormat__") {
-                OIIO_ASSERT(vallen == sizeof(uint32_t));
+                OIIO_DASSERT(vallen == sizeof(uint32_t));
                 m_dxgiFormat = *reinterpret_cast<uint32_t*>(val);
                 m_spec.extra_attribs.attribute(ktx_prefixed_attr_name,
                                                m_dxgiFormat.value());
             } else if (attr_name == "KTXmetalPixelFormat") {
-                OIIO_ASSERT(vallen == sizeof(uint32_t));
+                OIIO_DASSERT(vallen == sizeof(uint32_t));
                 m_metalFormat = *reinterpret_cast<uint32_t*>(val);
                 m_spec.extra_attribs.attribute(ktx_prefixed_attr_name,
                                                m_metalFormat.value());
@@ -400,24 +387,14 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
         } while ((kventry = ktxHashList_Next(kventry)));
 
-    //
-    // We only support KTX_SS_NONE, KTX_SS_ZLIB, KTX_SS_ZSTD, and
-    // KTX_SS_BASIS_LZ supercompression schemes. New schemes may be added to the
-    // spec hence why we do a strict if check.
-    //
-    if (m_tex->supercompressionScheme != KTX_SS_NONE
-        && m_tex->supercompressionScheme != KTX_SS_ZSTD
-        && m_tex->supercompressionScheme != KTX_SS_ZLIB
-        && m_tex->supercompressionScheme != KTX_SS_BASIS_LZ) {
-        // vendor-specific or newly introduced supercompression schemes (not
-        // supported)
-        errorfmt("unsuppoted supercompression scheme: {}",
+    // We don't support vendor-specific supercompression schemes
+    if (m_tex->supercompressionScheme > KTX_SS_END_RANGE) {
+        errorfmt("Unsuppoted supercompression scheme: {}",
                  static_cast<uint32_t>(m_tex->supercompressionScheme));
         return false;
     }
 
-    // Load the actual image data (pBuffer is NULL => m_tex own the buffer in
-    // which the data will be loaded)
+    // Load the actual image data (libktx owns the data buffer)
     if (auto result = ktxTexture2_LoadImageData(m_tex.get(), NULL, 0);
         result != KTX_SUCCESS) {
         errorfmt("ktxTexture2_LoadImageData returned Ktx error code: {}",
@@ -437,6 +414,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // essential properties for proper KTX2 regeneration.
     //
     if (ktxTexture2_NeedsTranscoding(m_tex.get())) {
+        // TODO: in case of HDR, use KTX_TTF_RGBA_HALF
         if (auto status = ktxTexture2_TranscodeBasis(
                 m_tex.get(), ktx_transcode_fmt_e::KTX_TTF_RGBA32, 0);
             status != KTX_SUCCESS) {
@@ -457,8 +435,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //
     //    BCn:  libktx will provide decoders/encoders for BCn block compression
     //          via ktxTexture2_DecodeBCn.
-    //          TODO: wait for my RP in libktx to get merged then add BCn
-    //          support.
+    //          TODO: wait libktx BCn PR to get merged then add BCn support.
     //
     //    ETC2: libktx provides decoders but they fall under non-open-source
     //          license. To quote KTX-Software: "The file lib/etcdec.cxx is not
@@ -479,6 +456,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             return false;
         }
         m_cmp = format_info.compression;
+        m_spec.attribute("compression", block_compression_name(m_cmp));
         switch (m_cmp) {
 #if 0  // TODO: wait for my PR in libktx to be merged
             /* BCn GPU formats */
@@ -513,7 +491,15 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 #endif
 
             /* ASTC formats */
-        case BlockCompression::ASTC:
+        case BlockCompression::ASTC: {
+            const uint32_t blocksize = get_astc_block_size(
+                static_cast<VkFormat>(m_tex->vkFormat));
+            if (blocksize == 0) {
+                errorfmt(
+                    "Failed to determine block size for ASTC-compressed texture from its VkFormat {}",
+                    m_tex->vkFormat);
+                return false;
+            }
             //
             // Note:
             // ktxTexture2_DecodeAstc internally creates a new ktxTexture2 texture
@@ -527,12 +513,13 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             //
             if (auto status = ktxTexture2_DecodeAstc(m_tex.get());
                 status != KTX_SUCCESS) {
-                errorfmt("failed to decode ASTC-compressed texture. "
+                errorfmt("Failed to decode ASTC-compressed texture. "
                          "ktxTexture2_DecodeAstc returned Ktx error code: {}",
                          static_cast<uint32_t>(status));
                 return false;
             }
             break;
+        }
 
         default:
             errorfmt("{} GPU-compressed formats are not supported",
@@ -541,7 +528,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
-    OIIO_ASSERT(!m_tex->isCompressed);
+    OIIO_DASSERT(!m_tex->isCompressed);
 
     //
     // This could mean one of the following as per the specs at:
@@ -616,7 +603,18 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.set_format(format_info.typedesc);
     m_spec.nchannels = format_info.nbrchannels;
 
-    // TODO: verify the x, y, z limits (probably not 65535)
+    if (m_tex->baseDepth > 1) {  // Volume texture are limited to 4096x4096x4096
+        if (!check_open(m_spec, { 0, 4096, 0, 4096, 0, 4096, 0, 4 }))
+            return false;
+    } else if (m_tex->numFaces
+               > 1) {  // Cubemap texture are limited to 16384x16384
+        if (!check_open(m_spec, { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 }))
+            return false;
+    } else {  // 2D texture are limited to 32768x32768
+        if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
+            return false;
+    }  // Array textures are not supported
+
     if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 65535, 0, 4 }))
         return false;
 
@@ -742,8 +740,8 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
-    OIIO_ASSERT(pitch
-                == ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel));
+    OIIO_DASSERT(pitch
+                 == ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel));
 
     // Use this in case OIIO API provides read_native_scanlines with `data` as
     // `span<std::byte>` and a `z` slice param
@@ -824,27 +822,26 @@ KtxInput::get_colorspace() const
     //  Don't use ktxTexture2_GetPrimaries_e/ktxTexture2_GetTransferFunction_e as these are only
     //  available in newer versions of libktx (>= 5.0.0, I think)
     //
-    const auto transfer_function = static_cast<khr_df_transfer_e>(
-        KHR_DFDVAL(m_tex->pDfd + 1, TRANSFER));
-    const auto primaries = static_cast<khr_df_primaries_e>(
-        KHR_DFDVAL(m_tex->pDfd + 1, PRIMARIES));
-    // std::cout << "tf: " << transfer_function << "; primaries: " << primaries
-    //           << '\n';
+    const auto transfer_function = KHR_DFDVAL(m_tex->pDfd + 1, TRANSFER);
+    const auto primaries         = KHR_DFDVAL(m_tex->pDfd + 1, PRIMARIES);
+    DBG std::cout << "tf: " << transfer_function << "; primaries: " << primaries
+                  << '\n';
     switch (transfer_function) {
     case KHR_DF_TRANSFER_SRGB:
         switch (primaries) {
         case KHR_DF_PRIMARIES_BT709: return "srgb_rec709_scene";
-        default: break;
+        default: errorfmt("Unsupported color primaries {}", primaries); break;
         }
         break;
     case KHR_DF_TRANSFER_LINEAR:
         switch (primaries) {
         case KHR_DF_PRIMARIES_BT709: return "lin_rec709_scene";
-        default: break;
+        default: errorfmt("Unsupported color primaries {}", primaries); break;
         }
         break;
-    // case KHR_DF_TRANSFER_DCIP3: colorspace = "lin_rec709_scene"; return true;
-    default: break;
+    default:
+        errorfmt("Unsupported color transfer function {}", transfer_function);
+        break;
     }
     // TODO: need to generate test files before adding support for any other
     // colorspaces
@@ -875,6 +872,67 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
 {
     const auto f = std::regex_constants::icase;
 
+    {  // BasisLZ/ETC1S params (see KTX-Software/tools/ktx/encode_utils_basis.h)
+        std::regex etc1s_clevel("--clevel\\s+(\\d+)", f);
+        std::regex etc1s_qlevel("--qlevel\\s+(\\d+)", f);
+        std::regex etc1s_max_endpoints("--max-endpoints\\s+(\\d+)", f);
+        std::regex etc1s_endpoint_rdo_threshold(
+            "--endpoint-rdo-threshold\\s+((\\d*[.])?\\d+)", f);
+        std::regex etc1s_max_selectors("--max-selectors\\s+(\\d+)", f);
+        std::regex etc1s_selector_rdo_threshold(
+            "--selector-rdo-threshold\\s+((\\d*[.])?\\d+)", f);
+        std::regex etc1s_no_endpoint_rdo_re("--no-endpoint-rdo", f);
+        std::regex etc1s_no_selector_rdo_re("--no-selector-rdo", f);
+
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, etc1s_clevel)
+                           && m.size() == 2) {
+            auto level = static_cast<uint32_t>(std::stol(m[1].str()));
+            m_spec.extra_attribs.attribute("ktx:etc1sCompressionLevel", level);
+        }
+
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, etc1s_qlevel)
+                           && m.size() == 2) {
+            auto level = static_cast<uint32_t>(std::stol(m[1].str()));
+            m_spec.extra_attribs.attribute("ktx:etc1sQualityLevel", level);
+        }
+
+        if (std::smatch m;
+            std::regex_search(ktx_sc_params, m, etc1s_max_endpoints)
+            && m.size() == 2) {
+            auto level = static_cast<uint32_t>(std::stol(m[1].str()));
+            m_spec.extra_attribs.attribute("ktx:etc1sMaxEndpoints", level);
+        }
+
+        if (std::smatch m;
+            std::regex_search(ktx_sc_params, m, etc1s_endpoint_rdo_threshold)
+            && m.size() == 2) {
+            auto val = std::stof(m[1].str());
+            m_spec.extra_attribs.attribute("ktx:etc1sEndpointRDOThreshold",
+                                           val);
+        }
+
+        if (std::smatch m;
+            std::regex_search(ktx_sc_params, m, etc1s_max_selectors)
+            && m.size() == 2) {
+            auto level = static_cast<uint32_t>(std::stol(m[1].str()));
+            m_spec.extra_attribs.attribute("ktx:etc1sMaxSelectors", level);
+        }
+
+        if (std::smatch m;
+            std::regex_search(ktx_sc_params, m, etc1s_selector_rdo_threshold)
+            && m.size() == 2) {
+            auto val = std::stof(m[1].str());
+            m_spec.extra_attribs.attribute("ktx:etc1sSelectorRDOThreshold",
+                                           val);
+        }
+
+        if (std::regex_match(ktx_sc_params, etc1s_no_endpoint_rdo_re))
+            m_spec.extra_attribs.attribute("ktx:etc1sNoEndpointRDO", true);
+
+        if (std::regex_match(ktx_sc_params, etc1s_no_selector_rdo_re))
+            m_spec.extra_attribs.attribute("ktx:etc1sNoSelectorRDO", true);
+    }
+
     {  // UASTC params (see KTX-Software/tools/ktx/encode_utils_basis.h)
         std::regex uastc_quality_re("--uastc-quality\\s+(\\d+)", f);
         std::regex uastc_rdo_re("--uastc-rdo", f);
@@ -898,7 +956,8 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
             const uint32_t uastc_flags
                 = (unsigned int)~KTX_PACK_UASTC_LEVEL_MASK | uastc_quality;
             m_spec.extra_attribs.attribute("ktx:uastcFlags", uastc_flags);
-            m_spec.extra_attribs.attribute("ktx:uastcHDRLevel", uastc_quality);
+            m_spec.extra_attribs.attribute("ktx:uastcHDRQuality",
+                                           uastc_quality);
         }
 
         if (std::regex_match(ktx_sc_params, uastc_rdo_re))
@@ -934,17 +993,16 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
         if (std::regex_match(ktx_sc_params, uastc_rdo_f_re))
             m_spec.extra_attribs.attribute("ktx:uastcRDODontFavorSimplerModes",
                                            true);
-
         if (std::regex_match(ktx_sc_params, uastc_rdo_m_re))
             m_spec.extra_attribs.attribute("ktx:uastcRDONoMultithreading",
                                            true);
 
+        if (std::regex_match(ktx_sc_params, uastc_rdo_m_re))
+            m_spec.extra_attribs.attribute("ktx:uastcHDRQuality", true);
         if (std::regex_match(ktx_sc_params, uastc_rdo_uber_mode_re))
             m_spec.extra_attribs.attribute("ktx:uastcHDRUberMode", true);
-
         if (std::regex_match(ktx_sc_params, uastc_rdo_ultra_quant_re))
             m_spec.extra_attribs.attribute("ktx:uastcHDRUltraQuant", true);
-
         if (std::regex_match(ktx_sc_params, uastc_rdo_favor_astc_re))
             m_spec.extra_attribs.attribute("ktx:uastcHDRFavorAstc", true);
 
@@ -965,31 +1023,18 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
                                            uastc_hdr_6x6i_level);
         }
     }
-#if 0
-    {  // ETC1S params (see KTX-Software/tools/ktx/encode_utils_basis.h)
-        std::regex etc1s_clevel("--clevel\\s+(\\d+)", f);
-        std::regex etc1s_qlevel("--qlevel\\s+(\\d+)", f);
-        std::regex etc1s_max_endpoints("--max-endpoints\\s+(\\d+)", f);
-        std::regex etc1s_endpoint_rdo_threshold(
-            "--endpoint-rdo-threshold\\s+((\\d*[.])?\\d+)", f);
-        std::regex etc1s_max_selectors("--max-selectors\\s+(\\d+)", f);
 
-        std::regex uastc_rdo_re("", f);
-        std::regex uastc_rdo_l_re("--uastc-rdo-l\\s+((\\d*[.])?\\d+)", f);
-        std::regex uastc_rdo_d_re("--uastc-rdo-d\\s+(\\d+)", f);
-        std::regex uastc_rdo_b_re("--uastc-rdo-b\\s+((\\d*[.])?\\d+)", f);
-        std::regex uastc_rdo_s_re("--uastc-rdo-s\\s+((\\d*[.])?\\d+)", f);
-        std::regex uastc_rdo_f_re("--uastc-rdo-f", f);
-        std::regex uastc_rdo_m_re("--uastc-rdo-m", f);
-        std::regex uastc_rdo_uber_mode_re("--uastc-hdr-uber-mode", f);
-        std::regex uastc_rdo_ultra_quant_re("--uastc-hdr-ultra-quant", f);
-        std::regex uastc_rdo_favor_astc_re("--uastc-hdr-favor-astc", f);
-        std::regex uastc_hdr_lambda_re("--uastc-hdr-lambda\\s+((\\d*[.])?\\d+)",
-                                       f);
-        std::regex uastc_hdr_6x6i_level_re("--uastc-hdr-6x6i-level\\s+(\\d+)",
-                                           f);
+    {  // Common params (see KTX-Software/tools/ktx/encode_utils_common.h)
+        std::regex common_normal_map("--normal-mode", f);
+        std::regex common_no_sse("--no-sse", f);
+
+        if (std::regex_match(ktx_sc_params, common_normal_map))
+            m_spec.extra_attribs.attribute("ktx:normalMap", true);
+        if (std::regex_match(ktx_sc_params, common_no_sse))
+            m_spec.extra_attribs.attribute("ktx:noSSE", true);
     }
-#endif
+
+    // preSwizzle and inputSwizzle are not exposed in ktx tools
 }
 
 OIIO_PLUGIN_NAMESPACE_END
