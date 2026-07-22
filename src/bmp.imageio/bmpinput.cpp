@@ -425,9 +425,19 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (m_dib_header.height >= 0)
         y = m_spec.height - y - 1;
     const int64_t scanline_off = y * m_padded_scanline_size;
+    const int64_t scanline_pos = int64_t(m_bmp_header.offset) + scanline_off;
+
+    // A corrupt header can place the scanline outside the file. The IOProxy
+    // will reject such a read, but validate the position explicitly so we
+    // fail cleanly instead of relying on a bad seek being caught downstream.
+    if (m_padded_scanline_size < 0 || scanline_pos < 0
+        || scanline_pos + m_padded_scanline_size > int64_t(ioproxy()->size())) {
+        errorfmt("Invalid scanline position in BMP file");
+        return false;
+    }
 
     fscanline.resize(m_padded_scanline_size);
-    ioseek(m_bmp_header.offset + scanline_off);
+    ioseek(scanline_pos);
     if (!ioread(fscanline.data(), m_padded_scanline_size)) {
         return false;  // Read failed
     }

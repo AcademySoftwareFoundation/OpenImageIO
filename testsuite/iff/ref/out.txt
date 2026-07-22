@@ -2,3 +2,20 @@ Comparing "../oiio-images/grid.tif" and "gridscanline.iff"
 PASS
 Comparing "../oiio-images/grid.tif" and "gridtile.iff"
 PASS
+Reading src/tiny_rgba16z.iff
+src/tiny_rgba16z.iff :    1 x    1, 5 channel, uint16/uint16/uint16/uint16/float iff
+    SHA-1: 1B90DDB531A3ABD137C5050BA7A955AD4F711B4C
+    channel list: R (uint16), G (uint16), B (uint16), A (uint16), Z (float)
+    tile size: 1 x 1
+Reading src/bad_rgba_chunk_size.iff
+oiiotool ERROR: -info : SHA-1: nonsensical RGBA chunk size 0 (must be > 8)
+Full command line was:
+> oiiotool --info -v -a --hash src/bad_rgba_chunk_size.iff
+src/bad_rgba_chunk_size.iff :   64 x   64, 3 channel, uint16 iff
+    channel list: R, G, B
+    tile size: 1 x 1
+    compression: "rle"
+oiiotool ERROR: read : "src/zbuffer_only.iff": IFF error ZBUFFER-only (Z-depth) images are not supported
+IFF error could not read header
+Full command line was:
+> oiiotool --info -v -a --hash src/zbuffer_only.iff

@@ -286,13 +286,17 @@ declare_texturesystem(py::module& m)
             "imagespec",
             [](TextureSystemWrap& ts, const std::string& filename,
                int subimage) -> py::object {
-                py::gil_scoped_release gil;
-                const ImageSpec* spec
-                    = ts.m_texsys->imagespec(ustring(filename), subimage);
-                if (!spec) {
+                const ImageSpec* spec_ptr = nullptr;
+                {
+                    py::gil_scoped_release gil;
+                    spec_ptr = ts.m_texsys->imagespec(ustring(filename),
+                                                      subimage);
+                }
+                if (!spec_ptr) {
                     return py::none();
                 }
-                return py::object(py::cast(*spec));
+                ImageSpec spec = *spec_ptr;
+                return py::cast(spec);
             },
             "filename"_a, "subimage"_a = 0)
         .def(

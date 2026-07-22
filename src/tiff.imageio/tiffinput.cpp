@@ -259,7 +259,7 @@ private:
     void bit_convert(int n, const unsigned char* in, int inbits, void* out,
                      int outbits);
 
-    void invert_photometric(int n, void* data);
+    void invert_photometric(imagesize_t n, void* data);
 
     const TIFFField* find_field(int tifftag, TIFFDataType tifftype = TIFF_ANY)
     {
@@ -1021,7 +1021,16 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
             return false;
         }
         if (!check_open(m_spec,
-                        { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 16 }))
+                        { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
+            return false;
+
+        // Guard against decompression bombs / corrupt headers: a tiny file
+        // claiming a multi-gigabyte image, which would then make the strip/
+        // scanline readers below allocate and attempt to fill gigabytes of
+        // pixel data.
+        imagesize_t filesize = ioproxy() ? ioproxy()->size()
+                                         : Filesystem::file_size(m_filename);
+        if (!check_compression_ratio(m_spec, filesize))
             return false;
         m_subimage = orig_subimage;
         m_miplevel = miplevel;
@@ -1862,12 +1871,12 @@ TIFFInput::bit_convert(int n, const unsigned char* in, int inbits, void* out,
 
 
 void
-TIFFInput::invert_photometric(int n, void* data)
+TIFFInput::invert_photometric(imagesize_t n, void* data)
 {
     switch (m_spec.format.basetype) {
     case TypeDesc::UINT8: {
         unsigned char* d = (unsigned char*)data;
-        for (int i = 0; i < n; ++i)
+        for (imagesize_t i = 0; i < n; ++i)
             d[i] = 255 - d[i];
         break;
     }
@@ -2048,6 +2057,9 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     }
 
     // Handle less-than-full bit depths
+    bool use_scratch_dest = m_separate
+                            || (m_photometric == PHOTOMETRIC_SEPARATED
+                                && !m_raw_color);
     if (m_bitspersample < 8) {
         // m_scratch now holds nvals n-bit values, contig or separate
         m_scratch2.resize(input_bytes);
@@ -2055,7 +2067,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate
+                        use_scratch_dest
                             ? &m_scratch[plane_bytes * c]
                             : (unsigned char*)data.data() + plane_bytes * c,
                         8);
@@ -2066,7 +2078,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate
+                        use_scratch_dest
                             ? &m_scratch[plane_bytes * c]
                             : (unsigned char*)data.data() + plane_bytes * c,
                         16);
@@ -2077,7 +2089,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
         for (int c = 0; c < planes; ++c) /* planes==1 for contig */
             bit_convert(m_separate ? m_spec.width : nvals,
                         &m_scratch2[plane_bytes * c], m_bitspersample,
-                        m_separate
+                        use_scratch_dest
                             ? &m_scratch[plane_bytes * c]
                             : (unsigned char*)data.data() + plane_bytes * c,
                         32);
@@ -2232,20 +2244,23 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // Make room for, and read the raw (still compressed) strips. As each
     // one is read, kick off the decompress and any other extras, to execute
     // in parallel.
-    task_set tasks(pool);
     bool ok        = true;  // failed compression will stash a false here
     int y          = ybegin;
     size_t ystride = m_spec.scanline_bytes(true);
     int stripchans = m_separate ? 1 : m_spec.nchannels;  // chans in each strip
     int planes     = m_separate ? m_spec.nchannels : 1;  // color planes
     // N.B. "separate" planarconfig stores only one channel in a strip
-    int stripvals = m_spec.width * stripchans
-                    * m_rowsperstrip;  // values in a strip
+    // Be careful of 32 bit overflow.
+    imagesize_t stripvals = imagesize_t(m_spec.width) * stripchans
+                            * m_rowsperstrip;  // values in a strip
     imagesize_t strip_bytes = stripvals * m_spec.format.size();
     size_t cbound           = compressBound((uLong)strip_bytes);
     std::unique_ptr<char[]> compressed_scratch;
     std::unique_ptr<char[]> separate_tmp(
         m_separate ? new char[strip_bytes * nstrips * planes] : nullptr);
+    // It's important to declare tasks last so everything else captured by the
+    // lambda will survive the ~task_set() wait for the queued work.
+    task_set tasks(pool);
 
     if (read_raw_strips) {
         // Make room for, and read the raw (still compressed) strips. As each
@@ -2292,9 +2307,10 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         int strips_in_file = (m_spec.height + m_rowsperstrip - 1)
                              / m_rowsperstrip;
         for (size_t stripidx = 0; y < yend; y += m_rowsperstrip, ++stripidx) {
-            int myrps       = std::min(yend - y, m_rowsperstrip);
-            int strip_endy  = std::min(y + m_rowsperstrip, yend);
-            int mystripvals = m_spec.width * stripchans * (strip_endy - y);
+            int myrps               = std::min(yend - y, m_rowsperstrip);
+            int strip_endy          = std::min(y + m_rowsperstrip, yend);
+            imagesize_t mystripvals = imagesize_t(m_spec.width) * stripchans
+                                      * (strip_endy - y);
             imagesize_t mystrip_bytes = mystripvals * m_spec.format.size();
             for (int c = 0; c < planes; ++c) {
                 tstrip_t stripnum = ((y - m_spec.y) / m_rowsperstrip)
@@ -2330,13 +2346,16 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // If we have left over scanlines, read them serially
     m_next_scanline = y - m_spec.y;
     for (; y < yend; ++y) {
-        bool ok = read_native_scanline_locked(subimage, miplevel, y, data);
-        if (!ok)
-            return false;
+        if (!read_native_scanline_locked(subimage, miplevel, y, data)) {
+            ok = false;
+            break;
+            // Note: it's important to break and not return here, so that we
+            // don't bypass the tasks.wait().
+        }
         data = data.subspan(ystride);
     }
     tasks.wait();
-    return true;
+    return ok;
 }
 
 

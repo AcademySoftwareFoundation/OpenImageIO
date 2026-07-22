@@ -29,7 +29,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.1)
  * zlib >= 1.2.7 (tested through 1.3.2)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.1 and master).
+ * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.2 and master).
    If not found at build time, this will be automatically downloaded and built.
  * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
    through 1.4, which is the recommended version). If not found at build time,
@@ -63,7 +63,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * TBB >= 2018 (tested through 2021 and OneTBB)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
-     * OpenCV 4.x (tested through 4.13)
+     * OpenCV 4.x or 5.x (tested through 5.0)
  * If you want support for GIF images:
      * giflib >= 5.0 (tested through 6.1.2)
  * If you want support for HEIF/HEIC or AVIF images:
@@ -81,14 +81,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
      * libultrahdr >= 1.3 (tested through 1.4)
  * If you want support for JPEG XL images:
-     * libjxl >= 0.10.1 (tested through 0.11.2)
+     * libjxl >= 0.10.1 (tested through 0.12.0)
  * If you want support for j2c files:
-     * OpenJPH >= 0.21.2 (tested through 0.26)
+     * OpenJPH >= 0.21.2 (tested through 0.30)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
    embedding other projects), then just build with `-DUSE_EXTERNAL_PUGIXML=1`.
-   Any PugiXML >= 1.8 should be fine (we have tested through 1.15).
+   Any PugiXML >= 1.11 should be fine (we have tested through 1.16).
 
 
 

@@ -56,44 +56,42 @@ ImageSpec_getattribute_typed(const ImageSpec& spec, const std::string& name,
 
 
 void
-declare_imagespec(py::module& m)
+declare_imagespec(py_module& m)
 {
-    using namespace pybind11::literals;
-
     py::class_<ImageSpec>(m, "ImageSpec")
-        .def_readwrite("x", &ImageSpec::x)
-        .def_readwrite("y", &ImageSpec::y)
-        .def_readwrite("z", &ImageSpec::z)
-        .def_readwrite("width", &ImageSpec::width)
-        .def_readwrite("height", &ImageSpec::height)
-        .def_readwrite("depth", &ImageSpec::depth)
-        .def_readwrite("full_x", &ImageSpec::full_x)
-        .def_readwrite("full_y", &ImageSpec::full_y)
-        .def_readwrite("full_z", &ImageSpec::full_z)
-        .def_readwrite("full_width", &ImageSpec::full_width)
-        .def_readwrite("full_height", &ImageSpec::full_height)
-        .def_readwrite("full_depth", &ImageSpec::full_depth)
-        .def_readwrite("tile_width", &ImageSpec::tile_width)
-        .def_readwrite("tile_height", &ImageSpec::tile_height)
-        .def_readwrite("tile_depth", &ImageSpec::tile_depth)
-        .def_readwrite("nchannels", &ImageSpec::nchannels)
-        .def_readwrite("format", &ImageSpec::format)
-        .def_property(
+        .OIIO_PY_RW("x", &ImageSpec::x)
+        .OIIO_PY_RW("y", &ImageSpec::y)
+        .OIIO_PY_RW("z", &ImageSpec::z)
+        .OIIO_PY_RW("width", &ImageSpec::width)
+        .OIIO_PY_RW("height", &ImageSpec::height)
+        .OIIO_PY_RW("depth", &ImageSpec::depth)
+        .OIIO_PY_RW("full_x", &ImageSpec::full_x)
+        .OIIO_PY_RW("full_y", &ImageSpec::full_y)
+        .OIIO_PY_RW("full_z", &ImageSpec::full_z)
+        .OIIO_PY_RW("full_width", &ImageSpec::full_width)
+        .OIIO_PY_RW("full_height", &ImageSpec::full_height)
+        .OIIO_PY_RW("full_depth", &ImageSpec::full_depth)
+        .OIIO_PY_RW("tile_width", &ImageSpec::tile_width)
+        .OIIO_PY_RW("tile_height", &ImageSpec::tile_height)
+        .OIIO_PY_RW("tile_depth", &ImageSpec::tile_depth)
+        .OIIO_PY_RW("nchannels", &ImageSpec::nchannels)
+        .OIIO_PY_RW("format", &ImageSpec::format)
+        .OIIO_PY_PROP_RW(
             "channelformats",
             [](const ImageSpec& spec) {
                 return ImageSpec_get_channelformats(spec);
             },
             &ImageSpec_set_channelformats)
-        .def_property("channelnames", &ImageSpec_get_channelnames,
-                      &ImageSpec_set_channelnames)
-        .def_readwrite("alpha_channel", &ImageSpec::alpha_channel)
-        .def_readwrite("z_channel", &ImageSpec::z_channel)
-        .def_readwrite("deep", &ImageSpec::deep)
-        .def_readwrite("extra_attribs", &ImageSpec::extra_attribs)
+        .OIIO_PY_PROP_RW("channelnames", &ImageSpec_get_channelnames,
+                         &ImageSpec_set_channelnames)
+        .OIIO_PY_RW("alpha_channel", &ImageSpec::alpha_channel)
+        .OIIO_PY_RW("z_channel", &ImageSpec::z_channel)
+        .OIIO_PY_RW("deep", &ImageSpec::deep)
+        .OIIO_PY_RW("extra_attribs", &ImageSpec::extra_attribs)
 
-        .def_property("roi", &ImageSpec::roi, &ImageSpec::set_roi)
-        .def_property("roi_full", &ImageSpec::roi_full,
-                      &ImageSpec::set_roi_full)
+        .OIIO_PY_PROP_RW("roi", &ImageSpec::roi, &ImageSpec::set_roi)
+        .OIIO_PY_PROP_RW("roi_full", &ImageSpec::roi_full,
+                         &ImageSpec::set_roi_full)
 
         .def(py::init<>())
         .def(py::init<int, int, int, TypeDesc>())
@@ -161,7 +159,7 @@ declare_imagespec(py::module& m)
                                  int chan) { return spec.channelformat(chan); })
         .def("channel_name",
              [](const ImageSpec& spec, int chan) {
-                 return PY_STR(std::string(spec.channel_name(chan)));
+                 return oiio_py::str(std::string(spec.channel_name(chan)));
              })
         .def("channelindex",
              [](const ImageSpec& spec, const std::string& name) {
@@ -202,7 +200,7 @@ declare_imagespec(py::module& m)
             "get_string_attribute",
             [](const ImageSpec& spec, const std::string& name,
                const std::string& def) {
-                return PY_STR(
+                return oiio_py::str(
                     std::string(spec.get_string_attribute(name, def)));
             },
             "name"_a, "defaultval"_a = "")
@@ -210,8 +208,8 @@ declare_imagespec(py::module& m)
             "get_bytes_attribute",
             [](const ImageSpec& spec, const std::string& name,
                const std::string& def) {
-                return py::bytes(
-                    std::string(spec.get_string_attribute(name, def)));
+                std::string s(spec.get_string_attribute(name, def));
+                return py::bytes(s.data(), s.size());
             },
             "name"_a, "defaultval"_a = "")
         .def("getattribute", &ImageSpec_getattribute_typed, "name"_a,
@@ -221,7 +219,8 @@ declare_imagespec(py::module& m)
             [](const ImageSpec& self, const std::string& key, py::object def) {
                 ParamValue tmpparam;
                 auto p = self.find_attribute(key, tmpparam);
-                return p ? make_pyobject(p->data(), p->type(), 1, def) : def;
+                return p ? make_pyobject(p->data(), p->type(), 1, def)
+                         : oiio_py::return_object(def);
             },
             "key"_a, "default"_a = py::none())
         .def(
@@ -235,7 +234,8 @@ declare_imagespec(py::module& m)
         .def_static(
             "metadata_val",
             [](const ParamValue& p, bool human) {
-                return PY_STR(ImageSpec::metadata_val(p, human));
+                return oiio_py::str(
+                    std::string(ImageSpec::metadata_val(p, human)));
             },
             "param"_a, "human"_a = false)
         .def(
@@ -252,12 +252,17 @@ declare_imagespec(py::module& m)
                     verb = ImageSpec::SerialDetailed;
                 else if (Strutil::iequals(verbose, "detailedhuman"))
                     verb = ImageSpec::SerialDetailedHuman;
-                return PY_STR(spec.serialize(fmt, verb));
+                return oiio_py::str(std::string(spec.serialize(fmt, verb)));
             },
             "format"_a = "text", "verbose"_a = "detailed")
         .def("to_xml",
-             [](const ImageSpec& spec) { return PY_STR(spec.to_xml()); })
-        .def("from_xml", &ImageSpec::from_xml)
+             [](const ImageSpec& spec) {
+                 return oiio_py::str(std::string(spec.to_xml()));
+             })
+        .def("from_xml",
+             [](ImageSpec& self, const std::string& xml) {
+                 self.from_xml(xml.c_str());
+             })
         .def(
             "valid_tile_range",
             [](ImageSpec& self, int xbegin, int xend, int ybegin, int yend,
@@ -280,7 +285,8 @@ declare_imagespec(py::module& m)
                  ParamValue tmpparam;
                  auto p = self.find_attribute(key, tmpparam);
                  if (p == nullptr)
-                     throw py::key_error("key '" + key + "' does not exist");
+                     oiio_py::throw_key_error("key '" + key
+                                              + "' does not exist");
                  return make_pyobject(p->data(), p->type());
              })
         // __setitem__ is the dict-like `ImageSpec[key] = value` assignment

@@ -109,6 +109,7 @@ private:
     int m_outputchans;             // Number of channels for the output
     bool m_convert_rgb_to_cmyk;
     bool m_bigtiff;  // force bigtiff
+    bool m_allow_half = false;
 
     // Initialize private members to pre-opened state
     void init(void)
@@ -123,6 +124,7 @@ private:
         m_outputchans         = 0;
         m_convert_rgb_to_cmyk = false;
         m_bigtiff             = false;
+        m_allow_half          = false;
         ioproxy_clear();
     }
 
@@ -473,7 +475,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     closetif();
 
     if (!check_open(mode, userspec,
-                    { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 1 << 16 }))
+                    { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
         return false;
 
     // Check for things this format doesn't support
@@ -509,6 +511,13 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     m_bigtiff |= m_spec.image_bytes() > (4000LL * 1024LL * 1024LL);
     const char* openmode = m_bigtiff ? (mode == AppendSubimage ? "a8" : "w8")
                                      : (mode == AppendSubimage ? "a" : "w");
+
+    if (m_spec.format == TypeDesc::HALF) {
+        // Look for hints about whether half output is allowed
+        m_allow_half
+            = m_spec.get_int_attribute("tiff:half",
+                                       OIIO::get_int_attribute("tiff:half"));
+    }
 
     // Open the file
 #if OIIO_TIFFLIB_VERSION >= 40500
@@ -625,8 +634,7 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
         // unless the "tiff:half" attribute is nonzero -- use the global
         // OIIO attribute, but override with a specific attribute for this
         // file.
-        if (m_spec.get_int_attribute("tiff:half",
-                                     OIIO::get_int_attribute("tiff:half"))) {
+        if (m_allow_half) {
             m_bitspersample = 16;
         } else {
             // Silently change requests for unsupported 'half' to 'float'

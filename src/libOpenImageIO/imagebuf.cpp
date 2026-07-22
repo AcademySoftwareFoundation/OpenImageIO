@@ -543,9 +543,13 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
             // N.B. new_pixels will set m_bufspan
         }
     } else {
-        // Source was cache-based or deep
-        // nothing else to do
-        m_bufspan = {};
+        // Source was cache-based or deep. There are no local pixels to copy,
+        // but for a cache-backed source we must preserve src's bufspan, which
+        // carries null data but valid (pixel_bytes) strides. retile() relies
+        // on m_bufspan.xstride() to address pixels within a cache tile; a
+        // default-constructed (zeroed-stride) bufspan would make every pixel
+        // resolve to tile offset 0 and read back as a constant color.
+        m_bufspan = src.m_bufspan;
     }
     if (localpixels() || m_spec.deep) {
         // A copied ImageBuf is no longer a direct file reference, so clear

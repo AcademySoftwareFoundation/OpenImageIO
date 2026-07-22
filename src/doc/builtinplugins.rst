@@ -267,6 +267,7 @@ DPX (Digital Picture Exchange) is an image file format used for
 motion picture film scanning, output, and digital intermediates.
 DPX files use the file extension :file:`.dpx`.
 
+Full specs can be found at https://pub.smpte.org/doc/268/
 
 **Configuration settings for DPX input**
 
@@ -2623,7 +2624,11 @@ options are supported:
        initialization. This populates the image attributes which depend on the
        pixel values.
        (Default: 0)
-
+   * - ``raw:bad_pixels``
+     - string
+     - A path to a file containing the list of bad pixels in libraw format:
+       a plain text where each line describes a single bad pixel using three
+       numbers separated by whitespace for the column, row and UNIX timestamp.
 |
 
 .. _sec-bundledplugins-rla:

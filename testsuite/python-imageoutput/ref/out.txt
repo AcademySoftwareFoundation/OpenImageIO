@@ -6,6 +6,39 @@ Copied tiled.tif to grid-tile.tif as tile (memformat float outformat unknown )
 Copied tiled.tif to grid-tiles.tif as tiles (memformat float outformat unknown )
 Copied scanline.tif to grid-image.tif as image (memformat uint8 outformat uint16 )
 Copied scanline.tif to grid-half.exr as image (memformat half outformat half )
+Testing format_name and supports:
+  create succeeded: True
+  format_name is tiff: True
+  supports tiles truthy: True
+  supports returns numeric: True
+
+Testing create() invalid format:
+  invalid create returns None: True
+
+Testing open() bad mode:
+  bad mode: ValueError
+
+Testing write path errors:
+  tile on scanline fails: True
+  tile on scanline error nonempty: True
+  scanline on tiled fails: True
+  short buffer fails: True
+
+Testing copy_image:
+  copy_image ok: True
+
+Testing set_thumbnail:
+  set_thumbnail returned bool: True
+
+Testing AppendMIPLevel:
+  AppendMIPLevel ok: True
+
+Testing has_error/geterror on instance:
+  has_error after bad write: True
+  geterror persists: True
+  geterror clear returns message: True
+  has_error after clear: False
+
 Done.
 Comparing "grid-image.tif" and "../common/grid.tif"
 PASS
@@ -20,6 +53,8 @@ PASS
 Comparing "grid-tiles.tif" and "../common/grid.tif"
 PASS
 Comparing "grid-half.exr" and "../common/grid.tif"
+PASS
+Comparing "copy_image.tif" and "../common/grid.tif"
 PASS
 Comparing "multipart.exr" and "ref/multipart.exr"
 PASS

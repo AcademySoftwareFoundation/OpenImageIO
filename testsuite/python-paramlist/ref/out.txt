@@ -11,6 +11,9 @@ Testing individual ParamValue:
   item u8unsized uint8[10] [49 50 51 52 53 54 55 56 57 48]
   item u8fix_n2 uint8[2] [ 97  98  99 100 101 102]
   item u8var_n2 uint8[4] [49 50 51 52 53 54 55 56]
+ParamValue conversion helper checks:
+Passed: ParamValue tuple to float[4]
+Passed: ParamValue numpy float buffer to color
 
 Testing ParamValueList:
 pl length is 9

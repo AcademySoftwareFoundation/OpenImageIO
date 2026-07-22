@@ -757,20 +757,25 @@ ImageInput::create(string_view filename, bool do_open, const ImageSpec* config,
             }
             if (!in)
                 continue;
-            if (!do_open) {
-                if ((ioproxy && in->supports("ioproxy")
-                     && !in->valid_file(ioproxy))
-                    || (!ioproxy && !filename.empty()
-                        && !in->valid_file(filename))) {
-                    // Since we didn't need to open it, we just checked whether
-                    // it was a valid file, and it's not.  Try the next one.
-                    if (OIIO::pvt::oiio_print_debug > 1)
-                        OIIO::debugfmt(
-                            "ImageInput::create: \"{}\" did not open using format \"{}\" {} [valid_file was false].\n",
-                            filename, plugin->first, in->format_name());
-                    in.reset();
-                    continue;
-                }
+
+            // It can be quite expensive to do a full open() on each file
+            // type. So if the obvious one failed already, as we're checking
+            // the rest, try their valid_file method first, and if it fails,
+            // don't proceed to the full open. (If it succeeds, though, we
+            // will try a full open, so that should really incentivize us to
+            // ensure that every format class has a valid_file method, or this
+            // will be expensive since it will open twice.)
+            if ((ioproxy && in->supports("ioproxy") && !in->valid_file(ioproxy))
+                || (!ioproxy && !filename.empty()
+                    && !in->valid_file(filename))) {
+                // Since we didn't need to open it, we just checked whether
+                // it was a valid file, and it's not.  Try the next one.
+                if (OIIO::pvt::oiio_print_debug > 1)
+                    OIIO::debugfmt(
+                        "ImageInput::create: \"{}\" did not open using format \"{}\" {} [valid_file was false].\n",
+                        filename, plugin->first, in->format_name());
+                in.reset();
+                continue;
             }
 
             // We either need to open it, or we already know it appears

@@ -1118,6 +1118,9 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     // if (m_miplevel == 0 && part.nmiplevels > 1)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 }))
+        return false;
+
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
         return true;
     }
@@ -1532,13 +1535,18 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
                                       * size_t((xend - xbegin + tilew - 1)
                                                / tilew));
 
+    // Destination row stride is the caller's requested rectangle width, not
+    // the padded whole-tile width (would overrun the buffer on a partial edge
+    // tile) and not the level-clamped width (would pack rows too tightly for
+    // a valid tile-aligned xend past the edge, per ImageSpec::valid_tile_range).
+    int requested_xend   = xend;
+    size_t scanlinebytes = size_t(requested_xend - xbegin) * pixelbytes;
+
     xend        = std::min(xend, spec.x + levw);
     yend        = std::min(yend, spec.y + levh);
     zend        = std::min(zend, spec.z + spec.depth);
     int nxtiles = (xend - xbegin + tilew - 1) / tilew;
     int nytiles = (yend - ybegin + tileh - 1) / tileh;
-
-    size_t scanlinebytes = size_t(nxtiles) * size_t(tilew) * pixelbytes;
 
     DBGEXR(
         "exr rnt {}:{}:{} ({}-{}|{}x{})[{}-{}] -> t {}, {} n {}, {} pb {} sb {} tsz {}x{}\n",

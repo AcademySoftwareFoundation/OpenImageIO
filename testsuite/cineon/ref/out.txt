@@ -33,3 +33,9 @@ Reading ../oiio-images/cineon/checker.cin
     cineon:YOffset: 0
     oiio:BitsPerSample: 10
     oiio:ColorSpace: "KodakLog"
+oiiotool ERROR: read : "src/broken_bitdepth.cin": Invalid number of channels 255 (must be 1-8)
+Full command line was:
+> oiiotool --info --hash src/broken_bitdepth.cin
+oiiotool ERROR: read : "src/broken_bitdepth2.cin": Invalid bitdepth in channel 0: 26 bits
+Full command line was:
+> oiiotool --info --hash src/broken_bitdepth2.cin

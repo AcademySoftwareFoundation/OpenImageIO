@@ -35,14 +35,44 @@ possible.
 
 ## What do we consider a vulnerability?
 
-We only consider a situation to be a security vulnerability if an untrusted
-party can plausibly trigger the flaw through normal product inputs (for
-example, a maliciously crafted input image). We do not support requesting a
-CVE for API-only or caller-controlled failures with no realistic adversarial
-path.
+A true vulnerability, by our definition, requires the following:
+- It allows arbitrary code execution, privilege escalation, exfiltration of
+  secrets beyond network boundaries, destruction of data or equipment, or
+  similarly serious outcome.
+- It can be plausibly exploited by an untrusted party through normal product
+  inputs (for example, a maliciously crafted input image).
 
-Flaws whose root cause lies in a dependency should be reported and fixed
-upstream; the upstream project owns the CVE when one is warranted.
+We would like to hear about these through the confidential GitHub
+vulnerability reporting mechanism described above.
+
+The following are examples of problems that we DO NOT consider
+vulnerabilities:
+- A crash or program termination that does not directly present the
+  opportunity for further exploits. This includes hardening assertions that
+  terminate the program rather than allow undefined behavior.
+- Out-of-memory errors, as long as the program terminates in a reasonable
+  amount of time. (But if a tiny crafted input can make it loop infinitely or
+  spin for minutes, then it might qualify as a DOS vulnerability. Use your
+  best judgment.)
+- Misuse or incorrect use of the APIs. We consider all programs directly using
+  OIIO's APIs to be trusted.
+- Flaws whose root cause lies in a dependency. These should be reported and
+  fixed upstream; the upstream project owns the CVE when one is warranted.
+
+Please do not use the GitHub vulnerability reporting mechanism for these, and
+instead file ordinary Issues and PRs. We do not support requesting a CVE for
+these kinds of problems.
+
+Users operating in an environment in which it might encounter untrusted inputs
+that could be malicious, and are be running in a situation where real damage
+could occur are expected to:
+- Enable all the OpenImageIO build-time options for safety checks, hardening,
+  etc. A problem that only occurs when these are disabled is not considered a
+  vulnerability.
+- Ensure that all the dependencies OIIO builds against are on their latest
+  patched versions, and not rely on the OS distribution default, or even
+  OIIO's own "dependency auto-build" scripts. A problem that depends on
+  having anything but the lastest dependencies is not an OIIO vulnerbility.
 
 
 ## Other security features
@@ -66,6 +96,15 @@ None known
 
 Most recent fixes listed first, more or less:
 
+- CVE-2026-63638: Cineon invalid bit depth heap out-of-bounds write [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-9hxv-jvgr-3x8g) / [Fix: PR #5283](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5283) (fixed in 3.1.16.0)
+- CVE-2026-63635: PSD RawColor invalid color mode causes global out-of-bounds read and allocation DoS [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-3c8w-9xvm-r6gf) / [Fix: PR #5282](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5282) (fixed in 3.1.16.0)
+- CVE-2026-63635: PSD RawColor invalid color mode causes global out-of-bounds read and allocation DoS [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-3c8w-9xvm-r6gf) / [Fix: PR #5282, 3.1.16.0](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5282) (fixed in 3.1.16.0)
+- CVE-2026-63422 OpenEXR plugin partial edge tile heap out-of-bounds write [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-xh5r-whph-qmc5) / [Fix: PR #5295](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5295) (fixed in 3.1.16.0)
+- CVE-2026-63420: PSD RawColor indexed image out-of-bounds read in `interleave_row` [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-x877-h4xx-5m5j) / [Fix: PR #5307](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5307)  (fixed in 3.1.16.0)
+- CVE-2026-63419: OpenImageIO IFF ZBUFFER tile read writes past caller tile buffer [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-w6wc-gcf4-5pj2) / [Fix: PR #5268](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5268) (fixed in 3.1.16.0)
+- CVE-2026-59956: Heap-buffer-overread in IffInput::readimg() when ZBUFFER flag is set [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-hjfv-gvxc-qgvh) / [Fix: PR #5251](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5251) (fixed in 3.0.20.0, 3.1.15.0)
+- CVE-2026-59181: Stack buffer overflow in OpenImageIO Cineon reader via unchecked numberOfElements [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-xh8r-vmqq-56pp) / [Fix: PR #5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250) (fixed in 3.0.20.0, 3.1.15.0)
+- CVE-2026-59156: Unbounded recursion in FITS header parser leads to stack overflow [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-xvwr-x6ch-v2fq) / [Fix: PR #5248](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5248) (fixed in 3.0.20.0, >= 3.1.15.0)
 - CVE-2026-50291: Segmentation Fault in BmpInput::read_native_scanline / [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-q3c7-3225-66h7) / [Fix: PR #5030](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5030) (Fixed in 3.0.16.0, 3.1.11.0)
 - CVE-2026-43909: Signed integer overflow in SwapRGBABytes loop index leads to out-of-bounds read/write in DPX ABGR decoder / [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-g267-j53j-5258) / [Fix: PR5170](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5170) (Fixed in 3.0.18.1, 3.1.13.1)
 - CVE-2026-43908: Signed integer overflow in ConvertCbYCrYToRGB leads to heap out-of-bounds write in DPX 4:2:2 decoder / [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-2jr5-q49v-3858) / [Fix: PR5170](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5170) (Fixed in 3.0.18.1, 3.1.13.1)
@@ -95,3 +134,5 @@ Most recent fixes listed first, more or less:
 - TALOS-2022-1629, CVE-2022-36354: RLA potential buffer overrun. [#3624](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3624) (2.4.5/2.5.0.0)
 - TALOS-2022-1628, CVE-2022-41981: Targa file string overflow safety. [#3622](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3622) (2.4.5/2.5.0.0)
 - TALOS-2022-1630, CVE-2022-38143: Protect against corrupt pixel coordinates while reading BMP files. [#3620](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/3620) (by lgritz) (Fixed in 2.4.5/2.5.0.0)
+<!-- - CVE-xxx: description [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-yyy) / [Fix: PR #nnnn](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/nnnn)
+-->

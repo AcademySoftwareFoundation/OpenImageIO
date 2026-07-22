@@ -618,6 +618,18 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
             m_nchans++;
     }
 
+    // Sanity-check the native bytes-per-pixel for uncompressed formats. The
+    // largest real uncompressed DDS/DXGI pixel format is 128-bit (16 bytes per
+    // pixel); a larger value comes from a corrupt bpp or format field and would
+    // otherwise drive a wildly oversized allocation in internal_readimg(). This
+    // is not caught by the core resolution/imagesize limits, which only see the
+    // (small) output ImageSpec, not the native pixel size.
+    if (m_compression == Compression::None && (m_Bpp < 1 || m_Bpp > 16)) {
+        errorfmt("Invalid DDS bytes-per-pixel ({}). Possible corrupt input?",
+                 m_Bpp);
+        return false;
+    }
+
     // fix depth, pitch and mipmaps for later use, if needed
     if (!(m_dds.fmt.flags & DDS_PF_FOURCC && m_dds.flags & DDS_PITCH))
         m_dds.pitch = m_dds.width * m_Bpp;
@@ -997,7 +1009,8 @@ DDSInput::internal_readimg(unsigned char* dst, size_t w, size_t h, size_t d)
                 size_t k = (z * h * w + y * w) * m_spec.nchannels;
                 for (size_t x = 0; x < w; x++, k += m_spec.nchannels) {
                     uint32_t pixel = 0;
-                    memcpy(&pixel, tmp.get() + x * m_Bpp, m_Bpp);
+                    memcpy(&pixel, tmp.get() + x * m_Bpp,
+                           std::min(m_Bpp, (int)sizeof(pixel)));
                     for (int ch = 0; ch < m_spec.nchannels; ++ch) {
                         dst[k + ch]
                             = bit_range_convert((pixel & m_dds.fmt.masks[ch])

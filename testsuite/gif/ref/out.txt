@@ -106,3 +106,9 @@ tahoe-tiny.gif       :  128 x   96, 4 channel, uint8 gif
     oiio:ColorSpace: "srgb_rec709_scene"
     oiio:LoopCount: 0
     oiio:Movie: 1
+oiiotool ERROR: read : "src/crash_4163.gif": Wrong record type detected
+Full command line was:
+> oiiotool -nostderr -oiioattrib try_all_readers 0 src/crash_4163.gif -o test.exr
+oiiotool ERROR: read : "src/gif_idx_overflow_32768x16385_top16384_1x1.gif": GIF image canvas is too large
+Full command line was:
+> oiiotool --info -oiioattrib try_all_readers 0 src/gif_idx_overflow_32768x16385_top16384_1x1.gif

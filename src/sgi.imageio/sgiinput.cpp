@@ -50,7 +50,7 @@ private:
 
     // read channel scanline data from file, uncompress it and save the data
     // to 'outbuf' buffer. Return true if ok, false if there was a read error.
-    bool uncompress_rle_channel(int scanline_off, int scanline_len,
+    bool uncompress_rle_channel(int64_t scanline_off, int64_t scanline_len,
                                 span<unsigned char> outbf);
 };
 
@@ -188,7 +188,7 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!seek_subimage(subimage, miplevel))
         return false;
 
-    if (y < 0 || y > m_spec.height)
+    if (y < 0 || y >= m_spec.height)
         return false;
 
     y = m_spec.height - y - 1;
@@ -199,9 +199,9 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // reading and uncompressing first channel (red in RGBA images)
         for (int c = 0; c < m_spec.nchannels; ++c) {
             // offset for this scanline/channel
-            ptrdiff_t off             = y + c * m_spec.height;
-            ptrdiff_t scanline_offset = start_tab[off];
-            ptrdiff_t scanline_length = length_tab[off];
+            ptrdiff_t off           = y + c * m_spec.height;
+            int64_t scanline_offset = start_tab[off];
+            int64_t scanline_length = length_tab[off];
             channeldata[c].resize(m_spec.width * bpc);
             if (!uncompress_rle_channel(scanline_offset, scanline_length,
                                         make_span(channeldata[c])))
@@ -245,10 +245,16 @@ SgiInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
 
 
 bool
-SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
+SgiInput::uncompress_rle_channel(int64_t scanline_off, int64_t scanline_len,
                                  span<unsigned char> outbuf)
 {
-    int bpc = m_sgi_header.bpc;
+    int bpc          = m_sgi_header.bpc;
+    int64_t filesize = ioproxy() ? ioproxy()->size() : 0;
+    if (scanline_off < 0 || scanline_len < 0 || scanline_off > filesize
+        || scanline_len > filesize - scanline_off) {
+        errorfmt("Corrupt RLE offset/length table");
+        return false;
+    }
     std::unique_ptr<unsigned char[]> rle_scanline_alloc(
         new unsigned char[scanline_len]);
     auto rle_scanline = make_span(rle_scanline_alloc.get(), scanline_len);
@@ -261,7 +267,7 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
     int i     = 0;
     int iout  = 0;
     if (bpc == 1) {
-        // 1 bit per channel
+        // 1 byte per channel
         while (i < scanline_len) {
             // Read a byte, it is the count.
             unsigned char value = rle_scanline[i++];
@@ -294,9 +300,13 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             }
         }
     } else if (bpc == 2) {
-        // 2 bits per channel
+        // 2 bytes per channel
         while (i < scanline_len) {
-            // Read a byte, it is the count.
+            // Read two bytes, it is the count.
+            if ((i + 1) >= scanline_len) {
+                errorfmt("Corrupt RLE data");
+                return false;
+            }
             unsigned short value = (rle_scanline[i] << 8) | rle_scanline[i + 1];
             i += 2;
             int count = value & 0x7F;
@@ -317,6 +327,10 @@ SgiInput::uncompress_rle_channel(int scanline_off, int scanline_len,
             }
             // If the high bit is zero, we copy the NEXT value, count times
             else {
+                if ((i + 1) >= scanline_len) {
+                    errorfmt("Corrupt RLE data");
+                    return false;
+                }
                 while (count--) {
                     if (limit <= 0) {
                         errorfmt("Corrupt RLE data");
@@ -410,16 +424,26 @@ SgiInput::read_header()
 bool
 SgiInput::read_offset_tables()
 {
-    int tables_size = m_sgi_header.ysize * m_sgi_header.zsize;
+    // The RLE offset/length tables hold one entry per (scanline, channel),
+    // i.e. height * nchannels entries each. For a well-formed file this equals
+    // the header's ysize*zsize, but we deliberately size by the validated spec
+    // dimensions -- which are also what read_native_scanline() uses to index
+    // the tables -- so a corrupt header with bogus ysize/zsize cannot desync
+    // the table size from the indices and provoke an out-of-bounds access.
+    int tables_size = m_spec.height * m_spec.nchannels;
+    if (tables_size <= 0) {
+        errorfmt("Invalid SGI image dimensions");
+        return false;
+    }
     start_tab.resize(tables_size);
     length_tab.resize(tables_size);
-    if (!ioread(&start_tab[0], sizeof(uint32_t), tables_size)
-        || !ioread(&length_tab[0], sizeof(uint32_t), tables_size))
+    if (!ioread(start_tab.data(), sizeof(uint32_t), tables_size)
+        || !ioread(length_tab.data(), sizeof(uint32_t), tables_size))
         return false;
 
     if (littleendian()) {
-        swap_endian(&length_tab[0], length_tab.size());
-        swap_endian(&start_tab[0], start_tab.size());
+        swap_endian(length_tab.data(), length_tab.size());
+        swap_endian(start_tab.data(), start_tab.size());
     }
     return true;
 }

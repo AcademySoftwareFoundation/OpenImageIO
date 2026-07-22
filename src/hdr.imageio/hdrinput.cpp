@@ -88,6 +88,15 @@ private:
         }
         sv = Strutil::parse_line(sv);
         m_io->seek(pos + sv.size());
+        // Tolerate DOS/Windows CRLF line endings: if the line ends in
+        // "\r\n", drop the '\r' so it collapses to a bare "\n", which is
+        // what the header comparisons below expect. The file pointer was
+        // already advanced past the full "\r\n" above.
+        if (sv.size() >= 2 && sv[sv.size() - 2] == '\r'
+            && sv[sv.size() - 1] == '\n') {
+            buf[sv.size() - 2] = '\n';
+            sv                 = string_view(buf.data(), sv.size() - 1);
+        }
         return sv;
     }
 };
@@ -246,6 +255,11 @@ HdrInput::open(const std::string& name, ImageSpec& newspec)
     }
     m_spec.full_width  = m_spec.width;
     m_spec.full_height = m_spec.height;
+    // Validation of resolution
+    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
+        close();
+        return false;
+    }
 
     // FIXME -- should we do anything about exposure, software,
     // pixaspect, primaries?  (N.B. rgbe.c doesn't even handle most of them)

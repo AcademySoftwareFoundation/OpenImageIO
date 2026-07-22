@@ -15,6 +15,15 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 namespace webp_pvt {
 
 
+// Layout of the start of any webp file
+struct WebpHead {
+    char RIFF[4];  // should contain "RIFF"
+    uint32_t file_size;
+    char WEBP[4];  // should contain "WEBP"
+};
+
+
+
 static bool
 webp_exif_payload_has_tiff_header(cspan<uint8_t> exif)
 {
@@ -99,9 +108,12 @@ WebpInput::valid_file(Filesystem::IOProxy* ioproxy) const
     if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Mode::Read)
         return false;
 
-    uint8_t header[64] {};
-    const size_t numRead = ioproxy->pread(header, sizeof(header), 0);
-    return WebPGetInfo(header, numRead, nullptr, nullptr);
+    WebpHead head;
+    return ioproxy->pread(&head, sizeof(head), 0) == sizeof(head)
+           && head.RIFF[0] == 'R' && head.RIFF[1] == 'I'  //
+           && head.RIFF[2] == 'F' && head.RIFF[3] == 'F'  //
+           && head.WEBP[0] == 'W' && head.WEBP[1] == 'E'  //
+           && head.WEBP[2] == 'B' && head.WEBP[3] == 'P';
 }
 
 
@@ -195,8 +207,13 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     if (m_demux_flags & EXIF_FLAG
         && WebPDemuxGetChunk(m_demux, "EXIF", 1, &chunk_iter)) {
         cspan<uint8_t> exif_span(chunk_iter.chunk.bytes, chunk_iter.chunk.size);
-        if (webp_exif_payload_has_tiff_header(exif_span))
-            decode_exif(exif_span, m_spec);
+        if (webp_exif_payload_has_tiff_header(exif_span)) {
+            bool ok = decode_exif(exif_span, m_spec);
+            if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+                errorfmt("Could not decode Exif");
+                return false;
+            }
+        }
         WebPDemuxReleaseChunkIterator(&chunk_iter);
     }
     if (m_demux_flags & XMP_FLAG

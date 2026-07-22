@@ -416,7 +416,10 @@ try:
     print ("Relative comparison: of flip.tif and flop.tif")
     print ("  warns", compresults.nwarn, "fails", compresults.nfail)
 
-    # compare_Yee,
+    # compare_Yee
+    yee = oiio.CompareResults()
+    ok = ImageBufAlgo.compare_Yee(ImageBuf("flip.tif"), ImageBuf("flop.tif"), yee)
+    print ("compare_Yee ok:", ok, "nfail:", yee.nfail, "mean:", yee.meanerror >= 0)
 
     # FLIP_diff
     black = make_constimage(64, 64, 3, oiio.FLOAT, (0, 0, 0))
@@ -437,7 +440,6 @@ try:
     assert 60 < ppd < 80
 
     # isConstantColor, isConstantChannel
-
     b = ImageBuf (ImageSpec(256,256,3,oiio.UINT8))
     ImageBufAlgo.fill (b, (1,0.5,0.5))
     v = ImageBufAlgo.isConstantColor (b)
@@ -445,6 +447,10 @@ try:
     print ("isConstantColor on pink image is (%.5g %.5g %.5g)" % (v[0], v[1], v[2]))
     v = ImageBufAlgo.isConstantColor (checker)
     print ("isConstantColor on checker is ", v)
+    print ("isConstantChannel pink R=1:",
+            ImageBufAlgo.isConstantChannel(b, 0, 1.0))
+    print ("isConstantChannel checker G=0.5:",
+            ImageBufAlgo.isConstantChannel(checker, 1, 0.5))
 
     b = ImageBuf("cmul1.exr")
     print ("Is", b.name, "monochrome? ", ImageBufAlgo.isMonochrome(b))
@@ -523,8 +529,10 @@ try:
     write (b, "tahoe-laplacian.tif", oiio.UINT8)
 
     # computePixelHashSHA1
-    print ("SHA-1 of bsplinekernel.exr is: " +
-           ImageBufAlgo.computePixelHashSHA1(bsplinekernel))
+    sha1 = ImageBufAlgo.computePixelHashSHA1(bsplinekernel)
+    sha1_valid = (len(sha1) == 40
+                  and all(c in '0123456789ABCDEF' for c in sha1))
+    print ("SHA-1 of bsplinekernel.exr valid:", sha1_valid)
 
     # fft, ifft
     blue = ImageBufAlgo.channels (ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-tiny.tif"), (2,))
@@ -559,14 +567,28 @@ try:
                            ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool-composite/src/b.exr"))
     write (b, "a_over_b.exr")
 
-    # FIXME - no test for zover (not in oiio-composite either)
+    # zover
+    zspec = ImageSpec(4, 4, 5, oiio.FLOAT)
+    zspec.channelnames = ("R", "G", "B", "A", "Z")
+    zspec.z_channel = 4
+    zA = ImageBuf(zspec)
+    ImageBufAlgo.fill(zA, (0.5, 0.5, 0.5, 1.0, 10.0))
+    zB = ImageBuf(zspec)
+    ImageBufAlgo.fill(zB, (0.0, 0.0, 0.0, 1.0, 15.0))
+    ImageBufAlgo.fill(zB, (1.0, 1.0, 1.0, 1.0, 5.0), oiio.ROI(2, 4, 1, 3))
+    b = test_iba(ImageBufAlgo.zover, zA, zB, True)
+    write(b, "zover.exr", oiio.FLOAT)
+    p = b.getpixel(3, 2)
+    print ("zover closer fg wins:", p[0] > 0.9 and p[4] < 10)
 
+    # render_text (default font only -- DroidSerif is not guaranteed)
     b = make_constimage (320, 240, 3, oiio.FLOAT)
-    ImageBufAlgo.render_text (b, 25, 50, "Hello, world",
-                              16, "DroidSerif", (1,1,1))
-    ImageBufAlgo.render_text (b, 50, 120, "Go Big Red!",
-                              42, "", (1,0,0))
+    ImageBufAlgo.render_text (b, 25, 50, "Hello, world", 16, "", (1,1,1))
+    ImageBufAlgo.render_text (b, 50, 120, "Go Big Red!", 42, "", (1,0,0))
     write (b, "text.tif", oiio.UINT8)
+    ts = ImageBufAlgo.text_size ("Hello, world", 16)
+    print ("text_size defined:", ts.defined,
+           "width>0:", ts.width > 0 if ts.defined else False)
 
     b = make_constimage (320, 240, 3, oiio.FLOAT)
     broi = b.roi
@@ -576,8 +598,41 @@ try:
         y = broi.ybegin + broi.height//2 - (textsize.ybegin + textsize.height//2)
         ImageBufAlgo.render_text (b, x, y, "Centered", 40)
     write (b, "textcentered.tif", oiio.UINT8)
+    print ("textcentered wrote:", not b.has_error)
 
-    # FIXME - need tests for render_point, render_line, render_box
+    # render_line, render_box (render_point tested above in normalize)
+    shapes = make_constimage (64, 64, 3, oiio.UINT8, (0, 0, 0))
+    ImageBufAlgo.render_line (shapes, 5, 5, 58, 58, (1, 0, 0))
+    ImageBufAlgo.render_box (shapes, 10, 10, 54, 54, (0, 1, 0))
+    write (shapes, "render-shapes.tif", oiio.UINT8)
+    nz = ImageBufAlgo.nonzero_region(shapes)
+    print ("render shapes nonzero:", nz.defined)
+
+    print ("\nTesting additional IBA bindings:")
+
+    # copy
+    src = ImageBuf(OIIO_TESTSUITE_ROOT+"/common/tahoe-tiny.tif")
+    b = test_iba(ImageBufAlgo.copy, src)
+    print ("copy size:", b.spec().width, b.spec().height, b.spec().nchannels)
+
+    # repremult
+    unprem = ImageBuf(OIIO_TESTSUITE_ROOT+"/common/unpremult.tif")
+    b = test_iba(ImageBufAlgo.repremult, unprem)
+    print ("repremult ok:", not b.has_error)
+
+    # deep_merge (tiny deep images)
+    deep_a = ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool-deep/src/deep-onesample.exr")
+    deep_b = ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool-deep/src/deep-nosamples.exr")
+    b = test_iba(ImageBufAlgo.deep_merge, deep_a, deep_b)
+    print ("deep_merge deep:", b.deep, "samples@0,0:", b.deep_samples(0, 0))
+    write (b, "deep_merge.exr")
+
+    # demosaic
+    bayer = ImageBuf(OIIO_TESTSUITE_ROOT+"/common/bayer.png")
+    b = test_iba(ImageBufAlgo.demosaic, bayer, layout="BGGR",
+                 white_balance_mode="manual", white_balance=(1.0, 1.0, 1.0, 1.0))
+    print ("demosaic size:", b.spec().width, "x", b.spec().height)
+    write (b, "demosaic.tif", oiio.UINT8)
 
     # histogram, histogram_draw,
     b = make_constimage (100, 100, 3, oiio.UINT8, (.1, .2, .3))

@@ -158,3 +158,64 @@ grey.dpx             :  512 x  512, 1 channel, uint10 dpx
     oiio:subimages: 1
 Comparing "grey.dpx" and "ref/grey.tif"
 PASS
+oiiotool ERROR: read : "src/crash-badusersize.dpx": Corrupt userbuf: size claims 4160749568 but whole file size is 2054
+Full command line was:
+> oiiotool src/crash-badusersize.dpx -o test.tif
+Reading src/crash-1chan-10bit-filled-methodA.dpx
+src/crash-1chan-10bit-filled-methodA.dpx :   80 x   60, 3 channel, uint10 dpx
+    2 subimages: 80x60 [u10,u10,u10], 80x60 [u10]
+ subimage  0:   80 x   60, 3 channel, uint10 dpx
+    SHA-1: 0071FD79957267E8C9978DB3360AF9C752E31556
+    channel list: R, G, B
+    full/display size: 2143289344 x 2143289344
+    full/display origin: 0, 0
+    ImageDescription: "view angle: left"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    dpx:Colorimetric: "User defined"
+    dpx:DittoKey: 1
+    dpx:EndOfImagePadding: 0
+    dpx:EndOfLinePadding: 0
+    dpx:FramePosition: 0
+    dpx:ImageDescriptor: "RGB"
+    dpx:Packing: "Filled, method A"
+    dpx:SequenceLength: 0
+    dpx:SourceImageFileName: "P"
+    dpx:TimeCode: "00:00:00:00"
+    dpx:Transfer: "Undefined"
+    dpx:UserBits: 0
+    dpx:Version: "V2.0"
+    dpx:VerticalSampleRate: -1.7147e+38
+    dpx:XScannedSize: 1.4013e-45
+    dpx:YScannedSize: 1.4013e-45
+    oiio:BitsPerSample: 10
+    oiio:subimages: 2
+    smpte:TimeCode: 00:00:00:00
+ subimage  1:   80 x   60, 1 channel, uint10 dpx
+    SHA-1: 26C5096595B63C5BF3AC347712B11353BB55F1EC
+    channel list: channel0
+    full/display size: 2143289344 x 2143289344
+    full/display origin: 0, 0
+    ImageDescription: "view angle: left"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    dpx:Colorimetric: "User defined"
+    dpx:DittoKey: 1
+    dpx:EndOfImagePadding: 0
+    dpx:EndOfLinePadding: 0
+    dpx:FramePosition: 0
+    dpx:HighQuantity: 7.57306e-29
+    dpx:ImageDescriptor: "User defined"
+    dpx:Packing: "Filled, method A"
+    dpx:SequenceLength: 0
+    dpx:SourceImageFileName: "P"
+    dpx:TimeCode: "00:00:00:00"
+    dpx:Transfer: "User defined"
+    dpx:UserBits: 0
+    dpx:Version: "V2.0"
+    dpx:VerticalSampleRate: -1.7147e+38
+    dpx:XScannedSize: 1.4013e-45
+    dpx:YScannedSize: 1.4013e-45
+    oiio:BitsPerSample: 10
+    oiio:subimages: 2
+    smpte:TimeCode: 00:00:00:00

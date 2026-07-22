@@ -41,6 +41,7 @@ private:
             m_stream = nullptr;
         }
         m_userBuf.clear();
+        m_cin.SetInStream(nullptr);
     }
 
     /// Helper function - retrieve string for libcineon descriptor
@@ -89,12 +90,35 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    int nchannels = m_cin.header.NumberOfElements();
+    if (nchannels < 1 || nchannels > 8) {
+        errorfmt("Invalid number of channels {} (must be 1-8)", nchannels);
+        close();
+        return false;
+    }
+
     // create imagespec
     TypeDesc typedesc;
     int maxbits = 0;
-    for (int i = 0; i < m_cin.header.NumberOfElements(); i++) {
-        if (maxbits < m_cin.header.BitDepth(i))
-            maxbits = m_cin.header.BitDepth(i);
+    for (int i = 0; i < nchannels; i++) {
+        int b(m_cin.header.BitDepth(i));
+        // libcineon's ComponentDataSize/ComponentByteCount only know how to
+        // handle these bit depths; anything else asserts (or worse, in a
+        // non-debug build) deep inside the vendored library. Reject bogus
+        // values here so we can give a proper error instead.
+        switch (b) {
+        case 8:
+        case 10:
+        case 12:
+        case 16:
+        case 32:
+        case 64: break;
+        default:
+            errorfmt("Invalid bitdepth in channel {}: {} bits", i, b);
+            close();
+            return false;
+        }
+        maxbits = std::max(maxbits, b);
     }
     switch ((maxbits + 7) / 8) {
     case 1: typedesc = TypeDesc::UINT8; break;
@@ -103,8 +127,13 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     case 4: typedesc = TypeDesc::UINT32; break;
     default: errorfmt("Unsupported bit depth {}", maxbits); return false;
     }
-    m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(),
-                       m_cin.header.NumberOfElements(), typedesc);
+    m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(), nchannels,
+                       typedesc);
+
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })) {
+        return false;
+    }
+
     // fill channel names
     m_spec.channelnames.clear();
     int gscount = 0, rcount = 0, gcount = 0, bcount = 0;
@@ -119,7 +148,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
             break;
         case cineon::kPrintingDensityRed:
         case cineon::kRec709Red:
-            if (++gscount > 1) {
+            if (++rcount > 1) {
                 std::string ch = Strutil::fmt::format("R{}", rcount);
                 m_spec.channelnames.push_back(ch);
             } else

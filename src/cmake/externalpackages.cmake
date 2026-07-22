@@ -92,8 +92,8 @@ checked_find_package (libuhdr
 
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0
-                      RECOMMEND_MIN 4.2
-                      RECOMMEND_MIN_REASON "4.2 for GPS support")
+                      RECOMMEND_MIN 4.5
+                      RECOMMEND_MIN_REASON "4.2+ for GPS, 4.5+ various security fixes")
 alias_library_if_not_exists (TIFF::TIFF TIFF::tiff)
 
 # JPEG XL
@@ -107,8 +107,8 @@ checked_find_package (JXL
 # allow this to be overridden to use the distro-provided package if desired.
 option (USE_EXTERNAL_PUGIXML "Use an externally built shared library version of the pugixml library" OFF)
 if (USE_EXTERNAL_PUGIXML)
-    checked_find_package (pugixml REQUIRED
-                          VERSION_MIN 1.8
+    checked_find_package (pugixml CONFIG REQUIRED
+                          VERSION_MIN 1.11
                           DEFINITIONS USE_EXTERNAL_PUGIXML=1)
 else ()
     message (STATUS "Using internal PugiXML")
@@ -151,7 +151,8 @@ if (NOT OPENCOLORIO_INCLUDES)
 endif ()
 include_directories(BEFORE ${OPENCOLORIO_INCLUDES})
 
-checked_find_package (OpenCV 4.0
+checked_find_package (OpenCV VERSION_MIN 4.0
+                      PREFER_CONFIG
                       DEFINITIONS USE_OPENCV=1)
 
 # Intel TBB

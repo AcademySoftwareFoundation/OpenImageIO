@@ -3,6 +3,8 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 #include "iff_pvt.h"
 
+#include <OpenImageIO/memory.h>
+
 #include <cmath>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -30,7 +32,7 @@ public:
 private:
     std::string m_filename;
     iff_pvt::IffFileHeader m_header;
-    std::vector<uint8_t> m_buf;
+    default_init_vector<uint8_t> m_buf;
 
     uint32_t m_tbmp_start;
 
@@ -90,8 +92,6 @@ private:
         return read_type_len(name, len) && read_str(val, len);
     }
 
-
-
     // Read a 4-byte type code (no endian swap), and if that succeeds (beware
     // of EOF or other errors), then also read a 32 bit size (subject to
     // endian swap).
@@ -99,7 +99,20 @@ private:
 
     bool read_chunk(uint8_t type[4], uint32_t& size)
     {
-        return read_type(type) && read(&size);
+        bool ok = read_type(type) && read(&size);
+        if (!ok) {
+            errorfmt("IFF error io could not read chunk");
+            return false;
+        }
+        // Check that the chunk size as it represents itself actually fits
+        // within the remainder of the file. If it does not, clearly something
+        // is corrupted.
+        if (size_t(iotell()) + size > ioproxy()->size()) {
+            errorfmt("nonsensical chunk size {} at position {} file size {}\n",
+                     size, iotell(), ioproxy()->size());
+            return false;
+        }
+        return true;
     }
 };
 
@@ -270,6 +283,12 @@ IffInput::open(const std::string& name, ImageSpec& spec)
     // we save this position - it will be helpful in read_native_tile
     m_tbmp_start = m_header.tbmp_start;
 
+    // Validity check resolutions. Width and height are a uint16, but this is
+    // an old format, we are guessing that there are no Maya IFF files that
+    // are > 64k pixels per side.
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 5 }))
+        return false;
+
     spec = m_spec;
     return true;
 }
@@ -297,7 +316,7 @@ IffInput::read_header()
         // chunk type: FOR4
         if (std::memcmp(chunktype, iff_for4_tag, 4) == 0) {
             if (!ioread(&chunktype, 1, sizeof(chunktype))) {
-                errorfmt("IFF error io seek failed for type");
+                errorfmt("IFF error io read failed for type");
                 return false;
             }
 
@@ -306,7 +325,6 @@ IffInput::read_header()
                 for (;;) {
                     if (!read_chunk(chunktype, size))
                         return false;
-
                     chunksize = align_chunk(size, 4);
 
                     // chunk type: TBHD
@@ -355,7 +373,11 @@ IffInput::read_header()
                         // RGB(A) format
                         if (flags & RGBA) {
                             // test if black is set
-                            OIIO_DASSERT(!(flags & BLACK));
+                            if (flags & BLACK) {
+                                errorfmt("Invalid header flag combination {:x}",
+                                         flags);
+                                return false;
+                            }
 
                             if (flags & RGB)
                                 m_header.rgba_count = 3;
@@ -372,21 +394,39 @@ IffInput::read_header()
                         }
                         // Z format.
                         else if (flags & ZBUFFER) {
-                            // todo: we have not seen a sample of this
-                            m_header.rgba_count = 1;
-                            m_header.rgba_bits  = 32;  // 32bit
-                            // NOTE: Z_F32 support - not supported
-                            OIIO_DASSERT(bytes == 0);
+                            // A ZBUFFER-only (no RGBA) image would be 32-bit
+                            // depth data. The tile decoder only handles 8- and
+                            // 16-bit RGBA pixels, so such a file can never be
+                            // decoded. Exposing it as a 16-bit ImageSpec while
+                            // the internal pixel size stayed 32-bit previously
+                            // caused read_native_tile to write past the
+                            // caller's tile buffer. Reject it outright.
+                            errorfmt(
+                                "IFF error ZBUFFER-only (Z-depth) images are not supported");
+                            return false;
+                        }
+
+                        // Validate the color channel configuration. A
+                        // legitimate Maya IFF stores RGB (3) or RGBA (4)
+                        // color channels (optionally plus Z). Corrupt flag
+                        // combinations -- such as ALPHA without RGB, or no
+                        // color flags at all -- yield channel counts the
+                        // format never produces and that the tile decoder
+                        // cannot represent, which previously led to
+                        // out-of-bounds writes while decompressing.
+                        if (m_header.rgba_count != 3
+                            && m_header.rgba_count != 4) {
+                            errorfmt(
+                                "IFF error unsupported channel configuration (flags {:#x})",
+                                flags);
+                            return false;
                         }
 
                         // read chunks
                         for (;;) {
                             // get type
-                            if (!read_chunk(chunktype, size)) {
-                                errorfmt("IFF error read type size failed");
+                            if (!read_chunk(chunktype, size))
                                 return false;
-                            }
-
                             chunksize = align_chunk(size, 4);
 
                             // chunk type: AUTH
@@ -512,8 +552,13 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
         lock_guard lock(*this);
 
         if (m_buf.empty()) {
-            if (!readimg())
+            if (!readimg()) {
+                // readimg() may have partially resized m_buf before failing.
+                // Clear it so a subsequent tile request does not skip the
+                // (failed) decode and copy from a half-initialized buffer.
+                m_buf.clear();
                 return false;
+            }
         }
     }
 
@@ -571,16 +616,29 @@ IffInput::readimg()
     // set position tile may be called randomly
     ioseek(m_tbmp_start);
 
+    // Check that the image size claimed is plausible for the size of the
+    // remainder of the file. RLE can expand at most 128x (a 2-byte run
+    // encodes up to 128 output bytes).
+    uint64_t filesize = uint64_t(ioproxy()->size());
+    uint64_t avail    = filesize > m_tbmp_start ? filesize - m_tbmp_start : 0;
+    uint64_t max_plausible_bytes = (m_header.compression == iff_pvt::RLE)
+                                       ? avail * 128
+                                       : avail;
+    if (m_header.image_bytes() > max_plausible_bytes) {
+        errorfmt(
+            "IFF error: header claims image size {} bytes, implausible for {} bytes of remaining tile data",
+            m_header.image_bytes(), avail);
+        return false;
+    }
+
     // resize buffer
     m_buf.resize(m_header.image_bytes());
 
     while ((rgbatiles < m_header.tiles && m_header.rgba_count > 0)
            || (ztiles < m_header.tiles && m_header.zbuffer > 0)) {
         // get type and length
-        if (!read_chunk(chunktype, size)) {
-            errorfmt("IFF error io could not read rgb(a) type");
+        if (!read_chunk(chunktype, size))
             return false;
-        }
         chunksize = align_chunk(size, 4);
 
         // chunk type: RGBA
@@ -598,6 +656,11 @@ IffInput::readimg()
 
             // get image size
             // skip coordinates, uint16_t (2) * 4 = 8
+            if (chunksize <= 8) {
+                errorfmt("nonsensical RGBA chunk size {} (must be > 8)\n",
+                         size);
+                return false;
+            }
             uint32_t image_size = chunksize - 8;
 
             // check tile
@@ -785,10 +848,6 @@ IffInput::readimg()
                                           + (py * m_header.width + xmin)
                                                 * m_header.pixel_bytes();
 
-                        std::vector<uint16_t> scanline(tw
-                                                       * m_header.rgba_count);
-                        span<uint16_t> sl_span(scanline);
-
                         int sx = 0;
                         for (uint16_t px = xmin; px <= xmax; ++px, ++sx) {
                             size_t offset = (sy * tw + sx)
@@ -805,6 +864,9 @@ IffInput::readimg()
                                 = input.subspan(offset,
                                                 m_header.rgba_channels_bytes());
 
+                            uint8_t* out_p = out_dy
+                                             + sx * m_header.pixel_bytes();
+
                             for (int c = m_header.rgba_count - 1; c >= 0; --c) {
                                 uint16_t pixel;
                                 memcpy(&pixel, pixel_in.data() + c * 2, 2);
@@ -813,20 +875,10 @@ IffInput::readimg()
                                     swap_endian(&pixel);
                                 }
 
-                                if (sl_span.empty()) {
-                                    errorfmt(
-                                        "scanline span overflow at ({}, {})",
-                                        px, py);
-                                    return false;
-                                }
-
-                                sl_span.front() = pixel;
-                                sl_span         = sl_span.subspan(1);
+                                memcpy(out_p, &pixel, sizeof(pixel));
+                                out_p += sizeof(pixel);
                             }
                         }
-
-                        memcpy(out_dy, scanline.data(),
-                               tw * m_header.pixel_bytes());
                     }
                 }
             } else {

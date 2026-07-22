@@ -1,8 +1,26 @@
+Testing Wrap/MipMode/InterpMode enums:
+  Wrap.Periodic defined: True
+  MipMode.Trilinear defined: True
+  InterpMode.Bilinear defined: True
+
+Testing TextureOpt fields:
+  firstchannel: 1
+  subimagename: density
+  swrap is Clamp: True
+  mipmode is Trilinear: True
+  interpmode is Bicubic: True
+  anisotropic: 8
+  conservative_filter: True
+  missingcolor: (1.0, 2.0, 3.0, 4.0)
+  missingcolor cleared: True
+
 checker middle, top mip, channels: 1 = (0.5,)
 checker middle, top mip, channels: 2 = (0.5, 0.5)
 checker middle, top mip, channels: 3 = (0.5, 0.5, 0.5)
 
 checker middle, mip tail, channels: 1 = (0.5,)
+
+texture nchannels < 1 returns empty tuple: ()
 
 missingcolor channels: 1 = (1.0,)
 missingcolor channels: 2 = (1.0, 2.0)
@@ -11,15 +29,57 @@ missingcolor channels: 4 = (1.0, 2.0, 3.0, 4.0)
 
 default-missingcolor = (0.0, 0.0, 0.0, 0.0)
 
+Testing texture3d:
+  center is gray RGB: True
+
+Testing environment:
+  returns 3 channels: True
+  center is gray RGB: True
+
 top mip pixel differences when streaming = 0
 
-udim file.<UDIM>.tx -> 2x4 ['.\\file.1001.tx', '.\\file.1002.tx', '.\\file.1011.tx', '.\\file.1012.tx', '', '', '', '.\\file.1032.tx']
-getattributetype stat:image_size int64
-getattributetype total_files int
-getattributetype max_memory_MB float
-getattributetype worldtocommon matrix
-untyped getattribute stat:image_size 1048575
-untyped getattribute total_files 3
-untyped getattribute max_memory_MB 1024.0
-untyped getattribute worldtocommon (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+Testing metadata helpers:
+  resolve_filename ends with checker.tx: True
+  imagespec width>0: True
+  imagespec missing is None: True
+  is_udim checker: False
+  is_udim pattern: True
+
+Testing udim:
+  inventory tiles: 2 x 4
+  inventory nonempty files: 5
+  resolve_udim nonempty: True
+
+Testing attribute():
+  searchpath contains textures: True
+  max_memory_MB typed round-trip: True
+
+Testing getattribute() and getattributetype():
+  getattributetype stat:image_size: int64
+  getattributetype total_files: int
+  getattributetype max_memory_MB: float
+  getattributetype worldtocommon: matrix
+  stat:image_size is int: True
+  stat:image_size positive: True
+  total_files is int: True
+  max_memory_MB is float: True
+  worldtocommon is 16-tuple: True
+
+Testing cache lifecycle:
+  close/invalidate ok: True
+
+Testing TextureSystem.destroy:
+  destroy shared=False ok: True
+
+Testing has_error/geterror:
+  has_error before: False
+  has_error after bad file: True
+  geterror persists: True
+  geterror clear returns message: True
+  has_error after clear: False
+
+Testing getstats/reset_stats:
+  getstats nonempty: True
+  reset_stats ok: True
+
 Done.

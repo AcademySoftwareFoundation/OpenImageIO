@@ -21,6 +21,9 @@
 // ago and are probably the sole maintainers of this code, and just allow
 // ourselves to diverge from the original.
 
+// DPX is documented in these SMPTE documents: https://pub.smpte.org/doc/268/
+// (now free!)
+
 #include "libdpx/DPX.h"
 #include "libdpx/DPXColorConverter.h"
 #include "libdpx/DPXHeader.h"
@@ -59,6 +62,7 @@ private:
     dpx::Reader m_dpx;
     default_init_vector<unsigned char> m_userBuf;
     default_init_vector<unsigned char> m_decodebuf;  // temporary decode buffer
+    size_t m_filesize = 0;
     bool m_rawcolor;
 
     /// Reset everything to initial state
@@ -137,7 +141,8 @@ DPXInput::open(const std::string& name, ImageSpec& newspec)
     if (!ioproxy_use_or_open(name))
         return false;
 
-    m_stream = new InStream(ioproxy());
+    m_filesize = ioproxy()->size();
+    m_stream   = new InStream(ioproxy());
     if (!m_stream) {
         errorfmt("Could not open file \"{}\"", name);
         return false;
@@ -208,7 +213,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     m_spec = ImageSpec(m_dpx.header.Width(), m_dpx.header.Height(),
                        m_dpx.header.ImageElementComponentCount(subimage),
                        typedesc);
-    if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 8 }))
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 8 }))
         return false;
 
     // xOffset/yOffset are defined as unsigned 32-bit integers, but m_spec.x/y are signed
@@ -547,6 +552,11 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     // data is per-file, not per-element)
     if (m_userBuf.empty() && m_dpx.header.UserSize() != 0
         && m_dpx.header.UserSize() != 0xFFFFFFFF) {
+        if (m_dpx.header.UserSize() > m_filesize) {
+            errorfmt("Corrupt userbuf: size claims {} but whole file size is {}",
+                     m_dpx.header.UserSize(), m_filesize);
+            return false;
+        }
         m_userBuf.resize(m_dpx.header.UserSize());
         m_dpx.ReadUserData(&m_userBuf[0]);
     }

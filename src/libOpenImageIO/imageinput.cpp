@@ -27,9 +27,29 @@ using namespace pvt;
 using namespace OIIO::pvt;
 
 
-// store an error message per thread, for a specific ImageInput
-static thread_local tsl::robin_map<uint64_t, std::string> input_error_messages;
+// Store an error message per thread, for a specific ImageInput (keyed by
+// the ImageInput's unique id). Wrapped in a small struct carrying an "alive"
+// flag set false by its own destructor, so that an ImageInput destroyed
+// during thread/program teardown -- after this thread_local has already been
+// destroyed (the static destruction order fiasco) -- can detect that and skip
+// touching the dead map.
+namespace {
+struct InputErrorMessages {
+    tsl::robin_map<uint64_t, std::string> map;
+    bool alive = true;
+    ~InputErrorMessages() { alive = false; }
+};
+}  // namespace
+static thread_local InputErrorMessages input_error_messages;
 static std::atomic_int64_t input_next_id(0);
+
+
+static int
+safe_rows_per_strip(const ImageSpec& spec)
+{
+    int rps = spec.get_int_attribute("tiff:RowsPerStrip", 64);
+    return rps > 0 ? rps : 64;
+}
 
 
 class ImageInput::Impl {
@@ -92,10 +112,15 @@ ImageInput::ImageInput()
 
 ImageInput::~ImageInput()
 {
-    // Erase any leftover errors from this thread
-    // TODO: can we clear other threads' errors?
-    // TODO: potentially unsafe due to the static destruction order fiasco
-    // input_error_messages.erase(m_impl->m_id);
+    // Erase any leftover error for this ImageInput so the per-thread map does
+    // not grow without bound when many inputs are opened (e.g. a process that
+    // opens lots of files without checking errors, or a fuzzer). Guard against
+    // the static destruction order fiasco: if the thread_local map has already
+    // been destroyed, its 'alive' flag is false and we must not touch it.
+    // TODO: this only clears the entry if we are destroyed on the same thread
+    // that accumulated the error; cross-thread errors still leak.
+    if (input_error_messages.alive)
+        input_error_messages.map.erase(m_impl->m_id);
 }
 
 
@@ -365,7 +390,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+            rps = safe_rows_per_strip(m_spec);
         // FIXME: does the above search of metadata have a significant cost?
     }
     if (spec.image_bytes() < 1) {
@@ -1108,7 +1133,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+            rps = safe_rows_per_strip(m_spec);
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
@@ -1201,7 +1226,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = m_spec.get_int_attribute("tiff:RowsPerStrip", 64);
+            rps = safe_rows_per_strip(m_spec);
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
@@ -1340,7 +1365,7 @@ ImageInput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = input_error_messages[m_impl->m_id];
+    std::string& err_str = input_error_messages.map[m_impl->m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -1356,8 +1381,8 @@ ImageInput::append_error(string_view message) const
 bool
 ImageInput::has_error() const
 {
-    auto iter = input_error_messages.find(m_impl->m_id);
-    if (iter == input_error_messages.end())
+    auto iter = input_error_messages.map.find(m_impl->m_id);
+    if (iter == input_error_messages.map.end())
         return false;
     return iter.value().size() > 0;
 }
@@ -1368,11 +1393,11 @@ std::string
 ImageInput::geterror(bool clear) const
 {
     std::string e;
-    auto iter = input_error_messages.find(m_impl->m_id);
-    if (iter != input_error_messages.end()) {
+    auto iter = input_error_messages.map.find(m_impl->m_id);
+    if (iter != input_error_messages.map.end()) {
         e = iter.value();
         if (clear)
-            input_error_messages.erase(iter);
+            input_error_messages.map.erase(iter);
     }
     return e;
 }
@@ -1577,6 +1602,23 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
             spec.nchannels, OIIO::pvt::limit_channels);
         return false;
     }
+    if (OIIO::pvt::limit_resolution
+        && (spec.width > OIIO::pvt::limit_resolution
+            || spec.height > OIIO::pvt::limit_resolution
+            || spec.depth > OIIO::pvt::limit_resolution)) {
+        if (spec.depth > 1) {
+            errorfmt(
+                "{} image dimension {}x{}x{} exceeds \"limits:resolution\" = {} for a single dimension. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:resolution\".",
+                format_name(), spec.width, spec.height, spec.depth,
+                OIIO::pvt::limit_resolution);
+        } else {
+            errorfmt(
+                "{} image dimension {}x{} exceeds \"limits:resolution\" = {} for a single dimension. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:resolution\".",
+                format_name(), spec.width, spec.height,
+                OIIO::pvt::limit_resolution);
+        }
+        return false;
+    }
     if (OIIO::pvt::limit_imagesize_MB
         && spec.image_bytes(true)
                > OIIO::pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
@@ -1616,6 +1658,35 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
         return false;
     }
     return true;  // all is ok
+}
+
+
+
+bool
+ImageInput::check_compression_ratio(imagesize_t declared_bytes,
+                                    imagesize_t filesize, imagesize_t max_ratio,
+                                    imagesize_t min_declared_bytes)
+{
+    if (filesize == 0 || declared_bytes < min_declared_bytes)
+        return true;
+    if (declared_bytes > filesize * max_ratio) {
+        errorfmt(
+            "{} header claims a {} MB image from a {} byte file; probably a corrupt or malicious header",
+            format_name(), declared_bytes >> 20, filesize);
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+ImageInput::check_compression_ratio(const ImageSpec& spec, imagesize_t filesize,
+                                    imagesize_t max_ratio,
+                                    imagesize_t min_declared_bytes)
+{
+    return check_compression_ratio(spec.image_bytes(true), filesize, max_ratio,
+                                   min_declared_bytes);
 }
 
 
