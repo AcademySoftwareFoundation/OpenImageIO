@@ -523,6 +523,14 @@ color_write_caps_for_format(string_view format_name)
                || Strutil::iequals(format_name, "exr")) {
         caps.interop_id = true;
     }
+    // mDCV (SMPTE ST 2086) format applicability, per oicio spec 34 "Format
+    // gate" -- png/heif/avif/jxl (+ mp4/mov via the master_display string) are
+    // mastering-capable; exr and tiff and jpeg have no native mDCV slot. Only
+    // PNG is wired to a file so far (png_pvt.h, via libpng png_set/get_mDCV);
+    // under the broadcast policy the plan OR-s mDCV in regardless of caps.mdcv
+    // (see plan_color_metadata), so caps.mdcv stays false here until a second
+    // format is wired. HEIF/AVIF (libheif) and JXL (libjxl) are follow-ons --
+    // their mastering-display APIs need those libraries present at build time.
     return caps;
 }
 
