@@ -441,8 +441,10 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
     // Cap LibRaw's internal allocations. This must be set *before* unpack().
     // Default max is 2048 MB.
-    m_processor->imgdata.rawparams.max_raw_memory_mb
-        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+    int maxmem = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+    // In some versions of libraw, there is a known overflow if it's over
+    // 16384, so cap it.
+    m_processor->imgdata.rawparams.max_raw_memory_mb = std::min(maxmem, 16383);
 #endif
 
     // Guard against decompression bombs / corrupt headers before calling
