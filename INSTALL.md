@@ -118,7 +118,7 @@ build options), maybe one of these packages managers will do it for you:
 
 * vcpkg (https://github.com/Microsoft/vcpkg)
     * https://github.com/Microsoft/vcpkg/tree/master/ports/openimageio
-    * `vcpkg install openimageio [tools]`
+    * `vcpkg install openimageio[tools]`
     * For a full list of supported build features: `vcpkg search openimageio`
     * Instructions for building a Python wheel on Windows: 
       https://github.com/Correct-Syntax/py-oiio
