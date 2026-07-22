@@ -215,7 +215,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             return false;
         }
     } else /* (proxytype == "memreader") */ {
-        OIIO_DASSERT(proxytype == "memreader");
+        OIIO_ASSERT(proxytype == "memreader");
         auto buff = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
         ktxTexture2* p_tex = nullptr;
         auto res = ktxTexture2_CreateFromMemory(buff.data(), buff.size(),
@@ -347,7 +347,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 // auto char_ptr = reinterpret_cast<const char*>(val);
 
             } else if (attr_name == "KTXcubemapIncomplete") {
-                OIIO_DASSERT(vallen == 1);
+                OIIO_ASSERT(vallen == 1);
                 // TODO: handle KTXcubemapIncomplete
             } else if (attr_name == KTX_ORIENTATION_KEY) {
                 //
@@ -359,7 +359,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
                 // TODO: set orientation functions
             } else if (attr_name == "KTXglFormat") {
-                OIIO_DASSERT(vallen == sizeof(KTXglFormat) /* 12 bytes */);
+                OIIO_ASSERT(vallen == sizeof(KTXglFormat) /* 12 bytes */);
                 KTXglFormat glFormat;
                 glFormat.glInternalformat = *reinterpret_cast<uint32_t*>(val);
                 glFormat.glFormat = *(reinterpret_cast<uint32_t*>(val) + 1);
@@ -369,12 +369,12 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                     ktx_prefixed_attr_name, TypeDesc::UINT32, 3,
                     make_cspan(reinterpret_cast<const uint32_t*>(val), 3));
             } else if (attr_name == "KTXdxgiFormat__") {
-                OIIO_DASSERT(vallen == sizeof(uint32_t));
+                OIIO_ASSERT(vallen == sizeof(uint32_t));
                 m_dxgiFormat = *reinterpret_cast<uint32_t*>(val);
                 m_spec.extra_attribs.attribute(ktx_prefixed_attr_name,
                                                m_dxgiFormat.value());
             } else if (attr_name == "KTXmetalPixelFormat") {
-                OIIO_DASSERT(vallen == sizeof(uint32_t));
+                OIIO_ASSERT(vallen == sizeof(uint32_t));
                 m_metalFormat = *reinterpret_cast<uint32_t*>(val);
                 m_spec.extra_attribs.attribute(ktx_prefixed_attr_name,
                                                m_metalFormat.value());
@@ -528,7 +528,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
-    OIIO_DASSERT(!m_tex->isCompressed);
+    OIIO_ASSERT(!m_tex->isCompressed);
 
     //
     // This could mean one of the following as per the specs at:
@@ -740,8 +740,8 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
-    OIIO_DASSERT(pitch
-                 == ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel));
+    OIIO_ASSERT(pitch
+                == ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel));
 
     // Use this in case OIIO API provides read_native_scanlines with `data` as
     // `span<std::byte>` and a `z` slice param

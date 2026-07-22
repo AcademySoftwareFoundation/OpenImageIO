@@ -320,9 +320,9 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 
         // Initialize slices/faces container if not already initialized by a
         // previous call to open(name, subimages, specs)
-        OIIO_DASSERT_MSG(m_imgs.empty(),
-                         "Expected mip levels container to be empty");
-        OIIO_DASSERT(m_miplevel_idx == 0);
+        OIIO_ASSERT(m_imgs.empty()
+                    && "Expected mip levels container to be empty");
+        OIIO_ASSERT(m_miplevel_idx == 0);
 
         // Reserve space for base-level mipmap (level 0)
         append_mipmaps_vector();
@@ -656,9 +656,9 @@ KtxOutput::write_ktx2()
         nullptr, ktxTexture2_Destroy
     };
 
-    OIIO_DASSERT_MSG(
-        m_vkformat != VK_FORMAT_UNDEFINED,
-        "VkFormat should never be VK_FORMAT_UNDEFINED when creating a KTX2 texture");
+    OIIO_ASSERT(
+        m_vkformat != VK_FORMAT_UNDEFINED
+        && "VkFormat should never be VK_FORMAT_UNDEFINED when creating a KTX2 texture");
     ktxTextureCreateInfo create_info {
         .glInternalformat = 0,  // Ignored as this is not a KTX1 texture
         .vkFormat         = m_vkformat,
