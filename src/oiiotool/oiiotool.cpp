@@ -6071,6 +6071,30 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         }
     }
 
+    // Spec 09 Feature B (reconciler write-shape): apply the ambient config's
+    // write-canonical PIXEL conversion. When the policy maps this space to a
+    // canonical target that is a real colorimetric change (the DCDM
+    // g26_p3d65_display -> g26_xyzd65_display P3->XYZ + DCI-headroom mapping),
+    // the pixels are CONVERTED (through the embedded interop registry) and the
+    // buffer retagged, so the written identity matches the pixels rather than
+    // just relabeling them. No-op when no mapping applies.
+    {
+        bool converted = false;
+        for (int s = 0, send = ir->subimages(); s < send; ++s)
+            for (int m = 0, mend = ir->miplevels(s); m < mend; ++m)
+                if (pvt::apply_write_canonical_conversion(
+                        (*ir)(s, m), &ot.colorconfig(), filename)) {
+                    // The pvt call retagged the ImageBuf's own spec in place;
+                    // sync the ImageRec's outer spec copy so the write and the
+                    // format writer's metadata plan see the canonical space.
+                    ir->update_spec_from_imagebuf(s, m);
+                    converted = true;
+                }
+        if (converted && ot.debug)
+            std::cout << "  Applied write-canonical color conversion for output "
+                      << "to " << filename << "\n";
+    }
+
     // Automatically crop out the negative areas if outputting to a format
     // that doesn't support negative origins.
     if (!supports_negativeorigin && autocrop

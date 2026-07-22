@@ -2943,6 +2943,13 @@ constexpr ColorInteropID color_interop_ids[] = {
       CICPTransfer::Gamma26, CICPMatrix::BT709 },
     { "g26_xyzd65_display", CICPPrimaries::XYZD65,
       CICPTransfer::Gamma26, CICPMatrix::Unspecified },
+    // The P3-primaries DCDM form (g26_p3d65 colorimetry + the DCI white
+    // headroom). CICP carries no headroom concept, so this shares the P3D65 /
+    // gamma-2.6 tuple with g26_p3d65_display; the reverse cicp->id lookup is
+    // first-match and keeps returning g26_p3d65_display (the no-headroom form),
+    // the conservative decode. ponytail: distinct id, same tuple by design.
+    { "dcdm_p3d65_display", CICPPrimaries::P3D65,
+      CICPTransfer::Gamma26, CICPMatrix::BT709 },
     { "pq_xyzd65_display", CICPPrimaries::XYZD65,
       CICPTransfer::PQ, CICPMatrix::Unspecified },
 };
@@ -3981,6 +3988,31 @@ string_view
 derive_color_interop_id(const ColorConfig& config, string_view colorspace)
 {
     return v3_1::derive_color_interop_id_impl(config, colorspace);
+}
+
+
+ColorProcessorHandle
+interop_registry_processor(string_view from_id, string_view to_id)
+{
+    // Build a processor between two spaces of OIIO's embedded interop
+    // identities registry (NOT the user config): the write-canonical mapping
+    // targets registry identities (e.g. the DCDM g26_p3d65 -> g26_xyzd65
+    // P3->XYZ + DCI-headroom conversion) whose real transforms live only here,
+    // even when a user config declares the same NAMES as bare, transform-less
+    // color spaces (which would yield a no-op in that config).
+    OCIO::ConstConfigRcPtr cfg = v3_1::build_interop_identities_config();
+    if (!cfg || from_id.empty() || to_id.empty())
+        return {};
+    try {
+        OCIO::ConstProcessorRcPtr p
+            = cfg->getProcessor(std::string(from_id).c_str(),
+                                std::string(to_id).c_str());
+        if (!p || p->isNoOp())
+            return {};
+        return ColorProcessorHandle(new v3_1::ColorProcessor_OCIO(p));
+    } catch (OCIO::Exception&) {
+        return {};
+    }
 }
 
 

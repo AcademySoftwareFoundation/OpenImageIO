@@ -165,6 +165,16 @@ display_colorspaces:
         - !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
 
   - !<ColorSpace>
+    name: dcdm_p3d65_display
+    interop_id: dcdm_p3d65_display
+    encoding: sdr-cinema
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
+        - !<RangeTransform> {name: dci_white_headroom_scaling, min_in_value: 0, max_in_value: 1, min_out_value: 0, max_out_value: 0.916555279740309, style: noClamp}
+        - !<ExponentTransform> {value: 2.6, style: mirror, direction: inverse}
+
+  - !<ColorSpace>
     name: lin_rec709_display
     interop_id: lin_rec709_display
     encoding: display-linear

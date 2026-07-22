@@ -88,21 +88,37 @@ command += forced_section("tif", "config-declared force -- colorInteropID carrie
 command += forced_section("jpg", "config-declared force -- colorInteropID carried")
 
 
-# Spec 09 Feature B: write-canonical mapping in oiio:default. The config's
-# oiio:default profile declares oiio:colorpolicy:write:canonicalize, so a
-# g26_p3d65_display source is written with the CANONICAL id g26_xyzd65_display
-# (the XYZ DCDM form -- gamma 2.6 + DCI white scaling, alias dcdm_xyzd65), a
-# P3->XYZ primaries conversion within the DCI-white-scaled family. No attribute
-# is set anywhere -- the mapping is config-declared (layer 2). EXR carries the
-# id in its native slot, so it reads back as the mapped id.
+# Spec 09 Feature B (reconciler write-shape): write-canonical CONVERSION in
+# oiio:default. The config's oiio:default profile declares
+# oiio:colorpolicy:write:canonicalize, so a g26_p3d65_display source is CONVERTED
+# (not merely relabeled) to g26_xyzd65_display on write -- a real P3->XYZ
+# primaries + DCI white headroom pixel conversion (the XYZ DCDM form, gamma 2.6 +
+# 48/52.37 white scaling, alias dcdm_xyzd65), applied through OIIO's embedded
+# interop registry. No attribute is set anywhere -- the mapping is config-declared
+# (layer 2). We prove BOTH halves: (a) EXR carries the canonical id in its native
+# slot; (b) the written pixels actually changed vs a no-conversion baseline (same
+# source under the plain config, which declares no canonicalize) -- a
+# metadata-only relabel would leave the pixels identical.
 bcfg = "src/broadcast.ocio"
-g26src = "--create 8x8 3 --attrib oiio:ColorSpace g26_p3d65_display "
+g26src = ("--pattern constant:color=0.5,0.5,0.5 8x8 3 "
+          "--attrib oiio:ColorSpace g26_p3d65_display ")
 
+# (a) tag proof.
 command += "echo '=== g26 default: canonicalized to g26_xyzd65_display on write ==='" + redirect + " ;\n"
 command += ("env OCIO=" + bcfg + " " + ot + " " + g26src + "-o g26def.exr"
             + " >/dev/null 2>&1 ;\n")
 command += ("( env OCIO=" + bcfg + " " + ot + " --info -v g26def.exr"
             + " 2>/dev/null | grep -E 'colorInteropID' || true )" + redirect + " ;\n")
+
+# (b) pixel proof: the canonicalized pixels DIFFER from the un-converted baseline
+# (same source written under the plain config). --diff prints FAILURE when the
+# images differ -> the conversion really touched the pixels. (A metadata-only
+# relabel would print PASS.)
+command += "echo '=== g26 default: pixels CONVERTED not relabeled (differ from baseline) ==='" + redirect + " ;\n"
+command += ("env OCIO=" + cfg + " " + ot + " " + g26src + "-o g26plain.exr"
+            + " >/dev/null 2>&1 ;\n")
+command += ("( env OCIO=" + cfg + " " + ot + " g26def.exr g26plain.exr --diff"
+            + " 2>/dev/null | grep -E 'PASS|FAILURE' || true )" + redirect + " ;\n")
 
 
 # Spec 09 Feature A: the oiio:broadcast profile. Selecting it (env-var layer 3)

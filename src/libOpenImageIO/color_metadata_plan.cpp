@@ -22,6 +22,8 @@
 #include <vector>
 
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/imagebuf.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -332,12 +334,15 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
                                    CharacterizationField::ColorInteropID)
               .color_interop_id;
 
-    // Feature B (spec 09): the config's oiio:default write-canonical mapping.
-    // broadcast (a profile composing over oiio:default, layer 3 > 2) supersedes
-    // it for P3 content -- broadcast routes P3 itself below, so the default
-    // remap is skipped when broadcast is active.
-    if (policy.canonicalize && !policy.broadcast)
-        derived_id = canonical_write_id(derived_id);
+    // Feature B (spec 09): the config's oiio:default write-canonical mapping is
+    // NOT applied here as a tag-only relabel. Relabeling P3/straight-2.6 pixels
+    // with the id of the XYZ/DCI-headroom form (a colorimetric change) would be
+    // a factual mislabel. The mapping is now a REAL pixel conversion applied at
+    // the buffer-holding write stage (see apply_write_canonical_conversion,
+    // which converts the pixels through the embedded interop registry and
+    // retags), so by the time planning runs the space is already the canonical
+    // one and derived_id needs no remap. broadcast (layer 3 > 2) still routes P3
+    // content into its own container below.
 
     // interop id: author's colorInteropID verbatim, else name -> interop id.
     // Feature 1 (spec 09): force_interop_id makes a slotless format capable of
@@ -610,6 +615,49 @@ render_color_write_plan(const ImageSpec& spec, string_view format_name)
     row("interop_id", plan.interop_id);
     row("mdcv", plan.mdcv);
     return out;
+}
+
+
+bool
+apply_write_canonical_conversion(ImageBuf& buf, const ColorConfig* config,
+                                 string_view filepath)
+{
+    // Feature B (spec 09), the reconciler write-shape: when the config's write
+    // policy maps this buffer's color space to a canonical target that is a
+    // real colorimetric change, CONVERT the pixels rather than merely retagging
+    // them. The one locked mapping is the DCDM P3->XYZ headroom conversion
+    // (g26_p3d65_display -> g26_xyzd65_display). Runs against the embedded
+    // interop registry (interop_registry_processor), then stamps oiio:ColorSpace
+    // to the target so the downstream metadata plan tags the pixels truthfully.
+    // Returns true iff pixels were converted. No-op (false) when no mapping
+    // applies, the space can't be characterized, or the registry lacks the
+    // transform -- in every no-op case the buffer keeps its own (truthful) tag.
+    const ColorConfig& cfg = config ? *config
+                                     : ColorConfig::default_colorconfig();
+    const ColorWritePolicy policy
+        = ColorWritePolicy::snapshot(&buf.spec(), config, filepath);
+    if (!policy.canonicalize || policy.broadcast)
+        return false;
+    const std::string colorspace = buf.spec().get_string_attribute(
+        "oiio:ColorSpace");
+    if (colorspace.empty())
+        return false;
+    const std::string from
+        = characterize_color_space(cfg, colorspace,
+                                   CharacterizationField::ColorInteropID)
+              .color_interop_id;
+    const std::string to = canonical_write_id(from);
+    if (from.empty() || to == from)
+        return false;
+    ColorProcessorHandle proc = interop_registry_processor(from, to);
+    if (!proc)
+        return false;
+    // In-place; unpremult=false because these are display-encoded pixels, not
+    // premultiplied linear -- the mapping is a pure per-pixel curve/matrix.
+    if (!ImageBufAlgo::colorconvert(buf, buf, proc.get(), /*unpremult=*/false))
+        return false;
+    buf.specmod().attribute("oiio:ColorSpace", to);
+    return true;
 }
 
 

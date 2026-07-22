@@ -1515,6 +1515,29 @@ render_color_write_plan(const ImageSpec& spec, string_view format_name);
 OIIO_API void
 apply_forced_interop_id(ImageSpec& spec, string_view format_name,
                         string_view filepath = {});
+
+/// Build a ColorProcessor between two color spaces of OIIO's embedded interop
+/// identities registry (NOT any user config). Used by the write-canonical pixel
+/// conversion, whose mapped spaces are registry identities a user config need
+/// not (correctly) define. Empty handle on failure or when the transform is a
+/// no-op. For internal use only.
+OIIO_API ColorProcessorHandle
+interop_registry_processor(string_view from_id, string_view to_id);
+
+/// Feature B (spec 09), the reconciler write-shape: apply the config-declared
+/// write-canonical PIXEL conversion to `buf` in place, retagging its
+/// oiio:ColorSpace to the canonical target. The one locked mapping converts the
+/// DCDM P3 form to the XYZ headroom form (g26_p3d65_display ->
+/// g26_xyzd65_display: P3->XYZ primaries + DCI white headroom) through the
+/// embedded interop registry -- a REAL colorimetric change, not a relabel, so
+/// the emitted identity matches the pixels. Returns true iff pixels were
+/// converted; a no-op (no mapping, unknown space, broadcast active, or registry
+/// lacks the transform) leaves the buffer and its own truthful tag untouched.
+/// `config` may be null (process default). The write path calls this on each
+/// buffer before handing it to a format writer. For internal use only.
+OIIO_API bool
+apply_write_canonical_conversion(ImageBuf& buf, const ColorConfig* config,
+                                 string_view filepath = {});
 }  // namespace pvt
 
 

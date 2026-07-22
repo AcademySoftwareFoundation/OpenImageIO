@@ -357,6 +357,16 @@ test_registry_invariants()
     OIIO_CHECK_ASSERT(is_utility_interop_id("unknown"));
     OIIO_CHECK_ASSERT(is_utility_interop_id("bypass"));
 
+    // The DCDM family: the XYZ form (g26_xyzd65_display, alias dcdm_xyzd65) and
+    // the P3 form (dcdm_p3d65_display, = g26_p3d65 colorimetry + the DCI white
+    // headroom) both resolve as registry spaces. dcdm_p3d65_display is the P3
+    // DCDM identity the write-canonical conversion adds; g26_xyzd65_display is
+    // the conversion TARGET, which must be a real space for the mapping to run.
+    OIIO_CHECK_ASSERT(interop_identities_config_resolves("g26_xyzd65_display"));
+    OIIO_CHECK_ASSERT(interop_identities_config_resolves("dcdm_xyzd65"));
+    OIIO_CHECK_ASSERT(interop_identities_config_resolves("g26_p3d65_display"));
+    OIIO_CHECK_ASSERT(interop_identities_config_resolves("dcdm_p3d65_display"));
+
     // Cross-check against the CIF wiki's published Color Interop IDs:
     // https://github.com/AcademySoftwareFoundation/ColorInterop/wiki/Registered-Color-Interop-IDs
     // A representative subset of the published IDs; extend to the full
