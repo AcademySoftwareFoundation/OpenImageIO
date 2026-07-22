@@ -18,3 +18,14 @@
 === broadcast: write plan for png -- Rec.2020 cICP + P3 MDCV volume ===
   cicp            derive    builtin default     9/17/0/0
   mdcv            derive    builtin default     0.68,0.32,0.265,0.69,0.15,0.06,0.3127,0.329
+=== broadcast: PNG mDCV chunk round-trip (ST 2086 P3-D65 volume, xy x50000 / luminance x10000) ===
+    mdcv_blue_x: 7500
+    mdcv_blue_y: 3000
+    mdcv_green_x: 13250
+    mdcv_green_y: 34500
+    mdcv_max_luminance: 10000000
+    mdcv_min_luminance: 1
+    mdcv_red_x: 34000
+    mdcv_red_y: 16000
+    mdcv_white_x: 15635
+    mdcv_white_y: 16450

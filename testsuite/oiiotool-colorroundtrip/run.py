@@ -124,4 +124,28 @@ command += "echo '=== broadcast: write plan for png -- Rec.2020 cICP + P3 MDCV v
 command += (bcast + ot + " " + g26src + "--colorwriteplan png"
             + " 2>/dev/null | grep -E 'cicp|mdcv'" + redirect + " ;\n")
 
+
+# oicio spec 34 + RFC 0006: the derived P3(D65) mastering-display volume now
+# lands in the PNG file itself, as an SMPTE ST 2086 mDCV chunk, and reads back.
+# The written bcast.png above carries it. We adopt oicio's EXACT wire keys
+# ("Wire metadata keys", spec 34 lines 84-89): mdcv_{red,green,blue,white}_{x,y}
+# = chromaticity xy scaled x50000, mdcv_max/min_luminance = cd/m2 x10000 (min
+# floored at 1). The mDCV chunk needs libpng >= 1.6.50 (PNG_mDCV_SUPPORTED);
+# on older libpng the writer/reader silently no-op, so this section is gated on
+# the build's libpng version and skipped (not failed) when unsupported.
+import re
+libdeps = subprocess.check_output(
+    [oiio_app('oiiotool').strip(), '--echo',
+     '{getattribute(build:dependencies)}']).decode('utf-8')
+_m = re.search(r'[Pp][Nn][Gg][^0-9]*([0-9]+)\.([0-9]+)\.([0-9]+)', libdeps)
+png_has_mdcv = bool(_m) and (int(_m.group(1)), int(_m.group(2)),
+                             int(_m.group(3))) >= (1, 6, 50)
+
+if png_has_mdcv:
+    command += ("echo '=== broadcast: PNG mDCV chunk round-trip"
+                " (ST 2086 P3-D65 volume, xy x50000 / luminance x10000) ==='"
+                + redirect + " ;\n")
+    command += ("( env OCIO=" + bcfg + " " + ot + " --info -v bcast.png"
+                + " 2>/dev/null | grep -E 'mdcv_' || true )" + redirect + " ;\n")
+
 outputs = ["out.txt"]

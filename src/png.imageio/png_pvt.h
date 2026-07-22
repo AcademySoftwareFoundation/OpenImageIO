@@ -343,6 +343,30 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
     }
 #endif
 
+#ifdef PNG_mDCV_SUPPORTED
+    // mDCV (SMPTE ST 2086) -> oicio's ST 2086 integer wire keys (spec 34):
+    // chromaticity xy x50000, luminance x10000, min floored at 1. libpng
+    // hands back WHITE-FIRST doubles; we reorder to the R,G,B,W attribute set.
+    {
+        double wx, wy, rx, ry, gx, gy, bx, by, maxl, minl;
+        if (png_get_mDCV(sp, ip, &wx, &wy, &rx, &ry, &gx, &gy, &bx, &by, &maxl,
+                         &minl)) {
+            spec.attribute("mdcv_red_x", (int)std::lround(rx * 50000.0));
+            spec.attribute("mdcv_red_y", (int)std::lround(ry * 50000.0));
+            spec.attribute("mdcv_green_x", (int)std::lround(gx * 50000.0));
+            spec.attribute("mdcv_green_y", (int)std::lround(gy * 50000.0));
+            spec.attribute("mdcv_blue_x", (int)std::lround(bx * 50000.0));
+            spec.attribute("mdcv_blue_y", (int)std::lround(by * 50000.0));
+            spec.attribute("mdcv_white_x", (int)std::lround(wx * 50000.0));
+            spec.attribute("mdcv_white_y", (int)std::lround(wy * 50000.0));
+            spec.attribute("mdcv_max_luminance",
+                           (int)std::lround(maxl * 10000.0));
+            int64_t mn = (int64_t)std::lround(minl * 10000.0);
+            spec.attribute("mdcv_min_luminance", (int)(mn < 1 ? 1 : mn));
+        }
+    }
+#endif
+
 #ifdef PNG_eXIf_SUPPORTED
     // Recent version of PNG and libpng (>= 1.6.32, I think) have direct
     // support for Exif chunks. Older versions don't support it, and I'm not
@@ -824,6 +848,56 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
             png_set_gAMA(sp, ip, 1.0f / g.gamma);  // PNG stores file gamma
         }
     }
+
+#ifdef PNG_mDCV_SUPPORTED
+    // mDCV (SMPTE ST 2086 mastering-display colour volume). Adopt the sibling
+    // oicio project's exact wire keys (oicio spec 34, "Wire metadata keys"):
+    //   mdcv_{red,green,blue,white}_{x,y} = chromaticity xy scaled x50000
+    //   mdcv_{max,min}_luminance          = cd/m2 scaled x10000 (min floored 1)
+    // Source priority: explicit mdcv_* ImageSpec attributes win; otherwise,
+    // under the broadcast policy, bridge the plan's derived RGBW primaries
+    // (color_plan.mdcv.floats, a flat R,G,B,W xy float[8]) into a volume.
+    // libpng wants WHITE-FIRST doubles in [0,1] xy and nits luminance, so we
+    // reorder RGBW->WRGB and unscale (xy/50000, luminance/10000).
+    {
+        static const char* xykeys[8]
+            = { "mdcv_red_x",  "mdcv_red_y",   "mdcv_green_x", "mdcv_green_y",
+                "mdcv_blue_x", "mdcv_blue_y",  "mdcv_white_x", "mdcv_white_y" };
+        int64_t xy[8];
+        bool have_xy = true;
+        for (int i = 0; i < 8; ++i) {
+            if (spec.find_attribute(xykeys[i]))
+                xy[i] = spec.get_int_attribute(xykeys[i]);
+            else {
+                have_xy = false;
+                break;
+            }
+        }
+        // Bridge the broadcast-derived primaries when no explicit xy present.
+        const auto& md = color_plan.mdcv;
+        if (!have_xy && md.emit() && md.floats.size() == 8) {
+            for (int i = 0; i < 8; ++i)
+                xy[i] = (int64_t)std::lround(md.floats[i] * 50000.0);
+            have_xy = true;
+        }
+        // ponytail: no photometric luminance probe here. oicio derives peak/
+        // black via a probe ladder (spec 34 tiers 2-4) not ported to OIIO; the
+        // interim is supplied-or-default. Default = P3 broadcast mastering
+        // display: 1000 nits peak, 0.0001 nit black (ST2086 min floor of 1).
+        // Override via the mdcv_max_luminance / mdcv_min_luminance attributes.
+        int64_t maxlum = spec.get_int_attribute("mdcv_max_luminance", 10000000);
+        int64_t minlum = spec.get_int_attribute("mdcv_min_luminance", 1);
+        if (have_xy) {
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG mDCV chunk";
+            png_set_mDCV(sp, ip, xy[6] / 50000.0, xy[7] / 50000.0,  // white x,y
+                         xy[0] / 50000.0, xy[1] / 50000.0,          // red x,y
+                         xy[2] / 50000.0, xy[3] / 50000.0,          // green x,y
+                         xy[4] / 50000.0, xy[5] / 50000.0,          // blue x,y
+                         maxlum / 10000.0, minlum / 10000.0);
+        }
+    }
+#endif
 
 #ifdef PNG_eXIf_SUPPORTED
     std::vector<char> exifBlob;
