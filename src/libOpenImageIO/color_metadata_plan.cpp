@@ -295,17 +295,6 @@ ColorWritePolicy::snapshot(const ImageSpec* config_hints,
     p.mdcv = parse_signal(
         snap.get_string("oiio:colorpolicy:write:mdcv", &p.mdcv_layer));
 
-    p.custom_namespace_for_generated_ids
-        = snap.get_string("oiio:colorpolicy:write:custom_namespace_for_generated_ids");
-    p.aces_container_allow_lossless_compression
-        = snap.get_int("oiio:colorpolicy:write:aces_container_allow_lossless_compression",
-                       0)
-          != 0;
-    p.cicp_custom_gama
-        = snap.get_int("oiio:colorpolicy:write:cicp_custom_gama", 0) != 0;
-    p.write_narrow_range
-        = snap.get_int("oiio:colorpolicy:write:write_narrow_range", 0) != 0;
-    p.write_yuv = snap.get_int("oiio:colorpolicy:write:write_yuv", 0) != 0;
     p.force_interop_id
         = snap.get_int("oiio:colorpolicy:write:force_interop_id", 0) != 0;
     p.verbose = snap.get_int("oiio:colorpolicy:write:verbose", 0) != 0;
@@ -371,12 +360,15 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
             // Feature A (spec 09): P3 -> broadcast container. Rec.2020 encoding
             // primaries are SIGNALED (CICP primaries code 9) and the range is
             // narrow (limited, video_full_range_flag = 0); the transfer is
-            // carried from the source's own CICP (else gamma 2.6, code 17), and
-            // the matrix is RGB (code 0, matching PNG's RGB constraint). The P3
-            // gamut is NOT re-gamut'd to Rec.2020 -- its true volume is carried
-            // in the MDCV mastering-display metadata below.
+            // carried from the source's own CICP, and the matrix is RGB (code 0,
+            // matching PNG's RGB constraint). The P3 gamut is NOT re-gamut'd to
+            // Rec.2020 -- its true volume is carried in the MDCV
+            // mastering-display metadata below.
+            // No-CICP transfer fallback is BT.1886 (code 1), the SDR broadcast
+            // EOTF -- NOT DCDM gamma-2.6 (code 17), whose 48/52.37 DCI headroom
+            // a broadcast decoder must not apply to non-cinema content.
             cspan<int> src     = cfg.get_cicp(derived_id);
-            const int transfer = src.size() == 4 ? src[1] : 17;
+            const int transfer = src.size() == 4 ? src[1] : 1;
             plan.cicp.action   = ColorPlanAction::Derive;
             plan.cicp.ints     = { 9, transfer, 0, 0 };
         } else {
@@ -468,6 +460,13 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     // carrying, and make it emittable -- the plan consumers' static caps do not
     // enable mDCV, so broadcast is OR-ed into the gate, mirroring the verbose
     // cHRM/gAMA gates above.
+    // Note the asymmetry with the five signals above: author-supplied mDCV is
+    // NOT resolved here as an ExplicitMetadata Write. Authored `mdcv_*`
+    // ImageSpec attributes are honored directly in the format writer (see
+    // png_pvt.h), so this plan only carries the broadcast-derived volume.
+    // Consequence: --colorwriteplan reports mdcv as omit even when the file
+    // will carry author mDCV. ponytail: unify by reading `mdcv_*` into
+    // plan.mdcv when the reconciler write-shape is settled.
     const bool mdcv_capable = caps.mdcv || policy.broadcast;
     if (mdcv_capable && policy.mdcv != ColorSignalPolicy::Never) {
         if (policy.broadcast && is_p3d65_content(derived_id)) {

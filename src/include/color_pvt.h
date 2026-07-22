@@ -1431,20 +1431,14 @@ struct ColorWritePolicy {
     ColorSignalPolicy icc            = ColorSignalPolicy::Auto;
     ColorSignalPolicy interop_id     = ColorSignalPolicy::Auto;
     ColorSignalPolicy mdcv           = ColorSignalPolicy::Auto;
-    // Which tier supplied each signal's policy above (BuiltinDefault /
-    // GlobalAttribute / PerSpecAttribute only), recorded by snapshot() so
-    // the plan can attribute its verdicts.
+    // Which tier supplied each signal's policy above (any ColorPlanDecider
+    // tier), recorded by snapshot() so the plan can attribute its verdicts.
     ColorPlanDecider cicp_layer           = ColorPlanDecider::BuiltinDefault;
     ColorPlanDecider chromaticities_layer = ColorPlanDecider::BuiltinDefault;
     ColorPlanDecider gamma_layer          = ColorPlanDecider::BuiltinDefault;
     ColorPlanDecider icc_layer            = ColorPlanDecider::BuiltinDefault;
     ColorPlanDecider interop_id_layer     = ColorPlanDecider::BuiltinDefault;
     ColorPlanDecider mdcv_layer           = ColorPlanDecider::BuiltinDefault;
-    std::string custom_namespace_for_generated_ids;
-    bool aces_container_allow_lossless_compression = false;
-    bool cicp_custom_gama                          = false;
-    bool write_narrow_range                        = false;
-    bool write_yuv                                 = false;
     // Feature 1 (spec 09): force the colorInteropID into formats with no
     // native slot (TIFF/JPEG), emitted as an aux string attribute that
     // round-trips via XMP. Default 0 keeps slotless formats untagged (the
