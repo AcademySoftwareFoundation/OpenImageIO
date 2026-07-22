@@ -13,14 +13,14 @@ bool
 ImageOutput_open_specs(ImageOutput& self, const std::string& name,
                        py::tuple& specs)
 {
-    const size_t length = len(specs);
+    const size_t length = py::len(specs);
     if (length == 0)
         return false;
     std::vector<ImageSpec> Cspecs(length);
     for (size_t i = 0; i < length; ++i) {
         auto s = specs[i];
         if (py::isinstance<ImageSpec>(s))
-            Cspecs[i] = s.cast<ImageSpec>();
+            Cspecs[i] = py::cast<ImageSpec>(s);
         else
             return false;  // Tuple item was not an ImageSpec
     }
@@ -30,14 +30,16 @@ ImageOutput_open_specs(ImageOutput& self, const std::string& name,
 
 
 bool
-ImageOutput_write_scanline(ImageOutput& self, int y, int z, py::buffer& buffer)
+ImageOutput_write_scanline(ImageOutput& self, int y, int z,
+                           const py::object& buffer)
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width != 0) {
         self.errorfmt("Cannot write scanlines to a tiled file.");
         return false;
     }
-    oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width, 1, 1, 1);
+    oiio_bufinfo buf = oiio_bufinfo_from_object(buffer, spec.nchannels,
+                                                spec.width, 1, 1, 1);
     if (!buf.data || buf.error.size()) {
         self.errorfmt("Pixel data array error: {}",
                       buf.error.size() ? buf.error.c_str() : "unspecified");
@@ -56,15 +58,16 @@ ImageOutput_write_scanline(ImageOutput& self, int y, int z, py::buffer& buffer)
 
 bool
 ImageOutput_write_scanlines(ImageOutput& self, int ybegin, int yend, int z,
-                            py::buffer& buffer)
+                            const py::object& buffer)
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width != 0) {
         self.errorfmt("Cannot write scanlines to a filed file.");
         return false;
     }
-    oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width,
-                     yend - ybegin, 1, 2);
+    oiio_bufinfo buf = oiio_bufinfo_from_object(buffer, spec.nchannels,
+                                                spec.width, yend - ybegin, 1,
+                                                2);
     if (!buf.data || buf.error.size()) {
         self.errorfmt("Pixel data array error: {}",
                       buf.error.size() ? buf.error.c_str() : "unspecified");
@@ -84,16 +87,17 @@ ImageOutput_write_scanlines(ImageOutput& self, int ybegin, int yend, int z,
 
 bool
 ImageOutput_write_tile(ImageOutput& self, int x, int y, int z,
-                       py::buffer& buffer)
+                       const py::object& buffer)
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width == 0) {
         self.errorfmt("Cannot write tiles to a scanline file.");
         return false;
     }
-    oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.tile_width,
-                     spec.tile_height, spec.tile_depth,
-                     spec.tile_depth > 1 ? 3 : 2);
+    oiio_bufinfo buf
+        = oiio_bufinfo_from_object(buffer, spec.nchannels, spec.tile_width,
+                                   spec.tile_height, spec.tile_depth,
+                                   spec.tile_depth > 1 ? 3 : 2);
     if (!buf.data || buf.error.size()) {
         self.errorfmt("Pixel data array error: {}",
                       buf.error.size() ? buf.error.c_str() : "unspecified");
@@ -112,15 +116,18 @@ ImageOutput_write_tile(ImageOutput& self, int x, int y, int z,
 
 bool
 ImageOutput_write_tiles(ImageOutput& self, int xbegin, int xend, int ybegin,
-                        int yend, int zbegin, int zend, py::buffer& buffer)
+                        int yend, int zbegin, int zend,
+                        const py::object& buffer)
 {
     const ImageSpec& spec(self.spec());
     if (spec.tile_width == 0) {
         self.errorfmt("Cannot write tiles to a scanline file.");
         return false;
     }
-    oiio_bufinfo buf(buffer.request(), spec.nchannels, xend - xbegin,
-                     yend - ybegin, zend - zbegin, spec.tile_depth > 1 ? 3 : 2);
+    oiio_bufinfo buf = oiio_bufinfo_from_object(buffer, spec.nchannels,
+                                                xend - xbegin, yend - ybegin,
+                                                zend - zbegin,
+                                                spec.tile_depth > 1 ? 3 : 2);
     if (!buf.data || buf.error.size()) {
         self.errorfmt("Pixel data array error: {}",
                       buf.error.size() ? buf.error.c_str() : "unspecified");
@@ -141,11 +148,13 @@ ImageOutput_write_tiles(ImageOutput& self, int xbegin, int xend, int ybegin,
 
 
 bool
-ImageOutput_write_image(ImageOutput& self, py::buffer& buffer)
+ImageOutput_write_image(ImageOutput& self, const py::object& buffer)
 {
     const ImageSpec& spec(self.spec());
-    oiio_bufinfo buf(buffer.request(), spec.nchannels, spec.width, spec.height,
-                     spec.depth, spec.depth > 1 ? 3 : 2);
+    oiio_bufinfo buf = oiio_bufinfo_from_object(buffer, spec.nchannels,
+                                                spec.width, spec.height,
+                                                spec.depth,
+                                                spec.depth > 1 ? 3 : 2);
     if (!buf.data || buf.size < spec.image_pixels() * spec.nchannels
         || buf.error.size()) {
         self.errorfmt("Pixel data array error: {}",
@@ -189,10 +198,8 @@ ImageOutput_write_deep_image(ImageOutput& self, const DeepData& deepdata)
 
 
 void
-declare_imageoutput(py::module& m)
+declare_imageoutput(py_module& m)
 {
-    using namespace pybind11::literals;
-
     py::class_<ImageOutput>(m, "ImageOutput")
         .def_static(
             "create",
@@ -250,7 +257,7 @@ declare_imageoutput(py::module& m)
              })
         .def("copy_image", [](ImageOutput& self,
                               ImageInput& in) { return self.copy_image(&in); })
-        .def_property_readonly("has_error", &ImageOutput::has_error)
+        .OIIO_PY_PROP_RO("has_error", &ImageOutput::has_error)
         .def(
             "geterror",
             [](ImageOutput& self, bool clear) {

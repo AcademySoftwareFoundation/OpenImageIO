@@ -12,10 +12,8 @@ namespace PyOpenImageIO {
 
 // Declare the OIIO ColorConfig class to Python
 void
-declare_colorconfig(py::module& m)
+declare_colorconfig(py_module& m)
 {
-    using namespace pybind11::literals;
-
     py::class_<ColorConfig>(m, "ColorConfig")
 
         .def(py::init<>())
@@ -192,9 +190,12 @@ declare_colorconfig(py::module& m)
                  return std::nullopt;
              })
         .def("configname", &ColorConfig::configname)
-        .def_static("default_colorconfig", []() -> const ColorConfig& {
-            return ColorConfig::default_colorconfig();
-        });
+        .def_static(
+            "default_colorconfig",
+            []() -> const ColorConfig& {
+                return ColorConfig::default_colorconfig();
+            },
+            oiio_py::ref);
 
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
     m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();
