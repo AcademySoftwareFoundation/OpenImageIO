@@ -659,20 +659,19 @@ KtxOutput::write_ktx2()
     OIIO_ASSERT(
         m_vkformat != VK_FORMAT_UNDEFINED
         && "VkFormat should never be VK_FORMAT_UNDEFINED when creating a KTX2 texture");
-    ktxTextureCreateInfo create_info {
-        .glInternalformat = 0,  // Ignored as this is not a KTX1 texture
-        .vkFormat         = m_vkformat,
-        .pDfd             = nullptr,
-        .baseWidth        = m_basewidth,
-        .baseHeight       = m_baseheight,
-        .baseDepth        = m_basedepth,
-        .numDimensions    = static_cast<ktx_uint32_t>(m_basedepth > 1 ? 3 : 2),
-        .numLevels        = m_miplevel_idx + 1,
-        .numLayers        = 1,  // Can't support this with current OIIO API
-        .numFaces         = 1,  // TODO
-        .isArray = KTX_FALSE,   // Can't support this with current OIIO API
-        .generateMipmaps = m_generate_mipmaps,
-    };
+    ktxTextureCreateInfo create_info;
+    create_info.glInternalformat = 0;  // Ignored as this is not a KTX1 texture
+    create_info.vkFormat         = m_vkformat;
+    create_info.pDfd             = nullptr;
+    create_info.baseWidth        = m_basewidth;
+    create_info.baseHeight       = m_baseheight;
+    create_info.baseDepth        = m_basedepth;
+    create_info.numDimensions    = m_basedepth > 1 ? 3u : 2u;
+    create_info.numLevels        = m_miplevel_idx + 1;
+    create_info.numLayers = 1;  // Can't support this with current OIIO API
+    create_info.numFaces  = 1;  // TODO
+    create_info.isArray = KTX_FALSE;  // Can't support this with current OIIO API
+    create_info.generateMipmaps = m_generate_mipmaps;
 
     DBG std::cout << "calling ktxTexture2_Create with: "
                   << "vkFormat=" << create_info.vkFormat << "; "
