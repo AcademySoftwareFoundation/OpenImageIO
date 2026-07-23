@@ -170,6 +170,7 @@ macro (oiio_add_all_tests)
                     cmake-consumer
                     cryptomatte
                     docs-examples-cpp
+                    texture-device
                     iinfo igrep
                     nonwhole-tiles
                     oiiotool
