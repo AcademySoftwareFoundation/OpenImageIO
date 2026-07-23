@@ -64,7 +64,8 @@ public:
     const char* format_name(void) const override { return "jpeg"; }
     int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "iptc" || feature == "ioproxy");
+        return (feature == "exif" || feature == "iptc" || feature == "ioproxy"
+                || feature == "thumbnail");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
 
@@ -77,6 +78,7 @@ public:
                                int z, void* data) override;
     bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                span<std::byte> data) override;
+    bool get_thumbnail(ImageBuf& thumb, int subimage) override;
     bool close() override;
 
     const std::string& filename() const { return m_filename; }
@@ -108,6 +110,10 @@ private:
     uhdr_codec_private_t* m_uhdr_dec;
 #endif
 
+    // This will point to an embedded JPEG thumbnail if exists.
+    // This span is only valid until jpeg_destroy_decompress(&m_cinfo) is called.
+    cspan<uint8_t> m_thumbnail_data;
+
     void init()
     {
         m_raw           = false;
@@ -122,6 +128,7 @@ private:
 #if defined(USE_UHDR)
         m_uhdr_dec = NULL;
 #endif
+        m_thumbnail_data = cspan<uint8_t>();
     }
 
     // Rummage through the JPEG "APP1" marker pointed to by buf, decoding
@@ -138,6 +145,8 @@ private:
     bool read_uhdr(Filesystem::IOProxy* ioproxy);
 
     void close_file() { init(); }
+
+    void scan_for_thumbnail(cspan<uint8_t> exif);
 
     friend class JpgOutput;
 };
