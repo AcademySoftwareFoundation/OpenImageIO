@@ -3290,9 +3290,6 @@ Image comparison and statistics
 .. py:method:: ImageBuf ImageBufAlgo.FLIP_diff (ref, test, hdr=1, maxluminance=2.0, medianluminance=0.18, ppd=0.0, tonemapper="aces", roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.FLIP_diff (dst, ref, test, hdr=1, maxluminance=2.0, medianluminance=0.18, ppd=0.0, tonemapper="aces", roi=ROI.All, nthreads=0)
 
-    WARNING: This is EXPERIMENTAL and may change at any time. Do not rely
-    on it prior to the release of OIIO 3.2.
-
     Compute the `FLIP <https://research.nvidia.com/publication/2020-07_flip-difference-evaluator-alternating-images>`_
     perceptual difference between images `ref` and `test`, returning a
     single-channel float error map whose pixel values lie in [0,1].  Higher
