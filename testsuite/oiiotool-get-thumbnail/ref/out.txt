@@ -1,0 +1,20 @@
+modifiers 160x120
+thumbnail 160x120
+full 200x150
+oiiotool ERROR: --get-thumbnail : Image "../common/tahoe-small.tif" has no thumbnail
+Full command line was:
+> oiiotool ../common/tahoe-small.tif --get-thumbnail
+no thumbnail, skipped output
+oiiotool ERROR: --get-thumbnail:index=1:fail=0 : Thumbnail index 1 is not available; only the primary thumbnail (index 0) is currently supported
+Full command line was:
+> oiiotool src/with-thumbnail.psd --get-thumbnail:index=1:fail=0
+Computing diff of "thumb_i.tif" vs "thumb.tif"
+PASS
+autoorient/autocc 160x120
+input fail=0 returned empty
+oiiotool ERROR: --get-thumbnail:index=1 : Thumbnail index 1 is not available; only the primary thumbnail (index 0) is currently supported
+Full command line was:
+> oiiotool -i:get_thumbnail=1:index=1 src/with-thumbnail.psd
+get_thumbnail=0 200x150
+Comparing "thumb.tif" and "ref/thumb.tif"
+PASS

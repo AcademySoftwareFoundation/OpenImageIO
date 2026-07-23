@@ -1983,6 +1983,10 @@ ImageBufImpl::set_thumbnail(const ImageBuf& thumb, DoLock do_lock)
     clear_thumbnail(DoLock(false) /* we already hold the lock */);
     if (thumb.initialized()) {
         m_thumbnail.reset(new ImageBuf(thumb));
+        m_spec.attribute("thumbnail_width", thumb.spec().width);
+        m_spec.attribute("thumbnail_height", thumb.spec().height);
+        m_spec.attribute("thumbnail_nchannels", thumb.spec().nchannels);
+        m_has_thumbnail = true;
     }
 }
 

@@ -442,6 +442,160 @@ time_get_pixels()
 
 
 void
+test_thumbnail()
+{
+    std::cout << "\nTesting set_thumbnail, get_thumbnail, clear_thumbnail:\n";
+    ImageBuf A(ImageSpec(64, 48, 3, TypeUInt8));
+    ImageBufAlgo::zero(A);
+    OIIO_CHECK_ASSERT(!A.has_thumbnail());
+
+    // Non-square asymmetric vertical gradient. The top/bottom colors are
+    // deliberately not R/B mirror images, so a flip, an R/B swap, and both
+    // together each alter the image.
+    auto gradient = [](int w, int h, int nchans) {
+        ImageBuf buf(ImageSpec(w, h, nchans, TypeUInt8));
+        static const float top[4]    = { 0.2f, 0.3f, 0.8f, 1.0f };
+        static const float bottom[4] = { 0.7f, 0.9f, 0.4f, 1.0f };
+        ImageBufAlgo::fill(buf, cspan<float>(top), cspan<float>(bottom));
+        return buf;
+    };
+    ImageBuf thumb = gradient(16, 12, 3);
+
+    A.set_thumbnail(thumb);
+    OIIO_CHECK_ASSERT(A.has_thumbnail());
+    auto t = A.get_thumbnail();
+    OIIO_CHECK_ASSERT(t && t->initialized());
+    OIIO_CHECK_EQUAL(t->spec().width, 16);
+    OIIO_CHECK_EQUAL(t->spec().height, 12);
+    OIIO_CHECK_EQUAL(A.spec().get_int_attribute("thumbnail_width"), 16);
+    OIIO_CHECK_EQUAL(A.spec().get_int_attribute("thumbnail_height"), 12);
+    OIIO_CHECK_EQUAL(A.spec().get_int_attribute("thumbnail_nchannels"), 3);
+    OIIO_CHECK_EQUAL(ImageBufAlgo::compare(*t, thumb, 0.0f, 0.0f).nfail, 0);
+
+    // Test that `set_thumbnail` stores a deep copy. Mutating the source image
+    // afterward must not affect the stored thumbnail.
+    ImageBufAlgo::zero(thumb);
+    t = A.get_thumbnail();
+    OIIO_CHECK_EQUAL(
+        ImageBufAlgo::compare(*t, gradient(16, 12, 3), 0.0f, 0.0f).nfail, 0);
+
+    // Replace A's thumbnail with a new image.
+    A.set_thumbnail(gradient(8, 6, 3));
+    t = A.get_thumbnail();
+    OIIO_CHECK_EQUAL(t->spec().width, 8);
+    OIIO_CHECK_EQUAL(t->spec().height, 6);
+    OIIO_CHECK_EQUAL(A.spec().get_int_attribute("thumbnail_width"), 8);
+    OIIO_CHECK_EQUAL(A.spec().get_int_attribute("thumbnail_height"), 6);
+
+    // Test that setting an uninitialized thumbnail clears it.
+    A.set_thumbnail(ImageBuf());
+    OIIO_CHECK_ASSERT(!A.has_thumbnail());
+    OIIO_CHECK_EQUAL(A.spec().get_int_attribute("thumbnail_width"), 0);
+
+    // Test that `clear_thumbnail` removes the thumbnail and its metadata.
+    A.set_thumbnail(gradient(16, 12, 3));
+    OIIO_CHECK_ASSERT(A.has_thumbnail());
+    A.clear_thumbnail();
+    OIIO_CHECK_ASSERT(!A.has_thumbnail());
+    OIIO_CHECK_EQUAL(A.spec().get_int_attribute("thumbnail_width"), 0);
+}
+
+
+
+void
+test_thumbnail_tga()
+{
+    std::cout << "\nTesting thumbnail round trip through a TGA file:\n";
+    ImageBuf A(ImageSpec(64, 48, 3, TypeUInt8));
+    ImageBufAlgo::zero(A);
+
+    // Non-square asymmetric vertical gradient. The top/bottom colors are
+    // deliberately not R/B mirror images, so a flip, an R/B swap, and both
+    // together each alter the image.
+    auto gradient = [](int w, int h, int nchans) {
+        ImageBuf buf(ImageSpec(w, h, nchans, TypeUInt8));
+        static const float top[4]    = { 0.2f, 0.3f, 0.8f, 1.0f };
+        static const float bottom[4] = { 0.7f, 0.9f, 0.4f, 1.0f };
+        ImageBufAlgo::fill(buf, cspan<float>(top), cspan<float>(bottom));
+        return buf;
+    };
+
+    // Test that the thumbnail content survives a write/read round trip exactly.
+    A.set_thumbnail(gradient(16, 12, 3));
+    OIIO_CHECK_ASSERT(A.write("imagebuf_test_thumb1.tga"));
+    {
+        ImageBuf in("imagebuf_test_thumb1.tga");
+        OIIO_CHECK_ASSERT(in.has_thumbnail());
+        auto rt = in.get_thumbnail();
+        OIIO_CHECK_ASSERT(rt && rt->initialized());
+        OIIO_CHECK_EQUAL(rt->spec().width, 16);
+        OIIO_CHECK_EQUAL(rt->spec().height, 12);
+        OIIO_CHECK_EQUAL(rt->spec().nchannels, 3);
+        OIIO_CHECK_EQUAL(
+            ImageBufAlgo::compare(*rt, gradient(16, 12, 3), 0.0f, 0.0f).nfail,
+            0);
+    }
+
+    // Test an oversized thumbnail is resized to fit the
+    // format's 255 pixel dimension limit, preserving aspect ratio.
+    A.set_thumbnail(gradient(512, 384, 3));
+    OIIO_CHECK_ASSERT(A.write("imagebuf_test_thumb2.tga"));
+    {
+        ImageBuf in("imagebuf_test_thumb2.tga");
+        OIIO_CHECK_ASSERT(in.has_thumbnail());
+        auto rt = in.get_thumbnail();
+        OIIO_CHECK_ASSERT(rt && rt->initialized());
+        OIIO_CHECK_EQUAL(rt->spec().width, 255);
+        OIIO_CHECK_EQUAL(rt->spec().height, 191);
+    }
+
+    A.set_thumbnail(gradient(384, 512, 3));
+    OIIO_CHECK_ASSERT(A.write("imagebuf_test_thumb3.tga"));
+    {
+        ImageBuf in("imagebuf_test_thumb3.tga");
+        OIIO_CHECK_ASSERT(in.has_thumbnail());
+        auto rt = in.get_thumbnail();
+        OIIO_CHECK_ASSERT(rt && rt->initialized());
+        OIIO_CHECK_EQUAL(rt->spec().width, 191);
+        OIIO_CHECK_EQUAL(rt->spec().height, 255);
+    }
+
+    // Test a thumbnail whose channel count doesn't match the image can't be
+    // stored in a TGA file; the image is written without one.
+    A.set_thumbnail(gradient(16, 12, 4));
+    OIIO_CHECK_ASSERT(A.write("imagebuf_test_thumb4.tga"));
+    {
+        ImageBuf in("imagebuf_test_thumb4.tga");
+        OIIO_CHECK_ASSERT(!in.has_thumbnail());
+    }
+
+    // Test conversion between associated and unassociated alpha.
+    ImageBuf rgba_image(ImageSpec(64, 48, 4, TypeUInt8));
+    ImageBufAlgo::zero(rgba_image);
+    ImageBuf rgba_thumb(ImageSpec(16, 12, 4, TypeUInt8));
+    const float premult_rgba[4] = { 0.4f, 0.3f, 0.2f, 0.5f };
+    ImageBufAlgo::fill(rgba_thumb, cspan<float>(premult_rgba));
+    rgba_image.set_thumbnail(rgba_thumb);
+    OIIO_CHECK_ASSERT(rgba_image.write("imagebuf_test_thumb5.tga"));
+    {
+        ImageBuf in("imagebuf_test_thumb5.tga");
+        OIIO_CHECK_ASSERT(in.has_thumbnail());
+        auto rt = in.get_thumbnail();
+        OIIO_CHECK_ASSERT(rt && rt->initialized());
+        OIIO_CHECK_EQUAL(
+            ImageBufAlgo::compare(*rt, rgba_thumb, 0.005f, 0.005f).nfail, 0);
+    }
+
+    for (const char* f :
+         { "imagebuf_test_thumb1.tga", "imagebuf_test_thumb2.tga",
+           "imagebuf_test_thumb3.tga", "imagebuf_test_thumb4.tga",
+           "imagebuf_test_thumb5.tga" })
+        Filesystem::remove(f);
+}
+
+
+
+void
 test_read_channel_subset()
 {
     std::cout << "\nTesting reading a channel subset\n";
@@ -841,6 +995,9 @@ main(int argc, char* argv[])
 
     test_set_get_pixels();
     time_get_pixels();
+
+    test_thumbnail();
+    test_thumbnail_tga();
 
     test_write_over();
 
