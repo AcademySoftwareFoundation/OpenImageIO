@@ -13,6 +13,12 @@ configure_file (buildopts.h.in "${CMAKE_BINARY_DIR}/include/buildopts.h" @ONLY)
 # external file dependency.
 set (INTEROP_IDENTITIES_CONFIG_PATH
      "${CMAKE_CURRENT_SOURCE_DIR}/interop-identities-config.ocio")
+# file(READ) does not create a configure-time dependency on its own, so an edit
+# to the .ocio would otherwise leave the embedded hex (and the parsed registry)
+# stale until the next manual reconfigure. Register it so CMake re-runs configure
+# when the config changes.
+set_property (DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+              "${INTEROP_IDENTITIES_CONFIG_PATH}")
 file (READ "${INTEROP_IDENTITIES_CONFIG_PATH}" INTEROP_HEX_CONTENTS HEX)
 string (REGEX MATCHALL "([A-Za-z0-9][A-Za-z0-9])" INTEROP_SEPARATED_HEX
         "${INTEROP_HEX_CONTENTS}")
