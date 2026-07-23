@@ -8,6 +8,7 @@
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/tiffutils.h>
@@ -296,13 +297,14 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         if (is_exif_marker(m)) {
             // The block starts with "Exif\0\0", so skip 6 bytes to get
             // to the start of the actual Exif data TIFF directory
-            bool ok = decode_exif(string_view((char*)m->data + 6,
-                                              m->data_length - 6),
-                                  m_spec);
+            auto exif = cspan<uint8_t>((uint8_t*)m->data + 6,
+                                       m->data_length - 6);
+            bool ok   = decode_exif(exif, m_spec);
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
                 errorfmt("Could not decode Exif");
                 return false;
             }
+            scan_for_thumbnail(exif);
         } else if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 28
                    && !strncmp((const char*)m->data,
                                "http://ns.adobe.com/xap/1.0/", 28)) {  //NOSONAR
@@ -790,5 +792,141 @@ JpgInput::jpeg_decode_iptc(string_view buf)
 
     return decode_iptc_iim(buf, m_spec);
 }
+
+void
+JpgInput::scan_for_thumbnail(cspan<uint8_t> exif)
+{
+    try {
+        bool host_little = littleendian();
+        bool file_little = (exif[0] == 0x49 && exif[1] == 0x49);
+        bool swab        = (host_little != file_little);
+
+        const uint8_t* soi_ptr = nullptr;
+        const uint8_t* eoi_ptr = nullptr;
+
+        size_t i = 0;
+        while (i < exif.size() - 1) {
+            if (exif[i] == 0xFF && exif[i + 1] == 0xD8) {
+                soi_ptr = &exif[i];
+                break;
+            }
+            i++;
+        }
+
+        if (!soi_ptr)
+            return;
+
+        // extract image properties along the way
+        uint16_t width  = 0;
+        uint16_t height = 0;
+        int numchan     = 0;
+
+        while (i < exif.size() - 1) {
+            if (exif[i++] == 0xFF) {
+                const auto marker = exif[i];
+                if (marker == 0xD9) {
+                    eoi_ptr = &exif[i] + 1;  // one past (exclusive)
+                    break;
+                } else if (marker == 0xC0 || marker == 0xC2) {
+                    uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
+                    height          = (exif.at(i + 5) << 8) + exif.at(i + 4);
+                    width           = (exif.at(i + 7) << 8) + exif.at(i + 6);
+                    numchan         = exif[i + 8];
+
+                    if (swab) {
+                        swap_endian(&length);
+                        swap_endian(&height);
+                        swap_endian(&width);
+                    }
+
+                    length -= 2;
+
+                    if (i + length < exif.size() - 1) {
+                        i += length;
+                    }
+                } else if ((marker >= 0xC0 && marker < 0xD0)
+                           || (marker > 0xD9 && marker <= 0xFE)) {
+                    // Skip ahead for markers that have an associated length
+                    uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
+
+                    if (swab) {
+                        swap_endian(&length);
+                    }
+
+                    length -= 2;
+
+                    if (i + length < exif.size() - 1) {
+                        i += length;
+                    }
+                }
+            }
+        }
+
+        if (eoi_ptr) {
+            m_thumbnail_data = cspan<uint8_t>(soi_ptr, eoi_ptr);
+            m_spec.attribute("thumbnail_width", width);
+            m_spec.attribute("thumbnail_height", height);
+            m_spec.attribute("thumbnail_nchannels", numchan);
+        }
+
+    } catch (const std::exception& e) {
+        errorfmt("ERROR scanning for thumbnail: {}", e.what());
+    }
+}
+
+bool
+JpgInput::get_thumbnail(ImageBuf& thumb, int subimage)
+{
+    if (!m_decomp_create) {
+        errorfmt("ImageInput hasn't been initialised properly");
+        return false;
+    }
+
+    if (m_thumbnail_data.empty()) {
+        errorfmt("No thumbnail found");
+        return false;
+    }
+
+    auto image_input = OIIO::ImageInput::create("jpeg", false);
+    if (image_input == nullptr) {
+        errorfmt("OIIO::ImageInput::create(\"jpeg\") error");
+        return false;
+    }
+
+    Filesystem::IOMemReader proxy(m_thumbnail_data.data(),
+                                  m_thumbnail_data.size());
+    bool result = image_input->valid_file(&proxy);
+    if (!result) {
+        errorfmt("the thumbnail is not a valid image of type \"jpeg\"");
+        return false;
+    }
+
+    ImageSpec temp_spec, image_spec;
+    Filesystem::IOProxy* pp = &proxy;
+    temp_spec.attribute("oiio:ioproxy", TypeDesc::PTR, &pp);
+
+    result = image_input->open("", image_spec, temp_spec);
+    if (!result) {
+        errorfmt(
+            "failed to initialise an ImageInput object with the thumbnail data");
+        return false;
+    }
+
+    thumb.reset(image_spec);
+
+    result = image_input->read_image(0, 0, 0, image_spec.nchannels,
+                                     image_spec.format, thumb.localpixels());
+
+    if (!result) {
+        errorfmt(
+            "failed to initialise an ImageInput object of type \"jpeg\" with the thumbnail data");
+        image_input->close();
+        return false;
+    }
+
+    image_input->close();
+    return true;
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
