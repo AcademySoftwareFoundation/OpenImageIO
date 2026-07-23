@@ -285,6 +285,7 @@ macro (oiio_add_all_tests)
             # These Python tests also need access to oiio-images
             oiio_add_tests (
                 python-imageinput python-imagebufalgo
+                python-thumbnail-jpeg
                 IMAGEDIR oiio-images
                 ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
