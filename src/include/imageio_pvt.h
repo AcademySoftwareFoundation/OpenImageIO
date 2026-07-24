@@ -289,4 +289,30 @@ device_free(void* mem);
 
 OIIO_NAMESPACE_END
 
+
+OIIO_NAMESPACE_3_1_BEGIN
+namespace pvt {
+/// Test harness for reading an image, analogous to calling
+/// ImageInput::read_image(), but it doesn't return pixels and does as little
+/// extraneous allocation as possible. What is this good for? (1) Benchmarking
+/// just the read itself; (2) Fuzz testing; (3) Debugging the code path where
+/// fuzz testing revealed a specific error.
+OIIO_API bool
+test_read_image(ImageInput& inp, int subimage, int miplevel,
+                TypeDesc format = TypeUInt8);
+
+/// Read all subimage and MIP levels of the open file.
+OIIO_API bool
+test_read_all_images(ImageInput& inp, TypeDesc format = TypeUInt8);
+}  // namespace pvt
+OIIO_NAMESPACE_3_1_END
+
+OIIO_NAMESPACE_BEGIN
+namespace pvt {
+using v3_1::pvt::test_read_all_images;
+using v3_1::pvt::test_read_image;
+}  // namespace pvt
+OIIO_NAMESPACE_END
+
+
 #endif  // OPENIMAGEIO_IMAGEIO_PVT_H
