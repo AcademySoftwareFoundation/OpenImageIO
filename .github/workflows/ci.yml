@@ -183,7 +183,9 @@ jobs:
                             UHDR_CMAKE_CXX_COMPILER=g++
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
-            # Building libuhdr with icx results in test failures
+                            KTX_CMAKE_C_COMPILER=gcc
+                            KTX_CMAKE_CXX_COMPILER=g++
+            # Building libuhdr and libktx with icx results in test failures
             optional_deps_append: "LibRaw;Ptex;Qt6"
           - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2026
@@ -493,8 +495,10 @@ jobs:
                              Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
                              TIFF_BUILD_VERSION=4.0.0
                              TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+                             ENABLE_KTX=0
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
+            # libktx > 4.3.2 requires CMake >= 3.22
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
             build_local_deps: 'TIFF'
           - desc: oldest clang11/C++17 py3.9 exr3.1 ocio2.3
@@ -525,8 +529,10 @@ jobs:
                             TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
+                            ENABLE_KTX=0
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
+            # libktx > 4.3.2 requires CMake >= 3.22
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
             build_local_deps: 'TIFF'
 
@@ -564,6 +570,8 @@ jobs:
                              Robinmap_GIT_COMMIT=68ff7325b3898fca267a103bad5c509e8861144d
                              TIFF_BUILD_VERSION=4.0.0
                              TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+                             ENABLE_KTX=0
+            # libktx > 4.3.2 requires CMake >= 3.22
             required_deps: none
             build_local_deps: 'TIFF'
 
@@ -625,6 +633,9 @@ jobs:
             ctest_test_timeout: 1200
             setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
                             INSTALL_QT=0 INSTALL_OPENCV=0 INSTALL_OPENVDB=0
+                            Ktx_ASTCENC_ISA=ASTCENC_ISA_SSE41
+            # Intel-based MacOS runners don't support AVX2 SIMD which is the
+            # default set by libktx. Explicitly set to SSE4.1 (2nd fastest after AVX2)
             optional_deps_append: 'OpenCV;OpenVDB;Qt5;Qt6'
             benchmark: 1
           - desc: MacOS-14-ARM aclang15/C++20/py3.13

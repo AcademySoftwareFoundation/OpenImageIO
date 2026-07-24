@@ -260,6 +260,20 @@ else ()
     get_target_property(FMT_INCLUDE_DIR fmt::fmt-header-only INTERFACE_INCLUDE_DIRECTORIES)
 endif ()
 
+# Note for Ktx plugin developers:
+#   set VERSION_MIN to 0.0.0 if you have a locally-built tracking HEAD:main of
+#   KTX-Software because building non-tagged libktx sets the version to 0.0.0.
+#
+# libktx 5.0.0 requires CMake >= 3.22. libktx v4.3.2 supports CMake v3.18 which
+# is used in "oldest gcc" CIs but supporting two versions of libktx is very
+# cumbersome.
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.22")
+    checked_find_package (Ktx
+        # VERSION_MIN 5.0.0
+        VERSION_MIN 0.0.0 # If you target main branch of KTX-Software (versionless)
+        BUILD_LOCAL missing
+    )
+endif()
 
 ###########################################################################
 
