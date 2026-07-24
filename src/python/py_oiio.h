@@ -29,6 +29,8 @@
 #    undef copysign
 #endif
 
+#include <vector>
+
 #include <OpenImageIO/Imath.h>
 #include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/imagebuf.h>
@@ -95,23 +97,23 @@ using namespace OIIO;
 
 // clang-format off
 
-void declare_imagespec (py_module& m);
-void declare_imageinput (py_module& m);
-void declare_imageoutput (py_module& m);
-void declare_typedesc (py_module& m);
-void declare_roi (py_module& m);
-void declare_deepdata (py_module& m);
-void declare_colorconfig (py_module& m);
-void declare_imagecache (py_module& m);
-void declare_imagebuf (py_module& m);
-void declare_imagebufalgo (py_module& m);
-void declare_paramvalue (py_module& m);
-void declare_global (py_module& m);
-void declare_wrap (py_module& m);
-void declare_mipmpode (py_module& m);
-void declare_interpmode (py_module& m);
-void declare_textureopt (py_module& m);
-void declare_texturesystem (py_module& m);
+void declare_imagespec(py_module& m);
+void declare_imageinput(py_module& m);
+void declare_imageoutput(py_module& m);
+void declare_typedesc(py_module& m);
+void declare_roi(py_module& m);
+void declare_deepdata(py_module& m);
+void declare_colorconfig(py_module& m);
+void declare_imagecache(py_module& m);
+void declare_imagebuf(py_module& m);
+void declare_imagebufalgo(py_module& m);
+void declare_paramvalue(py_module& m);
+void declare_global(py_module& m);
+void declare_wrap(py_module& m);
+void declare_mipmpode(py_module& m);
+void declare_interpmode(py_module& m);
+void declare_textureopt(py_module& m);
+void declare_texturesystem(py_module& m);
 
 // bool PyProgressCallback(void*, float);
 // object C_array_to_Python_array (const char *data, TypeDesc type, size_t size);
@@ -145,9 +147,21 @@ template<> struct PyTypeForCType<std::string> { typedef py::str type; };
 
 // clang-format on
 
-#ifndef OIIO_PY_BACKEND_NANOBIND
-// Struct that holds OIIO style buffer info, constructed from
-// py::buffer_info
+// Buffer view shared by both backends (pybind buffer_info / Py_buffer).
+struct oiio_py_buffer_view {
+    void* ptr           = nullptr;
+    Py_ssize_t itemsize = 0;
+    Py_ssize_t size     = 0;
+    int ndim            = 0;
+    std::vector<Py_ssize_t> shape;
+    std::vector<Py_ssize_t> strides;
+    std::string format;
+};
+
+oiio_py_buffer_view
+oiio_py_request_buffer(const py::object& obj);
+
+// Struct that holds OIIO style buffer info, constructed from a buffer object.
 struct oiio_bufinfo {
     TypeDesc format  = TypeUnknown;
     void* data       = nullptr;
@@ -155,18 +169,33 @@ struct oiio_bufinfo {
     size_t size = 0;
     std::string error;
 
+    oiio_bufinfo() = default;
     // Just raw buffer, no idea what to expect, treat like a flat array.
     // Only works for "contiguous" buffers.
-    oiio_bufinfo(const py::buffer_info& pybuf);
-
+    oiio_bufinfo(const oiio_py_buffer_view& pybuf);
     // Expect a certain layout, figure out how to make sense of the buffer.
-    oiio_bufinfo(const py::buffer_info& pybuf, int nchans, int width,
+    oiio_bufinfo(const oiio_py_buffer_view& pybuf, int nchans, int width,
                  int height, int depth, int pixeldims);
 
-    // Retrieve presumed contiguous data value index i.
-    template<typename T> T dataval(size_t i) { return ((const T*)data)[i]; }
+    template<typename T> T dataval(size_t i)
+    {  // Retrieve presumed contiguous data value index i.
+        return ((const T*)data)[i];
+    }
 };
-#endif
+
+inline oiio_bufinfo
+oiio_bufinfo_from_object(const py::object& obj)
+{
+    return oiio_bufinfo(oiio_py_request_buffer(obj));
+}
+
+inline oiio_bufinfo
+oiio_bufinfo_from_object(const py::object& obj, int nchans, int width,
+                         int height, int depth, int pixeldims)
+{
+    return oiio_bufinfo(oiio_py_request_buffer(obj), nchans, width, height,
+                        depth, pixeldims);
+}
 
 
 
@@ -352,28 +381,9 @@ template<typename T>
 inline bool
 py_buffer_to_stdvector(std::vector<T>& vals, const py::object& obj)
 {
-    Py_buffer view;
-    if (PyObject_GetBuffer(obj.ptr(), &view, PyBUF_FORMAT | PyBUF_C_CONTIGUOUS)
-        != 0) {
-        PyErr_Clear();
-        return false;
-    }
-
-    bool ok = view.itemsize > 0 && view.len % view.itemsize == 0;
-    if (!ok) {
-        PyBuffer_Release(&view);
-        return false;
-    }
-
-    TypeDesc format = TypeUnknown;
-    if (view.format && view.format[0]) {
-        format = typedesc_from_python_array_code(view.format);
-    }
-
-    const size_t count = static_cast<size_t>(view.len) / view.itemsize;
-    ok = buffer_format_to_stdvector(vals, format, view.buf, count);
-    PyBuffer_Release(&view);
-    return ok;
+    oiio_bufinfo binfo(oiio_py_request_buffer(obj));
+    return buffer_format_to_stdvector(vals, binfo.format, binfo.data,
+                                      binfo.size);
 }
 
 
@@ -401,7 +411,7 @@ inline bool
 py_buffer_to_stdvector(std::vector<T>& vals, const py::buffer& obj)
 {
     OIIO_DASSERT(py::isinstance<py::buffer>(obj));
-    oiio_bufinfo binfo(obj.request());
+    oiio_bufinfo binfo(oiio_py_request_buffer(py::cast<py::object>(obj)));
     return buffer_format_to_stdvector(vals, binfo.format, binfo.data,
                                       binfo.size);
 }
@@ -647,88 +657,17 @@ getattribute_typed(const T& obj, const std::string& name,
 
 
 
-#ifndef OIIO_PY_BACKEND_NANOBIND
-// TRANSFERS ownership of the data pointer!
+// TRANSFERS ownership of the data pointer!  Multi-dimensional numpy arrays.
 // N.B. There is some evidence that this doesn't work properly with
 // non-float arrays. Maybe a limitation of pybind11?
 template<class T>
-inline py::array_t<T>
+py::object
 make_numpy_array(T* data, int dims, size_t chans, size_t width, size_t height,
-                 size_t depth = 1)
-{
-    const size_t size = chans * width * height * depth;
-    T* mem            = data ? data : new T[size];
+                 size_t depth = 1);
 
-    // Create a Python object that will free the allocated memory when
-    // destroyed:
-    py::capsule free_when_done(mem, [](void* f) {
-        delete[] (reinterpret_cast<T*>(f));
-    });
-
-    std::vector<size_t> shape, strides;
-    if (dims == 4) {  // volumetric
-        shape.assign({ depth, height, width, chans });
-        strides.assign({ height * width * chans * sizeof(T),
-                         width * chans * sizeof(T), chans * sizeof(T),
-                         sizeof(T) });
-    } else if (dims == 3 && depth == 1) {  // 2D+channels
-        shape.assign({ height, width, chans });
-        strides.assign(
-            { width * chans * sizeof(T), chans * sizeof(T), sizeof(T) });
-    } else if (dims == 2 && depth == 1
-               && height == 1) {  // 1D (scanline) + channels
-        shape.assign({ width, chans });
-        strides.assign({ chans * sizeof(T), sizeof(T) });
-    } else {  // punt -- make it a 1D array
-        shape.assign({ size });
-        strides.assign({ sizeof(T) });
-    }
-    return py::array_t<T>(shape, strides, mem, free_when_done);
-}
-
-
-
-inline py::object
+py::object
 make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
-                 size_t width, size_t height, size_t depth = 1)
-{
-    if (format == TypeDesc::FLOAT) {
-        return make_numpy_array((float*)data, dims, chans, width, height,
-                                depth);
-    }
-    if (format == TypeDesc::UINT8) {
-        return make_numpy_array((unsigned char*)data, dims, chans, width,
-                                height, depth);
-    }
-    if (format == TypeDesc::UINT16) {
-        return make_numpy_array((unsigned short*)data, dims, chans, width,
-                                height, depth);
-    }
-    if (format == TypeDesc::INT8) {
-        return make_numpy_array((char*)data, dims, chans, width, height, depth);
-    }
-    if (format == TypeDesc::INT16) {
-        return make_numpy_array((short*)data, dims, chans, width, height,
-                                depth);
-    }
-    if (format == TypeDesc::DOUBLE) {
-        return make_numpy_array((double*)data, dims, chans, width, height,
-                                depth);
-    }
-    if (format == TypeDesc::HALF) {
-        return make_numpy_array((half*)data, dims, chans, width, height, depth);
-    }
-    if (format == TypeDesc::UINT) {
-        return make_numpy_array((unsigned int*)data, dims, chans, width, height,
-                                depth);
-    }
-    if (format == TypeDesc::INT) {
-        return make_numpy_array((int*)data, dims, chans, width, height, depth);
-    }
-    delete[] (char*)data;
-    return py::none();
-}
-#endif
+                 size_t width, size_t height, size_t depth = 1);
 
 
 

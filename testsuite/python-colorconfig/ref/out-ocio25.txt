@@ -1,3 +1,5 @@
+default_colorconfig same instance = True
+default_colorconfig usable = True
 getNumColorSpaces = 25
 getColorSpaceNames = ['sRGB - Display', 'Gamma 2.2 Rec.709 - Display', 'Display P3 - Display', 'Display P3 HDR - Display', 'P3-D65 - Display', 'Rec.1886 Rec.709 - Display', 'Rec.2100-PQ - Display', 'ST2084-P3-D65 - Display', 'ACES2065-1', 'ACEScc', 'ACEScct', 'ACEScg', 'sRGB Encoded Rec.709 (sRGB)', 'Gamma 1.8 Encoded Rec.709', 'Gamma 2.2 Encoded Rec.709', 'Gamma 2.4 Encoded Rec.709', 'sRGB Encoded P3-D65', 'Gamma 2.2 Encoded AdobeRGB', 'sRGB Encoded AP1', 'Gamma 2.2 Encoded AP1', 'Linear AdobeRGB', 'Linear P3-D65', 'Linear Rec.2020', 'Linear Rec.709 (sRGB)', 'Raw']
 Index of 'lin_srgb' = 23
