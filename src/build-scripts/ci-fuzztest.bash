@@ -38,10 +38,20 @@ fi
 # Seed the corpus, run the fuzzer, and write a job summary for one format.
 #
 if [[ -n "${OIIO_FUZZ_FORMAT}" ]]; then
+    # corpus_dir persists across runs via the CI cache and accumulates the
+    # coverage-increasing inputs libFuzzer discovers. seed_dir is gathered
+    # fresh each run and then minimized into corpus_dir below.
     corpus_dir="corpus/${OIIO_FUZZ_FORMAT}"
-    mkdir -p "$corpus_dir"
-    python3 src/fuzz/populate_corpora.py --format "$OIIO_FUZZ_FORMAT" --dest corpus
-    cp -rn "src/fuzz/corpora/${OIIO_FUZZ_FORMAT}/"* "$corpus_dir/" 2>/dev/null || true
+    seed_dir="seeds/${OIIO_FUZZ_FORMAT}"
+    mkdir -p "$corpus_dir" "$seed_dir"
+
+    # Gather every available seed for this format (testsuite fixtures +
+    # companion image repos, each within populate_corpora's per-file size cap)
+    # plus any committed synthetic seeds. There is intentionally no cap on the
+    # number of seeds -- the -merge step below keeps only the coverage-
+    # increasing subset, so feeding in the full, size-diverse set is the point.
+    python3 src/fuzz/populate_corpora.py --format "$OIIO_FUZZ_FORMAT" --dest seeds
+    cp -rn "src/fuzz/corpora/${OIIO_FUZZ_FORMAT}/"* "$seed_dir/" 2>/dev/null || true
 
     if [[ ! -x "$FUZZ_BIN" ]]; then
         echo "::error::$FUZZ_BIN not found — was OIIO_BUILD_FUZZ_TARGETS=ON passed to cmake?"
@@ -56,6 +66,19 @@ if [[ -n "${OIIO_FUZZ_FORMAT}" ]]; then
         skipped=1
     else
         set +e
+        # Corpus minimization: add only coverage-increasing seeds from seed_dir
+        # into the (possibly cached) run corpus. A crash/hang here means a
+        # committed seed or testsuite fixture itself trips the decoder -- that
+        # is a finding, surfaced via merge_status below.
+        "$FUZZ_BIN" -merge=1 \
+            -rss_limit_mb=4096 \
+            -malloc_limit_mb=2048 \
+            -timeout=60 \
+            -detect_leaks=0 \
+            -artifact_prefix="crash_${OIIO_FUZZ_FORMAT}_" \
+            "$corpus_dir" "$seed_dir"
+        merge_status=$?
+        # Timed, coverage-guided fuzzing over the minimized corpus.
         "$FUZZ_BIN" "$corpus_dir" \
             -max_total_time="${OIIO_FUZZ_MAX_TIME:-3600}" \
             -max_len=16777216 \
@@ -67,6 +90,11 @@ if [[ -n "${OIIO_FUZZ_FORMAT}" ]]; then
             -jobs=$(nproc) -workers=$(nproc)
         fuzz_status=$?
         set -e
+        # If minimization tripped a crash but the timed run was clean, still
+        # fail the job on the merge-time finding.
+        if [[ "$merge_status" -ne 0 && "$fuzz_status" -eq 0 ]]; then
+            fuzz_status=$merge_status
+        fi
     fi
 
     crash_count=$(find . -maxdepth 1 -name "crash_${OIIO_FUZZ_FORMAT}_*" | wc -l | tr -d ' ')

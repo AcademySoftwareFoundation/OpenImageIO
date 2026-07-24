@@ -3,13 +3,23 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 """
-Populate src/fuzz/corpora/ with seed files for each image format.
+Gather fuzz seed files for each image format from its configured sources.
 
-Run from the repository root. Companion image repos are expected as siblings
-of the repo root (e.g. ../oiio-images, ../fits-images, etc.).
+For every format, FORMAT_SOURCES lists the directories to draw seeds from:
+the format's own testsuite fixture dirs (valid images and malformed/regression
+files) and, when available, the companion image repos (../oiio-images, etc.).
+Every file up to the per-file size cap (MAX_BYTES) is gathered -- there is no
+cap on seed count. Coverage-based minimization happens downstream in
+ci-fuzztest.bash via `oiio_fuzz_image -merge=1`, which keeps only the
+coverage-increasing subset, so it is fine (and intended) to feed in everything.
+
+Run from the repository root. In CI this is invoked with --dest to collect
+seeds into a scratch dir for minimization; without --dest it writes into
+src/fuzz/corpora/<fmt>/ (which otherwise holds only synthetic seeds that have
+no testsuite fixture, e.g. hdr/iff/sgi/jpegxl).
 
 Usage:
-    python src/fuzz/populate_corpora.py [--format <name>] [--dry-run]
+    python src/fuzz/populate_corpora.py [--format <name>] [--dest DIR] [--dry-run]
 """
 
 import argparse
@@ -21,8 +31,14 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CORPUS_ROOT = REPO_ROOT / "src" / "fuzz" / "corpora"
-MAX_FILES = 5
-MAX_BYTES = 100 * 1024  # 100 KB per file
+# Per-file size cap only. There is deliberately no cap on the *number* of
+# seeds: we gather every example we have (valid + malformed, all sizes up to
+# the cap) so the fuzzer can mutate structurally rich inputs, not just tiny
+# degenerate ones. Coverage-based minimization (libFuzzer -merge, run by
+# ci-fuzztest.bash) then distills them to the covering subset. The size cap is
+# purely a throughput guard -- very large seeds slow mutation without adding
+# much reach; 5 MB comfortably covers our test images.
+MAX_BYTES = 5 * 1024 * 1024  # 5 MB per file
 
 # Companion image repos may live:
 #   (a) as siblings of the repo root (local dev or fuzz CI checkout)
@@ -186,7 +202,7 @@ def candidate_files(sources: list) -> list[Path]:
 
 def populate_format(fmt: str, dry_run: bool, dest: Path | None = None) -> tuple[int, list[str]]:
     """
-    Copy up to MAX_FILES files ≤ MAX_BYTES into dest (default: src/fuzz/corpora/<fmt>/).
+    Copy every file ≤ MAX_BYTES into dest (default: src/fuzz/corpora/<fmt>/).
     Returns (files_copied, missing_reasons).
     """
     dest = dest if dest is not None else CORPUS_ROOT / fmt
@@ -203,7 +219,7 @@ def populate_format(fmt: str, dry_run: bool, dest: Path | None = None) -> tuple[
     if not small:
         if files:
             missing.append(
-                f"found {len(files)} file(s) but all exceed {MAX_BYTES // 1024} KB"
+                f"found {len(files)} file(s) but all exceed {MAX_BYTES // (1024 * 1024)} MB"
             )
         else:
             dirs_checked = [resolve(r) for r, _ in sources]
@@ -216,7 +232,7 @@ def populate_format(fmt: str, dry_run: bool, dest: Path | None = None) -> tuple[
             )
         return 0, missing
 
-    chosen = small[:MAX_FILES]
+    chosen = small
     if not dry_run:
         dest.mkdir(parents=True, exist_ok=True)
     copied = 0

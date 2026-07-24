@@ -116,50 +116,52 @@ merging the fix.
 
 ## Adding seeds for a new format
 
+Seeds are **not** hand-curated into `src/fuzz/corpora/` per format. At fuzz
+time `ci-fuzztest.bash` gathers every example we have for the format from the
+directories listed in `FORMAT_SOURCES` (`src/fuzz/populate_corpora.py`) — the
+format's own `testsuite/` fixtures (valid images *and* malformed/regression
+files) plus the companion image repos — capped only by a per-file size limit
+(`MAX_BYTES`, 5 MB), with **no cap on the number of seeds**. It then runs
+`oiio_fuzz_image -merge=1` to distill that pile down to the coverage-increasing
+subset before the timed run. Feeding in the full, size-diverse set (not just a
+few tiny files) is deliberate: mutating structurally rich real images reaches
+the deep decode paths where subtle bugs hide.
+
 When a new format plugin is added to OIIO:
 
 1. The format automatically appears in `--list-formats` (no harness changes
    needed).
-2. The CI lint job (`fuzz-corpus-lint` in `.github/workflows/ci.yml`) will
+2. The CI lint job (`fuzz-corpus-lint` in `.github/workflows/fuzz.yml`) will
    **fail** until `src/fuzz/corpora/<format>/` exists. This is intentional —
-   it enforces that every compiled-in format has at least a corpus directory.
-3. Create the directory and add 1–5 representative seed files (each ≤ 100 KB):
+   it enforces that every compiled-in format has at least a corpus directory
+   (a `.gitkeep` is enough).
+3. Wire the format's seed sources into `FORMAT_SOURCES` in
+   `src/fuzz/populate_corpora.py`: its `testsuite/<format>/src` (and any
+   dedicated malformed-fixture dirs, e.g. `testsuite/<format>-corrupt/src`)
+   and the relevant companion-repo path. Regression fixtures added to
+   `testsuite/` are then picked up automatically — do **not** also copy them
+   into `src/fuzz/corpora/`.
+4. Only when a format has **no** testsuite fixture or companion source (e.g.
+   `hdr`, `iff`, `sgi`, `jpegxl`), commit a small synthetic seed directly:
 
 ```bash
-mkdir src/fuzz/corpora/<format>/
-# copy or generate seed files
-cp path/to/sample.<ext>  src/fuzz/corpora/<format>/
-# Or generate a small synthetic seed:
 oiiotool --create 64x64 3 --ch R,G,B -o src/fuzz/corpora/<format>/seed.<ext>
 ```
 
-4. Verify the seeds parse cleanly:
+5. Verify the gathered seeds parse cleanly (`-runs=0` processes seeds without
+   mutating):
 
 ```bash
-OIIO_FUZZ_FORMAT=<format> \
-    build/src/fuzz/oiio_fuzz_image \
-    src/fuzz/corpora/<format>/ \
-    -runs=0
+python3 src/fuzz/populate_corpora.py --format <format> --dest /tmp/seeds
+OIIO_FUZZ_FORMAT=<format> build/src/fuzz/oiio_fuzz_image /tmp/seeds/<format>/ -runs=0
 ```
 
-5. Commit both the corpus directory and any seed files.
-
-To populate corpus seeds from testsuite and companion image repos run:
-
-```bash
-# Populate src/fuzz/corpora/<format>/ (local dev)
-python3 src/fuzz/populate_corpora.py [--format <name>]
-
-# Or write directly into a working corpus dir (as CI does):
-python3 src/fuzz/populate_corpora.py --format <name> --dest corpus/
-```
-
-The script auto-detects companion repos at `../oiio-images` (sibling of the
-repo root, as checked out by the fuzz CI job) or at `build/testsuite/oiio-images`
-(fetched by `oiio_setup_test_data` during a regular test run). Only synthetic
-seeds (formats with no existing source files, such as `seed.hdr`) are committed
-to `src/fuzz/corpora/`; all other seeds are sourced from `testsuite/` or
-companion repos at fuzz time.
+`populate_corpora.py` auto-detects companion repos at `../oiio-images` (sibling
+of the repo root, as checked out by the fuzz CI job) or at
+`build/testsuite/oiio-images` (fetched by `oiio_setup_test_data` during a
+regular test run). The committed `src/fuzz/corpora/<format>/` dir holds only
+synthetic seeds that have no testsuite fixture; everything else is sourced from
+`testsuite/` or companion repos at fuzz time.
 
 
 ## How format selection works
