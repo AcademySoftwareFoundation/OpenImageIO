@@ -31,3 +31,5 @@ FAILURE
     mdcv_red_y: 16000
     mdcv_white_x: 15635
     mdcv_white_y: 16450
+=== read-only: space declaring dcdm_p3d65 must NOT emit it on write ===
+  (no dcdm_p3d65 emitted)

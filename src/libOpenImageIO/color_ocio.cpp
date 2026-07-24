@@ -2953,6 +2953,18 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "pq_xyzd65_display", CICPPrimaries::XYZD65,
       CICPTransfer::PQ, CICPMatrix::Unspecified },
 };
+
+// Read-only interop identities: valid to RESOLVE on read (a file may carry the
+// tag and it must interpret), but never emitted as a write/derive target.
+// dcdm_p3d65_display -- the P3-primaries DCDM form -- is a read-only
+// interpretation identity; the canonical WRITE form of that colorimetry is
+// g26_xyzd65_display (the XYZ DCDM). Derivation must never hand back a read-only
+// id, and the CICP reverse lookup must skip it. [decision: Zach 2026-07-23]
+static bool
+is_readonly_interop_id(string_view id)
+{
+    return id == "dcdm_p3d65_display";
+}
 }  // namespace
 
 string_view
@@ -2985,7 +2997,8 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
             // means; an unset attribute (empty string) falls through rather
             // than short-circuiting to empty.
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
-            if (const char* iid = c->getInteropID(); iid && *iid)
+            if (const char* iid = c->getInteropID();
+                iid && *iid && !is_readonly_interop_id(iid))
                 return iid;
 #endif
             // Utility sub-case: a data space with no explicit token is
@@ -3001,6 +3014,8 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
     // consults to map an id back to a CICP tuple. Its literals live in
     // static storage, so the returned view is stable.
     for (const ColorInteropID& interop : color_interop_ids) {
+        if (is_readonly_interop_id(interop.interop_id))
+            continue;  // read-only id: never a write/derive target
         if (getImpl()->equivalent_syntactic(colorspace, interop.interop_id))
             return interop.interop_id;
     }
@@ -3052,7 +3067,8 @@ derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace)
             // declaration of unknownness and derives the "ocio:unknown"
             // marker (the config declared it, OIIO reports where).
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
-            if (const char* iid = c->getInteropID(); iid && *iid)
+            if (const char* iid = c->getInteropID();
+                iid && *iid && !is_readonly_interop_id(iid))
                 return Strutil::iequals(iid, "unknown") ? "ocio:unknown" : iid;
 #endif
             // Step 1, config-declared unknown: a space NAMED (not merely
@@ -3078,7 +3094,8 @@ derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace)
     // string), not the query's own name. Only meaningful once the query resolves
     // to a real space to fingerprint.
     if (resolves_to_real_space) {
-        if (string_view r = impl->deriveRegistryInteropId(resolved); !r.empty())
+        if (string_view r = impl->deriveRegistryInteropId(resolved);
+            !r.empty() && !is_readonly_interop_id(r))
             return r;
     }
 
@@ -3095,7 +3112,8 @@ derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace)
     // omits; a space genuinely named "unknown" already derived the
     // "ocio:unknown" marker in step 1).
     for (const ColorInteropID& interop : color_interop_ids) {
-        if (interop.interop_id == "unknown")
+        if (interop.interop_id == "unknown"
+            || is_readonly_interop_id(interop.interop_id))
             continue;
         if (config.equivalent(colorspace, interop.interop_id))
             return interop.interop_id;
@@ -3133,6 +3151,11 @@ string_view
 ColorConfig::get_color_interop_id(const int cicp[4]) const
 {
     for (const ColorInteropID& interop : color_interop_ids) {
+        // Skip read-only ids: the reverse tuple lookup feeds write derivation,
+        // and a read-only id (e.g. dcdm_p3d65_display, which shares the
+        // P3D65/Gamma26 tuple with g26_p3d65_display) must never be a target.
+        if (is_readonly_interop_id(interop.interop_id))
+            continue;
         if (interop.has_cicp && interop.cicp[0] == cicp[0]
             && interop.cicp[1] == cicp[1]) {
             return interop.interop_id;

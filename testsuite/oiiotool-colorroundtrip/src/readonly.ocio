@@ -1,0 +1,17 @@
+ocio_profile_version: 2
+# A space that DECLARES a read-only interop identity (dcdm_p3d65_display).
+# On write, derivation must NEVER emit a read-only id -- dcdm_p3d65_display is a
+# read (interpretation) identity only; its canonical write form is
+# g26_xyzd65_display. So a file written from `mycs` must carry no
+# colorInteropID: dcdm_p3d65_display.
+roles: {default: raw_data}
+file_rules:
+  - !<Rule> {name: Default, colorspace: raw_data}
+displays:
+  disp:
+    - !<View> {name: v, colorspace: mycs}
+active_displays: [disp]
+active_views: [v]
+colorspaces:
+  - !<ColorSpace> {name: raw_data, isdata: true, aliases: [data]}
+  - !<ColorSpace> {name: mycs, interop_id: dcdm_p3d65_display}

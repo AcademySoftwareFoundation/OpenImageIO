@@ -164,4 +164,19 @@ if png_has_mdcv:
     command += ("( env OCIO=" + bcfg + " " + ot + " --info -v bcast.png"
                 + " 2>/dev/null | grep -E 'mdcv_' || true )" + redirect + " ;\n")
 
+# Spec 09: read-only interop identities are never a write/derive target.
+# `mycs` declares interop_id dcdm_p3d65_display (a read-only interpretation id);
+# writing from it must emit NO colorInteropID -- the derive path excludes
+# read-only ids (is_readonly_interop_id). Its canonical write form would be
+# g26_xyzd65_display, but a bare declaration derives nothing here.
+rocfg = "src/readonly.ocio"
+command += ("echo '=== read-only: space declaring dcdm_p3d65 must NOT emit it"
+            " on write ==='" + redirect + " ;\n")
+command += ("env OCIO=" + rocfg + " " + ot
+            + " --create 4x4 3 --attrib oiio:ColorSpace mycs -o ro.exr"
+            " >/dev/null 2>&1 ;\n")
+command += ("( env OCIO=" + rocfg + " " + ot + " --info -v ro.exr 2>/dev/null"
+            " | grep -E 'colorInteropID' || echo '  (no dcdm_p3d65 emitted)' )"
+            + redirect + " ;\n")
+
 outputs = ["out.txt"]
