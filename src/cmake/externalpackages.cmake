@@ -90,6 +90,14 @@ endif ()
 checked_find_package (libuhdr
                       VERSION_MIN 1.3)
 
+# Static libtiff configs may reference this target without importing it.
+# https://gitlab.com/libtiff/libtiff/-/work_items/871
+if (NOT TARGET Deflate::Deflate)
+    find_package (libdeflate CONFIG QUIET)
+    alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_static)
+    alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_shared)
+endif ()
+
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0
                       RECOMMEND_MIN 4.5
