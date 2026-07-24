@@ -1,0 +1,105 @@
+RAW_CANON_EOS_7D.CR2
+  Thumbnail index: -1 Sort: False
+     5184
+     3456
+     3
+  Thumbnail index: 0 Sort: False
+     5184
+     3456
+     3
+  Thumbnail index: 1 Sort: True
+     670
+     432
+     3
+RAW_FUJI_F700.RAF
+  Thumbnail index: -1 Sort: False
+     1280
+     960
+     3
+  Thumbnail index: 0 Sort: False
+     160
+     120
+     3
+  Thumbnail index: 1 Sort: True
+     1280
+     960
+     3
+RAW_NIKON_D3X.NEF
+  Thumbnail index: -1 Sort: False
+     6048
+     4032
+     3
+  Thumbnail index: 0 Sort: False
+     160
+     120
+     3
+  Thumbnail index: 1 Sort: True
+     570
+     375
+     3
+RAW_OLYMPUS_E3.ORF
+  Thumbnail index: -1 Sort: False
+     1600
+     1200
+     3
+  Thumbnail index: 0 Sort: False
+     1600
+     1200
+     3
+  Thumbnail index: 1 Sort: True
+     1600
+     1200
+     3
+RAW_PANASONIC_DMC-GF1.RW2
+  Thumbnail index: -1 Sort: False
+     1920
+     1440
+     3
+  Thumbnail index: 0 Sort: False
+     1920
+     1440
+     3
+  Thumbnail index: 1 Sort: True
+     1920
+     1440
+     3
+RAW_PANASONIC_G1.RW2
+  Thumbnail index: -1 Sort: False
+     1920
+     1440
+     3
+  Thumbnail index: 0 Sort: False
+     1920
+     1440
+     3
+  Thumbnail index: 1 Sort: True
+     1920
+     1440
+     3
+RAW_PENTAX_K200D.PEF
+  Thumbnail index: -1 Sort: False
+     3872
+     2592
+     3
+  Thumbnail index: 0 Sort: False
+     160
+     120
+     3
+  Thumbnail index: 1 Sort: True
+     3872
+     2592
+     3
+RAW_SONY_A300.ARW
+  Thumbnail index: -1 Sort: False
+     1616
+     1080
+     3
+  Thumbnail index: 0 Sort: False
+     1616
+     1080
+     3
+  Thumbnail index: 1 Sort: True
+     1616
+     1080
+     3
+Done.

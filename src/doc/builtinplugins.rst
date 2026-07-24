@@ -2339,6 +2339,15 @@ options are supported:
      - A path to a file containing the list of bad pixels in libraw format:
        a plain text where each line describes a single bad pixel using three
        numbers separated by whitespace for the column, row and UNIX timestamp.
+   * - ``raw:thumbnail_index``
+     - int
+     - An index of the thumbnail that gets returned from get_thumbnail(). The
+       default index (-1) leaves the choice to libraw, which normally would pick
+       the largest resolution.
+   * - ``raw:thumbnail_sort``
+     - int
+     - If 1, the ``raw:thumbnail_index`` above picks a thumbnail from a list
+       sorted by size, so thumbnail_index = 0 always returns the smallest image.
 |
 
 .. _sec-bundledplugins-rla:
