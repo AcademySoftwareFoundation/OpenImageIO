@@ -5691,6 +5691,45 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
 
 
 
+// --testread
+static int
+test_read(Oiiotool& ot, cspan<const char*> argv)
+{
+    // ot.total_readtime.start();
+    string_view command  = ot.express(argv[0]);
+    string_view filename = ot.express(argv[1]);
+    auto fileoptions     = ot.extract_options(command);
+    TypeDesc input_dataformat(fileoptions.get_string("type", "uint8"));
+
+    OTScopedTimer timer(ot, command);
+
+    bool ok  = true;
+    auto inp = OIIO::ImageInput::open(filename, ot.input_config_set
+                                                    ? &ot.input_config
+                                                    : nullptr);
+    if (inp)
+        ok = OIIO::pvt::test_read_all_images(*inp, input_dataformat);
+    if (!ok || !inp) {
+        ot.error("testread",
+                 ot.format_read_error(filename, inp ? inp->geterror()
+                                                    : OIIO::geterror()));
+    } else {
+        OIIO::print("OK {}\n", filename);
+    }
+    ot.printed_info = true;
+
+    // Everything past this point should be credited to other ops, so stop
+    // the input timer.
+    timer.stop();
+
+    ot.process_pending();
+    ot.check_peak_memory();
+    // ot.total_readtime.stop();
+    return 0;
+}
+
+
+
 static void
 prep_texture_config(Oiiotool& ot, ImageSpec& configspec,
                     ParamValueList& fileoptions)
@@ -6949,6 +6988,9 @@ Oiiotool::getargs(int argc, char* argv[])
       .OTACTION(set_input_attribute);
     ap.arg("--missingfile %s:OPTION", &ot.missingfile_policy)
       .help("Set policy for missing input files: 'error' (default), 'black', 'checker'");
+    ap.arg("--testread %s:FILENAME")
+      .help("Test file read (do not keep image; used for debugging)")
+      .OTACTION(test_read);
 
     ap.separator("Commands that write images:");
     ap.arg("-o %s:FILENAME")

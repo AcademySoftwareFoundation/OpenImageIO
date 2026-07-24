@@ -1,0 +1,191 @@
+# Data Model: Image Format Fuzzing Infrastructure
+
+**Feature**: 001-image-fuzzing | **Date**: 2026-06-23
+
+## Entities
+
+### FuzzTarget
+
+Represents one logical fuzz target — a format + its GHA job configuration. All formats
+share a single compiled binary (`oiio_fuzz_image`); a FuzzTarget is a runtime configuration,
+not a separate binary.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `format` | string | Canonical format name, i.e. the OIIO format-registry key (e.g., `openexr`, `jpeg`, `tiff` — note `openexr`, not `exr`) |
+| `tier` | enum {1, 2} | 1 = complex/high-risk (longer window), 2 = simpler (capped) |
+| `max_total_time` | int (seconds) | As implemented: Tier 1: 3600 (1h), Tier 2: 1800 (30m) — scaled down from the original 19800/3600 plan to fit CI budget |
+| `primary_ext` | string | Primary file extension for this format (e.g., `exr`, `jpg`, `tiff`) |
+| `is_dispatch` | bool | True for dispatch plugins that use `ImageInput::create()` (raw, ffmpeg) |
+| `source_file` | path | `src/fuzz/fuzz_image.cpp` (same for all formats) |
+| `binary_path` | path | `build/src/fuzz/oiio_fuzz_image` (one binary; OSS-Fuzz per-format symlinks are supported by the dispatch logic but no `ossfuzz/` project files exist yet) |
+| `corpus_dir` | path | `src/fuzz/corpora/<format>/` |
+
+**Note**: the originally-planned `is_multi_subimage` field was dropped. Multi-subimage
+and MIP handling is no longer a harness-level decision — `OIIO::pvt::test_read_all_images()`
+(added to `libOpenImageIO` during implementation; see `plan.md` Summary) queries
+`inp->supports("multiimage")` / `"mipmap"` itself and iterates automatically for every
+format, so the harness calls the same function regardless of format.
+
+**Constraints**:
+- `format` MUST be unique and MUST appear in `OIIO::get_string_attribute("extension_list")`.
+- `primary_ext` MUST match one of the format's registered extensions in OIIO.
+- A `corpus_dir` MUST exist for every format in `extension_list` (excluding `null`, `term`);
+  absence is caught by the CI lint step (`./oiio_fuzz_image --list-formats`).
+- Formats with optional third-party libraries (heif, jpegxl, jpeg2000, raw, dicom,
+  ffmpeg, openvdb, ptex) appear in `extension_list` only when the library is compiled in;
+  no CMake guards needed in the single harness source.
+
+**Format → tier mapping** (as implemented in `.github/workflows/fuzz.yml`):
+
+| Tier 1 — 3600s/job | Tier 2 — 1800s/job |
+|------------------|-----------------|
+| openexr, tiff, jpeg, png, dpx, psd, heif, jpegxl, jpeg2000, raw | bmp, cineon, dds, dicom, fits, gif, hdr, ico, iff, pnm, rla, sgi, softimage, targa, ffmpeg, webp, zfile, openvdb†, ptex† |
+
+† Conditionally compiled: included only when OpenVDB / Ptex library is found in the build.
+
+**Note on `raw` and `ffmpeg`**: Both are read-only multi-format dispatch plugins —
+`raw.imageio` dispatches to LibRaw (all camera RAW formats), `ffmpeg.imageio` dispatches
+to FFmpeg (all video container formats). Neither supports ImageOutput. The fuzzing goal
+for both is narrow: verify the OIIO wrapper handles library errors correctly, not
+exhaustive sub-format coverage. Both libraries are independently fuzzed by their own
+projects. Corpus: 2–3 representative files each (camera RAW from `../oiio-images/raw/`;
+video from `testsuite/ffmpeg/ref/`). Harnesses use `ImageInput::create("raw"/"ffmpeg")`
+to force the plugin without relying on file extension routing.
+
+---
+
+### SeedCorpus
+
+A set of small, valid image files for a format used to initialize the fuzzer.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `format` | string | Owning format name |
+| `directory` | path | `src/fuzz/corpora/<format>/` |
+| `files` | list\<path\> | Committed binary image files (target: 1–5 per format, each < 100 KB) |
+| `source` | enum | `testsuite` (copied from OIIO test images) or `generated` (synthesized) |
+
+**As implemented, this entity splits in two**:
+- **Committed corpus** (`src/fuzz/corpora/<format>/`): only formats with no other
+  seed source get a committed synthetic file (currently: dpx, fits, hdr, iff,
+  jpeg2000, jpegxl, openexr, sgi).
+- **CI-time corpus** (`corpus/<format>/` in the runner workspace, never committed):
+  for every other format, `populate_corpora.py --format <fmt> --dest corpus/` runs
+  as part of the `fuzz` step's `src/build-scripts/ci-fuzztest.bash` script in
+  `build-steps.yml`, pulling from `testsuite/` and companion repos
+  (`../oiio-images`, `../fits-images`, `../j2kp4files_v1_5`,
+  `../dicom-images-pvt`) checked out fresh each run. This avoids committing large
+  binary sample sets while still giving every format real-world seeds at fuzz time.
+
+**Constraints**:
+- Each file MUST be a valid image parseable by OIIO for the given format.
+- Total seed corpus size SHOULD NOT exceed 5 MB per format (prevents slow corpus loading).
+- Files MUST NOT contain copyrighted content that precludes Apache-2.0 distribution.
+
+---
+
+### EvolvedCorpus
+
+The set of inputs generated by the fuzzer during previous runs, stored in GHA cache.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `format` | string | Owning format name |
+| `cache_key` | string | As implemented: `fuzz-corpus-<format>-<ref_name>-<run_id>` (unique per run, so every run's save is a new cache entry) |
+| `cache_restore_keys` | list\<string\> | As implemented: `["fuzz-corpus-<format>-<ref_name>-", "fuzz-corpus-<format>-"]` — prefix match picks up the most recent entry for this format+branch, falling back to any branch, since `restore-keys` matches by prefix |
+| `directory` | path | `corpus/<format>/` (within GHA runner workspace during fuzz run) |
+
+**State transitions**:
+1. Job start: restore from cache if available → merge with seed corpus into working dir.
+2. Fuzz run: libFuzzer writes new interesting inputs into corpus directory.
+3. Job end (success or crash): save updated corpus directory back to cache.
+
+---
+
+### Reproducer
+
+A minimal input file that reliably triggers a specific crash or sanitizer finding.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `format` | string | Affected format |
+| `filename` | path | `crash_<format>_<sha256prefix>` (libFuzzer naming convention) |
+| `crash_type` | string | e.g., `heap-buffer-overflow`, `use-after-free`, `timeout` |
+| `stack_trace` | text | ASan/UBSan report captured from stderr |
+| `gha_artifact` | string | GHA artifact name: `fuzz-crashes-<format>-<run_id>` |
+| `regression_test` | path? | Path under `testsuite/` once triaged and committed |
+
+**Lifecycle**:
+- Created by libFuzzer when a crash is detected.
+- Uploaded as GHA artifact by the fuzz workflow.
+- After triage: developer runs `./fuzz_<format> <reproducer_file>` to reproduce locally.
+- Committed to `testsuite/fuzz-<format>/` as a regression test before fix merges.
+
+---
+
+### FuzzBuildConfig
+
+CMake configuration for a fuzz-enabled build.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `OIIO_BUILD_FUZZ_TARGETS` | bool | OFF | Master gate for fuzz target compilation |
+| `SANITIZE` | string | `""` | Existing OIIO variable; set to `address,undefined` for fuzz builds |
+| `LIB_FUZZING_ENGINE` | env var | `""` | Set by OSS-Fuzz; locally set to `-fsanitize=fuzzer` |
+| `CMAKE_C_COMPILER` | string | — | Must be clang (not gcc) for fuzzer instrumentation |
+| `CMAKE_CXX_COMPILER` | string | — | Must be clang++ |
+
+**Constraints**:
+- `OIIO_BUILD_FUZZ_TARGETS=ON` MUST be combined with a clang compiler and ASan+UBSan.
+- As implemented: a gcc build, or an AppleClang build (Apple's Xcode/Command Line
+  Tools clang, which lacks the libFuzzer runtime), with `OIIO_BUILD_FUZZ_TARGETS=ON`
+  emits a CMake `WARNING` and skips `src/fuzz/` via `return()` — it does **not**
+  `FATAL_ERROR`. The original plan called for a hard failure, but that aborted the
+  *entire* configure for any tree with the option on and an unsuitable compiler,
+  breaking the rest of the OIIO build too. The softened behavior lets the rest of
+  OIIO still configure and build.
+- Normal Release/Debug builds with `OIIO_BUILD_FUZZ_TARGETS=OFF` MUST be unaffected.
+
+---
+
+### GHAFuzzWorkflow
+
+The GitHub Actions workflow that orchestrates nightly fuzzing.
+
+| Field | Type | Value |
+|-------|------|-------|
+| `trigger.schedule` | cron | As implemented: `0 10 * * *` (10:00 UTC nightly), gated to the canonical fork |
+| `trigger.push` | branches | As implemented: also runs on any push to a branch matching `*fuzz*` (paths-filtered to `src/**`, the workflow file, and `build-steps.yml`) |
+| `trigger.workflow_dispatch` | inputs | `format` (optional, string; if set, runs only that format) |
+| `matrix.fail-fast` | bool | `false` |
+| `container` | string | `aswf/ci-oiio:2027` (was `:2026.3` at spec time) |
+| `per_input_timeout` | int (seconds) | 60 (`-timeout=60` passed to libFuzzer) |
+| `artifact_retention_days` | int | 30 |
+
+**Additional libFuzzer flags used at runtime** (beyond what was originally specified):
+`-max_len=16777216` (16 MB input cap), `-rss_limit_mb=4096`, `-malloc_limit_mb=2048`
+(so a single oversized allocation is caught synchronously with a real reproducer,
+rather than the RSS-limit monitor firing out-of-band and writing an empty crash
+file), `-detect_leaks=0`, `-jobs=$(nproc) -workers=$(nproc)` (both flags — `-jobs`
+alone lets libFuzzer default `-workers` to half the core count).
+
+**Implementation detail**: `fuzz.yml` itself does not hand-roll the build/cache/run
+steps described in earlier drafts of this data model — it delegates to the
+`build-steps.yml` reusable workflow (also used by the main CI job) via
+`fuzz_format` / `fuzz_max_time` inputs, so fuzz builds get the same ccache and
+dependency-install machinery as every other CI job. Within `build-steps.yml`, the
+corpus-lint / seed / run / job-summary logic lives in a single step (`id: fuzz`)
+that calls `src/build-scripts/ci-fuzztest.bash`, rather than being spread across
+several inline-bash steps — this matches how `Build`, `Testsuite`, and
+`Benchmarks` each delegate to a script. The crash-artifact-upload step checks
+`steps.fuzz.outcome == 'failure'`. The `fuzz-corpus-lint` job itself lives in
+`fuzz.yml` (it started out in `ci.yml`, then moved).
+
+**Invariants**:
+- All matrix jobs always run to completion regardless of sibling job failures.
+- A crashing job MUST upload its reproducer artifact before exiting.
+- Every job, crashing or not, MUST save its evolved corpus to cache before exiting
+  (`if: always()` on the cache-save step) — a crash-finding run still discovered
+  new interesting inputs worth keeping, so the save is unconditional, not gated
+  on a clean exit.

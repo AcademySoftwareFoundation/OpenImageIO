@@ -165,6 +165,18 @@ an image file), `iconvert` (which converts between different file formats),
 and `maketx` (which generates tiled mipmaps in an efficient arrangement for
 texture mapping in a renderer).
 
+## Fuzzing
+
+`src/fuzz/` holds a libFuzzer-based harness (`oiio_fuzz_image`) that exercises
+every compiled-in format reader's `ImageInput` implementation against
+malformed input, dispatching to a single format per process at runtime rather
+than building one binary per format. It shares its per-input read loop
+(`OIIO::pvt::test_read_image()` / `test_read_all_images()`, also reachable via
+`oiiotool --testread`) with the rest of the library rather than duplicating
+read logic in the harness. Gated behind the `OIIO_BUILD_FUZZ_TARGETS` CMake
+option (off by default) and requires clang. See `docs/dev/fuzzing.md` for the
+developer workflow.
+
 ## Language Bindings
 
 The main APIs, and the underlying implementation, are in C++ (currently
