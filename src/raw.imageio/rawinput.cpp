@@ -441,9 +441,27 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
     // Cap LibRaw's internal allocations. This must be set *before* unpack().
     // Default max is 2048 MB.
-    m_processor->imgdata.rawparams.max_raw_memory_mb
-        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+    int maxmem = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+    // In some versions of libraw, there is a known overflow if it's over
+    // 16384, so cap it.
+    m_processor->imgdata.rawparams.max_raw_memory_mb = std::min(maxmem, 16383);
 #endif
+
+    // Guard against decompression bombs / corrupt headers before calling
+    // unpack(). LibRaw's own caps (65535/dimension, max_raw_memory_mb) are
+    // far larger than this and miss a bogus-but-plausible resolution from
+    // a truncated/fuzzed file; unpack() would then spend a long time
+    // decoding garbage instead of erroring out.
+    {
+        int64_t raw_width          = m_processor->imgdata.sizes.raw_width;
+        int64_t raw_height         = m_processor->imgdata.sizes.raw_height;
+        int64_t raw_bps            = m_processor->imgdata.rawdata.color.raw_bps;
+        imagesize_t declared_bytes = imagesize_t(raw_width) * raw_height
+                                     * raw_bps / 8;
+        imagesize_t filesize = Filesystem::file_size(name);
+        if (!check_compression_ratio(declared_bytes, filesize))
+            return false;
+    }
 
     OIIO_ASSERT(!m_unpacked);
     if (unpack) {
@@ -480,6 +498,12 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                        m_processor->imgdata.idata.colors, TypeDesc::UINT16);
     // Move the exif attribs we already read into the spec we care about
     m_spec.extra_attribs.swap(exifspec.extra_attribs);
+
+    // Enforce OIIO's global decode-bomb limits (limits:resolution,
+    // limits:imagesize_MB) and LibRaw's own 65535-per-dimension cap.
+    // idata.colors maxes out at 4 (some 4-color CFA patterns).
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 }))
+        return false;
 
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
