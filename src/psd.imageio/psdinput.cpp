@@ -634,6 +634,19 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
     bool ok = true;
     ok &= setup();
 
+    // Enforce open-time extent/policy limits and a decompression-bomb guard on
+    // the composite image before any pixel read is attempted. Per-dimension
+    // sanity is already done in validate_header(); check_open() adds the global
+    // limits:* policy (channels/resolution/imagesize) and check_compression_ratio
+    // rejects a tiny file that declares a huge uncompressed composite.
+    if (ok && !m_specs.empty()) {
+        if (!check_open(m_specs[0], { 0, 300000, 0, 300000, 0, 1, 0, 56 })
+            || !check_compression_ratio(m_specs[0], ioproxy()->size())) {
+            close();
+            return false;
+        }
+    }
+
     if (ok)
         ok &= seek_subimage(0, 0);
     if (ok)
@@ -1783,7 +1796,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         // randomly so we parse the data up-front and store it
         std::vector<char> compressed_data(channel_info.data_length);
         channel_info.decompressed_data = std::vector<char>(
-            width * height * (m_header.depth / 8));
+            size_t(width) * size_t(height) * (m_header.depth / 8));
 
         if (!ioseek(channel_info.data_pos))
             return false;
@@ -1800,7 +1813,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         // randomly so we parse the data up-front and store it
         std::vector<char> compressed_data(channel_info.data_length);
         channel_info.decompressed_data = std::vector<char>(
-            width * height * (m_header.depth / 8));
+            size_t(width) * size_t(height) * (m_header.depth / 8));
 
         if (!ioseek(channel_info.data_pos))
             return false;
