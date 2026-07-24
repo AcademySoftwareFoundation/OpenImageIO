@@ -79,7 +79,10 @@ private:
     bool m_unpacked = false;
     std::unique_ptr<LibRaw> m_processor;
     libraw_processed_image_t* m_image = nullptr;
-    bool m_do_scene_linear_scale      = false;
+    libraw_processed_image_t* m_thumb = nullptr;
+    int m_thumb_index                 = -1;
+
+    bool m_do_scene_linear_scale = false;
     float m_camera_to_scene_linear_scale
         = (1.0f / 0.45f);  // see open_raw for details
     bool m_do_balance_clamped = false;
@@ -1069,7 +1072,79 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_spec.attribute("Orientation", original_flip);
     }
 
-    // FIXME -- thumbnail possibly in m_processor->imgdata.thumbnail
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
+    if (m_processor->imgdata.thumbnail.tlength > 0) {
+        auto width  = m_processor->imgdata.thumbnail.twidth;
+        auto height = m_processor->imgdata.thumbnail.theight;
+
+        // see note below
+        if (width == 0)
+            width = -1;
+        if (height == 0)
+            height = -1;
+
+        m_spec.attribute("thumbnail_width", width);
+        m_spec.attribute("thumbnail_height", height);
+    }
+#else
+
+    auto thumb_count = m_processor->imgdata.thumbs_list.thumbcount;
+    if (thumb_count > 0) {
+        m_thumb_index = config.get_int_attribute("raw:thumbnail_index", -1);
+
+        int width  = 0;
+        int height = 0;
+
+        if (m_thumb_index == -1) {
+            // Use the default from LibRaw, which will always be the largest one
+            width  = m_processor->imgdata.thumbnail.twidth;
+            height = m_processor->imgdata.thumbnail.theight;
+        } else {
+            // clamp the thumbnail index
+            if (m_thumb_index < 0)
+                m_thumb_index = 0;
+            else if (m_thumb_index >= thumb_count)
+                m_thumb_index = thumb_count - 1;
+
+            // sort the thumbnails by their size if requested
+            if (config.get_int_attribute("raw:thumbnail_sort", 0)) {
+                auto index_map = std::vector<size_t>(thumb_count);
+                for (auto i = 0; i < thumb_count; ++i)
+                    index_map[i] = i;
+
+                std::sort(index_map.begin(), index_map.end(),
+                          [&](size_t a, size_t b) {
+                              return m_processor->imgdata.thumbs_list
+                                         .thumblist[a]
+                                         .tlength
+                                     < m_processor->imgdata.thumbs_list
+                                           .thumblist[b]
+                                           .tlength;
+                          });
+                m_thumb_index = index_map[m_thumb_index];
+            }
+
+            width = m_processor->imgdata.thumbs_list.thumblist[m_thumb_index]
+                        .twidth;
+            height = m_processor->imgdata.thumbs_list.thumblist[m_thumb_index]
+                         .theight;
+        }
+
+        // LibRaw sometimes won't set the twidth/theight if the type is JPEG,
+        // however the OIIO::ImageBuf interface checks for non-zero
+        // "thumbnail_width" and "thumbnail_height" to determine if a thumbnail
+        // is present. In that case we set them to -1 which emables the ImageBuf
+        // interface but is clear that the dimensions have not been set.
+        if (width == 0)
+            width = -1;
+        if (height == 0)
+            height = -1;
+
+        m_spec.attribute("thumbnail_width", width);
+        m_spec.attribute("thumbnail_height", height);
+    }
+#endif
+
 
     get_lensinfo();
     get_shootinginfo();
@@ -1551,6 +1626,12 @@ RawInput::close()
         LibRaw::dcraw_clear_mem(m_image);
         m_image = nullptr;
     }
+
+    if (m_thumb) {
+        LibRaw::dcraw_clear_mem(m_thumb);
+        m_thumb = nullptr;
+    }
+
     m_processor.reset();
     m_unpacked = false;
     m_process  = true;
@@ -1736,84 +1817,84 @@ bool
 RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
 {
     if (m_processor == nullptr) {
-        _errorfmt(this, subimage,
+        _errorfmt(this, m_thumb_index,
                   "ImageInput hasn't been initialised properly");
         return false;
     }
 
 #if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    if (subimage > 0) {
-        // Older versions of Libraw supported a single thumbnail per image.
-        // No error here.
-        return false;
-    }
     int errcode = m_processor->unpack_thumb();
     if (errcode != 0) {
         if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_IMAGE)
-            _errorfmt(this, subimage, "unpack_thumb error");
+            _errorfmt(this, m_thumb_index, "unpack_thumb error");
         return false;
     }
 #else
-    int errcode = m_processor->unpack_thumb_ex(subimage);
+    int errcode;
+    if (m_thumb_index == -1)
+        errcode = m_processor->unpack_thumb();
+    else
+        errcode = m_processor->unpack_thumb_ex(m_thumb_index);
+
     if (errcode != 0) {
         if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_THUMBNAIL)
-            _errorfmt(this, subimage, "unpack_thumb_ex error");
+            _errorfmt(this, m_thumb_index, "unpack_thumb_ex error");
         return false;
     }
 #endif
 
-    libraw_processed_image_t* mem_thumb = m_processor->dcraw_make_mem_thumb(
-        &errcode);
-    if (mem_thumb == nullptr) {
-        _errorfmt(this, subimage, "dcraw_make_mem_thumb error");
-        return false;
+    if (!m_thumb) {
+        m_thumb = m_processor->dcraw_make_mem_thumb(&errcode);
+        if (m_thumb == nullptr) {
+            _errorfmt(this, m_thumb_index, "dcraw_make_mem_thumb error");
+            return false;
+        }
     }
 
     std::string image_type;
-    if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEG)
+    if (m_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEG)
         image_type = "jpeg";
-    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_BITMAP)
+    else if (m_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_BITMAP)
         image_type = "bmp";
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 22, 0)
-    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEGXL)
+    else if (m_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEGXL)
         image_type = "jpegxl";
-    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_H265)
+    else if (m_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_H265)
         image_type = "h265";
 #endif
 
     if (image_type == "h265") {
-        _errorfmt(this, subimage, "h265 thumbnails are not supported yet");
+        _errorfmt(this, m_thumb_index, "h265 thumbnails are not supported yet");
         return false;
     }
 
     if (image_type.empty()) {
-        _errorfmt(this, subimage, "unknown image type {}",
-                  static_cast<int>(mem_thumb->type));
+        _errorfmt(this, m_thumb_index, "unknown image type {}",
+                  static_cast<int>(m_thumb->type));
         return false;
     }
 
     if (image_type == "bmp") {
-        size_t data_size = mem_thumb->width * mem_thumb->height
-                           * mem_thumb->colors;
-        if (data_size != mem_thumb->data_size)
+        size_t data_size = m_thumb->width * m_thumb->height * m_thumb->colors;
+        if (data_size != m_thumb->data_size)
             return false;
 
-        ImageSpec image_spec(mem_thumb->width, mem_thumb->height,
-                             mem_thumb->colors, TypeDesc::UCHAR);
+        ImageSpec image_spec(m_thumb->width, m_thumb->height, m_thumb->colors,
+                             TypeDesc::UCHAR);
         thumb.reset(image_spec);
-        thumb.set_pixels(thumb.roi_full(), TypeDesc::UCHAR, mem_thumb->data);
+        thumb.set_pixels(thumb.roi_full(), TypeDesc::UCHAR, m_thumb->data);
     } else {
         auto image_input = OIIO::ImageInput::create(image_type, false);
         if (image_input == nullptr) {
-            _errorfmt(this, subimage, "OIIO::ImageInput::create(\{}\") error",
-                      image_type);
+            _errorfmt(this, m_thumb_index,
+                      "OIIO::ImageInput::create(\{}\") error", image_type);
             return false;
         }
 
-        Filesystem::IOMemReader proxy(mem_thumb->data, mem_thumb->data_size);
+        Filesystem::IOMemReader proxy(m_thumb->data, m_thumb->data_size);
         bool result = image_input->valid_file(&proxy);
         if (!result) {
-            _errorfmt(this, subimage,
+            _errorfmt(this, m_thumb_index,
                       "the thumbnail is not a valid image of type \"{}\"",
                       image_type);
             return false;
@@ -1826,8 +1907,9 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         result = image_input->open("", image_spec, temp_spec);
         if (!result) {
             _errorfmt(
-                this, subimage,
-                "failed to initialise an ImageInput object with the thumbnail data");
+                this, m_thumb_index,
+                "failed to initialise an ImageInput object with the thumbnail"
+                " data");
             return false;
         }
 
@@ -1837,11 +1919,14 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
                                          thumb.localpixels());
         if (!result) {
             _errorfmt(
-                this, subimage,
-                "failed to initialise an ImageInput object of type \"{}\" with the thumbnail data",
+                this, m_thumb_index,
+                "failed to initialise an ImageInput object of type \"{}\" with"
+                " the thumbnail data",
                 image_type);
+            image_input->close();
             return false;
         }
+        image_input->close();
     }
 
     return true;
