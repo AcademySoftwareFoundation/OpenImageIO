@@ -115,6 +115,7 @@ else ()
 endif()
 
 # From pythonutils.cmake
+set_option (USE_PYTHON "Enable support of Python bindings" ON)
 if (USE_PYTHON)
     find_python()
 endif ()
