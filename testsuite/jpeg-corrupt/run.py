@@ -21,6 +21,24 @@ command += info_command ("src/corrupt-exif.jpg", safematch=True)
 # nonsensical length, that before being fixed, caused a buffer overrun.
 command += info_command ("src/corrupt-exif-1626.jpg", safematch=True)
 
+# This file's Exif block has an ExifIFD pointer whose offset lands one byte
+# before the end of the Exif buffer. The shared decoder's recursive IFD branch
+# read a 2-byte directory count there; before being fixed it ran one byte past
+# the buffer (heap OOB read). Must now be dropped cleanly.
+command += info_command ("src/corrupt-exif-recursive-ifd.jpg", safematch=True)
+
+# This file's Exif block declares a tag with TIFF data type 129, the Exif 3.0
+# UTF-8 type. tiff_data_size() didn't know that type and reported size_t(-1),
+# which wrapped the shared decoder's bounds arithmetic into a span of length
+# size_t(-1): a heap OOB read under a sanitizer, and an uncaught
+# std::length_error that aborted the process on a release build.
+command += info_command ("src/corrupt-exif-utf8-type.jpg", safematch=True)
+
+# This file's Exif block chains 100 ExifIFD pointers, each aimed at the next.
+# Every level costs a stack frame, so a large enough chain exhausts the stack;
+# the decoder now stops descending after a fixed depth.
+command += info_command ("src/corrupt-exif-deep-ifds.jpg", safematch=True)
+
 # This file has a corrupted ICC profile block that has tags that say they
 # extend beyond the boundaries of the ICC block itself.
 command += run_app (oiiotool("--echo corrupt-icc-4551.jpg"))

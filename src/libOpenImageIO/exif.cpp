@@ -161,6 +161,8 @@ tiff_data_size(TIFFDataType tifftype)
     static size_t sizes[]    = { 0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8, 4 };
     const int num_data_sizes = sizeof(sizes) / sizeof(*sizes);
     int dir_index            = bitcast<int>(tifftype);
+    if (dir_index == EXIF_UTF8_TYPE)
+        return 1;  // Exif 3.0 UTF-8 string: one byte per element
     if (dir_index < 0 || dir_index >= num_data_sizes) {
         // Inform caller about corrupted entry.
         return -1;
@@ -224,7 +226,13 @@ tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
 cspan<uint8_t>
 tiff_dir_data(const TIFFDirEntry& td, cspan<uint8_t> data)
 {
-    size_t len = tiff_data_size(td);
+    size_t elemsize = tiff_data_size(TIFFDataType(td.tdir_type));
+    if (elemsize == 0 || elemsize == size_t(-1)) {
+        // Unrecognized type: we can't know how much data it has, and the
+        // size_t(-1) sentinel would wrap the bounds check below.
+        return cspan<uint8_t>();
+    }
+    size_t len = elemsize * size_t(td.tdir_count);
     if (len <= 4) {
         // Short data are stored in the offset field itself
         return cspan<uint8_t>((const uint8_t*)&td.tdir_offset, len);
@@ -716,7 +724,10 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
             = pvt::dataspan<uint32_t>(*dirp, buf, offset_adjustment, 2 * count);
         if (dspan.empty())
             return;
-        float* f = OIIO_ALLOCA(float, count);
+        // The count comes from the file: bounded by the blob length, but that
+        // is still far too much to put on the stack.
+        float* f;
+        OIIO_ALLOCATE_STACK_OR_HEAP(f, float, count);
         for (size_t i = 0; i < count; ++i) {
             // Because the values in the blob aren't 32-bit-aligned, memcpy
             // them into ints to do the swapping.
@@ -742,7 +753,8 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
             = pvt::dataspan<int32_t>(*dirp, buf, offset_adjustment, 2 * count);
         if (dspan.empty())
             return;
-        float* f = OIIO_ALLOCA(float, count);
+        float* f;
+        OIIO_ALLOCATE_STACK_OR_HEAP(f, float, count);
         for (size_t i = 0; i < count; ++i) {
             // Because the values in the blob aren't 32-bit-aligned, memcpy
             // them into ints to do the swapping.
@@ -816,14 +828,35 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
 /// integer and float data embedded in buf needs to be byte-swapped.
 /// Note that *dirp has not been swapped, and so is still in the native
 /// endianness of the file.
+// An IFD may point at another IFD, and a hostile blob can chain them as deep
+// as its own length allows -- each level costs a stack frame, so a few hundred
+// KB of Exif is enough to exhaust the stack. Real files nest two or three
+// deep. The counter is thread-local rather than a parameter because the tag
+// handlers that can re-enter the walk (MakerNote) have a fixed signature that
+// cannot carry it.
+static constexpr int max_ifd_depth = 32;
+static thread_local int ifd_depth  = 0;
+
+struct IFDDepthCounter {
+    IFDDepthCounter() { ++ifd_depth; }
+    ~IFDDepthCounter() { --ifd_depth; }
+    bool too_deep() const { return ifd_depth > max_ifd_depth; }
+};
+
+
+
 static void
 read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
               bool swab, int offset_adjustment,
               std::set<size_t>& ifd_offsets_seen, const TagMap& tagmap)
 {
+    IFDDepthCounter depth;
+    if (depth.too_deep())
+        return;
+
     if ((const uint8_t*)dirp < buf.data()
         || (const uint8_t*)dirp + sizeof(TIFFDirEntry)
-               >= buf.data() + buf.size()) {
+               > buf.data() + buf.size()) {
 #if DEBUG_EXIF_READ
         std::cerr << "Ignoring directory outside of the buffer.\n";
 #endif
@@ -859,7 +892,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
         auto offset = unswapped_tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian(&offset);
-        if (offset >= size_t(buf.size())) {
+        if (size_t(offset) + sizeof(unsigned short) > size_t(buf.size())) {
 #if DEBUG_EXIF_READ
             unsigned int off2 = offset;
             swap_endian(&off2);
@@ -915,7 +948,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
         auto offset = unswapped_tdir_offset;  // int stored in offset itself
         if (swab)
             swap_endian(&offset);
-        if (offset >= size_t(buf.size())) {
+        if (size_t(offset) + sizeof(unsigned short) > size_t(buf.size())) {
 #if DEBUG_EXIF_READ
             unsigned int off2 = offset;
             swap_endian(&off2);
@@ -933,7 +966,8 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
         std::cerr << "Now we've seen offset " << offset << "\n";
 #endif
         const unsigned char* ifd = ((const unsigned char*)buf.data() + offset);
-        unsigned short ndirs     = *(const unsigned short*)ifd;
+        unsigned short ndirs;
+        memcpy(&ndirs, ifd, sizeof(ndirs));  // hoop jumping for ubsan
         if (swab)
             swap_endian(&ndirs);
 #if DEBUG_EXIF_READ
@@ -1235,7 +1269,8 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
     // itself is also helpful in this area.
     if (exif.size() < sizeof(TIFFHeader))
         return false;
-    TIFFHeader head = *(const TIFFHeader*)exif.data();
+    TIFFHeader head;
+    memcpy(&head, exif.data(), sizeof(head));  // may be unaligned
     if (head.tiff_magic != 0x4949 && head.tiff_magic != 0x4d4d)
         return false;
     bool host_little = littleendian();
