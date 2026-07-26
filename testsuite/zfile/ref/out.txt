@@ -13,5 +13,11 @@ out.zfile            :   64 x   64, 1 channel, float zfile
     Stats FiniteCount: 4096 
     Constant: No
     Monochrome: Yes
+oiiotool ERROR: read : "src/bomb-32767.zfile": zfile header claims a 4095 MB image from a 136 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool -nostderr -info src/bomb-32767.zfile
+oiiotool ERROR: read : "src/truncated.zfile": Error reading zfile scanline 0 (corrupt or truncated)
+Full command line was:
+> oiiotool -nostderr src/truncated.zfile -o truncated.exr
 Comparing "out.zfile" and "ref/out.zfile"
 PASS
