@@ -184,7 +184,7 @@ macro (oiio_add_all_tests)
                     oiiotool-readerror
                     oiiotool-subimage
                     oiiotool-text
-                    oiiotool-get-thumbnail
+                    oiiotool-thumbnail-get
                     oiiotool-xform
                     diff
                     flip
@@ -475,7 +475,7 @@ macro (oiio_add_all_tests)
                     ENABLEVAR ENABLE_TARGA
                     IMAGEDIR oiio-images)
     endif()
-    oiio_add_tests (oiiotool-set-thumbnail
+    oiio_add_tests (oiiotool-thumbnail-set
                     ENABLEVAR ENABLE_TARGA)
     if (WIN32)
         if (OIIO_BUILD_TOOLS)

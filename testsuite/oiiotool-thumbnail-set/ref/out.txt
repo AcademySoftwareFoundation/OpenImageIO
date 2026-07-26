@@ -1,4 +1,4 @@
-after set-thumbnail: 512x384
+after thumbnail-set: 512x384
 Reading out.tga
 out.tga              :  512 x  384, 3 channel, uint8 targa
     SHA-1: 55B55C41EB65BF7B741671DBFFA29CA970D4877C
@@ -26,8 +26,8 @@ no_thumb.tif         :  512 x  384, 3 channel, uint8 tiff
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
     tiff:RowsPerStrip: 32
-oiiotool ERROR: --set-thumbnail : Thumbnail image "" is empty
+oiiotool ERROR: --thumbnail-set : Thumbnail image "" is empty
 Full command line was:
-> oiiotool ../common/tahoe-small.tif --dup --get-thumbnail:fail=0 --set-thumbnail
-oiiotool WARNING: --set-thumbnail : pending command never executed
+> oiiotool ../common/tahoe-small.tif --dup --thumbnail-get:fail=0 --thumbnail-set
+oiiotool WARNING: --thumbnail-set : pending command never executed
 oiiotool WARNING : oiiotool produced no output. Did you forget -o?

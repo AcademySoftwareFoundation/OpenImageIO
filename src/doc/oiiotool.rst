@@ -1234,7 +1234,7 @@ Reading images
         channels.
       `:get_thumbnail=` *int*
         If nonzero, read the file's embedded thumbnail instead of its main
-        image (equivalent to a following `--get-thumbnail`). The `:fail=` and
+        image (equivalent to a following `--thumbnail-get`). The `:fail=` and
         `:index=` modifiers are forwarded (e.g. `-i:get_thumbnail=1:fail=0`),
         and any auto-orientation or color conversion applies to the thumbnail.
         Since a thumbnail is display-referred (typically sRGB), `:autocc=` will
@@ -2351,7 +2351,7 @@ current top image.
     Additionally, this command can be used to remove one subimage (leaving
     the others) by using the optional modifier `--subimage:delete=1`.
 
-.. option:: --get-thumbnail
+.. option:: --thumbnail-get
 
     Replace the top image on the stack with its embedded thumbnail.
     The thumbnail associated with the first subimage (subimage 0) is used.
@@ -2376,13 +2376,13 @@ current top image.
     Examples::
 
         # Save the thumbnail
-        oiiotool input.psd --dup --get-thumbnail -o thumb.jpg
+        oiiotool input.psd --dup --thumbnail-get -o thumb.jpg
 
         # Batch-safe: substitute an empty image for missing thumbnails, and
         # guard the output so only real thumbnails are written
-        oiiotool input.psd --get-thumbnail:fail=0 --if "{TOP.width}" -o thumb.jpg --endif
+        oiiotool input.psd --thumbnail-get:fail=0 --if "{TOP.width}" -o thumb.jpg --endif
 
-.. option:: --set-thumbnail
+.. option:: --thumbnail-set
 
     Remove the top image from the stack and attach it as the thumbnail of the
     image now on top (stored on the first subimage). The thumbnail may be
@@ -2393,7 +2393,7 @@ current top image.
     Examples::
 
         # Attach a 128x128 box-filtered copy of the image as its thumbnail
-        oiiotool input.exr --dup --resize:filter=box 128x128 --set-thumbnail -o out_with_thumb.tga
+        oiiotool input.exr --dup --resize:filter=box 128x128 --thumbnail-set -o out_with_thumb.tga
 
 .. option:: --sisplit
 

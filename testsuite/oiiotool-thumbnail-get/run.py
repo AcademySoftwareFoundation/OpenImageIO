@@ -11,26 +11,26 @@ psd = "src/with-thumbnail.psd"
 no_thumb = "../common/tahoe-small.tif"
 
 # Test extracting a present thumbnail.
-command += oiiotool (psd + " --get-thumbnail -o thumb.tif")
+command += oiiotool (psd + " --thumbnail-get -o thumb.tif")
 
 # Test valid modifiers and stack integrity.
-command += oiiotool (psd + " --get-thumbnail:index=0:fail=0"
+command += oiiotool (psd + " --thumbnail-get:index=0:fail=0"
                      + " --echo \"modifiers {TOP.width}x{TOP.height}\"")
-command += oiiotool (psd + " --dup --get-thumbnail"
+command += oiiotool (psd + " --dup --thumbnail-get"
                      + " --echo \"thumbnail {TOP.width}x{TOP.height}\""
                      + " --pop --echo \"full {TOP.width}x{TOP.height}\"")
 
 # Test missing-thumbnail behavior.
-command += oiiotool (no_thumb + " --get-thumbnail", failureok=True)
-command += oiiotool (no_thumb + " --get-thumbnail:fail=0"
+command += oiiotool (no_thumb + " --thumbnail-get", failureok=True)
+command += oiiotool (no_thumb + " --thumbnail-get:fail=0"
                      + " --if \"{TOP.width}\" --echo unexpected"
                      + " --else --echo \"no thumbnail, skipped output\" --endif")
 
 # Test that fail=0 does not suppress an invalid index.
-command += oiiotool (psd + " --get-thumbnail:index=1:fail=0", failureok=True)
+command += oiiotool (psd + " --thumbnail-get:index=1:fail=0", failureok=True)
 
 # Test that the -i:get_thumbnail=1 read modifier produces the same thumbnail
-# as the equivalent --get-thumbnail command above.
+# as the equivalent --thumbnail-get command above.
 command += oiiotool ("-i:get_thumbnail=1 " + psd + " -o thumb_i.tif")
 command += oiiotool ("--diff thumb_i.tif thumb.tif")
 

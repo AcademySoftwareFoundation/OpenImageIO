@@ -3225,17 +3225,17 @@ action_subimage_append_all(Oiiotool& ot, cspan<const char*> argv)
 
 
 
-// --get-thumbnail
+// --thumbnail-get
 static void
-action_get_thumbnail(Oiiotool& ot, cspan<const char*> argv)
+action_thumbnail_get(Oiiotool& ot, cspan<const char*> argv)
 {
-    if (ot.postpone_callback(1, action_get_thumbnail, argv))
+    if (ot.postpone_callback(1, action_thumbnail_get, argv))
         return;
     string_view command = ot.express(argv[0]);
     OTScopedTimer timer(ot, command);
 
     // Parse options from the command token, e.g.
-    //     --get-thumbnail:fail=0:index=0
+    //     --thumbnail-get:fail=0:index=0
     auto options = ot.extract_options(command);
 
     bool fail_if_missing = options.get_int("fail", 1);
@@ -3277,11 +3277,11 @@ action_get_thumbnail(Oiiotool& ot, cspan<const char*> argv)
 
 
 
-// --set-thumbnail
+// --thumbnail-set
 static void
-action_set_thumbnail(Oiiotool& ot, cspan<const char*> argv)
+action_thumbnail_set(Oiiotool& ot, cspan<const char*> argv)
 {
-    if (ot.postpone_callback(2, action_set_thumbnail, argv))
+    if (ot.postpone_callback(2, action_thumbnail_set, argv))
         return;
     string_view command = ot.express(argv[0]);
     OTScopedTimer timer(ot, command);
@@ -5735,9 +5735,9 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         timer.stop();
 
         if (get_thumbnail && !substitute) {
-            // Swap in the embedded thumbnail via the --get-thumbnail logic.
+            // Swap in the embedded thumbnail via the --thumbnail-get logic.
             // Done before autoorient/autocc so they apply to the thumbnail.
-            std::string thumbcmd = "--get-thumbnail";
+            std::string thumbcmd = "--thumbnail-get";
             if (fileoptions.contains("fail"))
                 thumbcmd += Strutil::fmt::format(":fail={}",
                                                  fileoptions.get_int("fail"));
@@ -5745,7 +5745,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                 thumbcmd += Strutil::fmt::format(":index={}",
                                                  fileoptions.get_int("index"));
             const char* argv[] = { thumbcmd.c_str() };
-            action_get_thumbnail(ot, argv);
+            action_thumbnail_get(ot, argv);
         }
 
         if (ot.autoorient) {
@@ -7549,12 +7549,12 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--flatten")
       .help("Flatten deep image to non-deep")
       .OTACTION(action_flatten);
-    ap.arg("--get-thumbnail")
+    ap.arg("--thumbnail-get")
       .help("Extract an embedded thumbnail (options: fail=, index=)")
-      .OTACTION(action_get_thumbnail);
-    ap.arg("--set-thumbnail")
+      .OTACTION(action_thumbnail_get);
+    ap.arg("--thumbnail-set")
       .help("Attach the top image as the thumbnail of the image below it")
-      .OTACTION(action_set_thumbnail);
+      .OTACTION(action_thumbnail_set);
 
     ap.separator("Image stack manipulation:");
     ap.arg("--label %s")
