@@ -91,3 +91,6 @@ oiiotool ERROR: read : "src/crash-bfd2220.jxl": jpegxl image dimension 328438676
 If you're sure this is a valid file, raise the OIIO global attribute "limits:resolution".
 Full command line was:
 > oiiotool -info -oiioattrib limits:imagesize_MB 16384 src/crash-bfd2220.jxl
+oiiotool ERROR: read : "src/truncated.jxl": JPEG XL decoder error
+Full command line was:
+> oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/truncated.jxl
