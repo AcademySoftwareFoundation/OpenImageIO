@@ -1079,8 +1079,8 @@ DDSInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     // don't proceed if a cube map - use tiles then instead
     if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP)
         return false;
-    if (m_buf.empty())
-        readimg_scanlines();
+    if (m_buf.empty() && !readimg_scanlines())
+        return false;
 
     size_t size   = spec().scanline_bytes();
     size_t offset = size_t(z) * m_spec.height * size + size_t(y) * size;
@@ -1105,8 +1105,8 @@ DDSInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
         // This is a 3D volume file. For DDS files, we are emulating tiles,
         // with each scanline as a tile.
-        if (m_buf.empty())
-            readimg_scanlines();
+        if (m_buf.empty() && !readimg_scanlines())
+            return false;
         // We reported scanlines as tiles, so x must be 0.
         if (x != 0)
             return false;
@@ -1140,8 +1140,8 @@ DDSInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         m_buf.resize(m_spec.tile_bytes());  // resize destination buffer
         if (!w && !h && !d)  // face not present in file, black-pad the image
             memset(&m_buf[0], 0, m_spec.tile_bytes());
-        else
-            readimg_tiles();
+        else if (!readimg_tiles())
+            return false;
     }
 
     memcpy(data, &m_buf[0], m_spec.tile_bytes());
