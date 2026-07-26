@@ -1,0 +1,21 @@
+oiiotool ERROR: read : "src/bad-bbox-huge.vdb": openvdb image resolution may not exceed 1048576x1048576x1048576, but the file appears to be 1000000009x1000000009x1000000009. Possible corrupt input?
+Full command line was:
+> oiiotool --info -v src/bad-bbox-huge.vdb
+oiiotool ERROR: read : "src/bad-bbox-bomb.vdb": Uncompressed image size 30521698304.0 MB exceeds the 32768 MB limit.
+Image claimed to be 200009x200009, 1-channel float. Possible corrupt input?
+If this is a valid file, raise the OIIO attribute "limits:imagesize_MB".
+Full command line was:
+> oiiotool --info -v src/bad-bbox-bomb.vdb
+oiiotool ERROR: read : Grid 'overflow' of 'src/bad-bbox-overflow.vdb' has an out-of-range bounding box [-2147483648,-2147483648,-2147483648]-[2147483647,2147483647,2147483647]. Possible corrupt input?
+Full command line was:
+> oiiotool --info -v src/bad-bbox-overflow.vdb
+oiiotool ERROR: read : Grid 'roundup' of 'src/bad-bbox-roundup.vdb' has an out-of-range bounding box [0,0,0]-[2147483647,8,8]. Possible corrupt input?
+Full command line was:
+> oiiotool --info -v src/bad-bbox-roundup.vdb
+oiiotool ERROR: read : 'src/bad-bbox-inverted.vdb' contains no readable grids
+Full command line was:
+> oiiotool --info -v src/bad-bbox-inverted.vdb
+oiiotool ERROR: read : 'src/bad-bbox-empty.vdb' contains no readable grids
+Full command line was:
+> oiiotool --info -v src/bad-bbox-empty.vdb
+truncated.vdb rejected
