@@ -173,7 +173,10 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
 
     ZfileHeader header;
     static_assert(sizeof(header) == 136, "header size does not match");
-    gzread(m_gz, &header, sizeof(header));
+    if (gzread(m_gz, &header, sizeof(header)) != int(sizeof(header))) {
+        errorfmt("Not a valid Zfile (truncated header)");
+        return false;
+    }
 
     if (header.magic != zfile_magic && header.magic != zfile_magic_endian) {
         errorfmt("Not a valid Zfile");
@@ -245,7 +248,12 @@ ZfileInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     }
     while (m_next_scanline <= y) {
         // Keep reading until we're read the scanline we really need
-        gzread(m_gz, data, m_spec.width * sizeof(float));
+        int want = int(m_spec.width * sizeof(float));
+        if (gzread(m_gz, data, want) != want) {
+            errorfmt("Error reading zfile scanline {} (corrupt or truncated)",
+                     m_next_scanline);
+            return false;
+        }
         ++m_next_scanline;
     }
     if (m_swab)
