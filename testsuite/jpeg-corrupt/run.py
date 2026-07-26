@@ -45,3 +45,16 @@ command += iconvert("short-icc-app2-len13.jpg out.null",
 
 # This file had corrupted IPTC data
 command += oiiotool("-oiioattrib imageinput:strict 1 -info -v src/corrupt-iptc-8011.jpg")
+
+# This file's SOF0 header declares a ~12 GB image (65500x65500x3) but holds
+# only a few bytes of entropy-coded data: a classic decompression bomb. The
+# reader's compression-ratio guard must reject it cleanly with a bounded
+# allocation rather than attempting the enormous pixel allocation.
+command += info_command("src/bomb-65500x65500.jpg", failureok=True, safematch=True)
+
+# Same bomb, but progressive (SOF2). Progressive decoding allocates a
+# whole-image coefficient array inside jpeg_start_decompress, so the size
+# checks must happen right after jpeg_read_header, not after decompression
+# has been started.
+command += info_command("src/bomb-progressive-65500x65500.jpg", failureok=True,
+                        safematch=True)
