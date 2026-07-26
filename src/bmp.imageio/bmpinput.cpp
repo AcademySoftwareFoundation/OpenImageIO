@@ -183,10 +183,17 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     //     m_dib_header.height, m_dib_header.cplanes, m_dib_header.bpp);
 
     const int nchannels = (m_dib_header.bpp == 32) ? 4 : 3;
-    const int height    = (m_dib_header.height >= 0) ? m_dib_header.height
-                                                     : -m_dib_header.height;
-    m_spec = ImageSpec(m_dib_header.width, height, nchannels, TypeDesc::UINT8);
-    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 }))
+    // Negate in 64-bit: -m_dib_header.height is signed-overflow UB when the
+    // (attacker-controlled) height field is INT32_MIN. check_open() below
+    // rejects the out-of-range result cleanly.
+    const int64_t height = (m_dib_header.height >= 0)
+                               ? int64_t(m_dib_header.height)
+                               : -int64_t(m_dib_header.height);
+
+    m_spec = ImageSpec(m_dib_header.width, int(height), nchannels,
+                       TypeDesc::UINT8);
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, ioproxy()->size()))
         return false;
 
     if (m_dib_header.hres > 0 && m_dib_header.vres > 0) {
@@ -387,7 +394,7 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!seek_subimage(subimage, miplevel))
         return false;
 
-    if (y < 0 || y > m_spec.height)
+    if (y < 0 || y >= m_spec.height)
         return false;
 
     size_t scanline_bytes = m_spec.scanline_bytes();
