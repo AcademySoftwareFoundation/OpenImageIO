@@ -39,6 +39,12 @@ command += info_command ("src/corrupt-exif-utf8-type.jpg", safematch=True)
 # the decoder now stops descending after a fixed depth.
 command += info_command ("src/corrupt-exif-deep-ifds.jpg", safematch=True)
 
+# This file's APP1 XMP marker nests ~9000 XML elements. decode_xmp_node()
+# recursed once per level with nothing bounding the descent, so the packet
+# exhausted the stack (ASan: stack-overflow). The decoder now stops descending
+# after a fixed depth.
+command += info_command ("src/corrupt-xmp-deep-nesting.jpg", safematch=True)
+
 # This file has a corrupted ICC profile block that has tags that say they
 # extend beyond the boundaries of the ICC block itself.
 command += run_app (oiiotool("--echo corrupt-icc-4551.jpg"))

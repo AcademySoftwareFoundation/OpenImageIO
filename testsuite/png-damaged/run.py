@@ -19,3 +19,20 @@ command += rw_command (OIIO_TESTSUITE_IMAGEDIR + "/broken",
 # chain can be made large enough to exhaust the stack.
 command += info_command ("src/exif-utf8-type.png", safematch=True)
 command += info_command ("src/exif-deep-ifds.png", safematch=True)
+
+# These carry hostile XMP payloads in a compressed zTXt chunk, reaching the
+# shared XMP decoder. PNG is the useful container: a zTXt payload is deflated
+# and its length is 31 bits, so packets far larger than a 64 KB JPEG APP1
+# marker cost only tens of KB on disk.
+#
+# xmp-deep-nesting nests 100000 elements; decode_xmp_node() recursed once per
+# level and exhausted the stack (SIGSEGV on a plain release build).
+command += info_command ("src/xmp-deep-nesting.png", safematch=True)
+# The next two are volume attacks, so their metadata is deliberately not
+# dumped -- what regresses is time and memory, not the attribute values.
+# xmp-list-blowup appends 20000 dc:subject items; each append re-split,
+# re-joined and re-interned the whole accumulated list, which took 11 s and
+# 3.2 GB before the budget cap. xmp-many-attribs writes 8000 attributes into
+# a spec whose attribute lookup is a linear scan.
+command += info_command ("src/xmp-list-blowup.png", verbose=False)
+command += info_command ("src/xmp-many-attribs.png", verbose=False)
