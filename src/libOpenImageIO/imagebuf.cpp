@@ -1184,8 +1184,8 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
                                                  miplevel);
         if (!ok || m_nativespec.format == TypeUnknown) {
             std::string cacheerr = m_imagecache->geterror();
-            error("Unable to find subimage={}, miplevel={}{}{}",
-                  cacheerr.size() ? ": " : "", cacheerr);
+            error("Unable to find subimage={}, miplevel={}{}{}", subimage,
+                  miplevel, cacheerr.size() ? ": " : "", cacheerr);
             return false;
         }
 
