@@ -480,6 +480,9 @@ macro (oiio_add_all_tests)
                     SUFFIX ".batch"
                     ENVIRONMENT TESTTEX_BATCH=1
                     FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
+    # Self-contained malformed-input regression (ships its own tiny fixtures).
+    oiio_add_tests (openvdb-damaged
+                    FOUNDVAR OpenVDB_FOUND ENABLEVAR ENABLE_OpenVDB)
     oiio_add_tests (png png-damaged
                     ENABLEVAR ENABLE_PNG
                     IMAGEDIR oiio-images/png)
