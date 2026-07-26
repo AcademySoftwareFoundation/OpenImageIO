@@ -20,3 +20,7 @@ command += info_command("src/bad_rgba_chunk_size.iff", hash=True, failureok=True
 # ImageSpec while the internal pixel size stayed 32-bit, causing
 # read_native_tile to write past the caller's tile buffer. Must be rejected.
 command += info_command("src/zbuffer_only.iff", hash=True, failureok=True)
+# Regression test: a 336-byte IFF whose TBHD declares a ~8 GB image
+# (46341x46341x4) -- a decompression bomb the compression-ratio guard must
+# reject before any large allocation.
+command += info_command("src/bomb-46341.iff", hash=True, failureok=True)

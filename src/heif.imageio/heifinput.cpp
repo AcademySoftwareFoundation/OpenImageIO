@@ -299,6 +299,17 @@ HeifInput::seek_subimage(int subimage, int miplevel)
                                                      : heif_channel_interleaved;
     const int nchannels              = is_monochrome ? 1 : m_has_alpha ? 4 : 3;
 
+    // Validate the handle's declared dimensions against OIIO's limits BEFORE
+    // asking libheif to decode (and allocate) the full image. libheif has its
+    // own internal security limits, but this additionally enforces OIIO's
+    // limits:* policy and rejects degenerate (zero/negative) dimensions.
+    m_spec = ImageSpec(m_ihandle.get_width(), m_ihandle.get_height(), nchannels,
+                       (m_bitdepth > 8) ? TypeUInt16 : TypeUInt8);
+    if (!check_open(m_spec, { 0, 1 << 18, 0, 1 << 18, 0, 1, 0, 4 })) {
+        m_ctx.reset();
+        return false;
+    }
+
 #if 0
     try {
         m_himage = m_ihandle.decode_image(heif_colorspace_RGB, chroma);

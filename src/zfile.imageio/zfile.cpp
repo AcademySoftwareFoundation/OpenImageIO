@@ -189,6 +189,12 @@ ZfileInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     m_spec = ImageSpec(header.width, header.height, 1, TypeDesc::FLOAT);
+    // The reader had no open-time validation: header.width/height are signed
+    // 16-bit and could be negative or zero, and a tiny file could declare a
+    // huge (gzip-bomb) image. Reject both before the caller allocates.
+    if (!check_open(m_spec, { 0, 32767, 0, 32767, 0, 1, 0, 1 })
+        || !check_compression_ratio(m_spec, Filesystem::file_size(m_filename)))
+        return false;
     if (m_spec.channelnames.size() == 0)
         m_spec.channelnames.resize(1);
     m_spec.channelnames[0] = std::string("z");

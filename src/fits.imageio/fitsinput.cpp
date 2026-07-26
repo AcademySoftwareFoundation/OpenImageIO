@@ -191,6 +191,19 @@ FitsInput::set_spec_info()
         m_spec.set_format(TypeDesc::FLOAT);
     else if (m_bitpix == -64)
         m_spec.set_format(TypeDesc::DOUBLE);
+
+    // Validate dimensions and implied size for non-empty images. FITS permits
+    // an empty (0x0) primary HDU, which we pass through as metadata-only.
+    if (m_spec.width > 0 && m_spec.height > 0) {
+        if (m_spec.format == TypeDesc::UNKNOWN) {
+            errorfmt("Unsupported FITS BITPIX value {}", m_bitpix);
+            return false;
+        }
+        if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 4 }))
+            return false;
+        if (!check_compression_ratio(m_spec, Filesystem::file_size(m_filename)))
+            return false;
+    }
     return true;
 }
 

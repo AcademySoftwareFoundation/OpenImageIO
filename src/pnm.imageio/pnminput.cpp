@@ -515,6 +515,13 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     if (!check_open(m_spec))  // check for apparently invalid values
         return false;
 
+    // Reject a tiny file that declares a huge image before the caller
+    // allocates the full (declared) pixel buffer. Binary PNM data must be
+    // present in the file and ASCII values cost >=2 bytes each, so a
+    // legitimate file never has an extreme ratio.
+    if (!check_compression_ratio(m_spec, m_io->size()))
+        return false;
+
     m_remaining    = append_remainder_to_buffer(m_file_contents, m_io,
                                                 m_remaining);
     m_after_header = m_remaining;

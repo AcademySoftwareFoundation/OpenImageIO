@@ -159,7 +159,8 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
                        m_sgi_header.bpc == 1 ? TypeDesc::UINT8
                                              : TypeDesc::UINT16);
 
-    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
+    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, ioproxy()->size())) {
         close();
         return false;
     }
