@@ -558,6 +558,54 @@
     Sony:ImageStabilization: 1
     Sony:LensID: 40
     Sony:LensMount: 25
+Computing diff of "flipref1.tif" vs "flip1.tif"
+PASS
+Computing diff of "flipref2.tif" vs "flip2.tif"
+PASS
+Computing diff of "flipref3.tif" vs "flip3.tif"
+PASS
+Computing diff of "flipref4.tif" vs "flip4.tif"
+PASS
+Computing diff of "flipref5.tif" vs "flip5.tif"
+PASS
+Computing diff of "flipref6.tif" vs "flip6.tif"
+PASS
+Computing diff of "flipref7.tif" vs "flip7.tif"
+PASS
+src/valid-32x32.dng  :   32 x   32, 3 channel, uint16 raw
+src/valid-32x32.dng  :   32 x   32, 1 channel, uint16 raw
+    Stats Min: 0 (of 65535)
+    Stats Max: 16320 (of 65535)
+    Stats Avg: 8544.00 (of 65535)
+    Stats StdDev: 4577.57 (of 65535)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 1024 
+    Constant: No
+    Monochrome: Yes
+src/bad-exif-type.dng :   32 x   32, 3 channel, uint16 raw
+src/bad-exif-type.dng :   32 x   32, 1 channel, uint16 raw
+    Stats Min: 0 (of 65535)
+    Stats Max: 16320 (of 65535)
+    Stats Avg: 8544.00 (of 65535)
+    Stats StdDev: 4577.57 (of 65535)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 1024 
+    Constant: No
+    Monochrome: Yes
+src/truncated.dng    :   32 x   32, 3 channel, uint16 raw
+src/truncated.dng: Unexpected end of file
+src/truncated.dng    :   32 x   32, 1 channel, uint16 raw
+oiiotool ERROR: stats : Could not unpack "src/truncated.dng", Input/output error
+Full command line was:
+> oiiotool -iconfig raw:Demosaic none --stats src/truncated.dng
+oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 208 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info src/bomb-32000x32000.dng
+oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 208 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool -iconfig raw:Demosaic none --stats src/bomb-32000x32000.dng
 Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
 PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
