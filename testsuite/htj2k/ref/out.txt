@@ -4,3 +4,16 @@ Comparing "../oiio-images/dpx/dpx_nuke_10bits_rgb.dpx" and "testdpx.j2c"
 PASS
 Comparing "../oiio-images/tahoe-gps.jpg" and "testcompress.j2c"
 PASS
+oiiotool ERROR: read : "src/bomb-resolution.j2c": jpeg2000 image dimension 2000000000x2000000000 exceeds "limits:resolution" = 1048576 for a single dimension. Possible corrupt input?
+If you're sure this is a valid file, raise the OIIO global attribute "limits:resolution".
+Full command line was:
+> oiiotool --info -v src/bomb-resolution.j2c
+oiiotool ERROR: read : "src/bomb-ratio.j2c": jpeg2000 header claims a 28610 MB image from a 310 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-ratio.j2c
+Reading src/valid-16x16.j2c
+src/valid-16x16.j2c  :   16 x   16, 3 channel, uint8 jpeg2000
+    SHA-1: 82BF87BEB48AFCB8E475AE35F065A15B2ED05F00
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
