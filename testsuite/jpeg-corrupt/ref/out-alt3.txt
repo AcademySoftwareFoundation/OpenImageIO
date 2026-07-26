@@ -55,3 +55,6 @@ oiiotool ERROR: read : JPEG error: Corrupt JPEG data: 256 extraneous bytes befor
 Corrupted IPTC data
 Full command line was:
 > oiiotool -oiioattrib imageinput:strict 1 -info -v src/corrupt-iptc-8011.jpg
+oiiotool ERROR: read : "src/bomb-65500x65500.jpg": jpeg header claims a 12274 MB image from a 735 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/bomb-65500x65500.jpg
