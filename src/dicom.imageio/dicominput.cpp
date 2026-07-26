@@ -183,7 +183,12 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         ++m_subimage;
     }
 
-    m_dipixel             = m_img->getInterData();
+    m_dipixel = m_img->getInterData();
+    if (!m_dipixel) {
+        errorfmt("Unable to read pixel data from DICOM file {}", m_filename);
+        m_img.reset();
+        return false;
+    }
     m_internal_data       = (const char*)m_dipixel->getData();
     EP_Representation rep = m_dipixel->getRepresentation();
     TypeDesc format;
@@ -197,6 +202,11 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
     default: break;
     }
     m_internal_data = (const char*)m_img->getOutputData(0, m_subimage, 0);
+    if (!m_internal_data) {
+        errorfmt("Unable to decode pixel data from DICOM file {}", m_filename);
+        m_img.reset();
+        return false;
+    }
 
     EP_Interpretation photo = m_img->getPhotometricInterpretation();
     struct PhotoTable {
