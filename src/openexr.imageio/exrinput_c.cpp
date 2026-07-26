@@ -1121,6 +1121,13 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 }))
         return false;
 
+    // check_open's size cap still admits a dataWindow that is absurd for a tiny
+    // compressed file, so also bound the declared-vs-compressed ratio.
+    imagesize_t filesize = m_userdata.m_io ? m_userdata.m_io->size()
+                                           : Filesystem::file_size(m_filename);
+    if (!check_compression_ratio(m_spec, filesize))
+        return false;
+
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
         return true;
     }

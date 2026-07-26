@@ -241,6 +241,13 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
         }
     }
 
+    // Validate the declared canvas extents and the implied uncompressed size
+    // BEFORE allocating the decoded-image buffer, so a malformed header cannot
+    // drive a large allocation.
+    if (!check_open(m_spec, { 0, (1 << 14) - 1, 0, (1 << 14) - 1, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, m_image_size))
+        return false;
+
     // Make space for the decoded image
     m_decoded_image.reset(new uint8_t[m_spec.image_bytes()]);
 
@@ -249,9 +256,6 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
         if (m_spec.alpha_channel != -1)
             m_spec.attribute("oiio:UnassociatedAlpha", 1);
     }
-
-    if (!check_open(m_spec, { 0, (1 << 14) - 1, 0, (1 << 14) - 1, 0, 1, 0, 4 }))
-        return false;
 
     seek_subimage(0, 0);
     spec = m_spec;

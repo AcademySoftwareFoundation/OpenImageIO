@@ -212,7 +212,8 @@ SoftimageInput::open(const std::string& name, ImageSpec& spec)
     m_spec = ImageSpec(m_pic_header.width, m_pic_header.height, nchannels,
                        widest);
 
-    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
+    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, Filesystem::file_size(m_filename))) {
         close();
         return false;
     }

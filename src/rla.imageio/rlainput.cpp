@@ -331,6 +331,14 @@ RLAInput::seek_subimage(int subimage, int miplevel)
                               3 + 3 + 256 }))
         return false;
 
+    // The scanline offset table costs only 4 bytes per scanline, so a tiny
+    // file can declare an enormous image: 65535 x 100 x 262 channels of
+    // uint32 is 6.8 GB from a 1.2 KB file, which is under the absolute
+    // "limits:imagesize_MB" ceiling but wildly out of proportion to the
+    // bytes available to fill it.
+    if (!check_compression_ratio(m_spec, ioproxy()->size()))
+        return false;
+
     // set channel formats and stride
     int z_channel = -1;
     m_stride      = 0;
