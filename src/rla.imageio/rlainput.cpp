@@ -48,6 +48,7 @@ private:
     int m_subimage;                    ///< Current subimage index
     std::vector<uint32_t> m_sot;       ///< Scanline offsets table
     int m_stride;                      ///< Number of bytes a contig pixel takes
+    int64_t m_header_offset;           ///< File offset of the current header
 
     /// Reset everything to initial state
     ///
@@ -55,6 +56,9 @@ private:
     {
         ioproxy_clear();
         m_buf.clear();
+        m_sot.clear();
+        m_subimage      = -1;
+        m_header_offset = -1;
     }
 
     /// Helper: read buf[0..nitems-1], swap endianness if necessary
@@ -165,8 +169,8 @@ RLAInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     ioseek(0);
 
-    // set a bogus subimage index so that seek_subimage actually seeks
-    m_subimage = 1;
+    // no current subimage yet, so seek_subimage actually seeks
+    m_subimage = -1;
 
     bool ok = seek_subimage(0, 0);
     newspec = spec();
@@ -181,6 +185,7 @@ RLAInput::read_header()
     // Read the image header, which should have the same exact layout as
     // the m_rla structure (except for endianness issues).
     static_assert(sizeof(m_rla) == 740, "Bad RLA struct size");
+    const int64_t header_offset = iotell();
     if (!read(&m_rla)) {
         errorfmt("RLA could not read the image header");
         return false;
@@ -221,6 +226,7 @@ RLAInput::read_header()
         errorfmt("RLA could not read the scanline offset table");
         return false;
     }
+    m_header_offset = header_offset;
     return true;
 }
 
@@ -232,34 +238,49 @@ RLAInput::seek_subimage(int subimage, int miplevel)
     if (miplevel != 0 || subimage < 0)
         return false;
 
-    if (subimage == current_subimage())
+    if (m_subimage >= 0 && subimage == m_subimage)
         return true;  // already on the right level
 
     // RLA images allow multiple subimages; they are simply concatenated
     // together, with image N's header field NextOffset giving the
     // absolute offset of the start of image N+1.
-    int diff = subimage - current_subimage();
-    if (subimage - current_subimage() < 0) {
-        // If we are requesting an image earlier than the current one,
-        // reset to the first subimage.
+    //
+    // Everything below overwrites the header and the scanline offset table,
+    // so give up the current position first. If we fail partway, the reader
+    // is left with no current subimage rather than one whose header, offset
+    // table, and spec describe different images -- a later seek then starts
+    // over from the beginning instead of trusting the leftovers.
+    int cur    = m_subimage;
+    m_subimage = -1;
+    if (cur < 0 || subimage < cur) {
+        // No usable position, or we want an image earlier than the current
+        // one: reset to the first subimage.
         ioseek(0);
         if (!read_header())
             return false;  // read_header always calls error()
-        diff       = subimage;
-        m_subimage = 0;
+        cur = 0;
     }
     // forward scrolling -- skip subimages until we're at the right place
-    while (diff > 0 && m_subimage < subimage && m_rla.NextOffset != 0) {
+    while (cur < subimage && m_rla.NextOffset != 0) {
+        // Subimages are concatenated, so each NextOffset must point strictly
+        // forward. Without this a file whose NextOffset points at itself (or
+        // back at an earlier subimage) presents an endless supply of
+        // subimages, and any caller that enumerates them never terminates.
+        if (int64_t(m_rla.NextOffset) <= m_header_offset) {
+            errorfmt(
+                "Subimage offset {} does not advance past the current header at {}. Corrupted file?",
+                m_rla.NextOffset, m_header_offset);
+            return false;
+        }
         if (!ioseek(m_rla.NextOffset)) {
             errorfmt("Could not seek to header offset. Corrupted file?");
             return false;
         }
         if (!read_header())
             return false;  // read_header always calls error()
-        --diff;
-        ++m_subimage;
+        ++cur;
     }
-    if (diff > 0 && m_rla.NextOffset == 0) {  // no more subimages to read
+    if (cur < subimage) {  // no more subimages to read
         errorfmt("Unknown subimage");
         return false;
     }
@@ -698,7 +719,14 @@ RLAInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         // Invalid scanline
         return false;
     }
-    OIIO_DASSERT(m_sot.size() == size_t(m_spec.height));
+    // Not an assertion: the table is sized from the header's active window
+    // while the height is halved for field-rendered images, and a failed
+    // seek_subimage() can leave a table belonging to a different subimage,
+    // so check the index for real before using it.
+    if (size_t(y) >= m_sot.size()) {
+        errorfmt("Scanline {} has no offset table entry. Corrupted file?", y);
+        return false;
+    }
     if (!ioseek(m_sot[y]))
         return false;
 
