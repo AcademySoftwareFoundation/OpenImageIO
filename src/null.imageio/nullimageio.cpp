@@ -295,6 +295,14 @@ NullInput::open(const std::string& name, ImageSpec& newspec,
                       m_topspec.tile_depth);
         } else if (a.first == "CHANNELS") {
             m_topspec.nchannels = Strutil::from_string<int>(a.second);
+            // Bound this before default_channel_names() builds one ustring
+            // per channel; check_open() below applies the real
+            // "limits:channels" policy.
+            if (m_topspec.nchannels < 0 || m_topspec.nchannels > (1 << 20)) {
+                errorfmt("null image channel count {} is out of range",
+                         m_topspec.nchannels);
+                return false;
+            }
             m_topspec.default_channel_names();
         } else if (a.first == "MIP") {
             m_mip = Strutil::from_string<int>(a.second);
