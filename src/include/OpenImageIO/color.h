@@ -159,6 +159,21 @@ struct ColorConfigSerializeOptions {
 };
 
 
+/// Options controlling ColorConfig::archive().
+///
+/// @version 3.2
+struct ColorConfigArchiveOptions {
+    /// If non-empty, archive as if the config's working directory were this
+    /// directory (OCIO gathers the LUT files under the working directory
+    /// into the archive). Required when the config has no working directory
+    /// of its own (e.g. one built by ColorConfig::from_text without one).
+    std::string working_dir;
+    /// Archive the interoperability-repaired in-memory copy of the config
+    /// instead of the original. May trigger the lazy interop bootstrap.
+    bool interopified = false;
+};
+
+
 /// Immutable snapshot of the computed characterization information for one
 /// resolved color space, as returned by ColorConfig::get_color_space_info().
 /// Accessor views remain valid for this object's lifetime. Copies are cheap
@@ -813,6 +828,28 @@ public:
     /// @version 3.2
     OIIO_NODISCARD static ColorConfig from_text(string_view config_text,
                                                 string_view working_dir = "");
+
+    /// Convenience alias so callers may spell the options type
+    /// `ColorConfig::ArchiveOptions`.
+    using ArchiveOptions = ColorConfigArchiveOptions;
+
+    /// Archive the config and the LUT files it depends on into `filename`
+    /// as an OCIO config archive (a wrapper around OCIO's
+    /// Config::archive(); the conventional extension is `.ocioz`, readable
+    /// wherever OCIO configs are accepted, including the ColorConfig
+    /// filename constructor). It is the IN-MEMORY config object that is
+    /// archived, together with every candidate LUT file under the working
+    /// directory; `options.working_dir` overrides the working directory for
+    /// the one archive operation, and `options.interopified` archives the
+    /// interoperability-repaired in-memory copy instead. Return true on
+    /// success; on failure (no usable config, a config OCIO deems
+    /// unarchivable, or an I/O error) return false and report the error
+    /// through the usual has_error()/geterror() convention. This method
+    /// does not throw.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD_ERROR bool
+    archive(string_view filename, const ArchiveOptions& options = {}) const;
 
     /// Return a filename or other identifier for the config we're using.
     OIIO_NODISCARD std::string configname() const;

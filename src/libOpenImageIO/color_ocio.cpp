@@ -1359,6 +1359,66 @@ ColorConfig::serialize(const SerializeOptions& options) const
 
 
 
+bool
+ColorConfig::archive(string_view filename, const ArchiveOptions& options) const
+{
+    OCIO::ConstConfigRcPtr config;
+    if (getImpl()->config_ && !disable_ocio)
+        config = options.interopified ? getImpl()->interopifiedConfig()
+                                      : getImpl()->config_;
+    if (!config) {
+        getImpl()->error(
+            "ColorConfig::archive: no {}config is available to archive",
+            options.interopified ? "interoperability-repaired " : "");
+        return false;
+    }
+    try {
+        if (options.working_dir.size()) {
+            // Archive as if the working directory were the override, without
+            // touching the frozen member config.
+            OCIO::ConfigRcPtr copy = copy_config(config);
+            copy->setWorkingDir(options.working_dir.c_str());
+            config = copy;
+        }
+        if (!config->isArchivable()) {
+            getImpl()->error(
+                "ColorConfig::archive: config \"{}\" is not archivable "
+                "(it needs a working directory, and every search path and "
+                "FileTransform source must stay within it){}",
+                configname(),
+                options.working_dir.empty()
+                    ? " -- consider passing ArchiveOptions::working_dir"
+                    : "");
+            return false;
+        }
+        OIIO::ofstream out;
+        Filesystem::open(out, filename,
+                         std::ios_base::out | std::ios_base::binary
+                             | std::ios_base::trunc);
+        if (!out) {
+            getImpl()->error("ColorConfig::archive: could not open \"{}\"",
+                             filename);
+            return false;
+        }
+        config->archive(out);
+        out.close();
+        if (!out) {
+            getImpl()->error("ColorConfig::archive: error writing \"{}\"",
+                             filename);
+            return false;
+        }
+        return true;
+    } catch (OCIO::Exception& e) {
+        getImpl()->error("ColorConfig::archive: {}", e.what());
+    } catch (...) {
+        getImpl()->error(
+            "ColorConfig::archive: unknown error in OpenColorIO archive");
+    }
+    return false;
+}
+
+
+
 string_view
 ColorConfig::resolve(string_view name) const
 {

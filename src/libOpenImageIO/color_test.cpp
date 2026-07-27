@@ -4455,6 +4455,53 @@ test_config_from_text()
 
 
 
+static void
+test_config_archive()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    std::string wd = Filesystem::temp_directory_path()
+                     + "/oiio_color_test_archive_wd";
+    OIIO_CHECK_ASSERT(Filesystem::create_directory(wd));
+    std::string arc = Filesystem::temp_directory_path()
+                      + "/oiio_color_test_archive.ocioz";
+
+    // A config with no working directory is not archivable (OCIO must know
+    // where to gather candidate LUT files from)...
+    ColorConfig cc = ColorConfig::from_text(utility_config_yaml);
+    OIIO_CHECK_FALSE(cc.archive(arc));
+    OIIO_CHECK_ASSERT(cc.has_error());
+    OIIO_CHECK_ASSERT(Strutil::contains(cc.geterror(), "not archivable"));
+
+    // ...supplying one per-call makes the archive succeed.
+    ColorConfig::ArchiveOptions aopts;
+    aopts.working_dir = wd;
+    OIIO_CHECK_ASSERT(cc.archive(arc, aopts));
+    OIIO_CHECK_FALSE(cc.has_error());
+    OIIO_CHECK_ASSERT(Filesystem::exists(arc));
+    // .ocioz archives are zip containers ("PK" magic).
+    char magic[2] = { 0, 0 };
+    OIIO_CHECK_EQUAL(Filesystem::read_bytes(arc, magic, 2), size_t(2));
+    OIIO_CHECK_ASSERT(magic[0] == 'P' && magic[1] == 'K');
+
+    // The archive is itself a loadable config, equivalent to the original.
+    ColorConfig back(arc);
+    OIIO_CHECK_ASSERT(!back.has_error());
+    OIIO_CHECK_EQUAL(back.getColorSpaceNames(), cc.getColorSpaceNames());
+
+    // A from_text config constructed WITH a working directory is archivable
+    // with default options.
+    ColorConfig cc2 = ColorConfig::from_text(utility_config_yaml, wd);
+    OIIO_CHECK_ASSERT(cc2.archive(arc));
+    OIIO_CHECK_FALSE(cc2.has_error());
+
+    Filesystem::remove(arc);
+    Filesystem::remove(wd);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -4506,6 +4553,7 @@ main(int argc, char* argv[])
     test_copy_config_default_view_transform();
     test_config_serialize();
     test_config_from_text();
+    test_config_archive();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.

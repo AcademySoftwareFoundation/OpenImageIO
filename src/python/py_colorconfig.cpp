@@ -450,6 +450,20 @@ declare_colorconfig(py::module& m)
                 return text;
             },
             py::kw_only(), "interopified"_a = false)
+        .def(
+            "archive",
+            [](const ColorConfig& self, const std::string& filename,
+               const std::string& working_dir, bool interopified) {
+                ColorConfig::ArchiveOptions opts;
+                opts.working_dir  = working_dir;
+                opts.interopified = interopified;
+                // Pure C++ work (config copy + zip I/O): release the GIL
+                // for its duration.
+                py::gil_scoped_release gil;
+                return self.archive(filename, opts);
+            },
+            "filename"_a, py::kw_only(), "working_dir"_a = "",
+            "interopified"_a = false)
         .def_static(
             "from_text",
             [](const std::string& config_text, const std::string& working_dir) {

@@ -4222,6 +4222,24 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
+.. py:method:: archive (filename, working_dir="", interopified=False)
+
+    Archive the config and the LUT files it depends on into ``filename`` as
+    an OCIO config archive (a wrapper around OCIO's ``Config::archive()``;
+    the conventional extension is ``.ocioz``, readable wherever OCIO
+    configs are accepted, including the :py:class:`ColorConfig`
+    constructor). It is the *in-memory* config object that is archived,
+    together with every candidate LUT file under the working directory.
+    ``working_dir`` overrides the config's working directory for the one
+    archive operation (required when the config has none of its own, e.g.
+    one built by :py:meth:`from_text` without one); ``interopified=True``
+    archives the interoperability-repaired in-memory copy instead. Return
+    True on success; on failure return False and leave the error on the
+    config (``geterror()``).
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:class:: ColorSpaceInfo
 
     An immutable snapshot of the characterization information for one
