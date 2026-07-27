@@ -2123,6 +2123,60 @@ colorspaces:
         }
         Filesystem::remove(reject_path);
 
+        // ---- Reserved `local` namespace: a declared interop_id attribute
+        // whose leftmost segment is `local` is never matched by the
+        // attribute tier -- otherwise a grammar-legal "local:x" declaration
+        // would poach OTHER configs' private "<config>:local:x" IDs via the
+        // stripped-attribute match. The genuine config-local tier and
+        // ordinary declared attributes are unaffected.
+        static const char* localns_yaml = R"(ocio_profile_version: 2.1
+name: localns
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: poacher
+    interop_id: "local:x"
+    from_scene_reference: !<ExponentTransform> {value: [1.9, 1.9, 1.9, 1]}
+
+  - !<ColorSpace>
+    name: inner_target
+    aliases: [xbase]
+    from_scene_reference: !<ExponentTransform> {value: [2.0, 2.0, 2.0, 1]}
+
+  - !<ColorSpace>
+    name: normal_attr
+    interop_id: "app9:q"
+    from_scene_reference: !<ExponentTransform> {value: [2.1, 2.1, 2.1, 1]}
+)";
+        std::string localns_path = Filesystem::temp_directory_path()
+                                   + "/oiio_color_test_resolve_localns.ocio";
+        OIIO_CHECK_ASSERT(
+            Filesystem::write_text_file(localns_path, localns_yaml));
+        {
+            ColorConfig cc(localns_path);
+            OIIO_CHECK_ASSERT(!cc.has_error());
+            // Another config's config-local ID strips to "local:x", which
+            // equals the declared attribute -- but the reserved-namespace
+            // exclusion makes it a total miss, not a poach.
+            OIIO_CHECK_EQUAL(cc.resolve("othercfg:local:x"),
+                             "othercfg:local:x");
+            // The bare declared form itself is unreachable too.
+            OIIO_CHECK_EQUAL(cc.resolve("local:x"), "local:x");
+            // The genuine config-local tier still resolves for THIS config.
+            OIIO_CHECK_EQUAL(cc.resolve("localns:local:xbase"),
+                             "inner_target");
+            // Ordinary declared attributes are unaffected (attribute-side
+            // strip still matches).
+            OIIO_CHECK_EQUAL(cc.resolve("q"), "normal_attr");
+        }
+        Filesystem::remove(localns_path);
+
         // ---- Utility-token ranking: rank 0 (self-identity via interop_id)
         // short-circuits for both "bypass" and "data". --------------------
         static const char* rank_full_yaml = R"(ocio_profile_version: 2.1

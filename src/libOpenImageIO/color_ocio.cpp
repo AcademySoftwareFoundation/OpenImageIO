@@ -1310,7 +1310,8 @@ resolve_local_namespace(const OCIO::ConstConfigRcPtr& config, string_view name)
 // "oiio:x" does not false-match a query for "ocio:x" just because both strip to
 // "x"). Utility tokens (data/unknown/bypass) are excluded from this lookup
 // entirely: declaring interop_id: bypass must not make a space reachable by
-// querying "bypass".
+// querying "bypass". Attributes in the reserved `local` namespace are
+// likewise excluded (see below).
 string_view
 resolve_explicit_interop_id(const OCIO::ConstConfigRcPtr& config,
                             string_view name)
@@ -1348,6 +1349,14 @@ resolve_explicit_interop_id(const OCIO::ConstConfigRcPtr& config,
             continue;
         std::string attr(iid);
         if (OIIO::pvt::is_utility_interop_id(attr))
+            continue;
+        // The `local` namespace is reserved end-to-end for the config-local
+        // "<config>:local:<base>" form. A declared attribute whose leftmost
+        // segment is `local` must never satisfy this tier: honoring a
+        // grammar-legal "local:x" here would let one config poach another
+        // config's private local IDs through the stripped-attribute match
+        // below ("othercfg:local:x" strips to "local:x").
+        if (attr == "local" || Strutil::starts_with(attr, "local:"))
             continue;
         if (attr == id || attr == id_stripped
             || OIIO::pvt::strip_leftmost_namespace(attr) == id)
