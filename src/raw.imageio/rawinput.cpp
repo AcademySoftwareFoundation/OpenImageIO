@@ -238,12 +238,17 @@ raw_input_imageio_create()
     return new RawInput;
 }
 
+// Note: intentionally NOT including "hdr" here. Although some Hasselblad raw
+// files use the .hdr extension, that collides with the far more common
+// Radiance HDR format handled by the hdr plugin. Let the Radiance hdr reader
+// get first crack at it. Genuine Hasselblad .hdr files are still detected via
+// the try_all_readers fallback (on by default).
 OIIO_EXPORT const char* raw_input_extensions[]
-    = { "bay", "bmq", "cr2", "cr3", "crw", "cs1", "dc2",  "dcr", "dng", "erf",
-        "fff", "hdr", "k25", "kdc", "mdc", "mos", "mrw",  "nef", "orf", "pef",
-        "pxn", "raf", "raw", "rdc", "sr2", "srf", "x3f",  "arw", "3fr", "cine",
-        "ia",  "kc2", "mef", "nrw", "qtk", "rw2", "sti",  "rwl", "srw", "drf",
-        "dsc", "ptx", "cap", "iiq", "rwz", "cr3", nullptr };
+    = { "bay", "bmq", "cr2", "cr3", "crw", "cs1",  "dc2", "dcr", "dng",  "erf",
+        "fff", "k25", "kdc", "mdc", "mos", "mrw",  "nef", "orf", "pef",  "pxn",
+        "raf", "raw", "rdc", "sr2", "srf", "x3f",  "arw", "3fr", "cine", "ia",
+        "kc2", "mef", "nrw", "qtk", "rw2", "sti",  "rwl", "srw", "drf",  "dsc",
+        "ptx", "cap", "iiq", "rwz", "cr3", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
