@@ -201,6 +201,14 @@ struct ColorConfigArchiveOptions {
 struct ColorConfigDebugInfoOptions {};
 
 
+/// Options controlling ColorConfig::clear_caches(). There are no options
+/// yet; the struct exists so future selectors can be added without
+/// changing the method signature.
+///
+/// @version 3.2
+struct ColorConfigClearCachesOptions {};
+
+
 /// Immutable snapshot of the computed characterization information for one
 /// resolved color space, as returned by ColorConfig::get_color_space_info().
 /// Accessor views remain valid for this object's lifetime. Copies are cheap
@@ -918,6 +926,23 @@ public:
     /// @version 3.2
     OIIO_NODISCARD std::string
     getDebugInfo(const DebugInfoOptions& options = {}) const;
+
+    /// Convenience alias so callers may spell the options type
+    /// `ColorConfig::ClearCachesOptions`.
+    using ClearCachesOptions = ColorConfigClearCachesOptions;
+
+    /// Drop cached derived state for this config: its per-instance color
+    /// processor cache, and the entries scoped to this config's cache
+    /// identity in the process-global fingerprint and characterization
+    /// memo caches. Clearing is semantics-free -- every cache repopulates
+    /// on demand -- so the only observable effects are memory and
+    /// recompute time (getDebugInfo() reports the entry counts). Shared
+    /// process data not scoped to this config (e.g. the built-in interop
+    /// registry) is unaffected. `options` is reserved for future
+    /// selectors.
+    ///
+    /// @version 3.2
+    void clear_caches(const ClearCachesOptions& options = {}) const;
 
     /// Return a filename or other identifier for the config we're using.
     OIIO_NODISCARD std::string configname() const;

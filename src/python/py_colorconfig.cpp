@@ -487,6 +487,12 @@ declare_colorconfig(py::module& m)
                  py::gil_scoped_release gil;
                  return self.getDebugInfo();
              })
+        .def("clear_caches",
+             [](const ColorConfig& self) {
+                 // Pure C++ cache maintenance: release the GIL.
+                 py::gil_scoped_release gil;
+                 self.clear_caches();
+             })
         .def_static(
             "from_text",
             [](const std::string& config_text, const std::string& working_dir) {

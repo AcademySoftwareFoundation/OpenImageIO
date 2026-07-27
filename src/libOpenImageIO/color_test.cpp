@@ -4590,6 +4590,55 @@ test_config_debug_info()
 
 
 
+static void
+test_config_clear_caches()
+{
+    using OIIO::pvt::characterization_cache_size;
+    using OIIO::pvt::color_space_fingerprint_cache_size;
+    using OIIO::pvt::color_space_fingerprint_cached;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    // A structurally UNIQUE config (an extra space no other test's config
+    // declares), so the process-global entries this test creates -- and
+    // clear_caches() then erases -- are provably its own.
+    std::string yaml = std::string(utility_config_yaml)
+                       + "  - !<ColorSpace>\n    name: clear_caches_space\n";
+    ColorConfig cc = ColorConfig::from_text(yaml);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+
+    const size_t fp_base   = color_space_fingerprint_cache_size();
+    const size_t char_base = characterization_cache_size();
+
+    // Warm this config's per-instance processor cache and its entries in
+    // the process-global fingerprint and characterization caches.
+    auto proc = cc.createColorProcessor("gamma22", "ACES2065-1");
+    OIIO_CHECK_ASSERT(proc);
+    auto fp = color_space_fingerprint_cached(cc, "gamma22");
+    OIIO_CHECK_ASSERT(fp.computed());
+    OIIO_CHECK_ASSERT(color_space_fingerprint_cache_size() > fp_base);
+    // (The derive path -- the cheap get_color_space_info tier reads the
+    // shared cache but only derivation publishes into it.)
+    (void)cc.derive_color_space_info("gamma22");
+    OIIO_CHECK_ASSERT(characterization_cache_size() > char_base);
+
+    cc.clear_caches();
+    OIIO_CHECK_FALSE(cc.has_error());
+    // Only THIS config's process-global entries were dropped: the totals
+    // return to the pre-warm baseline, other configs' entries survive.
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), fp_base);
+    OIIO_CHECK_EQUAL(characterization_cache_size(), char_base);
+    // Clearing is semantics-free: everything repopulates on demand.
+    proc = cc.createColorProcessor("gamma22", "ACES2065-1");
+    OIIO_CHECK_ASSERT(proc);
+    auto fp2 = color_space_fingerprint_cached(cc, "gamma22");
+    OIIO_CHECK_ASSERT(fp2.computed());
+    OIIO_CHECK_ASSERT(fp2.values == fp.values);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -4644,6 +4693,7 @@ main(int argc, char* argv[])
     test_config_archive();
     test_config_evolve();
     test_config_debug_info();
+    test_config_clear_caches();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.

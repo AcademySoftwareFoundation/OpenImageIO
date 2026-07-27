@@ -1516,6 +1516,25 @@ ColorConfig::getDebugInfo(const DebugInfoOptions& /*options*/) const
 
 
 
+void
+ColorConfig::clear_caches(const ClearCachesOptions& /*options*/) const
+{
+    // This instance's processor cache and per-query hints.
+    getImpl()->clearInstanceCaches();
+    // The process-global memo entries scoped to this config's structural
+    // identity. Shared process data not scoped to it (the built-in interop
+    // registry and its fingerprint index) is untouched.
+    if (getImpl()->config_ && !disable_ocio) {
+        const std::string cfgId = get_config_cache_id(getImpl()->config_);
+        if (cfgId.size()) {
+            fingerprint_cache_erase_config(cfgId);
+            characterization_cache_erase_config(cfgId);
+        }
+    }
+}
+
+
+
 string_view
 ColorConfig::resolve(string_view name) const
 {

@@ -506,6 +506,29 @@ fingerprint_cache_scope(const OCIO::ConstConfigRcPtr& config, std::string& cfgId
 }  // namespace
 
 
+void
+fingerprint_cache_erase_config(string_view cfgId)
+{
+    if (cfgId.empty())
+        return;
+    // Both key forms carry the structural config id as an exact segment:
+    // "<cfgId>|invariant|<name>" or "<ctxId>|<cfgId>|<name>" (see
+    // fingerprint_cache_key). Collect matching keys under the iteration's
+    // per-bin locks, then erase outside the iterator (erase re-takes the
+    // bin lock). Racing inserts may repopulate concurrently -- clearing is
+    // semantics-free, so that is harmless.
+    auto& cache = fingerprint_cache();
+    std::vector<std::string> doomed;
+    for (auto it = cache.begin(); it != cache.end(); ++it) {
+        auto segs = Strutil::splitsv(it->first, "|");
+        if (segs.size() >= 2 && (segs[0] == cfgId || segs[1] == cfgId))
+            doomed.push_back(it->first);
+    }
+    for (const auto& key : doomed)
+        cache.erase(key);
+}
+
+
 std::optional<OIIO::pvt::ColorSpaceFingerprint>
 ColorConfig::Impl::fingerprintCached(string_view name)
 {

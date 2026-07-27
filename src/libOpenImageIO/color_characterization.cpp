@@ -422,6 +422,26 @@ characterization_cache_reset_impl()
 
 
 
+void
+characterization_cache_erase_config(string_view cfgId)
+{
+    if (cfgId.empty())
+        return;
+    // Both key forms carry the structural config id as an exact segment:
+    // "<cfgId>|invariant|<name>" or "<ctxId>|<cfgId>|<name>" (see
+    // char_cache_key).
+    std::lock_guard<std::mutex> lock(char_cache_mutex());
+    auto& cache = char_cache();
+    for (auto it = cache.begin(); it != cache.end();) {
+        auto segs  = Strutil::splitsv(it->first, "|");
+        bool match = segs.size() >= 2
+                     && (segs[0] == cfgId || segs[1] == cfgId);
+        it = match ? cache.erase(it) : std::next(it);
+    }
+}
+
+
+
 // ---------------------------------------------------------------------------
 // The public opaque record: a shared immutable CharacterizationRecord.
 // Everything out of line; no inline function dereferences the PIMPL.

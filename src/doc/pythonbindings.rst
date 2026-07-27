@@ -4279,6 +4279,20 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
+.. py:method:: clear_caches ()
+
+    Drop cached derived state for this config: its per-instance color
+    processor cache, and the entries scoped to this config's cache
+    identity in the process-global fingerprint and characterization memo
+    caches. Clearing is semantics-free -- every cache repopulates on
+    demand -- so the only observable effects are memory and recompute time
+    (:py:meth:`getDebugInfo` reports the entry counts). Shared process
+    data not scoped to this config (e.g. the built-in interop registry) is
+    unaffected.
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:class:: ColorSpaceInfo
 
     An immutable snapshot of the characterization information for one

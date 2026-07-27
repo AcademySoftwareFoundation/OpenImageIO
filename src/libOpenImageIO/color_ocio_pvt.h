@@ -485,6 +485,23 @@ public:
     int processorsRequested() const { return colorprocs_requested; }
     int processorsCreated() const { return colorprocs_created; }
 
+    // Drop this instance's cached derived processors and per-query hints
+    // (see ColorConfig::clear_caches). The lazy classification, probe, and
+    // interop state is identity-derived and deliberately untouched: its
+    // publication protocol (acquire/release flags) assumes monotonic
+    // computation, and re-deriving it could never produce different
+    // results for the same frozen config.
+    void clearInstanceCaches()
+    {
+        {
+            spin_rw_write_lock lock(m_mutex);
+            colorprocmap.clear();
+            m_lenient_fallbacks.clear();
+        }
+        std::lock_guard<std::mutex> lock(m_learned_complex_mutex);
+        m_learned_complex.clear();
+    }
+
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
     const char* getColorSpaceNameByIndex(int index) const
@@ -1015,6 +1032,17 @@ build_interop_identities_config();
 // registry config. Defined in color_registry.cpp.
 std::string
 interop_registry_data_version();
+
+// Erase every process-global fingerprint-cache entry scoped to structural
+// config id `cfgId` (see ColorConfig::clear_caches). Defined in
+// color_fingerprint.cpp.
+void
+fingerprint_cache_erase_config(string_view cfgId);
+
+// Erase every process-global characterization-cache entry scoped to
+// structural config id `cfgId`. Defined in color_characterization.cpp.
+void
+characterization_cache_erase_config(string_view cfgId);
 
 
 // Each entry pairs a registry color space name (which, for the identities OIIO
