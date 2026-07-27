@@ -640,7 +640,7 @@ jobs:
             # Use the oldest supported versions of required dependencies, and
             # disable most optional dependencies and features (no SSE or
             # OpenCV, don't embed plugins).
-            nametag: linux-disabled-ubuntu
+            nametag: linux-hobbled-ubuntu
             runner: ubuntu-22.04
             cc_compiler: gcc-9
             cxx_compiler: g++-9
