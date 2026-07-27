@@ -126,6 +126,24 @@ build_interop_identities_config()
 }
 
 
+
+std::string
+interop_registry_data_version()
+{
+    // Line-scan the embedded registry YAML for its config-level `name:`
+    // header (the first `name:` line in the file), which carries the
+    // registry DATA version -- no config build, independent of the linked
+    // OCIO version (whose >= 2.5 composite reports a different name).
+    string_view yaml(kInteropIdentitiesConfig);
+    for (string_view line : Strutil::splitsv(yaml, "\n")) {
+        line = Strutil::strip(line);
+        if (Strutil::parse_prefix(line, "name:"))
+            return std::string(Strutil::strip(line));
+    }
+    return "(unknown)";
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // Registry fingerprint index: the one genuinely new primitive the read-side

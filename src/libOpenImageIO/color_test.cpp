@@ -4562,6 +4562,34 @@ test_config_evolve()
 
 
 
+static void
+test_config_debug_info()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    ColorConfig cc     = ColorConfig::from_text(utility_config_yaml);
+    std::string report = cc.getDebugInfo();
+    OIIO_CHECK_FALSE(cc.has_error());
+    // Identity: versions, config name, registry data version. (The exact
+    // formatting is documented as unstable; assert only stable tokens.)
+    OIIO_CHECK_ASSERT(Strutil::contains(report, "OpenImageIO"));
+    OIIO_CHECK_ASSERT(Strutil::contains(report, "OpenColorIO"));
+    OIIO_CHECK_ASSERT(Strutil::contains(report, cc.configname()));
+    OIIO_CHECK_ASSERT(Strutil::contains(report, "interop-identities-config"));
+    // Reporting is lazy: a fresh config's interchange discovery is pending,
+    // and getDebugInfo itself must not have triggered it.
+    OIIO_CHECK_ASSERT(Strutil::contains(report, "pending"));
+    OIIO_CHECK_ASSERT(Strutil::contains(cc.getDebugInfo(), "pending"));
+    // Once a query runs the discovery, the result is reported.
+    ColorConfig::SerializeOptions iopts;
+    iopts.interopified = true;
+    (void)cc.serialize(iopts);
+    OIIO_CHECK_ASSERT(Strutil::contains(cc.getDebugInfo(), "ACES2065-1"));
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -4615,6 +4643,7 @@ main(int argc, char* argv[])
     test_config_from_text();
     test_config_archive();
     test_config_evolve();
+    test_config_debug_info();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.

@@ -4265,6 +4265,20 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
+.. py:method:: getDebugInfo ()
+
+    Return a human-readable multi-line report of the config's identity and
+    cache state, for diagnostics and bug reports: the OpenImageIO and
+    OpenColorIO versions, the config's name and cache identities, the
+    interoperability (interchange discovery) state, the built-in interop
+    registry data version, and cache entry counts. It reports existing
+    state only and never triggers lazy work (a discovery that has not yet
+    run reports as pending). The exact text is informational and may
+    change between versions -- display it, don't parse it.
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:class:: ColorSpaceInfo
 
     An immutable snapshot of the characterization information for one

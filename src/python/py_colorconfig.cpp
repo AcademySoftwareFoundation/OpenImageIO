@@ -481,6 +481,12 @@ declare_colorconfig(py::module& m)
             },
             "filename"_a, py::kw_only(), "working_dir"_a = "",
             "interopified"_a = false)
+        .def("getDebugInfo",
+             [](const ColorConfig& self) {
+                 // Pure C++ formatting of existing state: release the GIL.
+                 py::gil_scoped_release gil;
+                 return self.getDebugInfo();
+             })
         .def_static(
             "from_text",
             [](const std::string& config_text, const std::string& working_dir) {

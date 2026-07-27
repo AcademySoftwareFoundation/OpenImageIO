@@ -193,6 +193,14 @@ struct ColorConfigArchiveOptions {
 };
 
 
+/// Options controlling ColorConfig::getDebugInfo(). There are no options
+/// yet; the struct exists so future report selectors can be added without
+/// changing the method signature.
+///
+/// @version 3.2
+struct ColorConfigDebugInfoOptions {};
+
+
 /// Immutable snapshot of the computed characterization information for one
 /// resolved color space, as returned by ColorConfig::get_color_space_info().
 /// Accessor views remain valid for this object's lifetime. Copies are cheap
@@ -891,6 +899,25 @@ public:
     /// @version 3.2
     OIIO_NODISCARD_ERROR bool
     archive(string_view filename, const ArchiveOptions& options = {}) const;
+
+    /// Convenience alias so callers may spell the options type
+    /// `ColorConfig::DebugInfoOptions`.
+    using DebugInfoOptions = ColorConfigDebugInfoOptions;
+
+    /// Return a human-readable multi-line report of this config's identity
+    /// and cache state, for diagnostics and bug reports: the OpenImageIO
+    /// and OpenColorIO versions, the config's name and cache identities,
+    /// the interoperability (interchange discovery) state, the built-in
+    /// interop registry data version, and cache entry counts. This is
+    /// formatting of existing internal state only: it never triggers lazy
+    /// work (a discovery that has not yet run reports as pending), and the
+    /// exact text is informational and may change between versions --
+    /// display it, don't parse it. `options` is reserved for future report
+    /// selectors.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD std::string
+    getDebugInfo(const DebugInfoOptions& options = {}) const;
 
     /// Return a filename or other identifier for the config we're using.
     OIIO_NODISCARD std::string configname() const;

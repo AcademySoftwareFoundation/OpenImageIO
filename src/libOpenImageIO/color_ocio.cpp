@@ -1468,6 +1468,54 @@ ColorConfig::evolve(const EvolveOptions& options) const
 
 
 
+std::string
+ColorConfig::getDebugInfo(const DebugInfoOptions& /*options*/) const
+{
+    using Strutil::fmt::format;
+    const Impl* impl = getImpl();
+    std::string out;
+    out += format("OpenImageIO {} / OpenColorIO {}\n", OIIO_VERSION_STRING,
+                  OCIO::GetVersion());
+    out += format("config: \"{}\"\n", configname());
+    std::string structural, withcontext;
+    if (impl->config_ && !disable_ocio) {
+        structural = get_config_cache_id(impl->config_);
+        try {
+            if (const char* id = impl->config_->getCacheID())
+                withcontext = id;
+        } catch (...) {
+        }
+    }
+    out += format("  structural cache id: {}\n",
+                  structural.size() ? structural : "(none)");
+    out += format("  cache id (context folded in): {}\n",
+                  withcontext.size() ? withcontext : "(none)");
+    // Interchange discovery: report the existing state, never trigger the
+    // lazy bootstrap.
+    if (!impl->interopComputed())
+        out += "interchange discovery: pending (not yet queried)\n";
+    else if (impl->interopIsInteroperable())
+        out += format(
+            "interchange discovery: interoperable (scene interchange \"{}\")\n",
+            impl->interopInterchangeName());
+    else
+        out += "interchange discovery: no scene interchange identified\n";
+    out += format("interop registry data: {}\n",
+                  interop_registry_data_version());
+    out += "caches:\n";
+    out += format(
+        "  color processors (this config): {} entries ({} requested, {} created)\n",
+        impl->processorCacheSize(), impl->processorsRequested(),
+        impl->processorsCreated());
+    out += format("  fingerprints (process-global): {} entries\n",
+                  OIIO::pvt::color_space_fingerprint_cache_size());
+    out += format("  characterizations (process-global): {} entries\n",
+                  OIIO::pvt::characterization_cache_size());
+    return out;
+}
+
+
+
 string_view
 ColorConfig::resolve(string_view name) const
 {

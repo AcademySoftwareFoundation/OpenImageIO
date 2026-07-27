@@ -476,6 +476,15 @@ public:
                                                   : found->second;
     }
 
+    // Diagnostic counters for ColorConfig::getDebugInfo().
+    size_t processorCacheSize() const
+    {
+        spin_rw_read_lock lock(m_mutex);
+        return colorprocmap.size();
+    }
+    int processorsRequested() const { return colorprocs_requested; }
+    int processorsCreated() const { return colorprocs_created; }
+
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
     const char* getColorSpaceNameByIndex(int index) const
@@ -999,6 +1008,13 @@ fingerprints_match(const OIIO::pvt::ColorSpaceFingerprint& left,
 // Defined in color_registry.cpp.
 OCIO::ConstConfigRcPtr
 build_interop_identities_config();
+
+// The `name:` header of the EMBEDDED interop identities config YAML (e.g.
+// "interop-identities-config-v3.2.0.3") -- the registry DATA version,
+// independent of the linked OCIO version and read without building the
+// registry config. Defined in color_registry.cpp.
+std::string
+interop_registry_data_version();
 
 
 // Each entry pairs a registry color space name (which, for the identities OIIO
