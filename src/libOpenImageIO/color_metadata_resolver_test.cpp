@@ -152,6 +152,46 @@ test_utility_tokens(const ColorConfig& config)
 }
 
 
+// Utility-token matching lowercases config names/aliases through OIIO's
+// locale-independent Strutil::lower, so a mixed-case data space is still
+// recognized regardless of the process locale (the Turkish-I hazard: a
+// locale-dependent tolower maps 'I' to dotless-i and "BYPASS" stops
+// matching "bypass").
+static void
+test_mixed_case_utility_token()
+{
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_cmr_mixedcase.ocio";
+    {
+        std::ofstream f(path);
+        f << R"(ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: ByPass
+  scene_linear: lin
+colorspaces:
+  - !<ColorSpace>
+    name: ByPass
+    aliases: [Data]
+    isdata: true
+  - !<ColorSpace>
+    name: lin
+)";
+    }
+    ColorConfig cfg(path);
+    OIIO_CHECK_ASSERT(!cfg.has_error());
+    // The mixed-case NAME must rank 0 for the "bypass" token (lowered name
+    // == token), and the mixed-case ALIAS must rank 0 for the "data" token
+    // (lowered alias == token).
+    auto e = resolve_color_metadata(&cfg, "", ciid_facts("bypass"), { }, { });
+    OIIO_CHECK_EQUAL(e.resolved, "ByPass");
+    auto e2 = resolve_color_metadata(&cfg, "", ciid_facts("data"), { }, { });
+    OIIO_CHECK_EQUAL(e2.resolved, "ByPass");
+    Filesystem::remove(path);
+}
+
+
 // Vector 9: an explicit assignment that misses, under a non-lenient scope,
 // yields the literal "unknown" in exactly two steps and never consults the
 // metadata behind it.
@@ -853,6 +893,7 @@ main(int /*argc*/, char* /*argv*/[])
 
     test_unknown_ciid_falls_through_to_cicp(config);
     test_utility_tokens(config);
+    test_mixed_case_utility_token();
     test_strict_terminal(config);
     test_garbage_icc_falls_through(config);
     test_icc_synthetic(config);

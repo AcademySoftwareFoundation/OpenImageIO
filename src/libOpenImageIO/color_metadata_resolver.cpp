@@ -20,7 +20,6 @@
 // concerns.
 
 #include <algorithm>
-#include <cctype>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -40,14 +39,6 @@ OIIO_NAMESPACE_BEGIN
 namespace pvt {
 
 namespace {
-
-    std::string lower_copy(string_view s)
-    {
-        std::string out(s);
-        std::transform(out.begin(), out.end(), out.begin(),
-                       [](unsigned char c) { return char(std::tolower(c)); });
-        return out;
-    }
 
     // The scene/display twin of an interop id: swap a trailing _scene<->_display.
     // Empty if the id carries neither suffix.
@@ -162,13 +153,13 @@ namespace {
         auto identifies_as             = [&](const std::string& name,
                                              const std::string& label,
                                              const std::string& role_name) {
-            if (lower_copy(name) == label)
+            if (Strutil::lower(name) == label)
                 return true;
-            if (lower_copy(std::string(config->get_color_interop_id(name)))
+            if (Strutil::lower(std::string(config->get_color_interop_id(name)))
                 == label)
                 return true;
             for (const std::string& alias : config->getAliases(name))
-                if (lower_copy(alias) == label)
+                if (Strutil::lower(alias) == label)
                     return true;
             return !role_name.empty() && role_name == name;
         };
@@ -181,7 +172,7 @@ namespace {
                 continue;
             // OCIO's CreateRaw injects a framework-owned "raw" space; it is not
             // an authored utility target in an otherwise empty config.
-            if (names.size() == 1 && lower_copy(name) == "raw"
+            if (names.size() == 1 && Strutil::lower(name) == "raw"
                 && token_role.empty())
                 continue;
             int rank = 1;
