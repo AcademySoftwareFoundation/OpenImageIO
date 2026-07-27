@@ -688,6 +688,9 @@ ColorConfig::Impl::finish_init()
     OIIO_MAYBE_UNUSED Timer timer;
     bool ok = config_.get() != nullptr;
 
+    if (!original_config_)
+        original_config_ = config_;
+
     inventory();
     // NOTE: inventory already does classify_by_name
 
@@ -726,7 +729,8 @@ ColorConfig::Impl::finish_init()
 
 bool
 ColorConfig::Impl::init_from_config(OCIO::ConstConfigRcPtr config,
-                                    string_view name)
+                                    string_view name,
+                                    OCIO::ConstConfigRcPtr original)
 {
     auto oldlog = OCIO::GetLoggingLevel();
     OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
@@ -735,6 +739,7 @@ ColorConfig::Impl::init_from_config(OCIO::ConstConfigRcPtr config,
 
     configname(name);
     config_ = std::move(config);
+    original_config_ = original ? std::move(original) : config_;
     return finish_init();
 }
 
@@ -1415,6 +1420,50 @@ ColorConfig::archive(string_view filename, const ArchiveOptions& options) const
             "ColorConfig::archive: unknown error in OpenColorIO archive");
     }
     return false;
+}
+
+
+
+ColorConfig
+ColorConfig::evolve(const EvolveOptions& options) const
+{
+    ColorConfig cc { UninitTag() };
+
+    OCIO::ConstConfigRcPtr base;
+    if (getImpl()->config_ && !disable_ocio)
+        base = options.reset ? getImpl()->original_config_
+                             : getImpl()->config_;
+    // The evolved instance's configname marks its provenance (once -- an
+    // evolve chain doesn't stack suffixes).
+    std::string name = getImpl()->configname();
+    if (!Strutil::ends_with(name, "#evolved"))
+        name += "#evolved";
+
+    OCIO::ConstConfigRcPtr modified;
+    if (!base) {
+        cc.m_impl->error(
+            "ColorConfig::evolve: no config is available to evolve");
+    } else {
+        try {
+            OCIO::ConfigRcPtr copy = copy_config(base);
+            if (options.working_dir.size())
+                copy->setWorkingDir(options.working_dir.c_str());
+            for (const auto& kv : options.context)
+                copy->addEnvironmentVar(kv.first.c_str(), kv.second.c_str());
+            modified = copy;
+        } catch (OCIO::Exception& e) {
+            cc.m_impl->error("ColorConfig::evolve: {}", e.what());
+        } catch (...) {
+            cc.m_impl->error(
+                "ColorConfig::evolve: unknown error in OpenColorIO");
+        }
+    }
+    // Adopt the modified copy (or, on failure, initialize the usual
+    // failed-config fallback state with the error preserved). The evolved
+    // instance inherits this config's ORIGINAL as its reset root.
+    (void)cc.m_impl->init_from_config(std::move(modified), name,
+                                      getImpl()->original_config_);
+    return cc;
 }
 
 

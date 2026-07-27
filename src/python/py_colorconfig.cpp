@@ -451,6 +451,23 @@ declare_colorconfig(py::module& m)
             },
             py::kw_only(), "interopified"_a = false)
         .def(
+            "evolve",
+            [](const ColorConfig& self, const std::string& working_dir,
+               const std::map<std::string, std::string>& context_vars,
+               bool reset) {
+                ColorConfig::EvolveOptions opts;
+                opts.working_dir = working_dir;
+                opts.context     = context_vars;
+                opts.reset       = reset;
+                // Pure C++ work (full config construction): release the
+                // GIL for its duration.
+                py::gil_scoped_release gil;
+                return self.evolve(opts);
+            },
+            py::kw_only(), "working_dir"_a = "",
+            "context_vars"_a = std::map<std::string, std::string>(),
+            "reset"_a = false)
+        .def(
             "archive",
             [](const ColorConfig& self, const std::string& filename,
                const std::string& working_dir, bool interopified) {

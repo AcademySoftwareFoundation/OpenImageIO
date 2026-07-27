@@ -4222,6 +4222,31 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
+.. py:method:: evolve (working_dir="", context_vars={}, reset=False)
+
+    Return a *new* :py:class:`ColorConfig` that is a copy of this one with
+    the requested modifications applied -- the public face of the
+    copy-on-modify contract: the source config is frozen and never mutated,
+    and the evolved instance is an independent config with its own caches.
+    ``context_vars`` overrides context-variable defaults (which changes the
+    evolved config's cache identity, since the overrides serialize with
+    it); ``working_dir`` re-points runtime file resolution (used by OCIO to
+    resolve relative ``FileTransform`` sources and search paths, and
+    required for archiving); ``reset=True`` starts from the *original*
+    config this one was first constructed with before applying the other
+    arguments, so an evolve chain can always get back to its root. On
+    failure the returned config reports the problem through
+    ``geterror()``.
+
+    Example:
+
+    .. code-block:: python
+
+        shot_cfg = colorconfig.evolve(context_vars={"SHOT": "sh010"})
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:method:: archive (filename, working_dir="", interopified=False)
 
     Archive the config and the LUT files it depends on into ``filename`` as

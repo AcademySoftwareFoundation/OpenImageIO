@@ -4502,6 +4502,66 @@ test_config_archive()
 
 
 
+static void
+test_config_evolve()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    ColorConfig cc = ColorConfig::from_text(utility_config_yaml);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+    const std::string original_text = cc.serialize();
+
+    // A default evolve is a plain, independent copy (ColorConfig itself is
+    // non-copyable; evolve() IS the copy mechanism), marked by provenance.
+    ColorConfig copy = cc.evolve();
+    OIIO_CHECK_ASSERT(!copy.has_error());
+    OIIO_CHECK_EQUAL(copy.serialize(), original_text);
+    OIIO_CHECK_ASSERT(Strutil::ends_with(copy.configname(), "#evolved"));
+
+    // Context-variable overrides serialize with the evolved config (they
+    // change its structural cache identity); the source is untouched.
+    ColorConfig::EvolveOptions copts;
+    copts.context = { { "SHOT", "sh010" } };
+    ColorConfig ctxcfg = cc.evolve(copts);
+    OIIO_CHECK_ASSERT(!ctxcfg.has_error());
+    OIIO_CHECK_ASSERT(ctxcfg.serialize().find("SHOT") != std::string::npos);
+    OIIO_CHECK_ASSERT(original_text.find("SHOT") == std::string::npos);
+    OIIO_CHECK_EQUAL(cc.serialize(), original_text);
+
+    // An evolve chain doesn't stack provenance suffixes...
+    ColorConfig chain = ctxcfg.evolve();
+    OIIO_CHECK_ASSERT(Strutil::ends_with(chain.configname(), "#evolved"));
+    OIIO_CHECK_ASSERT(
+        !Strutil::ends_with(chain.configname(), "#evolved#evolved"));
+    // ...and reset returns to the ORIGINAL root, dropping prior overrides.
+    ColorConfig::EvolveOptions ropts;
+    ropts.reset = true;
+    ColorConfig back = ctxcfg.evolve(ropts);
+    OIIO_CHECK_ASSERT(!back.has_error());
+    OIIO_CHECK_EQUAL(back.serialize(), original_text);
+
+    // working_dir re-points runtime file resolution: it turns this
+    // unarchivable (no working directory) config archivable.
+    std::string wd = Filesystem::temp_directory_path()
+                     + "/oiio_color_test_evolve_wd";
+    OIIO_CHECK_ASSERT(Filesystem::create_directory(wd));
+    std::string arc = Filesystem::temp_directory_path()
+                      + "/oiio_color_test_evolve.ocioz";
+    ColorConfig::EvolveOptions wopts;
+    wopts.working_dir  = wd;
+    ColorConfig wdcfg = cc.evolve(wopts);
+    OIIO_CHECK_ASSERT(!wdcfg.has_error());
+    OIIO_CHECK_ASSERT(!cc.archive(arc));  // source still has no working dir
+    OIIO_CHECK_ASSERT(cc.has_error() && cc.geterror().size());
+    OIIO_CHECK_ASSERT(wdcfg.archive(arc));
+    OIIO_CHECK_FALSE(wdcfg.has_error());
+    Filesystem::remove(arc);
+    Filesystem::remove(wd);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -4554,6 +4614,7 @@ main(int argc, char* argv[])
     test_config_serialize();
     test_config_from_text();
     test_config_archive();
+    test_config_evolve();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.

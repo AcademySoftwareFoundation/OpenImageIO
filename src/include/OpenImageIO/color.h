@@ -159,6 +159,25 @@ struct ColorConfigSerializeOptions {
 };
 
 
+/// Options describing how ColorConfig::evolve() should modify the copy it
+/// returns. Default-constructed options request a plain copy.
+///
+/// @version 3.2
+struct ColorConfigEvolveOptions {
+    /// If non-empty, the evolved config's working directory (used by OCIO
+    /// to resolve relative FileTransform sources and search paths, and
+    /// required for archiving).
+    std::string working_dir;
+    /// Default-value overrides for the config's context variables
+    /// (OCIO environment vars), as key -> value.
+    std::map<std::string, std::string> context;
+    /// Start from the ORIGINAL config this one was first constructed with,
+    /// discarding the modifications of any previous evolve() steps, before
+    /// applying the fields above.
+    bool reset = false;
+};
+
+
 /// Options controlling ColorConfig::archive().
 ///
 /// @version 3.2
@@ -828,6 +847,28 @@ public:
     /// @version 3.2
     OIIO_NODISCARD static ColorConfig from_text(string_view config_text,
                                                 string_view working_dir = "");
+
+    /// Convenience alias so callers may spell the options type
+    /// `ColorConfig::EvolveOptions`.
+    using EvolveOptions = ColorConfigEvolveOptions;
+
+    /// Return a NEW ColorConfig that is a copy of this one with the
+    /// modifications described by `options` applied -- the public face of
+    /// the copy-on-modify contract: this config is frozen and is never
+    /// mutated; the evolved instance is an independent config with its own
+    /// caches. `options.context` overrides context-variable defaults (which
+    /// changes the config's structural cache identity, since the overrides
+    /// serialize with it); `options.working_dir` re-points runtime file
+    /// resolution (working directory is runtime state OCIO does not fold
+    /// into the structural cache id); `options.reset` starts from the
+    /// ORIGINAL config this one was first constructed with before applying
+    /// the other fields, so an evolve chain can always get back to its
+    /// root. On failure the returned config reports the problem through
+    /// the usual has_error()/geterror() convention. This method does not
+    /// throw.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD ColorConfig evolve(const EvolveOptions& options = {}) const;
 
     /// Convenience alias so callers may spell the options type
     /// `ColorConfig::ArchiveOptions`.

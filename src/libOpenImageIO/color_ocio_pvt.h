@@ -294,6 +294,10 @@ public:
     // copy-on-modify contract that the phase-1 cache depends on.
     OCIO::ConstConfigRcPtr config_;
     OCIO::ConstConfigRcPtr builtinconfig_;
+    // The config as FIRST constructed (before any evolve() modifications),
+    // carried through evolve chains so `EvolveOptions::reset` can always
+    // return to the root. Equals config_ for a non-evolved config.
+    OCIO::ConstConfigRcPtr original_config_;
 
 private:
     std::vector<CSInfo> colorspaces;
@@ -386,8 +390,10 @@ public:
 
     // Initialize from an already-built (frozen) OCIO config -- the shared
     // adoption path behind the from-memory factories. `name` becomes the
-    // configname() identifier.
-    bool init_from_config(OCIO::ConstConfigRcPtr config, string_view name);
+    // configname() identifier. `original`, if non-null, records the root
+    // config an evolve chain resets to (defaults to `config` itself).
+    bool init_from_config(OCIO::ConstConfigRcPtr config, string_view name,
+                          OCIO::ConstConfigRcPtr original = nullptr);
 
     // Re-point the back-reference after a ColorConfig move.
     void set_self(ColorConfig* self) { m_self = self; }
