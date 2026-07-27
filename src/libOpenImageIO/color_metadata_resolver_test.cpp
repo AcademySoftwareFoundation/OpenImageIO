@@ -214,6 +214,15 @@ test_icc_synthetic(const ColorConfig& config)
     auto e        = resolve_color_metadata(&config, "", f, { }, { });
     OIIO_CHECK_ASSERT(Strutil::starts_with(e.resolved, "icc:"));
     OIIO_CHECK_EQUAL(e.resolved, e.registered_synthetic);
+    // The digest is the full 64-bit strhash64 of the profile bytes on every
+    // platform (never the size_t strhash, which truncates on 32-bit builds).
+    const auto& p = f.icc_profile;
+    OIIO_CHECK_EQUAL(e.resolved,
+                     Strutil::fmt::format(
+                         "icc:{:016x}",
+                         Strutil::strhash64(string_view(
+                             reinterpret_cast<const char*>(p.data()),
+                             p.size()))));
 }
 
 

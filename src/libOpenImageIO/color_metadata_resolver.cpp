@@ -224,10 +224,14 @@ namespace {
     // idempotence are what downstream depends on, not the digest algorithm.)
     std::string synthesize_icc_space(const std::vector<unsigned char>& profile)
     {
-        size_t h = Strutil::strhash(
+        // strhash64, not strhash: the id must be a full 64-bit digest on
+        // every platform (strhash is size_t -- 32 bits on 32-bit builds,
+        // where collision odds stop being negligible and ids diverge
+        // across builds).
+        uint64_t h = Strutil::strhash64(
             string_view(reinterpret_cast<const char*>(profile.data()),
                         profile.size()));
-        return Strutil::fmt::format("icc:{:016x}", uint64_t(h));
+        return Strutil::fmt::format("icc:{:016x}", h);
     }
 
     // ---- individual rules -------------------------------------------------
