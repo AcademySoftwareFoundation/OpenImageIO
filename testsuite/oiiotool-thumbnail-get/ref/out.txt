@@ -4,17 +4,22 @@ full 200x150
 oiiotool ERROR: --thumbnail-get : Image "../common/tahoe-small.tif" has no thumbnail
 Full command line was:
 > oiiotool ../common/tahoe-small.tif --thumbnail-get
-no thumbnail, skipped output
+generated 256x192
+portrait 192x256
+small source 40x30
+display window 256x256
 oiiotool ERROR: --thumbnail-get:index=1:fail=0 : Thumbnail index 1 is not available; only the primary thumbnail (index 0) is currently supported
 Full command line was:
 > oiiotool src/with-thumbnail.psd --thumbnail-get:index=1:fail=0
 Computing diff of "thumb_i.tif" vs "thumb.tif"
 PASS
 autoorient/autocc 160x120
-input fail=0 returned empty
+input fail=0 generated 256x192
 oiiotool ERROR: --thumbnail-get:index=1 : Thumbnail index 1 is not available; only the primary thumbnail (index 0) is currently supported
 Full command line was:
 > oiiotool -i:get_thumbnail=1:index=1 src/with-thumbnail.psd
 get_thumbnail=0 200x150
 Comparing "thumb.tif" and "ref/thumb.tif"
+PASS
+Comparing "generated.tif" and "ref/generated.tif"
 PASS

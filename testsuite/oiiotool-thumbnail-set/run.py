@@ -26,9 +26,7 @@ command += oiiotool ("--warn 0.005 --fail 0.005 thumb.tif " + src
 command += oiiotool (src + " --dup --resize:filter=box 50x38 --thumbnail-set -o no_thumb.tif")
 command += info_command ("no_thumb.tif", safematch=True, hash=False)
 
-# Test error cases: an empty thumbnail image, and too few images on the stack.
-command += oiiotool (src + " --dup --thumbnail-get:fail=0 --thumbnail-set",
-                     failureok=True)
-command += oiiotool (src + " --thumbnail-set", failureok=True)
+# Needs two images; with one it never runs, only warns.
+command += oiiotool (src + " --thumbnail-set")
 
 outputs = [ "out.txt" ]

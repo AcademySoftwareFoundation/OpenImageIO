@@ -3269,7 +3269,34 @@ action_thumbnail_get(Oiiotool& ot, cspan<const char*> argv)
             ot.push(A);
             return;
         }
-        ot.push(new ImageRec(ImageBufRef(new ImageBuf()), false));
+
+        // synthesize a thumbnail from the image itself
+        if (!ot.read(A)) {
+            ot.push(A);
+            return;
+        }
+
+        const ImageBuf& Aib((*A)(0, 0));
+        const ImageSpec& Aspec(Aib.spec());
+
+        // Fit inside a box, preserving aspect ratio and never enlarging
+        const int boxsize = 256;
+        int longest       = std::max(1,
+                                     std::max(Aspec.full_width, Aspec.full_height));
+        float scale       = std::min(1.0f, float(boxsize) / float(longest));
+        int tw            = std::max(1, int(roundf(Aspec.full_width * scale)));
+        int th            = std::max(1, int(roundf(Aspec.full_height * scale)));
+        ROI roi(0, tw, 0, th, 0, 1, 0, Aspec.nchannels);
+
+        ImageBufRef generated(new ImageBuf(
+            ImageBufAlgo::resize(Aib, ImageBufAlgo::KWArgs(), roi)));
+
+        if (generated->has_error()) {
+            ot.errorfmt(command, "{}", generated->geterror());
+            ot.push(A);
+            return;
+        }
+        ot.push(new ImageRec(generated, false));
         return;
     }
     ot.push(new ImageRec(ImageBufRef(new ImageBuf(*thumb)), false));
