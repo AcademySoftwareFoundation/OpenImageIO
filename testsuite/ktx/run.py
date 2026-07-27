@@ -47,7 +47,7 @@ files = [
     # ASTC-compressed formats
     "r8g8b8a8_srgb_mip_astc.ktx2",
     "ktx_app_astc_8x8.ktx2",
-    # "astc_8x8_unorm_array_7.ktx2", # VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK not yet supported
+    # "astc_8x8_unorm_array_7.ktx2", # VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK
 
     # BCn-compressed formats (to be supported)
     # "bc3_unorm_array_7.ktx2",
@@ -59,11 +59,11 @@ files = [
     "ktx_document_uastc_rdo_4_zstd_5.ktx2",
     "cubemap_goldengate_uastc_rdo_4_zstd_5.ktx2",
 
-    # HDR formats (not yet supported)
-    # "Desk_uastc_hdr4x4_zstd_15.ktx2",
-    # "Desk_uastc_hdr6x6i.ktx2",
-    # "Desk_astc_hdr6x6.ktx2",
-    # "Desk_small_zstd_15.ktx2", # VK_FORMAT_R16G16B16_SFLOAT is not yet supported
+    # HDR formats
+    "Desk_small_zstd_15.ktx2", # VK_FORMAT_R16G16B16_SFLOAT
+    "Desk_uastc_hdr4x4_zstd_15.ktx2",
+    "Desk_uastc_hdr6x6i.ktx2",
+    # "Desk_astc_hdr6x6.ktx2", # VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK 
 
     # Basis LZ/ETC1S formats (widely used within KTX2 container format)
     "kodim17_blze.ktx2",
@@ -90,18 +90,19 @@ for f in files:
 command += (oiio_app("oiiotool") 
             + " --pattern checker 64x64 4 -d uint8 -o checker_original.png >> out.txt ;\n")
 
+# Default write (with nothing specified) should default to a lossless format
+# + supercompression scheme and should match exactly with original input
+command += oiiotool ("checker_original.png -o checker_default.ktx2")
+command += diff_command ("checker_original.png", "checker_default.ktx2", "--fail 0 --warn 0")
+
 # UASTC write test: check generation of an UASTC-based KTX2 file
 command += oiiotool ("checker_original.png --attrib ktx:codec uastc -o checker_uastc.ktx2")
-command += diff_command ("checker_original.png", "checker_uastc.ktx2", "--fail 0.0005 --warn 0.0005")
+command += diff_command ("checker_original.png", "checker_uastc.ktx2")
 
 # ETC1S write test: check generation of an ETC1S-based KTX2 file
 command += oiiotool ("checker_original.png --attrib ktx:codec etc1s -o checker_etc1s.ktx2")
-command += diff_command ("checker_original.png", "checker_etc1s.ktx2", "--fail 0.0005 --warn 0.0005")
+command += diff_command ("checker_original.png", "checker_etc1s.ktx2")
 
 # We do not test read-write of compressed-ktx2 files because any read-write
 # cycle worsens quality and is absolutely not the intended purpose of ktx usage
 # within OIIO (or ktx usage in general).
-
-# Default write (with nothing specified) should default to a loseless format
-# + supercompression scheme and should match exactly with original input
-

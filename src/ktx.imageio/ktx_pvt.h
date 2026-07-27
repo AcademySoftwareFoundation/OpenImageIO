@@ -388,13 +388,17 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
 {
     // clang-format off
     switch (vkformat) {
-        // Raw, uncompressed formats
+        // LDR uncompressed formats
     case VK_FORMAT_R8_UNORM: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::NONE }; return true;
     case VK_FORMAT_R8G8_UNORM: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::NONE }; return true;
     case VK_FORMAT_R8G8B8_UNORM:
     case VK_FORMAT_R8G8B8_SRGB: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::NONE }; return true;
     case VK_FORMAT_R8G8B8A8_UNORM:
     case VK_FORMAT_R8G8B8A8_SRGB: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::NONE }; return true;
+
+        // HDR uncompressed formats
+    case VK_FORMAT_R16G16B16_SFLOAT: formatinfo = { 3, TypeDesc::HALF, BlockCompression::NONE }; return true;
+    case VK_FORMAT_R16G16B16A16_SFLOAT: formatinfo = { 4, TypeDesc::HALF, BlockCompression::NONE }; return true;
 
         // ETC2 block-compressed formats
     case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::ETC2_RGB, VK_FORMAT_R8G8B8A8_SRGB }; return true;
@@ -419,35 +423,51 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
     case VK_FORMAT_BC7_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_UNORM }; return true;
     case VK_FORMAT_BC7_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_SRGB }; return true;
 
-        // ASTC formats (2D blocks)
-    case VK_FORMAT_ASTC_4x4_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_5x4_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_5x5_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_6x5_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_6x6_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_8x5_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_8x6_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_8x8_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_10x5_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_10x6_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_10x8_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_10x10_UNORM_BLOCK: 
-    case VK_FORMAT_ASTC_12x10_UNORM_BLOCK: 
+        // LDR ASTC formats (2D blocks)
+    case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
     case VK_FORMAT_ASTC_12x12_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_UNORM }; return true;
-    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: 
-    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: 
+    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK:
+    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK:
     case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB }; return true;
+        
+        // HDR ASTC formats (2D blocks)
+    case VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK: formatinfo = { 4, TypeDesc::HALF, BlockCompression::ASTC, VK_FORMAT_R16G16B16A16_SFLOAT }; return true;
     default: break;
     }
     // clang-format on
@@ -488,37 +508,66 @@ get_vkformat_from_info(int nchannels, TypeDesc format, bool srgb_colorspace)
 
 
 
+/// ASTC supports multiple blocks sizes (unlike BCn that is fixed to 4x4). This
+/// gets the block size (width * height) from the given VkFormat.
 inline uint32_t
 get_astc_block_size(VkFormat format)
 {
     switch (format) {
     case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_4x4_SRGB_BLOCK: return 4 * 4;
+
     case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_5x4_SRGB_BLOCK: return 5 * 4;
+
     case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_5x5_SRGB_BLOCK: return 5 * 5;
+
     case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_6x5_SRGB_BLOCK: return 6 * 5;
+
     case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_6x6_SRGB_BLOCK: return 6 * 6;
+
     case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_8x5_SRGB_BLOCK: return 8 * 5;
+
     case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_8x6_SRGB_BLOCK: return 8 * 6;
+
     case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_8x8_SRGB_BLOCK: return 8 * 8;
+
     case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_10x5_SRGB_BLOCK: return 10 * 5;
+
     case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_10x6_SRGB_BLOCK: return 10 * 6;
+
     case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_10x8_SRGB_BLOCK: return 10 * 8;
+
     case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: return 10 * 10;
+
     case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: return 12 * 10;
+
     case VK_FORMAT_ASTC_12x12_UNORM_BLOCK:
+    case VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK:
     case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: return 12 * 12;
     default: return 0;
     }
@@ -534,19 +583,12 @@ ichar_equals(unsigned char a, unsigned char b)
 
 
 
+/// Case-insensitive string equality
 inline bool
 iequals(std::string_view lhs, std::string_view rhs)
 {
     return std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend(),
                       ichar_equals);
-}
-
-
-
-// TODO
-inline void
-gl_to_vkformat()
-{
 }
 
 OIIO_PLUGIN_NAMESPACE_END

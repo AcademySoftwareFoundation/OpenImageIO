@@ -4,7 +4,6 @@
 
 #include "ktx_pvt.h"
 #include <cstdio>
-#include <optional>
 #include <regex>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -84,11 +83,6 @@ private:
 
     std::unique_ptr<ImageSpec> m_config;  ///< Saved copy of configuration spec
 
-    /// TODO: add gl, direct3d, and metal format support
-    std::optional<KTXglFormat> m_glFormat { std::nullopt };
-    std::optional<uint32_t> m_dxgiFormat { std::nullopt };
-    std::optional<uint32_t> m_metalFormat { std::nullopt };
-
     /// Helper function: performs the actual pixel decoding.
     bool internal_readimg(unsigned char* dst, int w, int h, int d);
 
@@ -138,23 +132,6 @@ KtxInput::open(const std::string& name, ImageSpec& newspec,
 
 
 
-/// Opens the file with given name and seek to the first subimage in the
-/// file.  Various file attributes are put in `newspec` and a copy
-/// is also saved internally to the `ImageInput` (retrievable via
-/// `spec()`.  From examining `newspec` or `spec()`, you can
-/// discern the resolution, if it's tiled, number of channels, native
-/// data format, and other metadata about the image.
-///
-/// @param name
-///         Filename to open, UTF-8 encoded.
-///
-/// @param newspec
-///         Reference to an ImageSpec in which to deposit a full
-///         description of the contents of the first subimage of the
-///         file.
-///
-/// @returns
-///         `true` if the file was found and opened successfully.
 bool
 KtxInput::open(const std::string& name, ImageSpec& newspec)
 {
@@ -194,7 +171,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // ideal especially when dealing with, for instance, 3D textures, or even
     // worse, 3D array textures.
     //
-    // TODO:
+    // TODO: per-subimage and per-miplevel ktx loading
     // Implementing the per-subimage allocation approach requires some effort.
     // For the moment, let's make sure this approach is working (i.e., all tests
     // are passing).
@@ -239,6 +216,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    const bool is_hdr = ktxTexture2_IsHDR(m_tex.get());
+    DBG std::cout << "is_hdr: " << is_hdr << '\n';
+
     m_spec       = ImageSpec(m_tex->baseWidth, m_tex->baseHeight,
                              4 /* dummy value - will be overwritten */,
                              TypeDesc::UINT8);
@@ -249,7 +229,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.set_colorspace(colorspace);
 
     // Set textureformat attribute
-    if (m_tex->numDimensions == 2) {
+    if (m_tex->numDimensions == 2 || m_tex->numDimensions == 1) {
         if (m_tex->numFaces > 1)
             m_spec.attribute("textureformat", "CubeFace Environment");
         else
@@ -295,16 +275,11 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //
     // Predifined keys we care about:
     //
+    //  - KTXwriterScParams: null-terminated string
     //  - KTXcubemapIncomplete: 1 byte bitfield
     //  - KTXorientation: null-terminated string
     //
-    //  - KTXglFormat:
-    //    + UInt32 glInternalformat
-    //    + UInt32 glFormat
-    //    + UInt32 glType
-    //
-    //  - KTXdxgiFormat__: UInt32
-    //  - KTXmetalPixelFormat: UInt32
+    // We don't care about the rest and we don't save them.
     //
     auto kventry = m_tex->kvDataHead;
     if (kventry)
@@ -319,70 +294,50 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 != KTX_SUCCESS)
                 continue;
 
-            // "The key must be terminated by a NUL character"
-            // This will probably never occur, but it doesn't hurt to be safe
-            if (keylen <= 1)
-                continue;
+            // Per KTX2 spec: "The key must be terminated by a NUL character"
+            // We exit on any invalid key that is encountered
+            if (keylen <= 1 || key[keylen - 1] != '\0') {
+                errorfmt(
+                    "An empty or non-null terminated metadata key string encountered. This is an invalid KTX file");
+                return false;
+            }
 
             if ((status = ktxHashListEntry_GetValue(kventry, &vallen, &val))
-                != KTX_SUCCESS)
-                continue;
+                != KTX_SUCCESS) {
+                errorfmt("ktxHashListEntry_GetValue returned error code {}",
+                         static_cast<uint32_t>(status));
+                return false;
+            }
 
             // vallen checks are done below depending on the attribute name
 
             auto attr_name              = std::string(key, key + (keylen - 1));
             auto ktx_prefixed_attr_name = fmt::format("ktx:{}", attr_name);
 
-            if (attr_name == KTX_WRITER_KEY) {
-                // KTXwriter identifies the program used to write this KTX file.
-                // We don't care about such entry
-                continue;
-            } else if (attr_name == KTX_WRITER_SCPARAMS_KEY) {
-                // KTXwriterScParams is used to report all kinds of non-default parameters used by ktx tools to write this KTX2 file.
-                // This includes:
-                //    non default Basis Universal params (i.e., for UASTC/ETC1S), non-default supercompression params, non-default mipmap generation params, etc.
+            if (attr_name == KTX_WRITER_SCPARAMS_KEY) {
+                //
+                // KTXwriterScParams is used to report all kinds of non-default
+                // parameters used by ktx tools to write this KTX2 file.
+                // This includes non default Basis Universal params (i.e., for
+                // UASTC/ETC1S), non-default supercompression params,
+                // non-default mipmap generation params, etc.
                 // Should be NUL terminated.
-                if (vallen <= 1)
-                    continue;
-                // auto char_ptr = reinterpret_cast<const char*>(val);
-
+                //
+                auto cval = reinterpret_cast<const char*>(val);
+                if (vallen <= 1 || cval[vallen - 1] != '\0') {
+                    errorfmt(
+                        "An empty or non-null terminated metadata value string for KTX_WRITER_SCPARAMS_KEY. This is an invalid KTX file");
+                    return false;
+                }
+                std::string_view val_str(cval, vallen);
+                m_spec.extra_attribs.attribute(ktx_prefixed_attr_name, val_str);
             } else if (attr_name == "KTXcubemapIncomplete") {
                 OIIO_ASSERT(vallen == 1);
                 // TODO: handle KTXcubemapIncomplete
             } else if (attr_name == KTX_ORIENTATION_KEY) {
-                //
                 // KTX may define a different orientation than the one used by OIIO. See:
                 //  https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_ktxorientation
-                // E.g., for KTX1 (OpenGL) without any re-orientation logic images are
-                // flipped over X axis (top becomes down).
-                //
-
                 // TODO: set orientation functions
-            } else if (attr_name == "KTXglFormat") {
-                OIIO_ASSERT(vallen == sizeof(KTXglFormat) /* 12 bytes */);
-                KTXglFormat glFormat;
-                glFormat.glInternalformat = *reinterpret_cast<uint32_t*>(val);
-                glFormat.glFormat = *(reinterpret_cast<uint32_t*>(val) + 1);
-                glFormat.glType   = *(reinterpret_cast<uint32_t*>(val) + 2);
-                m_glFormat        = glFormat;
-                m_spec.extra_attribs.attribute(
-                    ktx_prefixed_attr_name, TypeDesc::UINT32, 3,
-                    make_cspan(reinterpret_cast<const uint32_t*>(val), 3));
-            } else if (attr_name == "KTXdxgiFormat__") {
-                OIIO_ASSERT(vallen == sizeof(uint32_t));
-                m_dxgiFormat = *reinterpret_cast<uint32_t*>(val);
-                m_spec.extra_attribs.attribute(ktx_prefixed_attr_name,
-                                               m_dxgiFormat.value());
-            } else if (attr_name == "KTXmetalPixelFormat") {
-                OIIO_ASSERT(vallen == sizeof(uint32_t));
-                m_metalFormat = *reinterpret_cast<uint32_t*>(val);
-                m_spec.extra_attribs.attribute(ktx_prefixed_attr_name,
-                                               m_metalFormat.value());
-            } else {
-                // otherwise store the arbitrary value as a byte string
-                m_spec.extra_attribs.attribute(
-                    ktx_prefixed_attr_name, TypeDesc::UCHAR, vallen,
-                    make_cspan(reinterpret_cast<const uint8_t*>(val), vallen));
             }
 
         } while ((kventry = ktxHashList_Next(kventry)));
@@ -413,10 +368,15 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // This modifies the KtxTexture2 (m_tex) therefore make sure to save
     // essential properties for proper KTX2 regeneration.
     //
-    if (ktxTexture2_NeedsTranscoding(m_tex.get())) {
+    // Note:
+    // Do not use ktxTexture2_NeedsTranscoding as it returns false for
+    // UASTC_HDR_4x4. For all transcodable formats, we want to transcode them
+    // here to uncompressed format (RGBA32 for LDR and RGBA_HALF for HDR).
+    //
+    if (ktxTexture2_IsTranscodable(m_tex.get())) {
         // TODO: in case of HDR, use KTX_TTF_RGBA_HALF
         if (auto status = ktxTexture2_TranscodeBasis(
-                m_tex.get(), ktx_transcode_fmt_e::KTX_TTF_RGBA32, 0);
+                m_tex.get(), is_hdr ? KTX_TTF_RGBA_HALF : KTX_TTF_RGBA32, 0);
             status != KTX_SUCCESS) {
             errorfmt("failed to transcode KTX2 texture to raw pixels. "
                      "ktxTexture2_TranscodeBasis returned Ktx error code: {}",
@@ -535,7 +495,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_use_of_vk_format_undefined
     //
     //  1.  For custom formats that do not have any equivalent in GPU APIs.
-    //      This is currently not supported.
+    //      => Not supported.
     //
     //  2.  ETC1S/UASTC supercompression scheme: makes no sense since we
     //      transcoded it above to uncompressed format.
@@ -547,37 +507,15 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //      - "KTXglFormat" for OpenGL
     //      - "KTXdxgiFormat__" for Direct3D
     //      - "KTXmetalPixelFormat" for Metal
-    //      TODO
+    //      => Not supported.
     //
     //  4.  Compressed color models in Section 5.6 of [KDF14] or successors that
     //      do not have corresponding Vulkan formats.
-    //      TODO
+    //      => Not supported.
+    //
+    // We only keep this for better error messaging.
     //
     if (m_tex->vkFormat == VK_FORMAT_UNDEFINED) {
-        // TODO: check case (4) - color model
-
-        // check case (3) - non-Vulkan GPU formats (here we simply map these
-        // formats to VkFormat and call it a day)
-        if (m_glFormat.has_value()) {
-            // TODO: add glformat support
-            errorfmt("Loading KTX textures with OpenGL formats but no vkFormat "
-                     "(i.e., VK_FORMAT_UNDEFINED) is currently not supported");
-            return false;
-        } else if (m_dxgiFormat.has_value()) {
-            // TODO: add direct3d format support
-            errorfmt(
-                "Loading KTX textures with Direct3D formats but no vkFormat "
-                "(i.e., VK_FORMAT_UNDEFINED) is currently not supported");
-            return false;
-        } else if (m_metalFormat.has_value()) {
-            // TODO: add metal format support
-            errorfmt("Loading KTX textures with Metal formats but no vkFormat "
-                     "(i.e., VK_FORMAT_UNDEFINED) is currently not supported");
-            return false;
-        }
-
-        // error for other cases (case (2) should not occur and case (1) is
-        // not supported)
         errorfmt(
             "VkFormat of provided KTX texture is VK_FORMAT_UNDEFINED "
             "which potentially means that a custom format with no equivalent "
@@ -723,10 +661,10 @@ bool
 KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                 int yend, int z, void* data)
 {
-    const int width    = std::max(m_tex->baseWidth >> miplevel, 1u);
-    const int height   = std::max(m_tex->baseHeight >> miplevel, 1u);
-    const int depth    = std::max(m_tex->baseDepth >> miplevel, 1u);
-    const size_t pitch = m_spec.pixel_bytes() * width;
+    const int width             = std::max(m_tex->baseWidth >> miplevel, 1u);
+    const int height            = std::max(m_tex->baseHeight >> miplevel, 1u);
+    const int depth             = std::max(m_tex->baseDepth >> miplevel, 1u);
+    const size_t pitch_in_bytes = m_spec.pixel_bytes() * width;
     ktx_size_t offset;
 
     if (!check(subimage, miplevel)) {
@@ -740,8 +678,26 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
-    OIIO_ASSERT(pitch
-                == ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel));
+    if (const size_t libktx_image_size = ktxTexture2_GetImageSize(m_tex.get(),
+                                                                  miplevel),
+        expected_image_size            = pitch_in_bytes * height;
+        libktx_image_size != expected_image_size) {
+        errorfmt("Expected image size of {} but libktx reported {}",
+                 expected_image_size, libktx_image_size);
+        return false;
+    }
+
+#if 0
+    // TODO: ktxTexture_GetRowPitch reports 4-bytes aligned size in bytes (i.e.,
+    // it adds padding when it shouldn't).
+    if (auto libktx_pitch_in_bytes
+        = ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel);
+        pitch_in_bytes == libktx_pitch_in_bytes) {
+        errorfmt("Expected a pitch of size {} but libktx expects {}",
+                 pitch_in_bytes, libktx_pitch_in_bytes);
+        return false;
+    }
+#endif
 
     // Use this in case OIIO API provides read_native_scanlines with `data` as
     // `span<std::byte>` and a `z` slice param
@@ -771,7 +727,7 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     auto data_ptr = m_tex->pData + offset;
 
     // since miplevel is valid => get number of bytes in a row for this mip
-    memcpy(data, data_ptr, pitch * size_t(yend - ybegin));
+    memcpy(data, data_ptr, pitch_in_bytes * size_t(yend - ybegin));
     DBG std::cout << fmt::format(
         "[ktxinput] read_native_scanlines(subimage={},miplevel={},ybegin={},yend={},z={})\n",
         subimage, miplevel, ybegin, yend, z);
