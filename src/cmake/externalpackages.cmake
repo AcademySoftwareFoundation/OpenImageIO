@@ -124,7 +124,9 @@ if (USE_PYTHON AND OIIO_BUILD_PYTHON_PYBIND11)
 endif ()
 if (USE_PYTHON AND OIIO_BUILD_PYTHON_NANOBIND)
     discover_nanobind_cmake_dir()
-    checked_find_package (nanobind CONFIG REQUIRED)
+    checked_find_package (nanobind CONFIG REQUIRED
+                          VERSION_MIN 2.8.0
+                          BUILD_LOCAL missing)
 endif ()
 
 
@@ -237,9 +239,15 @@ if (OIIO_USE_HWY)
     checked_find_package (hwy)
 endif ()
 
-# Tessil/robin-map
-checked_find_package (Robinmap REQUIRED
-                      VERSION_MIN 1.2.0
+# Tessil/robin-map. Use its own exported CMake config (target tsl::robin_map)
+# rather than a bespoke Find module. This also means that when the nanobind
+# Python backend is enabled, nanobind's own CMake code will detect and reuse
+# this exact target/version instead of compiling against its private vendored
+# copy (see nanobind_build_library()'s `NOT TARGET tsl::robin_map` check).
+checked_find_package (Robinmap CONFIG REQUIRED
+                      NAMES tsl-robin-map
+                      VERSION_MIN 1.3.0
+                      NO_FP_RANGE_CHECK
                       BUILD_LOCAL missing
                      )
 

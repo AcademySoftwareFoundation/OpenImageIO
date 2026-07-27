@@ -7,8 +7,19 @@
 redirect = " >> out.txt 2>&1 "
 
 # To avoid duplicating example images between the C++ and Python tests,
-# they all live with the C++ ones.
-refdirlist += [ "../docs-examples-cpp/ref" ]
+# they all live with the C++ ones. Normally docs-examples-cpp creates this
+# symlink itself (pointing at its own source ref/ dir) the first time it
+# runs, but if this ctest invocation filters to a subset that excludes it
+# (e.g. -R/TEST=py), the symlink may not exist yet. Create it ourselves so
+# this test doesn't depend on run order/selection.
+_cpp_ref_link = "../docs-examples-cpp/ref"
+if not os.path.lexists (_cpp_ref_link) :
+    try :
+        os.symlink (os.path.join (test_source_dir, "..", "docs-examples-cpp", "ref"),
+                    _cpp_ref_link)
+    except FileExistsError :
+        pass  # another concurrently-run test variant made it first
+refdirlist += [ _cpp_ref_link ]
 
 # Prep:
 command += run_app("cmake -E copy " + test_source_dir + "/../common/grid-small.exr grid.exr")

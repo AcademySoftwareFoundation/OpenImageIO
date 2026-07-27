@@ -125,6 +125,7 @@ def copy_write() -> None:
 
 
 if __name__ == '__main__':
+    print("docs-examples-imageoutput.py")
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
     simple_write()

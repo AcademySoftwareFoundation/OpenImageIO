@@ -260,11 +260,23 @@ macro (oiio_add_all_tests)
             oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
                 "${CMAKE_BINARY_DIR}/lib/python/site-packages")
         endif ()
-        oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
-            "${CMAKE_BINARY_DIR}/lib/python/nanobind")
+        if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "both")
+            # In "both" mode, the nanobind module is kept isolated under its
+            # own build-tree location so it doesn't clobber the pybind11
+            # module that also lives in lib/python/site-packages.
+            oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
+                "${CMAKE_BINARY_DIR}/lib/python/nanobind")
+        else ()
+            # nanobind-only builds install the module to the same location
+            # pybind11 would have used (see setup_python_module_nanobind()
+            # in pythonutils.cmake).
+            set (_nanobind_tests_pythonpath "${_pybind_tests_pythonpath}")
+        endif ()
         # Keep in sync with the pybind11 python-* tests below as dual-backend
         # coverage expands. imageinput/imagebufalgo also need oiio-images.
         set (nanobind_python_tests
+             docs-examples-python
+             filters
              python-colorconfig
              python-deep
              python-imagebuf
@@ -342,7 +354,18 @@ macro (oiio_add_all_tests)
         ENABLEVAR OIIO_USE_HWY  USE_PYTHON OIIO_BUILD_PYTHON_PYBIND11
         DISABLEVAR BUILD_OIIOUTIL_ONLY SANITIZE
         SUFFIX ".hwy"
-        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"
+        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1" "${_pybind_tests_pythonpath}"
+        IMAGEDIR oiio-images
+        )
+
+    # Same test, run against the nanobind bindings (mirrors the pybind11
+    # variant above so hwy coverage isn't pybind11-only).
+    oiio_add_tests ( python-imagebufalgo
+        FOUNDVAR hwy_FOUND
+        ENABLEVAR OIIO_USE_HWY  USE_PYTHON OIIO_BUILD_PYTHON_NANOBIND
+        DISABLEVAR BUILD_OIIOUTIL_ONLY SANITIZE
+        SUFFIX "${nanobind_python_test_suffix}.hwy"
+        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1" "${_nanobind_tests_pythonpath}"
         IMAGEDIR oiio-images
         )
 
@@ -419,15 +442,18 @@ macro (oiio_add_all_tests)
         list (APPEND all_openexr_tests openexr-idmanifest)
     endif ()
     # Run all OpenEXR tests without core library
+    # (openexr-copy is Python-based, so pass along the site-packages
+    # PYTHONPATH -- it must not depend on the ambient shell environment
+    # already having it set, the way CI's ci-startup.bash does.)
     oiio_add_tests (${all_openexr_tests} openexr-luminance-chroma
-                    ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0
+                    ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0 "${_pybind_tests_pythonpath}"
                     IMAGEDIR openexr-images
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
     # For OpenEXR >= 3.1, be sure to test with the core option on
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1)
         oiio_add_tests (${all_openexr_tests}
                         SUFFIX ".core"
-                        ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=1
+                        ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=1 "${_pybind_tests_pythonpath}"
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()

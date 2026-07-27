@@ -58,8 +58,6 @@ function (setup_oiio_util_library targetname)
             PUBLIC
                 $<BUILD_INTERFACE:${OpenImageIO_LOCAL_DEPS_ROOT}/include>
                 $<INSTALL_INTERFACE:include>
-            PRIVATE
-                ${ROBINMAP_INCLUDES}
             )
     target_link_libraries (${targetname}
             PUBLIC
@@ -68,6 +66,7 @@ function (setup_oiio_util_library targetname)
                 ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
                 ${OPENIMAGEIO_IMATH_TARGETS}
             PRIVATE
+                tsl::robin_map
                 $<TARGET_NAME_IF_EXISTS:TBB::tbb>
                 ${CMAKE_DL_LIBS}
             )

@@ -39,6 +39,7 @@ def example1() -> None:
 
 
 if __name__ == '__main__':
+    print("docs-examples-texturesys.py")
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
     example1()

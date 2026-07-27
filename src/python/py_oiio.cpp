@@ -591,6 +591,15 @@ OIIO_DECLARE_NB_MODULE(OpenImageIO)
 {
     m.doc() = "OpenImageIO nanobind bindings.";
 
+#    if PY_VERSION_HEX < 0x030a0000 /* less then 3.10 */
+    // Python 3.9's interpreter shutdown/refcounting order triggers bogus
+    // nanobind leak warnings that don't occur on 3.10+. Silence them only for
+    // the affected old version.
+    // https://github.com/wjakob/nanobind/discussions/1405
+    // https://nanobind.readthedocs.io/en/latest/refleaks.html#disabling-leak-warnings
+    py::set_leak_warnings(false);
+#    endif
+
     PyOpenImageIO::declare_global_bindings(m);
     PyOpenImageIO::declare_global_attribute_functions(m);
     PyOpenImageIO::declare_module_attributes(m);

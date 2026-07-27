@@ -8,8 +8,8 @@ set (PYTHON_VERSION "" CACHE STRING "Target version of python to find")
 option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
 option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
 set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namespace")
-set (OIIO_PYTHON_BINDINGS_BACKEND "pybind11" CACHE STRING
-     "Which Python binding backend(s) to build: pybind11, nanobind, or both")
+set_cache (OIIO_PYTHON_BINDINGS_BACKEND "pybind11"
+     "Which Python binding backend(s) to build: pybind11, nanobind, or both" VERBOSE)
 set_property (CACHE OIIO_PYTHON_BINDINGS_BACKEND PROPERTY STRINGS
               pybind11 nanobind both)
 
@@ -112,8 +112,18 @@ endmacro()
 
 
 # Help CMake locate nanobind when it was installed as a Python package.
-macro (discover_nanobind_cmake_dir)
-    if (nanobind_DIR OR nanobind_ROOT OR "$ENV{nanobind_DIR}" OR "$ENV{nanobind_ROOT}")
+# This is a function (not a macro) deliberately: its early return must
+# not escape into whatever file happens to include pythonutils.cmake and
+# call this at file scope (a macro's return() would abort that entire
+# caller file, silently skipping everything after it).
+function (discover_nanobind_cmake_dir)
+    # Cached from a previous configure. Trust it only if it still points to
+    # a real nanobind install -- e.g. it may be stale if nanobind was
+    # uninstalled/upgraded since the cache was written.
+    if (nanobind_DIR AND EXISTS "${nanobind_DIR}/nanobind-config.cmake")
+        return()
+    endif ()
+    if (nanobind_ROOT OR "$ENV{nanobind_DIR}" OR "$ENV{nanobind_ROOT}")
         return()
     endif ()
 
@@ -132,7 +142,7 @@ macro (discover_nanobind_cmake_dir)
         set (nanobind_DIR "${_oiio_nanobind_cmake_dir}" CACHE PATH
              "Path to the nanobind CMake package" FORCE)
     endif ()
-endmacro()
+endfunction()
 
 
 ###########################################################################
@@ -239,12 +249,13 @@ macro (setup_python_module_nanobind)
 
     if (NOT COMMAND nanobind_add_module)
         discover_nanobind_cmake_dir()
-        find_package (nanobind CONFIG REQUIRED)
     endif ()
 
     nanobind_add_module(${target_name} ${lib_SOURCES})
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND TARGET nanobind-static)
-        target_compile_options (nanobind-static PRIVATE -Wno-error=format-nonliteral)
+    if (TARGET nanobind-static AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+                                    OR CMAKE_CXX_COMPILER_ID MATCHES "Apple"
+                                    OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM"))
+        target_compile_options (nanobind-static PUBLIC -Wno-format-nonliteral)
     endif ()
 
     target_include_directories (${target_name}
