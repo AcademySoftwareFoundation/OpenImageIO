@@ -1253,7 +1253,6 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_pixels_read      = false;
         m_nsubimages       = 0;
         m_nmiplevels       = 0;
-        m_badfile          = false;
         m_current_subimage = -1;
         m_current_miplevel = -1;
         auto input = ImageInput::open(filename, m_configspec.get(), m_rioproxy);
@@ -2118,7 +2117,6 @@ ImageBuf::nchannels() const
 int
 ImageBuf::orientation() const
 {
-    m_impl->validate_spec();
     return m_impl->spec().get_int_attribute("Orientation", 1);
 }
 
@@ -2407,7 +2405,7 @@ ImageBuf::copy(const ImageBuf& src, TypeDesc format)
         m_impl->m_deepdata = src.m_impl->m_deepdata;
         return true;
     }
-    if (format.basetype == TypeDesc::UNKNOWN || src.deep())
+    if (format.basetype == TypeDesc::UNKNOWN)
         m_impl->reset(src.name(), src.spec(), &src.nativespec());
     else {
         ImageSpec newspec(src.spec());
