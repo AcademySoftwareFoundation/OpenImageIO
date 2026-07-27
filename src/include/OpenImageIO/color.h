@@ -147,6 +147,18 @@ struct ColorSpaceInfoOptions {
 };
 
 
+/// Options controlling ColorConfig::serialize().
+///
+/// @version 3.2
+struct ColorConfigSerializeOptions {
+    /// Serialize the interoperability-repaired in-memory copy of the
+    /// config (the one cross-config conversions actually route through)
+    /// instead of the original: evidence of what is in memory, not what
+    /// was on disk. May trigger the lazy interoperability bootstrap.
+    bool interopified = false;
+};
+
+
 /// Immutable snapshot of the computed characterization information for one
 /// resolved color space, as returned by ColorConfig::get_color_space_info().
 /// Accessor views remain valid for this object's lifetime. Copies are cheap
@@ -762,6 +774,24 @@ public:
     // resolve() or equivalent(), or compared against
     // get_color_interop_id()'s return value). The Python binding exposes
     // the same data as `OpenImageIO.color_interop_ids()`, a tuple of str.
+
+    /// Convenience alias so callers may spell the options type
+    /// `ColorConfig::SerializeOptions`.
+    using SerializeOptions = ColorConfigSerializeOptions;
+
+    /// Return the config serialized as OCIO YAML text (a wrapper around
+    /// OCIO's Config::serialize()). This is the text of the IN-MEMORY config
+    /// object -- including any construction-time fix-ups OIIO applied -- not
+    /// a copy of the file it was loaded from. With
+    /// `options.interopified = true`, serialize the interoperability-repaired
+    /// in-memory copy instead. On failure (no usable config, or an OCIO
+    /// serialization error), return an empty string and report the error
+    /// through the usual has_error()/geterror() convention. This method does
+    /// not throw.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD std::string
+    serialize(const SerializeOptions& options = {}) const;
 
     /// Return a filename or other identifier for the config we're using.
     OIIO_NODISCARD std::string configname() const;

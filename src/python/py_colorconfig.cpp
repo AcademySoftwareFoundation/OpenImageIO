@@ -435,6 +435,21 @@ declare_colorconfig(py::module& m)
             "names"_a, py::kw_only(),
             "context_vars"_a = std::map<std::string, std::string>())
         .def("configname", &ColorConfig::configname)
+        .def(
+            "serialize",
+            [](const ColorConfig& self, bool interopified) {
+                ColorConfig::SerializeOptions opts;
+                opts.interopified = interopified;
+                std::string text;
+                {
+                    // Pure C++ work (may trigger the lazy interoperability
+                    // bootstrap): release the GIL for its duration.
+                    py::gil_scoped_release gil;
+                    text = self.serialize(opts);
+                }
+                return text;
+            },
+            py::kw_only(), "interopified"_a = false)
         .def_static("default_colorconfig", []() -> const ColorConfig& {
             return ColorConfig::default_colorconfig();
         });

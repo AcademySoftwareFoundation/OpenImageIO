@@ -1225,6 +1225,34 @@ ColorConfig::configname() const
 
 
 
+std::string
+ColorConfig::serialize(const SerializeOptions& options) const
+{
+    OCIO::ConstConfigRcPtr config;
+    if (getImpl()->config_ && !disable_ocio)
+        config = options.interopified ? getImpl()->interopifiedConfig()
+                                      : getImpl()->config_;
+    if (!config) {
+        getImpl()->error(
+            "ColorConfig::serialize: no {}config is available to serialize",
+            options.interopified ? "interoperability-repaired " : "");
+        return {};
+    }
+    try {
+        std::ostringstream os;
+        config->serialize(os);
+        return os.str();
+    } catch (OCIO::Exception& e) {
+        getImpl()->error("ColorConfig::serialize: {}", e.what());
+    } catch (...) {
+        getImpl()->error(
+            "ColorConfig::serialize: unknown error in OpenColorIO serialize");
+    }
+    return {};
+}
+
+
+
 string_view
 ColorConfig::resolve(string_view name) const
 {

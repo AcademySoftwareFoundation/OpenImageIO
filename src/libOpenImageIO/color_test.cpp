@@ -4357,6 +4357,67 @@ colorspaces:
 
 
 
+// ---------------------------------------------------------------------------
+// 3.2 config-utility bundle (serialize / from_text / archive / evolve /
+// debug info / caches / scoped context).
+// ---------------------------------------------------------------------------
+
+// A small config whose reference space is positively identifiable as a scene
+// interchange (named "ACES2065-1"), so the in-memory interoperability repair
+// binds the aces_interchange role -- observable through serialize().
+static const char* utility_config_yaml = R"(ocio_profile_version: 2.1
+search_path: ""
+roles:
+  default: ACES2065-1
+  scene_linear: ACES2065-1
+displays:
+  disp:
+    - !<View> {name: main, colorspace: ACES2065-1}
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+
+  - !<ColorSpace>
+    name: gamma22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+)";
+
+
+static void
+test_config_serialize()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    std::string config_path = Filesystem::temp_directory_path()
+                              + "/oiio_color_test_serialize.ocio";
+    OIIO_CHECK_ASSERT(
+        Filesystem::write_text_file(config_path, utility_config_yaml));
+
+    ColorConfig cc(config_path);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+
+    std::string text = cc.serialize();
+    OIIO_CHECK_ASSERT(!cc.has_error());
+    OIIO_CHECK_ASSERT(Strutil::starts_with(text, "ocio_profile_version"));
+    OIIO_CHECK_ASSERT(text.find("ACES2065-1") != std::string::npos);
+    // The authored config has no aces_interchange role...
+    OIIO_CHECK_ASSERT(text.find("aces_interchange") == std::string::npos);
+    // ...but the interopified in-memory copy's serialization shows the
+    // repair: evidence of what is in memory, not what was on disk.
+    ColorConfig::SerializeOptions iopts;
+    iopts.interopified = true;
+    std::string repaired = cc.serialize(iopts);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+    OIIO_CHECK_ASSERT(repaired.find("aces_interchange") != std::string::npos);
+    // Serialization is deterministic.
+    OIIO_CHECK_EQUAL(text, cc.serialize());
+
+    Filesystem::remove(config_path);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -4406,6 +4467,7 @@ main(int argc, char* argv[])
     test_derive_color_space_info();
     test_search_engine_coupling();
     test_copy_config_default_view_transform();
+    test_config_serialize();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.

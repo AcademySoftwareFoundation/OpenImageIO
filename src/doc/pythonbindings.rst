@@ -4181,6 +4181,27 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
+.. py:method:: serialize (interopified=False)
+
+    Return the config serialized as OCIO YAML text (a wrapper around OCIO's
+    ``Config::serialize()``). This is the text of the *in-memory* config
+    object -- including any construction-time fix-ups OpenImageIO applied --
+    not a copy of the file it was loaded from. With ``interopified=True``,
+    serialize the interoperability-repaired in-memory copy of the config
+    (the one cross-config conversions actually route through) instead:
+    evidence of what is in memory. On failure, return an empty string and
+    leave the error on the config (``geterror()``).
+
+    Example:
+
+    .. code-block:: python
+
+        text = colorconfig.serialize()
+        assert text.startswith("ocio_profile_version")
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:class:: ColorSpaceInfo
 
     An immutable snapshot of the characterization information for one
