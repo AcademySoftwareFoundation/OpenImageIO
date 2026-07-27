@@ -450,6 +450,15 @@ declare_colorconfig(py::module& m)
                 return text;
             },
             py::kw_only(), "interopified"_a = false)
+        .def_static(
+            "from_text",
+            [](const std::string& config_text, const std::string& working_dir) {
+                // Pure C++ work (full config construction): release the GIL
+                // for its duration.
+                py::gil_scoped_release gil;
+                return ColorConfig::from_text(config_text, working_dir);
+            },
+            "config_text"_a, "working_dir"_a = "")
         .def_static("default_colorconfig", []() -> const ColorConfig& {
             return ColorConfig::default_colorconfig();
         });

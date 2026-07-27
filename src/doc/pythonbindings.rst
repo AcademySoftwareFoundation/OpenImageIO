@@ -4202,6 +4202,26 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
+.. py:staticmethod:: from_text (config_text, working_dir="")
+
+    Construct a :py:class:`ColorConfig` from the OCIO YAML text of a config
+    held in memory (a wrapper around OCIO's ``Config::CreateFromStream``),
+    rather than from a file. ``working_dir``, if non-empty, sets the
+    config's working directory, which OCIO uses to resolve relative
+    ``FileTransform`` sources and search paths and which archiving requires.
+    On failure the returned config reports the problem through
+    ``geterror()``.
+
+    Example:
+
+    .. code-block:: python
+
+        config = oiio.ColorConfig.from_text(yaml_text)
+        roundtrip = oiio.ColorConfig.from_text(config.serialize())
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:class:: ColorSpaceInfo
 
     An immutable snapshot of the characterization information for one

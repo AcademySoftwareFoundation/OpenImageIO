@@ -4418,6 +4418,43 @@ test_config_serialize()
 
 
 
+static void
+test_config_from_text()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    // A config constructed from memory matches the same config loaded from
+    // a file.
+    ColorConfig cc = ColorConfig::from_text(utility_config_yaml);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+    OIIO_CHECK_EQUAL(cc.getNumColorSpaces(), 2);
+    OIIO_CHECK_EQUAL(cc.getColorSpaceIndex("gamma22"), 1);
+    OIIO_CHECK_ASSERT(Strutil::starts_with(cc.configname(), "text:"));
+
+    // serialize() -> from_text() round-trips the config.
+    ColorConfig rt = ColorConfig::from_text(cc.serialize());
+    OIIO_CHECK_ASSERT(!rt.has_error());
+    OIIO_CHECK_EQUAL(rt.getColorSpaceNames(), cc.getColorSpaceNames());
+    OIIO_CHECK_EQUAL(rt.serialize(), cc.serialize());
+
+    // The result is movable (the factory relies on it).
+    ColorConfig moved = std::move(rt);
+    OIIO_CHECK_EQUAL(moved.getNumColorSpaces(), 2);
+
+    // Unparsable text is an error, not a throw. Like the file constructor
+    // handed a bad path, the failed config still carries the built-in
+    // minimal inventory fallback.
+    ColorConfig bad = ColorConfig::from_text("this is not an OCIO config");
+    OIIO_CHECK_ASSERT(bad.has_error());
+    std::string errmsg = bad.geterror();
+    OIIO_CHECK_ASSERT(
+        Strutil::contains(errmsg, "Error reading OCIO config from text"));
+    OIIO_CHECK_EQUAL(bad.getColorSpaceIndex("gamma22"), -1);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -4468,6 +4505,7 @@ main(int argc, char* argv[])
     test_search_engine_coupling();
     test_copy_config_default_view_transform();
     test_config_serialize();
+    test_config_from_text();
 
     // --bench is opt-in and heavy; the default `ctest -R unit_color` run
     // never sets it.

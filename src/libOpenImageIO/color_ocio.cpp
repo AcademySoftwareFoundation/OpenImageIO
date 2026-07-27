@@ -528,6 +528,45 @@ ColorConfig::ColorConfig(string_view filename) { (void)reset(filename); }
 
 
 
+ColorConfig::ColorConfig(UninitTag)
+    : m_impl(new Impl(this))
+{
+}
+
+
+
+ColorConfig::ColorConfig(ColorConfig&& other) noexcept
+    : m_impl(std::move(other.m_impl))
+{
+    if (m_impl)
+        m_impl->set_self(this);
+}
+
+
+
+ColorConfig&
+ColorConfig::operator=(ColorConfig&& other) noexcept
+{
+    if (this != &other) {
+        m_impl = std::move(other.m_impl);
+        if (m_impl)
+            m_impl->set_self(this);
+    }
+    return *this;
+}
+
+
+
+ColorConfig
+ColorConfig::from_text(string_view config_text, string_view working_dir)
+{
+    ColorConfig cc { UninitTag() };
+    (void)cc.m_impl->init_from_text(config_text, working_dir);
+    return cc;
+}
+
+
+
 ColorConfig::~ColorConfig() {}
 
 
@@ -579,15 +618,9 @@ fix_config_file_rules(OCIO::ConfigRcPtr& config)
 
 
 
-bool
-ColorConfig::Impl::init(string_view filename)
+void
+ColorConfig::Impl::init_builtin()
 {
-    OIIO_MAYBE_UNUSED Timer timer;
-    bool ok = true;
-
-    auto oldlog = OCIO::GetLoggingLevel();
-    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
-
     try {
         auto cfg = OCIO::Config::CreateFromFile("ocio://default");
         OIIO_CONTRACT_ASSERT(cfg);
@@ -598,6 +631,19 @@ ColorConfig::Impl::init(string_view filename)
     } catch (OCIO::Exception& e) {
         error("Error making OCIO built-in config: {}", e.what());
     }
+}
+
+
+
+bool
+ColorConfig::Impl::init(string_view filename)
+{
+    OIIO_MAYBE_UNUSED Timer timer;
+
+    auto oldlog = OCIO::GetLoggingLevel();
+    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
+
+    init_builtin();
 
     // If no filename was specified, use env $OCIO
     if (filename.empty())
@@ -629,9 +675,18 @@ ColorConfig::Impl::init(string_view filename)
     }
     OCIO::SetLoggingLevel(oldlog);
 
-    ok = config_.get() != nullptr;
-
     DBG("OCIO config {} loaded in {:0.2f} seconds\n", filename, timer.lap());
+
+    return finish_init();
+}
+
+
+
+bool
+ColorConfig::Impl::finish_init()
+{
+    OIIO_MAYBE_UNUSED Timer timer;
+    bool ok = config_.get() != nullptr;
 
     inventory();
     // NOTE: inventory already does classify_by_name
@@ -661,10 +716,61 @@ ColorConfig::Impl::init(string_view filename)
     }
 #endif
     debug_print_aliases();
-    DBG("OCIO config {} classified in {:0.2f} seconds\n", filename,
+    DBG("OCIO config {} classified in {:0.2f} seconds\n", configname(),
         timer.lap());
 
     return ok;
+}
+
+
+
+bool
+ColorConfig::Impl::init_from_config(OCIO::ConstConfigRcPtr config,
+                                    string_view name)
+{
+    auto oldlog = OCIO::GetLoggingLevel();
+    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
+    init_builtin();
+    OCIO::SetLoggingLevel(oldlog);
+
+    configname(name);
+    config_ = std::move(config);
+    return finish_init();
+}
+
+
+
+bool
+ColorConfig::Impl::init_from_text(string_view config_text,
+                                  string_view working_dir)
+{
+    auto oldlog = OCIO::GetLoggingLevel();
+    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
+
+    OCIO::ConstConfigRcPtr frozen;
+    std::string name = "text:(invalid)";
+    try {
+        std::istringstream iss { std::string(config_text) };
+        auto cfg = OCIO::Config::CreateFromStream(iss);
+        if (cfg) {
+            // Fix up a mutable copy, then freeze it into the const member.
+            OCIO::ConfigRcPtr copy = copy_config(cfg);
+            if (!working_dir.empty())
+                copy->setWorkingDir(std::string(working_dir).c_str());
+            const char* cfgname = copy->getName();
+            name   = (cfgname && *cfgname)
+                         ? Strutil::fmt::format("text:{}", cfgname)
+                         : std::string("text:(anonymous)");
+            frozen = copy;
+        }
+    } catch (OCIO::Exception& e) {
+        error("Error reading OCIO config from text: {}", e.what());
+    } catch (...) {
+        error("Error reading OCIO config from text");
+    }
+    OCIO::SetLoggingLevel(oldlog);
+
+    return init_from_config(std::move(frozen), name);
 }
 
 

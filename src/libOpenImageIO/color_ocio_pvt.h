@@ -379,6 +379,19 @@ public:
 
     bool init(string_view filename);
 
+    // Initialize from OCIO config YAML text held in memory (see
+    // ColorConfig::from_text). `working_dir`, if non-empty, becomes the
+    // config's working directory.
+    bool init_from_text(string_view config_text, string_view working_dir);
+
+    // Initialize from an already-built (frozen) OCIO config -- the shared
+    // adoption path behind the from-memory factories. `name` becomes the
+    // configname() identifier.
+    bool init_from_config(OCIO::ConstConfigRcPtr config, string_view name);
+
+    // Re-point the back-reference after a ColorConfig move.
+    void set_self(ColorConfig* self) { m_self = self; }
+
     void add(const std::string& name, int index, int flags = 0)
     {
         spin_rw_write_lock lock(m_mutex);
@@ -700,6 +713,14 @@ private:
     }
 
     void inventory();
+
+    // Build builtinconfig_ (the fixed-up ocio://default copy). Shared by
+    // every init path.
+    void init_builtin();
+
+    // The shared tail of every init path: inventory + builtin-equivalent
+    // identification + debug dumps. Returns whether config_ is usable.
+    bool finish_init();
 
     // Tier 1a of resolve(): a direct OCIO color space / role / alias lookup,
     // then OIIO's informal universal-name aliases (sRGB, lin_srgb, ACEScg,

@@ -248,6 +248,14 @@ public:
 
     ~ColorConfig();
 
+    /// Move construction/assignment: transfers ownership of the underlying
+    /// configuration state. The moved-from object may only be destroyed or
+    /// assigned to. (ColorConfig remains non-copyable.)
+    ///
+    /// @version 3.2
+    ColorConfig(ColorConfig&& other) noexcept;
+    ColorConfig& operator=(ColorConfig&& other) noexcept;
+
     /// Reset the config to the named OCIO configuration file, or if
     /// filename is empty, to the current color configuration specified
     /// by env variable $OCIO. Return true for success, false if there
@@ -793,6 +801,19 @@ public:
     OIIO_NODISCARD std::string
     serialize(const SerializeOptions& options = {}) const;
 
+    /// Construct a ColorConfig from the OCIO YAML text of a config held in
+    /// memory (a wrapper around OCIO's Config::CreateFromStream), rather
+    /// than from a file. `working_dir`, if non-empty, sets the config's
+    /// working directory, which OCIO uses to resolve relative FileTransform
+    /// sources and search paths (CreateFromStream itself sets none) and
+    /// which archive() requires. Like the file constructor, this does not
+    /// throw: on failure the returned object reports the problem through
+    /// the usual has_error()/geterror() convention.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD static ColorConfig from_text(string_view config_text,
+                                                string_view working_dir = "");
+
     /// Return a filename or other identifier for the config we're using.
     OIIO_NODISCARD std::string configname() const;
 
@@ -851,6 +872,11 @@ public:
 private:
     ColorConfig(const ColorConfig&)            = delete;
     ColorConfig& operator=(const ColorConfig&) = delete;
+
+    // Tag for the internal allocate-but-don't-initialize constructor used
+    // by the from-memory factories (from_text, evolve).
+    struct UninitTag {};
+    explicit ColorConfig(UninitTag);
 
     class Impl;
     std::unique_ptr<Impl> m_impl;
