@@ -591,8 +591,10 @@ ColorConfig::Impl::init(string_view filename)
     try {
         auto cfg = OCIO::Config::CreateFromFile("ocio://default");
         OIIO_CONTRACT_ASSERT(cfg);
-        builtinconfig_ = copy_config(cfg);
-        fix_config_file_rules(builtinconfig_);
+        // Fix up a mutable copy, then freeze it into the const member.
+        OCIO::ConfigRcPtr builtin = copy_config(cfg);
+        fix_config_file_rules(builtin);
+        builtinconfig_ = builtin;
     } catch (OCIO::Exception& e) {
         error("Error making OCIO built-in config: {}", e.what());
     }
@@ -611,10 +613,14 @@ ColorConfig::Impl::init(string_view filename)
             configname(filename);
             auto cfg = OCIO::Config::CreateFromFile(
                 std::string(filename).c_str());
-            if (cfg)
-                config_ = copy_config(cfg);
-            if (config_ && Strutil::istarts_with(filename, "ocio://"))
-                fix_config_file_rules(config_);
+            if (cfg) {
+                // Fix up a mutable copy, then freeze it into the const
+                // member.
+                OCIO::ConfigRcPtr copy = copy_config(cfg);
+                if (copy && Strutil::istarts_with(filename, "ocio://"))
+                    fix_config_file_rules(copy);
+                config_ = copy;
+            }
         } catch (OCIO::Exception& e) {
             error("Error reading OCIO config \"{}\": {}", filename, e.what());
         } catch (...) {

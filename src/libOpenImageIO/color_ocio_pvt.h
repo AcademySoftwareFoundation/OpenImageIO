@@ -286,8 +286,14 @@ make_context_with_overrides(const OCIO::ConstConfigRcPtr& config,
 // Hidden implementation of ColorConfig
 class ColorConfig::Impl {
 public:
-    OCIO::ConfigRcPtr config_;
-    OCIO::ConfigRcPtr builtinconfig_;
+    // Frozen after construction: all construction-time fixups (e.g.
+    // fix_config_file_rules) happen on a mutable local inside init(), then
+    // the result is stored const. Any later modification must go through an
+    // explicit createEditableCopy() producing a NEW config (and thus a new
+    // cache identity) -- the const type makes the compiler enforce the
+    // copy-on-modify contract that the phase-1 cache depends on.
+    OCIO::ConstConfigRcPtr config_;
+    OCIO::ConstConfigRcPtr builtinconfig_;
 
 private:
     std::vector<CSInfo> colorspaces;
