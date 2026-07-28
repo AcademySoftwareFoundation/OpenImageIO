@@ -217,7 +217,9 @@ struct ColorConfigArchiveOptions {
 
 /// Options controlling ColorConfig::get_debug_info(). There are no options
 /// yet; the struct exists so future report selectors can be added without
-/// changing the method signature.
+/// changing the method signature. It has no other caller, so it belongs
+/// with get_debug_info() and the two types below -- if that method ever
+/// moves, this moves with it rather than being stranded here empty.
 ///
 /// @version 3.2
 struct ColorConfigDebugInfoOptions {};
