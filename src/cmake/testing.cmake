@@ -303,7 +303,7 @@ macro (oiio_add_all_tests)
                 ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
             oiio_add_tests (
-                python-thumbnail-raw
+                raw-thumbnail
                 FOUNDVAR LIBRAW_FOUND ENABLEVAR ENABLE_LIBRAW
                 IMAGEDIR oiio-images/raw
                 ENVIRONMENT "${_pybind_tests_pythonpath}"

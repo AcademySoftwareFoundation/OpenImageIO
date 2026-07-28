@@ -2344,10 +2344,13 @@ options are supported:
      - An index of the thumbnail that gets returned from get_thumbnail(). The
        default index (-1) leaves the choice to libraw, which normally would pick
        the largest resolution.
+       (Default: -1)
    * - ``raw:thumbnail_sort``
      - int
-     - If 1, the ``raw:thumbnail_index`` above picks a thumbnail from a list
-       sorted by size, so thumbnail_index = 0 always returns the smallest image.
+     - Controls the sort order of the list the thumbnail gets picked from. 
+       -1 - sort small-to-large, 0 - don't sort, use the original file order,
+       1 - sort large-to-small.
+       (Default: 0)
 |
 
 .. _sec-bundledplugins-rla:

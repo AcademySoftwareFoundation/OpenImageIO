@@ -1136,20 +1136,40 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                 m_thumb_index = thumb_count - 1;
 
             // sort the thumbnails by their size if requested
-            if (config.get_int_attribute("raw:thumbnail_sort", 0)) {
+            int sort_order = config.get_int_attribute("raw:thumbnail_sort", 0);
+
+            if (sort_order < -1 || sort_order > 1) {
+                errorfmt("Invalid thumbnail sort order ({})", sort_order);
+                return false;
+            }
+
+            if (sort_order != 0) {
                 auto index_map = std::vector<size_t>(thumb_count);
                 for (auto i = 0; i < thumb_count; ++i)
                     index_map[i] = i;
 
-                std::sort(index_map.begin(), index_map.end(),
-                          [&](size_t a, size_t b) {
-                              return m_processor->imgdata.thumbs_list
-                                         .thumblist[a]
-                                         .tlength
-                                     < m_processor->imgdata.thumbs_list
-                                           .thumblist[b]
-                                           .tlength;
-                          });
+                if (sort_order == -1) {
+                    std::sort(index_map.begin(), index_map.end(),
+                              [&](size_t a, size_t b) {
+                                  return m_processor->imgdata.thumbs_list
+                                             .thumblist[a]
+                                             .tlength
+                                         < m_processor->imgdata.thumbs_list
+                                               .thumblist[b]
+                                               .tlength;
+                              });
+                } else {
+                    std::sort(index_map.begin(), index_map.end(),
+                              [&](size_t a, size_t b) {
+                                  return m_processor->imgdata.thumbs_list
+                                             .thumblist[a]
+                                             .tlength
+                                         > m_processor->imgdata.thumbs_list
+                                               .thumblist[b]
+                                               .tlength;
+                              });
+                }
+
                 m_thumb_index = index_map[m_thumb_index];
             }
 

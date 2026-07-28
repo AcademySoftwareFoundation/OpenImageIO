@@ -34,7 +34,7 @@ def read_thumbnail(filename, index = -1, sort = False):
     if index != -1:
         hint['raw:thumbnail_index'] = index
     if sort:
-        hint['raw:thumbnail_sort'] = True
+        hint['raw:thumbnail_sort'] = -1
     
     input = oiio.ImageInput.open (OIIO_TESTSUITE_IMAGEDIR + '/' + file, hint)
     thumbnail = input.get_thumbnail()
