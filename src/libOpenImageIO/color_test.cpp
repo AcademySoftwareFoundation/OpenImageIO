@@ -734,6 +734,137 @@ test_color_space_fingerprint()
 
 
 
+// The identification tier's hardest documented discrimination case: sRGB's
+// PIECEWISE transfer curve vs a PURE gamma-2.2 power curve, over identical
+// (Rec.709/D65) primaries and the same display reference. Everything except
+// the transfer function is held equal, so the only thing separating the two
+// fingerprints is the curve -- and the shipped absolute tolerance (5e-3, see
+// kFingerprintAbsTolerance) must separate them in BOTH directions. This is the
+// number Doug Walker's "what does your tolerance conflate?" question wants: an
+// executable statement of what the tolerance provably does NOT conflate.
+//
+// The separation is dominated by the probe's dark neutral (linear ~3.4%),
+// where the two curves are furthest apart; the diffuse-white and black probe
+// pixels agree exactly, which is precisely why the probe cannot be a
+// white-point-only check.
+static void
+test_transfer_curve_discrimination()
+{
+    using OIIO::pvt::color_space_fingerprint;
+    using OIIO::pvt::color_space_fingerprints_match;
+    using OIIO::pvt::ColorSpaceFingerprint;
+
+    // The documented identification gate. Kept as a literal here (rather than
+    // reaching into color_ocio_pvt.h) so a silent widening of the shipped
+    // constant fails this test instead of moving with it.
+    const float kDocumentedTolerance = 5e-3f;
+
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+    if (ColorConfig::OpenColorIO_version_hex() < 0x02020000)
+        return;
+
+    // Two display-referred spaces over the SAME XYZ-D65 -> Rec.709 matrix.
+    // srgb_disp uses the sRGB piecewise curve (ExponentWithLinear, gamma 2.4 +
+    // 0.055 offset); g22_disp uses a pure 2.2 power law. Nothing else differs.
+    static const char* yaml = R"(ocio_profile_version: 2.1
+strictparsing: false
+search_path: ""
+roles:
+  default: ACEScg
+  scene_linear: ACEScg
+  aces_interchange: ACES2065-1
+displays:
+  disp:
+    - !<View> {name: srgb, colorspace: srgb_disp}
+    - !<View> {name: g22, colorspace: g22_disp}
+colorspaces:
+  - !<ColorSpace>
+    name: ACES2065-1
+    encoding: scene-linear
+  - !<ColorSpace>
+    name: ACEScg
+    encoding: scene-linear
+    to_scene_reference: !<MatrixTransform> {matrix: [0.6954522414, 0.1406786965, 0.1638690622, 0, 0.0447945634, 0.8596711185, 0.0955343182, 0, -0.0055258826, 0.0040252103, 1.0015006723, 0, 0, 0, 0, 1]}
+display_colorspaces:
+  - !<ColorSpace>
+    name: srgb_disp
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [3.2409699419, -1.5373831776, -0.4986107603, 0, -0.9692436363, 1.8759675015, 0.0415550574, 0, 0.0556300797, -0.2039769589, 1.0569715142, 0, 0, 0, 0, 1]}
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse}
+  - !<ColorSpace>
+    name: g22_disp
+    encoding: sdr-video
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [3.2409699419, -1.5373831776, -0.4986107603, 0, -0.9692436363, 1.8759675015, 0.0415550574, 0, 0.0556300797, -0.2039769589, 1.0569715142, 0, 0, 0, 0, 1]}
+        - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
+)";
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_transfer_discrimination.ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(path, yaml));
+    ColorConfig cc(path);
+    OIIO_CHECK_ASSERT(!cc.has_error());
+
+    ColorSpaceFingerprint srgb = color_space_fingerprint(cc, "srgb_disp");
+    ColorSpaceFingerprint g22  = color_space_fingerprint(cc, "g22_disp");
+    OIIO_CHECK_ASSERT(srgb.computed());
+    OIIO_CHECK_ASSERT(g22.computed());
+    if (srgb.computed() && g22.computed()) {
+        // Same reference kind and probe layout: the reference-kind gate cannot
+        // be what separates them -- only the float comparison can.
+        OIIO_CHECK_EQUAL(srgb.reference_kind, g22.reference_kind);
+        OIIO_CHECK_EQUAL(srgb.values.size(), g22.values.size());
+
+        // NOT confused, in both directions.
+        OIIO_CHECK_FALSE(color_space_fingerprints_match(srgb, g22));
+        OIIO_CHECK_FALSE(color_space_fingerprints_match(g22, srgb));
+
+        // And the separation is real, not marginal: report the largest
+        // disagreement over the six identity probe pixels (the 24 floats the
+        // matcher actually compares) and require it to clear the documented
+        // gate. The number belongs in the P1-4 PR body.
+        float worst   = 0.0f;
+        size_t worst_i = 0;
+        const size_t bound = std::min<size_t>(24, srgb.values.size());
+        for (size_t i = 0; i < bound; ++i) {
+            const float d = std::abs(srgb.values[i] - g22.values[i]);
+            if (d > worst) {
+                worst   = d;
+                worst_i = i;
+            }
+        }
+        Strutil::print(
+            "transfer-curve discrimination: sRGB vs gamma-2.2, max identity-probe "
+            "separation {:.6f} at float {} (probe pixel {}, channel {}); "
+            "documented tolerance {:.6f}; margin {:.2f}x\n",
+            worst, worst_i, worst_i / 4, worst_i % 4, kDocumentedTolerance,
+            worst / kDocumentedTolerance);
+        OIIO_CHECK_ASSERT(worst > kDocumentedTolerance);
+    }
+
+    // End to end, through the tier that actually consumes the comparison: each
+    // space must derive its OWN registry identity, never its neighbour's. The
+    // registry carries both srgb_rec709_display and g22_rec709_display, so a
+    // tolerance too loose to separate the curves would show up here as two
+    // spaces claiming one id (whichever the deterministic walk reached first).
+    const std::string srgb_id(OIIO::pvt::derive_color_interop_id(cc,
+                                                                 "srgb_disp"));
+    const std::string g22_id(OIIO::pvt::derive_color_interop_id(cc,
+                                                                "g22_disp"));
+    Strutil::print("  derived ids: srgb_disp -> '{}', g22_disp -> '{}'\n",
+                   srgb_id, g22_id);
+    OIIO_CHECK_ASSERT(srgb_id != g22_id);
+    OIIO_CHECK_FALSE(srgb_id == "g22_rec709_display");
+    OIIO_CHECK_FALSE(g22_id == "srgb_rec709_display");
+
+    Filesystem::remove(path);
+}
+
+
+
 // Exercise the config interoperability check: a config carrying the
 // aces_interchange role is interoperable and does not warn; a config whose
 // scene reference is positively identifiable (known alias/name, or OCIO
@@ -4671,6 +4802,7 @@ main(int argc, char* argv[])
     test_legacy_table_registry_sync();
     test_color_space_classification();
     test_color_space_fingerprint();
+    test_transfer_curve_discrimination();
     test_config_interoperability();
     test_cross_config_processor();
     test_cross_config_conversion();
