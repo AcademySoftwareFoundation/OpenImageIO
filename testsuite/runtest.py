@@ -74,6 +74,27 @@ OIIO_TESTSUITE_IMAGEDIR = make_relpath(OIIO_TESTSUITE_IMAGEDIR)
 # Set it back so tests can use it (python-imagebufalgo)
 os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
 
+# Silence OpenColorIO's own log output for the whole testsuite, unless the
+# caller deliberately asked for a level.
+#
+# OCIO writes warnings to stderr, and which warnings it writes depends on the
+# OCIO version -- e.g. a config carrying the `interop_id` ColorSpace key (legal
+# since config version 2.0 and understood by OCIO 2.5+) makes every OCIO older
+# than 2.5 emit "unknown key 'interop_id'" once per occurrence. That noise
+# lands in captured output and fails the reference comparison on the noise
+# alone, for tests whose behavior is identical. It made ~15 tests fail on the
+# 2.4 containers while passing on 2.5.
+#
+# No test in this suite consumes OCIO log output: no reference file contains
+# "OpenColorIO Warning" and no run.py asserts on it. So the log is pure noise
+# here, and the version-dependence of that noise is a portability hazard.
+# OCIO_LOGGING_LEVEL is read by OCIO itself (Logging.cpp) and overrides any
+# programmatic SetLoggingLevel. This suppresses logging only -- OCIO reports
+# real failures by throwing, not by logging.
+if 'OCIO_LOGGING_LEVEL' not in os.environ :
+    os.environ['OCIO_LOGGING_LEVEL'] = 'none'
+    os.putenv('OCIO_LOGGING_LEVEL', 'none')
+
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
