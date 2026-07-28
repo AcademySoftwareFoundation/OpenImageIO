@@ -10,6 +10,7 @@ import sys
 import platform
 import subprocess
 import difflib
+import re
 import filecmp
 import shutil
 
@@ -119,6 +120,40 @@ ociover = subprocess.check_output([oiio_app('oiiotool').strip(),
 ociover = ociover.strip().decode('utf-8')[0:3]
 ociover = os.getenv('OCIO_VERSION_OVERRIDE', ociover)
 #print(f"OpenColorIO version = '{ociover}'")
+
+# libpng chunk capabilities, computed once for every test that needs them.
+#
+# PNG is the reference carrier for a couple of color signals, but the libpng
+# APIs for them are recent: png_set_cICP arrived in 1.6.46 and png_set_mDCV in
+# 1.6.50. Below those the writer/reader compile out (PNG_cICP_SUPPORTED /
+# PNG_mDCV_SUPPORTED) and silently no-op, so a test that asserts on the chunk
+# is asserting on something the build cannot do. The CI containers ship
+# PNG 1.6.34, which is exactly this case.
+#
+# Tests gate on these rather than parsing the version themselves, and a test
+# whose SUBJECT is one of these chunks should skip (loudly, with a marker in
+# its output) rather than assert a reduced result -- see the note in
+# oiiotool-colorprofile/run.py for why a "passing" reduced result is worse
+# than a skip. Override with PNG_VERSION_OVERRIDE for testing both paths.
+_pngver = os.getenv('PNG_VERSION_OVERRIDE', '')
+if not _pngver :
+    try :
+        _libdeps = subprocess.check_output(
+            [oiio_app('oiiotool').strip(), '--echo',
+             '{getattribute(build:dependencies)}']).decode('utf-8')
+        _m = re.search(r'[Pp][Nn][Gg][^0-9]*([0-9]+\.[0-9]+\.[0-9]+)', _libdeps)
+        _pngver = _m.group(1) if _m else ''
+    except Exception :
+        _pngver = ''
+def _pngtuple(s) :
+    try :
+        return tuple(int(x) for x in s.split('.')[:3])
+    except Exception :
+        return (0, 0, 0)
+png_version      = _pngver
+png_has_cicp     = _pngtuple(_pngver) >= (1, 6, 46)
+png_has_mdcv     = _pngtuple(_pngver) >= (1, 6, 50)
+#print(f"libpng {png_version} cicp={png_has_cicp} mdcv={png_has_mdcv}")
 
 command = ""
 outputs = [ "out.txt" ]    # default

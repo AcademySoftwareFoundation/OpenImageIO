@@ -42,20 +42,40 @@ def show(label, env="", attr=""):
     return line
 
 
-# Build the CICP-tagged PNG once (ambient config irrelevant here).
-command += oiiotool("--create 4x4 3 '--attrib:type=int[4]' CICP 1,13,0,1 "
-                    "-o cicp.png")
+# This whole test observes profile selection THROUGH a cICP-tagged PNG: it
+# writes cicp.png, reads it back under various selections, and echoes the
+# resolved color space. That only discriminates if the PNG actually carries
+# the cICP chunk, which needs libpng >= 1.6.46.
+#
+# Below that, png_set_cICP compiles out, the chunk is never written, and the
+# reader falls back to its fixed sRGB-scene assumption -- so ALL SIX cases
+# echo "srgb_rec709_scene" and the test silently stops discriminating
+# anything. Asserting that collapsed output against a variant reference would
+# be worse than failing: a green test that verifies nothing. So skip loudly
+# instead, and say why in the output.
+if not png_has_cicp :
+    # Marker text is deliberately version-free so one reference matches every
+    # too-old libpng.
+    command += ("echo '=== SKIPPED: libpng lacks cICP support (needs 1.6.46)"
+                " -- this test observes profile selection through a"
+                " cICP-tagged PNG ==='" + redirect + " ;\n")
+    outputs = ["out.txt"]
+else :
 
-command += show("baseline: no selection -> display")
-command += show("env selects profile -> scene",
-                env="oiio:blender:textures")
-command += show("profile then -key drops the key -> display",
-                env="oiio:blender:textures,-read:cicp_state")
-command += show("+key=value sets a key directly -> scene",
-                env="+read:cicp_state=scene")
-command += show("attribute subtracts env-added profile -> display",
-                env="oiio:blender:textures", attr="-oiio:blender:textures")
-command += show("attribute alone selects profile -> scene",
-                attr="oiio:blender:textures")
+  # Build the CICP-tagged PNG once (ambient config irrelevant here).
+  command += oiiotool("--create 4x4 3 '--attrib:type=int[4]' CICP 1,13,0,1 "
+                      "-o cicp.png")
 
-outputs = ["out.txt"]
+  command += show("baseline: no selection -> display")
+  command += show("env selects profile -> scene",
+                  env="oiio:blender:textures")
+  command += show("profile then -key drops the key -> display",
+                  env="oiio:blender:textures,-read:cicp_state")
+  command += show("+key=value sets a key directly -> scene",
+                  env="+read:cicp_state=scene")
+  command += show("attribute subtracts env-added profile -> display",
+                  env="oiio:blender:textures", attr="-oiio:blender:textures")
+  command += show("attribute alone selects profile -> scene",
+                  attr="oiio:blender:textures")
+
+  outputs = ["out.txt"]
