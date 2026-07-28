@@ -3363,6 +3363,32 @@ derive_color_interop_id_impl(const ColorConfig& config, string_view colorspace)
     if (colorspace.empty())
         return "";
 
+    // Marker-vs-marker precedence (ADR-0020): an incoming unknown-marker is
+    // already a terminal statement about identity, not a color space to derive
+    // FROM. Return it unchanged, canonically spelled, before the cascade runs.
+    //
+    // Without this guard the cascade silently rewrites one marker into
+    // another: resolve() legally strips the leftmost namespace (a CIF
+    // fall-back), so "error:unknown" and "oiio:unknown" both become bare
+    // "unknown" -- and in a config that happens to contain a space NAMED
+    // "unknown", step 1's config-declared branch below then answers
+    // "ocio:unknown". That converts a strict-resolution FAILURE, or OIIO's own
+    // synthetic isData/NoOp treatment marker, into a claim that the CONFIG
+    // declared unknownness. The evidence of the error path is destroyed at the
+    // point of derivation, and derive_color_interop_id is public-facing, so
+    // any caller distinguishing "the config told us" from "we failed to
+    // resolve" gets the wrong answer.
+    //
+    // The wire is unaffected either way -- the writer maps every marker in
+    // this family to bare "unknown" on disk -- so this is purely about keeping
+    // the internal signal diagnosable.
+    switch (::OIIO::pvt::classify_interop_marker(colorspace)) {
+    case ::OIIO::pvt::InteropMarker::OcioUnknown: return "ocio:unknown";
+    case ::OIIO::pvt::InteropMarker::OiioUnknown: return "oiio:unknown";
+    case ::OIIO::pvt::InteropMarker::ErrorUnknown: return "error:unknown";
+    default: break;
+    }
+
     // Four-step Color Interop Forum write-side derivation. The first step to
     // produce an id wins; the fingerprint engine only wakes on the first
     // query that reaches it.

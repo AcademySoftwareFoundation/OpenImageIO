@@ -3337,6 +3337,25 @@ colorspaces:
         OIIO_CHECK_ASSERT(!cc.has_error());
         OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "unknown"),
                          "ocio:unknown");
+
+        // Marker-vs-marker precedence (ADR-0020). THIS config is the shape
+        // that used to corrupt the signal: it contains a space literally
+        // NAMED "unknown", so resolve()'s CIF strip-leftmost fall-back turned
+        // "error:unknown" into bare "unknown", which then hit the
+        // config-declared branch above and answered "ocio:unknown" -- a
+        // resolution FAILURE silently relabeled as a config DECLARATION.
+        // Same corruption for OIIO's own synthetic treatment marker.
+        // An incoming marker is terminal: it derives to itself, unchanged.
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "error:unknown"),
+                         "error:unknown");
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "oiio:unknown"),
+                         "oiio:unknown");
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "ocio:unknown"),
+                         "ocio:unknown");
+        // Case-insensitive per the marker vocabulary, and canonically spelled
+        // on the way out so callers can compare against the literal.
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "ERROR:Unknown"),
+                         "error:unknown");
         Filesystem::remove(unknown_path);
     }
 
