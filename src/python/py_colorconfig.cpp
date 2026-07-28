@@ -526,8 +526,21 @@ declare_colorconfig(py::module& m)
                 return ColorConfig::from_text(config_text, working_dir);
             },
             "config_text"_a, "working_dir"_a = "")
-        .def_static("default_colorconfig", []() -> const ColorConfig& {
-            return ColorConfig::default_colorconfig();
+        .def_static("default_colorconfig",
+                    []() -> const ColorConfig& {
+                        return ColorConfig::default_colorconfig();
+                    })
+        // get_builtin_interop_ids(): the canonical Color Interop Forum ids
+        // declared by OIIO's built-in interop identities registry, as a
+        // tuple of plain strings -- registry data, not an enum, because the
+        // id grammar is open (custom/icc/local/user-namespaced ids cannot
+        // be enumerated).
+        .def_static("get_builtin_interop_ids", []() {
+            cspan<string_view> ids = ColorConfig::get_builtin_interop_ids();
+            py::tuple result(ids.size());
+            for (size_t i = 0; i < ids.size(); ++i)
+                result[i] = py::str(ids[i].data(), ids[i].size());
+            return result;
         });
 
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();

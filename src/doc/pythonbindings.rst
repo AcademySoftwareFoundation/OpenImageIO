@@ -4289,6 +4289,31 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
+.. py:staticmethod:: get_builtin_interop_ids ()
+
+    Returns a ``tuple`` of plain strings: the canonical Color Interop Forum
+    ids that OpenImageIO's built-in interop identities registry declares, in
+    deterministic (sorted) registry order. Each is usable anywhere a CIID is
+    accepted -- as the argument to :py:meth:`resolve`, or compared against
+    what :py:meth:`get_color_interop_id` returns.
+
+    Static, because the builtin ids come from the embedded registry rather
+    than from any config, so no instance is consulted.
+
+    This is registry data, not an enum: the id grammar is open (custom, ICC,
+    local, and user-namespaced ids cannot be enumerated), and plain strings
+    remain the parameter type everywhere a CIID is accepted.
+
+    Example:
+
+    .. code-block:: python
+
+        ids = oiio.ColorConfig.get_builtin_interop_ids()
+        assert "srgb_rec709_display" in ids
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:method:: get_debug_info ()
 
     Return a :py:class:`ColorConfigDebugInfo` describing the config's

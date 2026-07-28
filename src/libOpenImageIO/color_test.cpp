@@ -490,6 +490,48 @@ test_registry_round_trip()
 
 
 
+// The public ColorConfig::get_builtin_interop_ids() lookup must be an
+// exact-set match for the canonical `interop_id:` set declared in the
+// embedded interop identities registry source (NOT the composite parsed
+// config, whose declared names diverge from the canonical id set under
+// OCIO >= 2.5's studio-config overlay), and its storage must be stable for
+// the life of the process.
+static void
+test_builtin_interop_ids_sync()
+{
+    using OIIO::pvt::embedded_interop_identities_ids;
+
+    std::vector<std::string> registry = embedded_interop_identities_ids();
+    OIIO_CHECK_GT(registry.size(), size_t(0));
+
+    std::unordered_set<std::string> registry_set(registry.begin(),
+                                                 registry.end());
+    cspan<string_view> all = ColorConfig::get_builtin_interop_ids();
+    std::unordered_set<std::string> all_set;
+    for (string_view id : all)
+        all_set.emplace(id);
+
+    OIIO_CHECK_EQUAL(all_set.size(), registry_set.size());
+    for (const auto& id : registry_set) {
+        if (all_set.count(id) != 1)
+            Strutil::print("  registry id missing from builtin ids: {}\n", id);
+        OIIO_CHECK_ASSERT(all_set.count(id) == 1);
+    }
+    for (const auto& id : all_set) {
+        if (registry_set.count(id) != 1)
+            Strutil::print("  builtin id not in registry: {}\n", id);
+        OIIO_CHECK_ASSERT(registry_set.count(id) == 1);
+    }
+
+    // Process-lifetime storage: repeated calls return the same data.
+    OIIO_CHECK_ASSERT(ColorConfig::get_builtin_interop_ids().data()
+                      == all.data());
+    OIIO_CHECK_EQUAL(ColorConfig::get_builtin_interop_ids().size(),
+                     all.size());
+}
+
+
+
 // The legacy static CICP/interop-id
 // table (color_ocio.cpp's `color_interop_ids[]`) must not drift from the
 // registry that is its single source of truth for id spelling. The table
@@ -4815,6 +4857,7 @@ main(int argc, char* argv[])
     test_interop_id_grammar();
     test_registry_invariants();
     test_registry_round_trip();
+    test_builtin_interop_ids_sync();
     test_legacy_table_registry_sync();
     test_color_space_classification();
     test_color_space_fingerprint();

@@ -917,6 +917,27 @@ public:
     derive_color_space_infos(cspan<std::string> color_spaces,
                              const ColorSpaceInfoOptions& options = {}) const;
 
+    /// The canonical Color Interop Forum IDs declared by OpenImageIO's
+    /// built-in interop identities registry (see the CIF recommendation
+    /// "An ID for Color Interop",
+    /// https://github.com/AcademySoftwareFoundation/ColorInterop/wiki), in
+    /// deterministic (sorted) registry order. Each is usable anywhere a
+    /// `string_view` CIID is accepted -- as the argument to resolve() or
+    /// equivalent(), or compared against get_color_interop_id()'s return
+    /// value.
+    ///
+    /// Static because the builtin IDs come from the embedded registry, not
+    /// from any config: there is no instance to consult. The returned
+    /// storage has process lifetime, so the span stays valid and repeated
+    /// calls return the same data.
+    ///
+    /// This is registry *data*, not an exhaustive ID grammar: raw strings
+    /// remain first-class for the ids no finite set can enumerate
+    /// (local/custom/icc/user-namespaced).
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD static cspan<string_view> get_builtin_interop_ids();
+
     /// Convenience alias so callers may spell the options type
     /// `ColorConfig::SerializeOptions`.
     using SerializeOptions = ColorConfigSerializeOptions;
