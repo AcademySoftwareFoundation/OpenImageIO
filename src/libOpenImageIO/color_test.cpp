@@ -4742,24 +4742,39 @@ test_config_debug_info()
     if (!ColorConfig::supportsOpenColorIO())
         return;
 
-    ColorConfig cc     = ColorConfig::from_text(utility_config_yaml);
-    std::string report = cc.getDebugInfo();
+    ColorConfig cc            = ColorConfig::from_text(utility_config_yaml);
+    ColorConfigDebugInfo info = cc.get_debug_info();
     OIIO_CHECK_FALSE(cc.has_error());
-    // Identity: versions, config name, registry data version. (The exact
-    // formatting is documented as unstable; assert only stable tokens.)
+    // Identity: versions, config name, registry data version.
+    OIIO_CHECK_ASSERT(info.oiio_version.size());
+    OIIO_CHECK_ASSERT(info.ocio_version.size());
+    OIIO_CHECK_EQUAL(info.config_name, cc.configname());
+    OIIO_CHECK_ASSERT(Strutil::contains(info.registry_data_version,
+                                        "interop-identities-config"));
+    OIIO_CHECK_ASSERT(info.cache_entries.size());
+    // Reporting is lazy: a fresh config's interchange discovery is pending,
+    // and get_debug_info itself must not have triggered it.
+    OIIO_CHECK_ASSERT(info.interchange_state == ColorInterchangeState::Pending);
+    OIIO_CHECK_ASSERT(info.interchange_name.empty());
+    OIIO_CHECK_ASSERT(cc.get_debug_info().interchange_state
+                      == ColorInterchangeState::Pending);
+    // to_string() renders the same paste-able report. (The exact formatting
+    // is documented as unstable; assert only stable tokens.)
+    std::string report = info.to_string();
     OIIO_CHECK_ASSERT(Strutil::contains(report, "OpenImageIO"));
     OIIO_CHECK_ASSERT(Strutil::contains(report, "OpenColorIO"));
     OIIO_CHECK_ASSERT(Strutil::contains(report, cc.configname()));
     OIIO_CHECK_ASSERT(Strutil::contains(report, "interop-identities-config"));
-    // Reporting is lazy: a fresh config's interchange discovery is pending,
-    // and getDebugInfo itself must not have triggered it.
     OIIO_CHECK_ASSERT(Strutil::contains(report, "pending"));
-    OIIO_CHECK_ASSERT(Strutil::contains(cc.getDebugInfo(), "pending"));
     // Once a query runs the discovery, the result is reported.
     ColorConfig::SerializeOptions iopts;
     iopts.interopified = true;
     (void)cc.serialize(iopts);
-    OIIO_CHECK_ASSERT(Strutil::contains(cc.getDebugInfo(), "ACES2065-1"));
+    info = cc.get_debug_info();
+    OIIO_CHECK_ASSERT(info.interchange_state
+                      == ColorInterchangeState::Interoperable);
+    OIIO_CHECK_ASSERT(Strutil::contains(info.interchange_name, "ACES2065-1"));
+    OIIO_CHECK_ASSERT(Strutil::contains(info.to_string(), "ACES2065-1"));
 }
 
 

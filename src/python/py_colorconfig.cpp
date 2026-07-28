@@ -64,6 +64,28 @@ declare_colorconfig(py::module& m)
         .value("Chromaticities", ColorSpaceInfoField::Chromaticities)
         .value("TransferFunction", ColorSpaceInfoField::TransferFunction);
 
+    py::enum_<ColorInterchangeState>(m, "ColorInterchangeState")
+        .value("Pending", ColorInterchangeState::Pending)
+        .value("Interoperable", ColorInterchangeState::Interoperable)
+        .value("NotFound", ColorInterchangeState::NotFound);
+
+    py::class_<ColorConfigDebugInfo>(m, "ColorConfigDebugInfo")
+        .def_readonly("oiio_version", &ColorConfigDebugInfo::oiio_version)
+        .def_readonly("ocio_version", &ColorConfigDebugInfo::ocio_version)
+        .def_readonly("config_name", &ColorConfigDebugInfo::config_name)
+        .def_readonly("structural_cache_id",
+                      &ColorConfigDebugInfo::structural_cache_id)
+        .def_readonly("cache_id", &ColorConfigDebugInfo::cache_id)
+        .def_readonly("registry_data_version",
+                      &ColorConfigDebugInfo::registry_data_version)
+        .def_readonly("interchange_state",
+                      &ColorConfigDebugInfo::interchange_state)
+        .def_readonly("interchange_name",
+                      &ColorConfigDebugInfo::interchange_name)
+        .def_readonly("cache_entries", &ColorConfigDebugInfo::cache_entries)
+        .def("to_string", &ColorConfigDebugInfo::to_string)
+        .def("__str__", &ColorConfigDebugInfo::to_string);
+
     py::enum_<ColorTransferFunctionKind>(m, "ColorTransferFunctionKind")
         .value("Undetermined", ColorTransferFunctionKind::Undetermined)
         .value("Linear", ColorTransferFunctionKind::Linear)
@@ -484,11 +506,11 @@ declare_colorconfig(py::module& m)
             },
             "filename"_a, py::kw_only(), "working_dir"_a = "",
             "interopified"_a = false)
-        .def("getDebugInfo",
+        .def("get_debug_info",
              [](const ColorConfig& self) {
-                 // Pure C++ formatting of existing state: release the GIL.
+                 // Pure C++ reading of existing state: release the GIL.
                  py::gil_scoped_release gil;
-                 return self.getDebugInfo();
+                 return self.get_debug_info();
              })
         .def("clear_caches",
              [](const ColorConfig& self) {

@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 
@@ -213,12 +215,68 @@ struct ColorConfigArchiveOptions {
 };
 
 
-/// Options controlling ColorConfig::getDebugInfo(). There are no options
+/// Options controlling ColorConfig::get_debug_info(). There are no options
 /// yet; the struct exists so future report selectors can be added without
 /// changing the method signature.
 ///
 /// @version 3.2
 struct ColorConfigDebugInfoOptions {};
+
+
+/// State of a config's scene-interchange discovery, as reported by
+/// ColorConfigDebugInfo::interchange_state. `Pending` is a distinct,
+/// load-bearing value: querying the debug info never triggers the lazy
+/// discovery, so a discovery that has not run yet reports as pending
+/// rather than as a negative result.
+///
+/// @version 3.2
+enum class ColorInterchangeState : uint8_t {
+    Pending,        ///< discovery has not run (querying does not trigger it)
+    Interoperable,  ///< a scene interchange space was identified
+    NotFound,       ///< discovery ran and identified none
+};
+
+
+/// A config's identity and cache state, as returned by
+/// ColorConfig::get_debug_info(), for diagnostics and bug reports. Every
+/// field is formatted from existing internal state: constructing this
+/// never triggers lazy work.
+///
+/// @version 3.2
+struct OIIO_API ColorConfigDebugInfo {
+    /// OpenImageIO version string.
+    std::string oiio_version;
+    /// OpenColorIO version string (empty if OCIO is unavailable).
+    std::string ocio_version;
+    /// This config's name (see ColorConfig::configname()).
+    std::string config_name;
+    /// The config's structural cache identity -- context excluded.
+    std::string structural_cache_id;
+    /// OCIO's cache id for the config, with the context folded in.
+    std::string cache_id;
+    /// Data version of the built-in interop identities registry.
+    std::string registry_data_version;
+
+    /// Whether a scene interchange space has been identified for this
+    /// config, or whether that discovery has simply not run yet.
+    ColorInterchangeState interchange_state = ColorInterchangeState::Pending;
+    /// The identified scene interchange space name; empty unless
+    /// `interchange_state` is `Interoperable`.
+    std::string interchange_name;
+
+    /// Per-cache-layer entry counts, keyed by layer name (e.g.
+    /// "color processors", "fingerprints", "characterizations"). A map,
+    /// not one fixed field per layer, deliberately: cache layers come and
+    /// go, and the CONTENTS of a map are not ABI, whereas a field per
+    /// layer would make every future cache change an ABI break. Treat the
+    /// key set as informational, not as a contract.
+    std::map<std::string, std::size_t> cache_entries;
+
+    /// Render all of the above as a human-readable multi-line report, so a
+    /// bug report has one thing to paste. The exact text is informational
+    /// and may change between versions -- display it, don't parse it.
+    std::string to_string() const;
+};
 
 
 /// Options controlling ColorConfig::clear_caches(). There are no options
@@ -944,20 +1002,20 @@ public:
     /// `ColorConfig::DebugInfoOptions`.
     using DebugInfoOptions = ColorConfigDebugInfoOptions;
 
-    /// Return a human-readable multi-line report of this config's identity
-    /// and cache state, for diagnostics and bug reports: the OpenImageIO
-    /// and OpenColorIO versions, the config's name and cache identities,
-    /// the interoperability (interchange discovery) state, the built-in
-    /// interop registry data version, and cache entry counts. This is
-    /// formatting of existing internal state only: it never triggers lazy
-    /// work (a discovery that has not yet run reports as pending), and the
-    /// exact text is informational and may change between versions --
-    /// display it, don't parse it. `options` is reserved for future report
-    /// selectors.
+    /// Return this config's identity and cache state, for diagnostics and
+    /// bug reports: the OpenImageIO and OpenColorIO versions, the config's
+    /// name and cache identities, the interoperability (interchange
+    /// discovery) state, the built-in interop registry data version, and
+    /// per-layer cache entry counts. This reads existing internal state
+    /// only: it never triggers lazy work, so a discovery that has not yet
+    /// run reports as `ColorInterchangeState::Pending`.
+    /// `ColorConfigDebugInfo::to_string()` renders the same
+    /// human-readable report for pasting into a bug report. `options` is
+    /// reserved for future report selectors.
     ///
     /// @version 3.2
-    OIIO_NODISCARD std::string
-    getDebugInfo(const DebugInfoOptions& options = {}) const;
+    OIIO_NODISCARD ColorConfigDebugInfo
+    get_debug_info(const DebugInfoOptions& options = {}) const;
 
     /// Convenience alias so callers may spell the options type
     /// `ColorConfig::ClearCachesOptions`.
@@ -968,7 +1026,7 @@ public:
     /// identity in the process-global fingerprint and characterization
     /// memo caches. Clearing is semantics-free -- every cache repopulates
     /// on demand -- so the only observable effects are memory and
-    /// recompute time (getDebugInfo() reports the entry counts). Shared
+    /// recompute time (get_debug_info() reports the entry counts). Shared
     /// process data not scoped to this config (e.g. the built-in interop
     /// registry) is unaffected. `options` is reserved for future
     /// selectors.

@@ -475,7 +475,7 @@ public:
                                                   : found->second;
     }
 
-    // Diagnostic counters for ColorConfig::getDebugInfo().
+    // Diagnostic counters for ColorConfig::get_debug_info().
     size_t processorCacheSize() const
     {
         spin_rw_read_lock lock(m_mutex);
