@@ -15,8 +15,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/tiffutils.h>
 
-#include "imageio_pvt.h"
 #include "color_pvt.h"
+#include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -244,21 +244,19 @@ extract(cspan<uint8_t> iccdata, size_t& offset, ICCTag& result,
 namespace pvt {
 
 namespace {
-// Big-endian 32-bit read (all ICC integers are big-endian).
-inline uint32_t
-icc_be32(const uint8_t* p)
-{
-    return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16)
-           | (uint32_t(p[2]) << 8) | uint32_t(p[3]);
-}
+    // Big-endian 32-bit read (all ICC integers are big-endian).
+    inline uint32_t icc_be32(const uint8_t* p)
+    {
+        return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16)
+               | (uint32_t(p[2]) << 8) | uint32_t(p[3]);
+    }
 }  // namespace
 
 
 bool
 is_icc_profile(cspan<uint8_t> iccdata)
 {
-    return std::size(iccdata) >= 132
-           && !memcmp(iccdata.data() + 36, "acsp", 4);
+    return std::size(iccdata) >= 132 && !memcmp(iccdata.data() + 36, "acsp", 4);
 }
 
 

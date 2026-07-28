@@ -229,7 +229,9 @@ struct TransferProperty {
     std::optional<TransferFunctionSignature> signature;
 
     bool known() const
-    { return identity || !family.empty() || signature.has_value(); }
+    {
+        return identity || !family.empty() || signature.has_value();
+    }
 };
 
 /// A resolved transfer-function hint: the property a hint term denotes, as one
@@ -367,7 +369,7 @@ identify_icc_profile(const ColorConfig& config, cspan<uint8_t> iccdata);
 struct MasteringDisplayVolume {
     /// Limiting-gamut primaries + whitepoint as CIE xy, in R, G, B, W
     /// order.
-    float primaries[4][2] = { };
+    float primaries[4][2] = {};
     /// Peak luminance, cd/m^2 (snapped to the nominal mastering targets).
     double max_luminance = 0.0;
     /// Minimum luminance, cd/m^2. Probe-honest (may be exactly 0.0); wire
@@ -564,8 +566,8 @@ color_config_interopified_cache_off(const ColorConfig& config);
 OIIO_API std::vector<float>
 cross_config_probe(const ColorConfig& src_config, string_view src_name,
                    const ColorConfig& dst_config, string_view dst_name,
-                   cspan<float> probe, string_view context_key = { },
-                   string_view context_value = { });
+                   cspan<float> probe, string_view context_key = {},
+                   string_view context_value = {});
 
 /// Route `local_name` in `config`'s in-memory interop-repaired copy to
 /// `registry_name` in the built-in interop identities config through the pvt
@@ -597,7 +599,8 @@ identities_display_route_probe(const ColorConfig& config,
 /// internal/test use only.
 OIIO_API std::vector<float>
 interopified_display_interchange_probe(const ColorConfig& config,
-                                       string_view scene_name, cspan<float> probe);
+                                       string_view scene_name,
+                                       cspan<float> probe);
 
 
 // ---------------------------------------------------------------------------
@@ -817,10 +820,10 @@ operator&(CharacterizationField a, CharacterizationField b)
 /// ColorSpaceInfo. An empty `name` denotes an invalid record (unknown or
 /// unresolvable query).
 struct CharacterizationRecord {
-    std::string name;            ///< canonical local name; empty = invalid
-    uint32_t computed_mask  = 0; ///< fields whose determination was attempted
-    uint32_t available_mask = 0; ///< attempted fields with a usable value
-    uint32_t derived_mask   = 0; ///< values that required behavioral derivation
+    std::string name;             ///< canonical local name; empty = invalid
+    uint32_t computed_mask  = 0;  ///< fields whose determination was attempted
+    uint32_t available_mask = 0;  ///< attempted fields with a usable value
+    uint32_t derived_mask = 0;  ///< values that required behavioral derivation
     /// Fields whose FULL derivation tier has been attempted (internal
     /// bookkeeping, not part of the public tri-state): distinguishes a
     /// cheap direct attempt from a full one, so an unsuccessful derivation
@@ -829,8 +832,8 @@ struct CharacterizationRecord {
     std::string equality_id;
     std::string color_interop_id;
     std::string encoding;
-    std::string image_state;     ///< "scene" / "display" / empty
-    std::string range;           ///< "full" / "narrow" / empty; never guessed
+    std::string image_state;  ///< "scene" / "display" / empty
+    std::string range;        ///< "full" / "narrow" / empty; never guessed
     std::vector<float> chromaticities;  ///< 8 floats (RGBW xy) or empty
     ColorTransferFunctionKind transfer_kind
         = ColorTransferFunctionKind::Undetermined;
@@ -850,13 +853,21 @@ struct CharacterizationRecord {
 
     bool valid() const { return !name.empty(); }
     bool computed(CharacterizationField f) const
-    { return (computed_mask & uint32_t(f)) != 0; }
+    {
+        return (computed_mask & uint32_t(f)) != 0;
+    }
     bool available(CharacterizationField f) const
-    { return (available_mask & uint32_t(f)) != 0; }
+    {
+        return (available_mask & uint32_t(f)) != 0;
+    }
     bool derived(CharacterizationField f) const
-    { return (derived_mask & uint32_t(f)) != 0; }
+    {
+        return (derived_mask & uint32_t(f)) != 0;
+    }
     bool full_attempted(CharacterizationField f) const
-    { return (full_attempt_mask & uint32_t(f)) != 0; }
+    {
+        return (full_attempt_mask & uint32_t(f)) != 0;
+    }
 };
 
 /// Characterize `color_space` (a name, role, alias, or interop ID) in
@@ -866,11 +877,10 @@ struct CharacterizationRecord {
 /// context variable overrides scoped to this query. Returns an invalid
 /// record (empty name) for an unknown/unresolvable query. Never throws.
 OIIO_API CharacterizationRecord
-characterize_color_space(const ColorConfig& config, string_view color_space,
-                         CharacterizationField requested_fields
-                         = CharacterizationField::None,
-                         const std::map<std::string, std::string>& context
-                         = {});
+characterize_color_space(
+    const ColorConfig& config, string_view color_space,
+    CharacterizationField requested_fields = CharacterizationField::None,
+    const std::map<std::string, std::string>& context = {});
 
 /// The number of entries currently in the process-global characterization
 /// cache. For internal/test use only.
@@ -988,11 +998,9 @@ struct ColorReadPolicy {
     /// hints. No mid-call re-reads. `config`, if non-null, additionally feeds
     /// the config author's own declared policy (spec 09 FileRule custom keys)
     /// in as a layer below the global attributes.
-    static OIIO_API ColorReadPolicy snapshot(const ImageSpec* config_hints
-                                             = nullptr,
-                                             const ColorConfig* config
-                                             = nullptr,
-                                             string_view filepath = {});
+    static OIIO_API ColorReadPolicy
+    snapshot(const ImageSpec* config_hints = nullptr,
+             const ColorConfig* config = nullptr, string_view filepath = {});
 };
 
 /// The 13 cascade rules, in exact tested precedence order (CICP above ICC,
@@ -1273,8 +1281,8 @@ render_color_read_plan(const ImageSpec& spec,
 /// PerSpecAttribute); the planner additionally attributes a field to the
 /// author's explicit metadata or to the format's declared incapability.
 enum class ColorPlanDecider {
-    BuiltinDefault,    ///< no policy attribute set anywhere -- default behavior
-    ConfigDeclared,    ///< a config `oiio:default`/profile policy key (layer 2/3)
+    BuiltinDefault,  ///< no policy attribute set anywhere -- default behavior
+    ConfigDeclared,  ///< a config `oiio:default`/profile policy key (layer 2/3)
     GlobalAttribute,   ///< a global `oiio:colorpolicy:*` attribute (layer 4)
     MatchedRule,       ///< the config file-rule matching this file (layer 5)
     PerSpecAttribute,  ///< a per-call config hint on the spec (layer 6)
@@ -1327,7 +1335,7 @@ public:
     /// (layer 5), which sits ABOVE the global attribute table (layer 4) but
     /// below the per-call hints (layer 6) -- the documented CSS-specificity
     /// rung (spec 09): a file-matching rule outranks a user's global key.
-    explicit ColorPolicySnapshot(const ImageSpec* hints = nullptr,
+    explicit ColorPolicySnapshot(const ImageSpec* hints    = nullptr,
                                  const ColorConfig* config = nullptr,
                                  string_view filepath      = {});
     /// String colorpolicy attribute, strongest tier first: per-call hint
@@ -1468,11 +1476,9 @@ struct ColorWritePolicy {
     /// hints on the output spec. No mid-call re-reads. `config`, if non-null,
     /// additionally feeds the config author's declared write policy (spec 09
     /// FileRule custom keys) in as a layer below the global attributes.
-    static OIIO_API ColorWritePolicy snapshot(const ImageSpec* config_hints
-                                              = nullptr,
-                                              const ColorConfig* config
-                                              = nullptr,
-                                              string_view filepath = {});
+    static OIIO_API ColorWritePolicy
+    snapshot(const ImageSpec* config_hints = nullptr,
+             const ColorConfig* config = nullptr, string_view filepath = {});
 };
 
 /// Build the write plan for `spec` under `caps` and `policy`. `config` may be

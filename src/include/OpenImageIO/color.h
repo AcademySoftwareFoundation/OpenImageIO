@@ -734,11 +734,12 @@ public:
     /// treats `:` as its option delimiter.
     ///
     /// @version 3.2
-    OIIO_NODISCARD std::vector<std::string> find_color_spaces(
-        cspan<std::string> chromaticities = {},
-        cspan<std::string> transfer_function = {},
-        cspan<std::string> encoding = {}, cspan<std::string> image_state = {},
-        const ColorSpaceSearchOptions& options = {}) const;
+    OIIO_NODISCARD std::vector<std::string>
+    find_color_spaces(cspan<std::string> chromaticities      = {},
+                      cspan<std::string> transfer_function   = {},
+                      cspan<std::string> encoding            = {},
+                      cspan<std::string> image_state         = {},
+                      const ColorSpaceSearchOptions& options = {}) const;
     /// Retrieve the characterization information OIIO can supply CHEAPLY for
     /// the named color space (which may be a name, role, alias, or Color
     /// Interop ID): the canonical local name, the image state, the cheap
@@ -905,8 +906,8 @@ public:
     /// does not throw.
     ///
     /// @version 3.2
-    OIIO_NODISCARD_ERROR bool
-    archive(string_view filename, const ArchiveOptions& options = {}) const;
+    OIIO_NODISCARD_ERROR bool archive(string_view filename,
+                                      const ArchiveOptions& options = {}) const;
 
     /// Convenience alias so callers may spell the options type
     /// `ColorConfig::DebugInfoOptions`.

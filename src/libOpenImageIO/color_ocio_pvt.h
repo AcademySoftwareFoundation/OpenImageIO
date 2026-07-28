@@ -46,7 +46,7 @@ namespace OCIO = OCIO_NAMESPACE;
 OIIO_NAMESPACE_3_1_BEGIN
 
 #if 1 || !defined(NDEBUG) /* allow color configuration debugging */
-extern bool colordebug;  // defined in color_ocio.cpp
+extern bool colordebug;   // defined in color_ocio.cpp
 #    define DBG(...)    \
         if (colordebug) \
         Strutil::print(__VA_ARGS__)
@@ -353,13 +353,13 @@ private:
     // editable copy of config_, repaired to resolve a scene (and, where
     // possible, display) interchange -- config_ itself is never mutated.
     struct InteropState {
-        bool is_interoperable = false;        // config_ carries a scene interchange
-        std::string interchange_colorspace;   // discovered interchange space name
+        bool is_interoperable = false;  // config_ carries a scene interchange
+        std::string interchange_colorspace;  // discovered interchange space name
         OCIO::ConstConfigRcPtr interopified;  // repaired probe copy of config_
         bool warned = false;                  // this config emitted the warning
         std::string warning_message;  // the composed once-per-config warning
-                                       // (recorded here, NOT on the ColorConfig
-                                       // error string -- see ensure_interop()).
+                                      // (recorded here, NOT on the ColorConfig
+                                      // error string -- see ensure_interop()).
     };
     mutable InteropState m_interop;
     mutable bool m_interop_ready = false;
@@ -440,10 +440,9 @@ public:
     // record its continue-message against the cached processor (under the
     // same lock as the insertion), so the per-call outcome travels WITH the
     // processor and a later cache hit can re-signal it.
-    ColorProcessorHandle addproc(const ColorProcCacheKey& key,
-                                 ColorProcessorHandle handle,
-                                 const std::string* lenient_fallback_msg
-                                 = nullptr)
+    ColorProcessorHandle
+    addproc(const ColorProcCacheKey& key, ColorProcessorHandle handle,
+            const std::string* lenient_fallback_msg = nullptr)
     {
         if (!handle)
             return handle;
@@ -659,7 +658,8 @@ public:
     // foreign endpoint through the built-in interop identities config via the
     // cross-config chokepoint. Returned-handle / `errmsg` contract lives at
     // the definition. Never throws.
-    ColorProcessorHandle reconcile_cross_config(string_view src, string_view dst,
+    ColorProcessorHandle reconcile_cross_config(string_view src,
+                                                string_view dst,
                                                 std::string& errmsg) const;
 
     // Display-view sibling of reconcile_cross_config: reconcile a display
@@ -669,11 +669,10 @@ public:
     // source through the interop identities config into this config's
     // display/view via the display-view chokepoint. Same strict/lenient/
     // narration contract as reconcile_cross_config. Never throws.
-    ColorProcessorHandle reconcile_cross_config_display(string_view input,
-                                                        string_view display,
-                                                        string_view view,
-                                                        bool inverse,
-                                                        std::string& errmsg) const;
+    ColorProcessorHandle
+    reconcile_cross_config_display(string_view input, string_view display,
+                                   string_view view, bool inverse,
+                                   std::string& errmsg) const;
 
     // Whether analyze() has already run for the named space, WITHOUT
     // triggering it (used to verify lazy behavior). False for unknown names.
@@ -1085,26 +1084,22 @@ interopify_config(const OCIO::ConstConfigRcPtr& config);
 // The cross-config chokepoint: the single wrapper over OCIO's two-config
 // GetProcessorFromConfigs. Defined in color_crossconfig.cpp.
 OCIO::ConstProcessorRcPtr
-processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
-                       string_view src_name,
-                       const OCIO::ConstConfigRcPtr& dst_config,
-                       string_view dst_name, std::string& errmsg,
-                       const OCIO::ConstContextRcPtr& src_context = nullptr,
-                       const OCIO::ConstContextRcPtr& dst_context = nullptr,
-                       const char* interchange_role
-                       = OCIO::ROLE_INTERCHANGE_SCENE);
+processor_from_configs(
+    const OCIO::ConstConfigRcPtr& src_config, string_view src_name,
+    const OCIO::ConstConfigRcPtr& dst_config, string_view dst_name,
+    std::string& errmsg, const OCIO::ConstContextRcPtr& src_context = nullptr,
+    const OCIO::ConstContextRcPtr& dst_context = nullptr,
+    const char* interchange_role               = OCIO::ROLE_INTERCHANGE_SCENE);
 
 // Display-view sibling of the cross-config chokepoint. Defined in
 // color_crossconfig.cpp.
 OCIO::ConstProcessorRcPtr
-display_processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
-                              string_view src_name,
-                              const OCIO::ConstConfigRcPtr& dst_config,
-                              string_view display, string_view view,
-                              OCIO::TransformDirection direction,
-                              std::string& errmsg,
-                              const OCIO::ConstContextRcPtr& src_context = nullptr,
-                              const OCIO::ConstContextRcPtr& dst_context = nullptr);
+display_processor_from_configs(
+    const OCIO::ConstConfigRcPtr& src_config, string_view src_name,
+    const OCIO::ConstConfigRcPtr& dst_config, string_view display,
+    string_view view, OCIO::TransformDirection direction, std::string& errmsg,
+    const OCIO::ConstContextRcPtr& src_context = nullptr,
+    const OCIO::ConstContextRcPtr& dst_context = nullptr);
 
 // Core of pvt::identify_icc_profile(). Defined in color_icc_probe.cpp.
 OIIO::pvt::IccIdentifyResult

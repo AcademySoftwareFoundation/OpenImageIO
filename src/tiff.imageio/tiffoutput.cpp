@@ -23,8 +23,8 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/timer.h>
 
-#include "imageio_pvt.h"
 #include "color_pvt.h"
+#include "imageio_pvt.h"
 
 
 // clang-format off

@@ -21,8 +21,8 @@
 // from the reserved table are not resolved here; the multi-hypothesis
 // whitepoint/CAT sweep is a documented follow-on.
 
-#include "imageio_pvt.h"
 #include "color_pvt.h"
+#include "imageio_pvt.h"
 
 #include <OpenImageIO/strutil.h>
 
@@ -41,7 +41,7 @@ round_chromaticity_coord(double value)
     // grid if it lands within snapTol. First (finest) grid within tolerance
     // wins. This absorbs OCIO chromaticity floats that come back as e.g.
     // 0.329999998; downstream equality is exact on the result.
-    const double rounded         = std::round(value * 1.0e6) / 1.0e6;
+    const double rounded            = std::round(value * 1.0e6) / 1.0e6;
     static constexpr double snaptol = 2.0e-7;  // 2 * 10^-(6+1)
     for (int digits : { 5, 4, 3, 2 }) {
         const double factor    = std::pow(10.0, digits);
@@ -99,9 +99,12 @@ reserved_chromaticities_for_id(string_view interop_id)
     }
     // AdobeRGB is matched only on the exact id or an "_adobergb_" token, never
     // via the substring loop, because many ids carry "rgb" incidentally.
-    if (lowered == "adobergb" || lowered.find("_adobergb_") != std::string::npos)
-        return Chromaticities {{ {{0.64, 0.33}}, {{0.21, 0.71}},
-                                 {{0.15, 0.06}}, {{0.3127, 0.329}} }};
+    if (lowered == "adobergb"
+        || lowered.find("_adobergb_") != std::string::npos)
+        return Chromaticities { { { { 0.64, 0.33 } },
+                                  { { 0.21, 0.71 } },
+                                  { { 0.15, 0.06 } },
+                                  { { 0.3127, 0.329 } } } };
     return {};
 }
 
@@ -138,12 +141,12 @@ chromaticities_from_ap0_probes(cspan<float> ap0_rgb)
         const double sum = xyz[0] + xyz[1] + xyz[2];
         if (!std::isfinite(sum) || std::abs(sum) < 1.0e-12)
             return {};
-        out[i] = {{ round_chromaticity_coord(xyz[0] / sum),
-                    round_chromaticity_coord(xyz[1] / sum) }};
+        out[i] = { { round_chromaticity_coord(xyz[0] / sum),
+                     round_chromaticity_coord(xyz[1] / sum) } };
     }
     // An equal-energy white rounds to x == y; normalize to exact (1/3, 1/3).
     if (out[3][0] == out[3][1])
-        out[3] = {{ 1.0 / 3.0, 1.0 / 3.0 }};
+        out[3] = { { 1.0 / 3.0, 1.0 / 3.0 } };
     return out;
 }
 

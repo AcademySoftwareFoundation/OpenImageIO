@@ -17,10 +17,10 @@
 #include <string>
 #include <vector>
 
+#include "color_pvt.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/strutil.h>
-#include "color_pvt.h"
 
 #include <OpenImageIO/unittest.h>
 
@@ -88,8 +88,10 @@ test_parse_search_term()
     OIIO_CHECK_EQUAL(parse_search_term("").second, "");
 
     // Bare operator, dangling escape, and invalid escape all throw.
-    OIIO_CHECK_ASSERT(throws_invalid_argument([] { pvt::parse_search_term("-"); }));
-    OIIO_CHECK_ASSERT(throws_invalid_argument([] { pvt::parse_search_term("~"); }));
+    OIIO_CHECK_ASSERT(
+        throws_invalid_argument([] { pvt::parse_search_term("-"); }));
+    OIIO_CHECK_ASSERT(
+        throws_invalid_argument([] { pvt::parse_search_term("~"); }));
     OIIO_CHECK_ASSERT(
         throws_invalid_argument([] { pvt::parse_search_term("\\"); }));
     OIIO_CHECK_ASSERT(
@@ -226,8 +228,8 @@ test_universe_and_visibility()
     // data space and inactive space are absent.
     OIIO_CHECK_ASSERT(
         pvt::find_color_spaces(config, opt)
-        == std::vector<std::string>({ "active_simple", "display_simple",
-                                      "unknown_encoding" }));
+        == std::vector<std::string>(
+            { "active_simple", "display_simple", "unknown_encoding" }));
 
     // include_inactive appends the inactive simple space.
     opt.include_inactive = true;
@@ -342,36 +344,36 @@ test_encoding_twin_inference_and_strict()
                       == std::vector<std::string>({ "theatrical_output" }));
 
     opt.encodings = { "sdr-video" };
-    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
-                      == std::vector<std::string>(
-                          { "plain_video", "theatrical_output" }));
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, opt)
+        == std::vector<std::string>({ "plain_video", "theatrical_output" }));
 
     // Hint-by-example reads the named space's own effective encoding
     // (sdr-video), not its twin's.
     opt.encodings = { "theatrical_output" };
-    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
-                      == std::vector<std::string>(
-                          { "plain_video", "theatrical_output" }));
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, opt)
+        == std::vector<std::string>({ "plain_video", "theatrical_output" }));
 
     // Exclusion removes a proven (inferred) match; inverse requires a proven
     // difference on every characterized value.
     opt.encodings = { "-sdr-cinema" };
-    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
-                      == std::vector<std::string>(
-                          { "plain_video", "reference" }));
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, opt)
+        == std::vector<std::string>({ "plain_video", "reference" }));
     opt.encodings = { "~sdr-cinema" };
-    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
-                      == std::vector<std::string>(
-                          { "plain_video", "reference" }));
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, opt)
+        == std::vector<std::string>({ "plain_video", "reference" }));
 
     // strict: authored attributes only -- the twin's encoding never enters.
     opt.strict    = true;
     opt.encodings = { "sdr-cinema" };
     OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt).empty());
     opt.encodings = { "sdr-video" };
-    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
-                      == std::vector<std::string>(
-                          { "plain_video", "theatrical_output" }));
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, opt)
+        == std::vector<std::string>({ "plain_video", "theatrical_output" }));
 }
 
 
@@ -567,7 +569,7 @@ colorspaces:
     name: cdl_backed
     from_scene_reference: !<CDLTransform> {slope: [1.1, 1, 1], offset: [0, 0, 0], power: [1, 1, 1], saturation: 1}
 )OCIO";
-    ColorConfig config = config_from_text(dir, "exhaustive.ocio", cfg);
+    ColorConfig config        = config_from_text(dir, "exhaustive.ocio", cfg);
 
     // Default: the .clf-backed space is not simple, and the CDL space is not
     // simple, so both are absent.
@@ -581,14 +583,14 @@ colorspaces:
     // and is admitted; the CDL space is rejected by the allowlist (no
     // fingerprint consulted). This is the realize-clean + allowlist gate.
     pvt::FindColorSpacesOptions ex;
-    ex.exhaustive = true;
+    ex.exhaustive         = true;
     const auto exhaustive = pvt::find_color_spaces(config, ex);
-    OIIO_CHECK_ASSERT(std::find(exhaustive.begin(), exhaustive.end(),
-                                "clf_backed")
-                      != exhaustive.end());
-    OIIO_CHECK_ASSERT(std::find(exhaustive.begin(), exhaustive.end(),
-                                "cdl_backed")
-                      == exhaustive.end());
+    OIIO_CHECK_ASSERT(
+        std::find(exhaustive.begin(), exhaustive.end(), "clf_backed")
+        != exhaustive.end());
+    OIIO_CHECK_ASSERT(
+        std::find(exhaustive.begin(), exhaustive.end(), "cdl_backed")
+        == exhaustive.end());
 }
 
 
@@ -689,7 +691,7 @@ test_context_override()
 
     // Under CTX=gamma_a (also the config's ambient default), ctx_space
     // behaves as gamma_a and matches the hint.
-    opt.context = { { "CTX", "gamma_a" } };
+    opt.context       = { { "CTX", "gamma_a" } };
     const auto with_a = pvt::find_color_spaces(config, opt);
     OIIO_CHECK_ASSERT(contains(with_a, "gamma_a"));
     OIIO_CHECK_ASSERT(contains(with_a, "ctx_space"));
@@ -697,7 +699,7 @@ test_context_override()
     // Under CTX=gamma_b the SAME space behaves as gamma_b: the probes must
     // run under the explicit override, so ctx_space drops out of a gamma_a
     // transfer query...
-    opt.context = { { "CTX", "gamma_b" } };
+    opt.context       = { { "CTX", "gamma_b" } };
     const auto with_b = pvt::find_color_spaces(config, opt);
     OIIO_CHECK_ASSERT(contains(with_b, "gamma_a"));
     OIIO_CHECK_FALSE(contains(with_b, "ctx_space"));
@@ -707,7 +709,7 @@ test_context_override()
     opt_b.include_context_sensitive = true;
     opt_b.transfer_functions        = { "gamma_b" };
     opt_b.context                   = { { "CTX", "gamma_b" } };
-    const auto with_b2 = pvt::find_color_spaces(config, opt_b);
+    const auto with_b2              = pvt::find_color_spaces(config, opt_b);
     OIIO_CHECK_ASSERT(contains(with_b2, "gamma_b"));
     OIIO_CHECK_ASSERT(contains(with_b2, "ctx_space"));
 
@@ -738,8 +740,8 @@ test_public_adapter()
     // Default (all axes empty) exposes the active/simple universe.
     OIIO_CHECK_ASSERT(
         config.find_color_spaces()
-        == std::vector<std::string>({ "active_simple", "display_simple",
-                                      "unknown_encoding" }));
+        == std::vector<std::string>(
+            { "active_simple", "display_simple", "unknown_encoding" }));
 
     // include_inactive flows through the adapter.
     ColorSpaceSearchOptions inactive_opts;
@@ -753,10 +755,8 @@ test_public_adapter()
     // the error convention: empty result, has_error() set, never a throw.
     std::vector<std::string> bad = { "bogus" };
     std::vector<std::string> r;
-    OIIO_CHECK_ASSERT(
-        !throws_invalid_argument([&] {
-            r = config.find_color_spaces({}, {}, {}, bad);
-        }));
+    OIIO_CHECK_ASSERT(!throws_invalid_argument(
+        [&] { r = config.find_color_spaces({}, {}, {}, bad); }));
     OIIO_CHECK_ASSERT(r.empty());
     OIIO_CHECK_ASSERT(config.has_error());
     OIIO_CHECK_ASSERT(!config.geterror().empty());

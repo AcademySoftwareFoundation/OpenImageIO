@@ -12,8 +12,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
-#include "jpeg_pvt.h"
 #include "color_pvt.h"
+#include "jpeg_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 

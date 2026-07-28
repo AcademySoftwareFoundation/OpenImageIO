@@ -12,12 +12,12 @@
 #include <string>
 #include <vector>
 
+#include "color_pvt.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
-#include "color_pvt.h"
 
 #include <OpenImageIO/unittest.h>
 
@@ -177,7 +177,7 @@ test_facts_from_spec()
     spec.attribute("acesImageContainerFlag", 1);
     spec.attribute("colorInteropID", "lin_ap1_scene");
     spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
-    const float chroma[8] = { 0.64f, 0.33f, 0.30f, 0.60f,
+    const float chroma[8] = { 0.64f, 0.33f, 0.30f,   0.60f,
                               0.15f, 0.06f, 0.3127f, 0.3290f };
     spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chroma);
     spec.attribute("oiio:Gamma", 2.4f);
@@ -253,7 +253,7 @@ test_config_or_registry_failover(const ColorConfig& sparse)
 
     ColorReadPolicy config_only;
     config_only.scope = ColorResolutionScope::ConfigOnly;
-    auto strict = resolve_color_metadata(&sparse, spec, {}, config_only);
+    auto strict       = resolve_color_metadata(&sparse, spec, {}, config_only);
     OIIO_CHECK_ASSERT(!strict.has_genuine_metadata_match());
 }
 
@@ -275,7 +275,7 @@ test_infer_helper(const ColorConfig& config)
         // Wide-gamut chromaticities resolve only to a custom: synthetic --
         // no constructible space, so no inference.
         ImageSpec spec(4, 4, 3, TypeFloat);
-        const float chroma[8] = { 0.708f, 0.292f, 0.170f, 0.797f,
+        const float chroma[8] = { 0.708f, 0.292f, 0.170f,  0.797f,
                                   0.131f, 0.046f, 0.3127f, 0.3290f };
         spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chroma);
         OIIO_CHECK_EQUAL(infer_color_space_from_spec(&config, spec, {}, {}),
@@ -286,8 +286,8 @@ test_infer_helper(const ColorConfig& config)
         // answers on the first pass; no config-only retry is needed.
         ImageSpec spec(4, 4, 3, TypeFloat);
         auto icc = fake_icc_profile();
-        spec.attribute("ICCProfile",
-                       TypeDesc(TypeDesc::UINT8, int(icc.size())), icc.data());
+        spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, int(icc.size())),
+                       icc.data());
         spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
         OIIO_CHECK_EQUAL(infer_color_space_from_spec(&config, spec, {}, {}),
                          "srgb_rec709_display");
@@ -334,9 +334,9 @@ test_iba_inference(const ColorConfig& config)
     OIIO_CHECK_ASSERT(cmp2.nfail > 0);
 
     // Explicit source wins over the contradictory CICP hint.
-    ImageBuf explicit_wins
-        = ImageBufAlgo::colorconvert(src, "lin_ap1_scene", "lin_test_scene",
-                                     true, "", "", &config);
+    ImageBuf explicit_wins = ImageBufAlgo::colorconvert(src, "lin_ap1_scene",
+                                                        "lin_test_scene", true,
+                                                        "", "", &config);
     OIIO_CHECK_ASSERT(!explicit_wins.has_error());
     auto cmp3 = ImageBufAlgo::compare(explicit_wins, explicit_src, 0.0f, 0.0f);
     OIIO_CHECK_ASSERT(cmp3.nfail > 0);
@@ -369,13 +369,13 @@ test_scrubber(const ColorConfig& config)
         spec.attribute("oiio:ColorSpace", "lin_test_scene");
         spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), kCicpSrgb);
         spec.attribute("colorInteropID", "lin_ap1_scene");
-        const float chroma[8] = { 0.64f, 0.33f, 0.30f, 0.60f,
+        const float chroma[8] = { 0.64f, 0.33f, 0.30f,   0.60f,
                                   0.15f, 0.06f, 0.3127f, 0.3290f };
         spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chroma);
         spec.attribute("oiio:Gamma", 2.4f);
         auto icc = fake_icc_profile();
-        spec.attribute("ICCProfile",
-                       TypeDesc(TypeDesc::UINT8, int(icc.size())), icc.data());
+        spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, int(icc.size())),
+                       icc.data());
         scrub_color_metadata(spec);
         // Every provenance fact is gone.
         OIIO_CHECK_ASSERT(!spec.find_attribute("CICP"));
@@ -470,7 +470,7 @@ test_set_colorspace_hygiene(const ColorConfig& config)
         spec.attribute("chromaticities", TypeDesc(TypeDesc::FLOAT, 8), chroma);
         spec.attribute("oiio:Gamma", 2.4f);
         spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, int(icc.size())),
-                       icc.data());
+                              icc.data());
         spec.attribute("Exif:ColorSpace", 1);
         spec.attribute("tiff:ColorSpace", 1);
     };
@@ -619,9 +619,9 @@ test_iba_scrub_wiring(const ColorConfig& config)
     OIIO_CHECK_ASSERT(!inferred.spec().find_attribute("ICCProfile"));
     OIIO_CHECK_ASSERT(!inferred.spec().find_attribute("CICP"));
 
-    ImageBuf explicit_src
-        = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
-                                     "lin_test_scene", true, "", "", &config);
+    ImageBuf explicit_src = ImageBufAlgo::colorconvert(src, "srgb_rec709_scene",
+                                                       "lin_test_scene", true,
+                                                       "", "", &config);
     OIIO_CHECK_ASSERT(!explicit_src.has_error());
     // Uniform two-bucket scrub: the explicit-source path scrubs too.
     OIIO_CHECK_ASSERT(!explicit_src.spec().find_attribute("ICCProfile"));

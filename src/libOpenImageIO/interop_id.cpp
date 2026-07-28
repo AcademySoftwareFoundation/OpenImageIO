@@ -10,8 +10,8 @@
 // Pure, stateless functions with no OCIO dependency -- kept in their own
 // translation unit so color_ocio.cpp doesn't have to grow to hold them.
 
-#include "imageio_pvt.h"
 #include "color_pvt.h"
+#include "imageio_pvt.h"
 
 #include <array>
 
@@ -23,71 +23,62 @@ namespace pvt {
 
 namespace {
 
-// Annex B id-char set: lowercase a-z, 0-9, and the punctuation below.
-// Built once at compile time into a 128-entry table keyed by ASCII byte,
-// so the per-character check is a single indexed load (no hashing, no
-// first-call guard needed since the table is constexpr-built). Shared by
-// both sanitize_id_token's "already legal" fast path and
-// parse_interop_id's token-validity check (which must NOT lowercase or
-// map -- just accept/reject).
-constexpr std::array<bool, 128>
-make_allowed_id_char_table()
-{
-    std::array<bool, 128> table {};
-    for (char c = 'a'; c <= 'z'; ++c)
-        table[static_cast<unsigned char>(c)] = true;
-    for (char c = '0'; c <= '9'; ++c)
-        table[static_cast<unsigned char>(c)] = true;
-    for (char c :
-         { '.', '-', '_', '~', '/', '*', '#', '%', '^', '+', '(', ')', '[',
-           ']', '|' })
-        table[static_cast<unsigned char>(c)] = true;
-    return table;
-}
-
-bool
-is_allowed_id_char(char c)
-{
-    static constexpr std::array<bool, 128> kAllowed
-        = make_allowed_id_char_table();
-    const auto byte = static_cast<unsigned char>(c);
-    return byte < 0x80u && kAllowed[byte];
-}
-
-// True if every byte of `s` is ASCII and allowed per is_allowed_id_char.
-// Empty strings are NOT valid tokens (grammar requires 1*id-char).
-bool
-is_valid_token(const std::string& s)
-{
-    if (s.empty())
-        return false;
-    for (unsigned char c : s) {
-        if (c >= 0x80 || !is_allowed_id_char(static_cast<char>(c)))
-            return false;
+    // Annex B id-char set: lowercase a-z, 0-9, and the punctuation below.
+    // Built once at compile time into a 128-entry table keyed by ASCII byte,
+    // so the per-character check is a single indexed load (no hashing, no
+    // first-call guard needed since the table is constexpr-built). Shared by
+    // both sanitize_id_token's "already legal" fast path and
+    // parse_interop_id's token-validity check (which must NOT lowercase or
+    // map -- just accept/reject).
+    constexpr std::array<bool, 128> make_allowed_id_char_table()
+    {
+        std::array<bool, 128> table {};
+        for (char c = 'a'; c <= 'z'; ++c)
+            table[static_cast<unsigned char>(c)] = true;
+        for (char c = '0'; c <= '9'; ++c)
+            table[static_cast<unsigned char>(c)] = true;
+        for (char c : { '.', '-', '_', '~', '/', '*', '#', '%', '^', '+', '(',
+                        ')', '[', ']', '|' })
+            table[static_cast<unsigned char>(c)] = true;
+        return table;
     }
-    return true;
-}
 
-// Number of bytes (including the lead byte) in the UTF-8 sequence that
-// starts with `lead`, per the standard lead-byte bit patterns. Returns 1
-// for ASCII or for a stray/invalid lead byte (defensive fallback).
-int
-utf8_sequence_length(unsigned char lead)
-{
-    if ((lead & 0xE0u) == 0xC0u)
-        return 2;
-    if ((lead & 0xF0u) == 0xE0u)
-        return 3;
-    if ((lead & 0xF8u) == 0xF0u)
-        return 4;
-    return 1;
-}
+    bool is_allowed_id_char(char c)
+    {
+        static constexpr std::array<bool, 128> kAllowed
+            = make_allowed_id_char_table();
+        const auto byte = static_cast<unsigned char>(c);
+        return byte < 0x80u && kAllowed[byte];
+    }
 
-bool
-is_utf8_continuation(unsigned char b)
-{
-    return (b & 0xC0u) == 0x80u;
-}
+    // True if every byte of `s` is ASCII and allowed per is_allowed_id_char.
+    // Empty strings are NOT valid tokens (grammar requires 1*id-char).
+    bool is_valid_token(const std::string& s)
+    {
+        if (s.empty())
+            return false;
+        for (unsigned char c : s) {
+            if (c >= 0x80 || !is_allowed_id_char(static_cast<char>(c)))
+                return false;
+        }
+        return true;
+    }
+
+    // Number of bytes (including the lead byte) in the UTF-8 sequence that
+    // starts with `lead`, per the standard lead-byte bit patterns. Returns 1
+    // for ASCII or for a stray/invalid lead byte (defensive fallback).
+    int utf8_sequence_length(unsigned char lead)
+    {
+        if ((lead & 0xE0u) == 0xC0u)
+            return 2;
+        if ((lead & 0xF0u) == 0xE0u)
+            return 3;
+        if ((lead & 0xF8u) == 0xF0u)
+            return 4;
+        return 1;
+    }
+
+    bool is_utf8_continuation(unsigned char b) { return (b & 0xC0u) == 0x80u; }
 
 }  // namespace
 
@@ -99,7 +90,7 @@ sanitize_id_token(const std::string& token)
     std::string result;
     result.reserve(token.size());
 
-    std::size_t i    = 0;
+    std::size_t i       = 0;
     const std::size_t n = token.size();
     while (i < n) {
         const unsigned char byte = static_cast<unsigned char>(token[i]);

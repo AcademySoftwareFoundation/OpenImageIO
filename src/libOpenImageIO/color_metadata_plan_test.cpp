@@ -12,10 +12,10 @@
 #include <string>
 #include <vector>
 
+#include "color_pvt.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
-#include "color_pvt.h"
 
 #include <OpenImageIO/unittest.h>
 
@@ -30,7 +30,8 @@ using namespace OIIO::pvt;
 static std::string
 write_test_config()
 {
-    std::string path = Filesystem::temp_directory_path() + "/oiio_cmp_test.ocio";
+    std::string path = Filesystem::temp_directory_path()
+                       + "/oiio_cmp_test.ocio";
     std::ofstream f(path);
     f << R"(ocio_profile_version: 2
 environment: {}
@@ -101,12 +102,14 @@ colorspaces:
 static void
 test_profile_selection(const ColorConfig& config)
 {
-    using Keys           = std::map<std::string, std::string>;
+    using Keys            = std::map<std::string, std::string>;
     const std::string CS  = "oiio:colorpolicy:read:cicp_state";
     const std::string DTS = "oiio:colorpolicy:read:display_to_scene";
     const std::string VB  = "oiio:colorpolicy:write:verbose";
     // The layer-2 baseline the snapshot ctor seeds before selection.
-    auto base = [&] { return config_declared_policy_keys(config, "oiio:default"); };
+    auto base = [&] {
+        return config_declared_policy_keys(config, "oiio:default");
+    };
 
     // (1) Selecting a profile activates its keys, cascading over layer 2.
     {
@@ -135,7 +138,8 @@ test_profile_selection(const ColorConfig& config)
     //     subtracts the whole profile -- its keys go, the layer-2 key remains.
     {
         Keys k = base();
-        apply_profile_selection(k, config, "oiio:blender:textures");   // env base
+        apply_profile_selection(k, config,
+                                "oiio:blender:textures");  // env base
         apply_profile_selection(k, config, "-oiio:blender:textures");  // attr
         OIIO_CHECK_ASSERT(k.find(CS) == k.end());
         OIIO_CHECK_ASSERT(k.find(DTS) == k.end());
@@ -252,7 +256,8 @@ test_derivation(const ColorConfig& config)
     const std::string want_id(
         derive_color_interop_id(config, "srgb_rec709_display"));
     if (!want_id.empty()) {
-        OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Derive));
+        OIIO_CHECK_EQUAL(int(p.interop_id.action),
+                         int(ColorPlanAction::Derive));
         OIIO_CHECK_EQUAL(p.interop_id.str, want_id);
     } else {
         OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Omit));
@@ -299,7 +304,7 @@ colorspaces:
     name: srgb_rec709_scene
 )";
     const std::string path             = Filesystem::temp_directory_path()
-                                         + "/oiio_cmp_mislabeled.ocio";
+                             + "/oiio_cmp_mislabeled.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(path, mislabeled_yaml));
     ColorConfig cc(path);
     OIIO_CHECK_ASSERT(!cc.has_error());
@@ -385,8 +390,8 @@ test_global_policy_tier()
         auto in = ImageInput::open(file);
         OIIO_CHECK_ASSERT(in.get());
         if (in) {
-            OIIO_CHECK_EQUAL(
-                in->spec().get_string_attribute("colorInteropID"), "");
+            OIIO_CHECK_EQUAL(in->spec().get_string_attribute("colorInteropID"),
+                             "");
             in->close();
         }
         Filesystem::remove(file);
@@ -433,8 +438,8 @@ test_policy_hint_plumbing()
         OIIO_CHECK_ASSERT(in.get());
         if (in) {
             // The per-spec 'auto' beat the global 'never': the id derived.
-            OIIO_CHECK_EQUAL(
-                in->spec().get_string_attribute("colorInteropID"), derivable);
+            OIIO_CHECK_EQUAL(in->spec().get_string_attribute("colorInteropID"),
+                             derivable);
             in->close();
         }
         Filesystem::remove(file);
@@ -461,14 +466,15 @@ test_policy_hint_plumbing()
         for (int core : { 0, 1 }) {
             OIIO_CHECK_ASSERT(OIIO::attribute("openexr:core", core));
             // Global tier: prefer the scene-state twin of the file's id.
-            OIIO_CHECK_ASSERT(OIIO::attribute(
-                "oiio:colorpolicy:read:state_preference", "scene"));
+            OIIO_CHECK_ASSERT(
+                OIIO::attribute("oiio:colorpolicy:read:state_preference",
+                                "scene"));
             auto in = ImageInput::open(file);
             OIIO_CHECK_ASSERT(in.get());
             if (in) {
-                OIIO_CHECK_EQUAL(
-                    in->spec().get_string_attribute("oiio:ColorSpace"),
-                    "srgb_rec709_scene");
+                OIIO_CHECK_EQUAL(in->spec().get_string_attribute(
+                                     "oiio:ColorSpace"),
+                                 "srgb_rec709_scene");
                 in->close();
             }
             // Per-open hint: put the display preference back for THIS open
@@ -479,13 +485,14 @@ test_policy_hint_plumbing()
             auto in2 = ImageInput::open(file, &config);
             OIIO_CHECK_ASSERT(in2.get());
             if (in2) {
-                OIIO_CHECK_EQUAL(
-                    in2->spec().get_string_attribute("oiio:ColorSpace"),
-                    "srgb_rec709_display");
+                OIIO_CHECK_EQUAL(in2->spec().get_string_attribute(
+                                     "oiio:ColorSpace"),
+                                 "srgb_rec709_display");
                 in2->close();
             }
-            OIIO_CHECK_ASSERT(OIIO::attribute(
-                "oiio:colorpolicy:read:state_preference", "auto"));
+            OIIO_CHECK_ASSERT(
+                OIIO::attribute("oiio:colorpolicy:read:state_preference",
+                                "auto"));
         }
         OIIO::attribute("openexr:core", core_orig);
         Filesystem::remove(file);
@@ -493,8 +500,8 @@ test_policy_hint_plumbing()
 
     // --- PNG: capability probe -- explicit CICP must round-trip at all
     // (libpng without cICP support skips the PNG halves). -----------------
-    const int cicp_srgb[4] = { 1, 13, 0, 1 };
-    bool png_cicp_ok       = false;
+    const int cicp_srgb[4]    = { 1, 13, 0, 1 };
+    bool png_cicp_ok          = false;
     const std::string pngfile = Filesystem::temp_directory_path()
                                 + "/oiio_cmp_hints.png";
     if (ImageOutput::create("png")) {
@@ -508,7 +515,7 @@ test_policy_hint_plumbing()
         }
         auto in = ImageInput::open(pngfile);
         if (in) {
-            int got[4] = { -1, -1, -1, -1 };
+            int got[4]  = { -1, -1, -1, -1 };
             png_cicp_ok = in->spec().getattribute("CICP",
                                                   TypeDesc(TypeDesc::INT, 4),
                                                   got);
@@ -527,9 +534,8 @@ test_policy_hint_plumbing()
         auto in = ImageInput::open(pngfile);
         OIIO_CHECK_ASSERT(in.get());
         if (in) {
-            OIIO_CHECK_EQUAL(
-                in->spec().get_string_attribute("oiio:ColorSpace"),
-                "srgb_rec709_display");
+            OIIO_CHECK_EQUAL(in->spec().get_string_attribute("oiio:ColorSpace"),
+                             "srgb_rec709_display");
             in->close();
         }
         // Per-open hint: prefer the scene-state twin.
@@ -538,9 +544,8 @@ test_policy_hint_plumbing()
         auto in2 = ImageInput::open(pngfile, &config);
         OIIO_CHECK_ASSERT(in2.get());
         if (in2) {
-            OIIO_CHECK_EQUAL(
-                in2->spec().get_string_attribute("oiio:ColorSpace"),
-                "srgb_rec709_scene");
+            OIIO_CHECK_EQUAL(in2->spec().get_string_attribute("oiio:ColorSpace"),
+                             "srgb_rec709_scene");
             in2->close();
         }
     }
@@ -565,8 +570,9 @@ test_policy_hint_plumbing()
         if (in) {
             int got[4] = { -1, -1, -1, -1 };
             // The per-spec 'auto' beat the global 'never': the chunk exists.
-            OIIO_CHECK_ASSERT(in->spec().getattribute(
-                "CICP", TypeDesc(TypeDesc::INT, 4), got));
+            OIIO_CHECK_ASSERT(
+                in->spec().getattribute("CICP", TypeDesc(TypeDesc::INT, 4),
+                                        got));
             in->close();
         }
     }
@@ -626,8 +632,9 @@ test_writer_level_suppress()
         OIIO_CHECK_ASSERT(in.get());
         if (in) {
             int got[4] = { -1, -1, -1, -1 };
-            OIIO_CHECK_ASSERT(!in->spec().getattribute(
-                "CICP", TypeDesc(TypeDesc::INT, 4), got));
+            OIIO_CHECK_ASSERT(
+                !in->spec().getattribute("CICP", TypeDesc(TypeDesc::INT, 4),
+                                         got));
             in->close();
         }
         Filesystem::remove(file);
@@ -684,7 +691,8 @@ test_layer_attribution()
         spec.attribute("oiio:colorpolicy:write:interop_id", "auto");
         auto p2 = plan_color_metadata(nullptr, spec, all_caps(),
                                       ColorWritePolicy::snapshot(&spec));
-        OIIO_CHECK_EQUAL(int(p2.interop_id.action), int(ColorPlanAction::Write));
+        OIIO_CHECK_EQUAL(int(p2.interop_id.action),
+                         int(ColorPlanAction::Write));
         OIIO_CHECK_EQUAL(int(p2.interop_id.decider),
                          int(ColorPlanDecider::ExplicitMetadata));
 
@@ -735,7 +743,8 @@ test_exr_consumption()
 {
     auto out = ImageOutput::create("exr");
     if (!out) {
-        Strutil::print("EXR plugin unavailable; skipping consumption round-trip\n");
+        Strutil::print(
+            "EXR plugin unavailable; skipping consumption round-trip\n");
         return;
     }
     const std::string file = Filesystem::temp_directory_path()
@@ -823,8 +832,7 @@ test_exr_multipart_first_part_only()
     if (o && o->supports("multiimage")) {
         OIIO_CHECK_ASSERT(o->open(file, 2, specs));
         OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
-        OIIO_CHECK_ASSERT(
-            o->open(file, specs[1], ImageOutput::AppendSubimage));
+        OIIO_CHECK_ASSERT(o->open(file, specs[1], ImageOutput::AppendSubimage));
         OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
         OIIO_CHECK_ASSERT(o->close());
 
@@ -833,13 +841,12 @@ test_exr_multipart_first_part_only()
         if (in) {
             // Part 0 keeps the color identity.
             OIIO_CHECK_ASSERT(in->seek_subimage(0, 0));
-            OIIO_CHECK_EQUAL(
-                in->spec().get_string_attribute("colorInteropID"),
-                "lin_adobergb_scene");
+            OIIO_CHECK_EQUAL(in->spec().get_string_attribute("colorInteropID"),
+                             "lin_adobergb_scene");
             // Part 1 must NOT carry the duplicated identity (over-tagging).
             OIIO_CHECK_ASSERT(in->seek_subimage(1, 0));
-            OIIO_CHECK_EQUAL(
-                in->spec().get_string_attribute("colorInteropID"), "");
+            OIIO_CHECK_EQUAL(in->spec().get_string_attribute("colorInteropID"),
+                             "");
             in->close();
         }
     }
@@ -882,11 +889,9 @@ test_exr_chromaticities_dropped_and_aces_kept()
         auto in = ImageInput::open(file);
         OIIO_CHECK_ASSERT(in.get());
         if (in) {
-            OIIO_CHECK_EQUAL(
-                in->spec().get_string_attribute("colorInteropID"),
-                "lin_adobergb_scene");
-            OIIO_CHECK_ASSERT(
-                !in->spec().find_attribute("chromaticities"));
+            OIIO_CHECK_EQUAL(in->spec().get_string_attribute("colorInteropID"),
+                             "lin_adobergb_scene");
+            OIIO_CHECK_ASSERT(!in->spec().find_attribute("chromaticities"));
             in->close();
         }
         Filesystem::remove(file);
@@ -912,11 +917,10 @@ test_exr_chromaticities_dropped_and_aces_kept()
         auto in = ImageInput::open(file);
         OIIO_CHECK_ASSERT(in.get());
         if (in) {
-            OIIO_CHECK_EQUAL(
-                in->spec().get_string_attribute("colorInteropID"),
-                "lin_ap0_scene");
-            OIIO_CHECK_ASSERT(
-                in->spec().find_attribute("chromaticities") != nullptr);
+            OIIO_CHECK_EQUAL(in->spec().get_string_attribute("colorInteropID"),
+                             "lin_ap0_scene");
+            OIIO_CHECK_ASSERT(in->spec().find_attribute("chromaticities")
+                              != nullptr);
             in->close();
         }
         Filesystem::remove(file);
@@ -1002,8 +1006,10 @@ colorspaces:
                          "ocio:unknown");
 
         // The write plan collapses it to the registered bare token.
-        auto p = plan_color_metadata(&cfg, spec, all_caps(), ColorWritePolicy());
-        OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Derive));
+        auto p = plan_color_metadata(&cfg, spec, all_caps(),
+                                     ColorWritePolicy());
+        OIIO_CHECK_EQUAL(int(p.interop_id.action),
+                         int(ColorPlanAction::Derive));
         OIIO_CHECK_EQUAL(p.interop_id.str, "unknown");
         // The namespaced form must not survive into the plan at all.
         OIIO_CHECK_ASSERT(p.interop_id.str.find(':') == std::string::npos);

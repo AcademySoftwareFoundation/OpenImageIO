@@ -44,7 +44,7 @@ test_slope_tolerance()
     OIIO_CHECK_EQUAL(pvt::tf_slope_tolerance("log"), 0.05);
     OIIO_CHECK_EQUAL(pvt::tf_slope_tolerance("hdr-video"), 0.1);
     OIIO_CHECK_EQUAL(pvt::tf_slope_tolerance("sdr-video"), 0.02);
-    OIIO_CHECK_EQUAL(pvt::tf_slope_tolerance(""), 0.02);       // default
+    OIIO_CHECK_EQUAL(pvt::tf_slope_tolerance(""), 0.02);  // default
     OIIO_CHECK_EQUAL(pvt::tf_slope_tolerance("whatever"), 0.02);
 }
 
@@ -65,9 +65,9 @@ test_probe_axis()
     // 10 discriminating probes + (dark, bright) linearity pair.
     OIIO_CHECK_EQUAL(axis.size(), 12);
     OIIO_CHECK_EQUAL(axis[0], -0.005);
-    OIIO_CHECK_EQUAL(axis[6], 0.18);   // mid-grey anchor
-    OIIO_CHECK_EQUAL(axis[8], 1.0);    // reference white
-    OIIO_CHECK_EQUAL(axis[9], 1.1);    // superwhite
+    OIIO_CHECK_EQUAL(axis[6], 0.18);     // mid-grey anchor
+    OIIO_CHECK_EQUAL(axis[8], 1.0);      // reference white
+    OIIO_CHECK_EQUAL(axis[9], 1.1);      // superwhite
     OIIO_CHECK_EQUAL(axis[10], 0.0625);  // linearity dark
     OIIO_CHECK_EQUAL(axis[11], 4.0);     // linearity bright
 }
@@ -104,14 +104,14 @@ test_signature_from_probes()
     std::vector<double> linear(axis.begin(), axis.end());  // 12 outputs
     auto lin = pvt::tf_signature_from_probes(linear);
     OIIO_CHECK_ASSERT(lin.has_value());
-    OIIO_CHECK_EQUAL(lin->values.size(), 10);   // only the discriminating run
+    OIIO_CHECK_EQUAL(lin->values.size(), 10);  // only the discriminating run
     OIIO_CHECK_EQUAL(lin->slopes.size(), 9);
     OIIO_CHECK_EQUAL(lin->is_linear, true);
 
     // Same slope run but a non-linear bright output -> is_linear false.
     std::vector<double> nonlin = linear;
-    nonlin[11] = 3.0;  // bright, breaks the 64x ratio
-    auto nl = pvt::tf_signature_from_probes(nonlin);
+    nonlin[11]                 = 3.0;  // bright, breaks the 64x ratio
+    auto nl                    = pvt::tf_signature_from_probes(nonlin);
     OIIO_CHECK_ASSERT(nl.has_value());
     OIIO_CHECK_EQUAL(nl->is_linear, false);
 
@@ -161,8 +161,8 @@ test_signatures_match()
 static void
 test_match_order()
 {
-    const auto sig = reference_sig();
-    auto sig_diff  = sig;
+    const auto sig  = reference_sig();
+    auto sig_diff   = sig;
     sig_diff.slopes = { 5.0, 2.5, 2.0, 1.7, 1.5, 0.9, 0.8, 0.7, 0.6 };
 
     TransferProperty prop_identity;  // linear/identity space
@@ -207,15 +207,17 @@ test_match_order()
     TransferHint hint_g24_matchsig;
     hint_g24_matchsig.family     = "g24";
     hint_g24_matchsig.signatures = { sig };
-    OIIO_CHECK_EQUAL(
-        pvt::transfer_hint_matches(hint_g24_matchsig, prop_family_g26), false);
+    OIIO_CHECK_EQUAL(pvt::transfer_hint_matches(hint_g24_matchsig,
+                                                prop_family_g26),
+                     false);
 
     // --- signature fallback when a family is unknown on either side ---
     // Hint carries family "g24" but candidate has no family -> compare signatures.
     OIIO_CHECK_EQUAL(pvt::transfer_hint_matches(hint_g24, prop_sig_only),
                      false);  // sig_diff mismatches
-    OIIO_CHECK_EQUAL(
-        pvt::transfer_hint_matches(hint_g24_matchsig, prop_sig_only), true);
+    OIIO_CHECK_EQUAL(pvt::transfer_hint_matches(hint_g24_matchsig,
+                                                prop_sig_only),
+                     true);
 
     // Pure signature hint (no family): matches any candidate whose signature
     // agrees, family known or not.

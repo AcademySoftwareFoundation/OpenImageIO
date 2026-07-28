@@ -12,9 +12,9 @@
 
 #include <array>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <utility>
-#include <mutex>
 
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>

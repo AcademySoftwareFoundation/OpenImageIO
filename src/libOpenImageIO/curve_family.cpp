@@ -15,8 +15,8 @@
 // Pure, stateless string functions with no OCIO dependency -- kept in their
 // own translation unit so color_ocio.cpp doesn't have to grow to hold them.
 
-#include "imageio_pvt.h"
 #include "color_pvt.h"
+#include "imageio_pvt.h"
 
 #include <OpenImageIO/strutil.h>
 
@@ -26,32 +26,31 @@ namespace pvt {
 
 namespace {
 
-// State suffixes a curve name may carry, tried in order; at most one is
-// stripped. No suffix is a suffix of another, so the order is immaterial in
-// practice -- but the strip-once semantics are deliberate: a name like
-// `crv_g24_tx_display` (none exist) would strip only the trailing suffix.
-constexpr const char* kCurveStateSuffixes[] = { "_scene", "_display", "_tx" };
+    // State suffixes a curve name may carry, tried in order; at most one is
+    // stripped. No suffix is a suffix of another, so the order is immaterial in
+    // practice -- but the strip-once semantics are deliberate: a name like
+    // `crv_g24_tx_display` (none exist) would strip only the trailing suffix.
+    constexpr const char* kCurveStateSuffixes[] = { "_scene", "_display",
+                                                    "_tx" };
 
-// True if `name` ends with `suffix` and is strictly longer than it, so a name
-// that *is* a bare suffix ("_tx") passes through untouched.
-inline bool
-has_curve_suffix(string_view name, string_view suffix)
-{
-    return name.size() > suffix.size() && Strutil::ends_with(name, suffix);
-}
-
-// Strip at most one trailing state suffix (first match wins).
-string_view
-strip_curve_suffix(string_view name)
-{
-    for (string_view suffix : kCurveStateSuffixes) {
-        if (has_curve_suffix(name, suffix)) {
-            name.remove_suffix(suffix.size());
-            break;
-        }
+    // True if `name` ends with `suffix` and is strictly longer than it, so a name
+    // that *is* a bare suffix ("_tx") passes through untouched.
+    inline bool has_curve_suffix(string_view name, string_view suffix)
+    {
+        return name.size() > suffix.size() && Strutil::ends_with(name, suffix);
     }
-    return name;
-}
+
+    // Strip at most one trailing state suffix (first match wins).
+    string_view strip_curve_suffix(string_view name)
+    {
+        for (string_view suffix : kCurveStateSuffixes) {
+            if (has_curve_suffix(name, suffix)) {
+                name.remove_suffix(suffix.size());
+                break;
+            }
+        }
+        return name;
+    }
 
 }  // namespace
 

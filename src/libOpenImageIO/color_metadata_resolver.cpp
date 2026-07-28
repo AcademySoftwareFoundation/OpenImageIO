@@ -48,11 +48,13 @@ namespace {
             return id.substr(0, id.size() - 6) + "_display";
         if (Strutil::ends_with(id, "_display"))
             return id.substr(0, id.size() - 8) + "_scene";
-        return { };
+        return {};
     }
 
     bool ends_with_scene(const std::string& id)
-    { return Strutil::ends_with(id, "_scene"); }
+    {
+        return Strutil::ends_with(id, "_scene");
+    }
 
     // The canonical local name a config resolves `cand` to, or "" if the config
     // has no color space reachable by that name/alias/role. A null config never
@@ -60,17 +62,19 @@ namespace {
     std::string local_name(const ColorConfig* config, const std::string& cand)
     {
         if (!config)
-            return { };
+            return {};
         int idx = config->getColorSpaceIndex(cand);
         if (idx < 0)
-            return { };
+            return {};
         const char* name = config->getColorSpaceNameByIndex(idx);
-        return name ? std::string(name) : std::string { };
+        return name ? std::string(name) : std::string {};
     }
 
     // Is `id` a known color interop identity in OIIO's built-in registry?
     bool known_registry_id(const std::string& id)
-    { return !id.empty() && interop_identities_config_resolves(id); }
+    {
+        return !id.empty() && interop_identities_config_resolves(id);
+    }
 
     // Order a single candidate for the current state preference: when a
     // preference is set (and not exact-state), the preferred-state twin is
@@ -99,7 +103,7 @@ namespace {
                              std::string* selected = nullptr)
     {
         if (is_utility_interop_id(value) || value.empty())
-            return { };
+            return {};
         const auto candidates = state_preference_order(value, p);
         for (const auto& cand : candidates) {
             if (is_utility_interop_id(cand))
@@ -120,7 +124,7 @@ namespace {
                 }
             }
         }
-        return { };
+        return {};
     }
 
     // Local-name-then-CIID resolution of an explicit / failover assignment.
@@ -145,14 +149,14 @@ namespace {
         const std::string other = token == "bypass" ? "data" : "bypass";
         auto role_target        = [&](const char* role) -> std::string {
             const char* n = config->getColorSpaceNameByRole(role);
-            return n && n[0] ? std::string(n) : std::string { };
+            return n && n[0] ? std::string(n) : std::string {};
         };
         const std::string token_role   = role_target(token.c_str());
         const std::string other_role   = role_target(other.c_str());
         const std::string unknown_role = role_target("unknown");
         auto identifies_as             = [&](const std::string& name,
-                                             const std::string& label,
-                                             const std::string& role_name) {
+                                 const std::string& label,
+                                 const std::string& role_name) {
             if (Strutil::lower(name) == label)
                 return true;
             if (Strutil::lower(std::string(config->get_color_interop_id(name)))
@@ -238,12 +242,10 @@ namespace {
     RuleResult rule_aces(const ColorMetadataFacts& f)
     {
         if (!f.aces_image_container)
-            return { };
-        return { ColorRuleOutcome::Matched,
-                 "lin_ap0_scene",
-                 "lin_ap0_scene",
-                 { },
-                 { } };
+            return {};
+        return {
+            ColorRuleOutcome::Matched, "lin_ap0_scene", "lin_ap0_scene", {}, {}
+        };
     }
 
     RuleResult rule_file_rules(const ColorConfig* config,
@@ -252,20 +254,20 @@ namespace {
                                const ColorReadPolicy& p, bool diag)
     {
         if (p.file_rules != position || ctx.filename.empty() || !config)
-            return { };
+            return {};
         string_view name = config->getColorSpaceFromFilepath(ctx.filename, "");
         if (!name.empty())
             return { ColorRuleOutcome::Matched,
-                     diag ? ctx.filename : std::string { },
+                     diag ? ctx.filename : std::string {},
                      std::string(name),
-                     { },
-                     { } };
+                     {},
+                     {} };
         return { ColorRuleOutcome::Missed,
-                 diag ? ctx.filename : std::string { },
-                 { },
+                 diag ? ctx.filename : std::string {},
+                 {},
                  diag ? "No FileRules entry matched the filename"
-                      : std::string { },
-                 { } };
+                      : std::string {},
+                 {} };
     }
 
     RuleResult rule_color_interop_id(const ColorConfig* config,
@@ -273,28 +275,28 @@ namespace {
                                      const ColorReadPolicy& p, bool diag)
     {
         if (f.color_interop_id.empty())
-            return { };
+            return {};
         const std::string& id = f.color_interop_id;
         if (id == "data" || id == "bypass") {
             const std::string local = resolve_data_space(config, id);
             return { ColorRuleOutcome::Matched,
-                     diag ? id : std::string { },
+                     diag ? id : std::string {},
                      local.empty() ? id : local,
-                     { },
-                     { } };
+                     {},
+                     {} };
         }
         const std::string resolved = resolve_explicit(config, id, p);
         if (!resolved.empty())
             return { ColorRuleOutcome::Matched,
-                     diag ? id : std::string { },
+                     diag ? id : std::string {},
                      resolved,
-                     { },
-                     { } };
+                     {},
+                     {} };
         return { ColorRuleOutcome::Missed,
-                 diag ? id : std::string { },
-                 { },
-                 diag ? "Color interop id did not resolve" : std::string { },
-                 { } };
+                 diag ? id : std::string {},
+                 {},
+                 diag ? "Color interop id did not resolve" : std::string {},
+                 {} };
     }
 
     // ICC (spec black box): a profile is decodable if it carries the 'acsp'
@@ -306,7 +308,7 @@ namespace {
                         bool diag)
     {
         if (f.icc_profile.empty())
-            return { };
+            return {};
         const bool decodable = f.icc_profile.size() >= 128
                                && f.icc_profile[36] == 'a'
                                && f.icc_profile[37] == 'c'
@@ -314,34 +316,32 @@ namespace {
                                && f.icc_profile[39] == 'p';
         if (!decodable)
             return { ColorRuleOutcome::Invalid,
-                     diag ? "icc" : std::string { },
-                     { },
+                     diag ? "icc" : std::string {},
+                     {},
                      diag ? "ICC profile is not a decodable profile"
-                          : std::string { },
-                     { } };
+                          : std::string {},
+                     {} };
         if (p.scope != ColorResolutionScope::Lenient)
             return {
                 ColorRuleOutcome::Missed,
-                diag ? "icc" : std::string { },
-                { },
+                diag ? "icc" : std::string {},
+                {},
                 diag
                     ? "ICC profile decoded but the resolution scope rejected it"
-                    : std::string { },
-                { }
+                    : std::string {},
+                {}
             };
         const std::string id = synthesize_icc_space(f.icc_profile);
-        return { ColorRuleOutcome::Matched,
-                 diag ? "icc" : std::string { },
-                 id,
-                 { },
-                 id };
+        return {
+            ColorRuleOutcome::Matched, diag ? "icc" : std::string {}, id, {}, id
+        };
     }
 
     RuleResult rule_cicp(const ColorConfig* config, const ColorMetadataFacts& f,
                          const ColorReadPolicy& p, bool diag)
     {
         if (!f.has_cicp)
-            return { };
+            return {};
         // Spec-impossibility watch: log-only, never an error, never a
         // correction -- identification below is unaffected and still keys on
         // primaries + transfer alone. primaries==0 / transfer==0 are ITU-T
@@ -373,12 +373,12 @@ namespace {
             return {
                 ColorRuleOutcome::Missed,
                 diag ? Strutil::fmt::format("{}/{}", f.cicp[0], f.cicp[1])
-                     : std::string { },
-                { },
+                     : std::string {},
+                {},
                 diag
                     ? "CICP primaries and transfer did not map to a known identity"
-                    : std::string { },
-                { }
+                    : std::string {},
+                {}
             };
         // CICP state is governed by its own one-shot axis (cicp_state). Auto
         // falls back to the general state_pref so an unset cicp_state
@@ -393,27 +393,27 @@ namespace {
             if (!resolved.empty())
                 return { ColorRuleOutcome::Matched,
                          diag ? (selected.empty() ? c : selected)
-                              : std::string { },
+                              : std::string {},
                          resolved,
-                         { },
-                         { } };
+                         {},
+                         {} };
         }
         // Nothing local; under non-config-only scope the candidate id itself is
         // the (bridged) answer.
         if (p.scope != ColorResolutionScope::ConfigOnly)
             return { ColorRuleOutcome::Matched,
-                     diag ? candidate : std::string { },
+                     diag ? candidate : std::string {},
                      candidate,
-                     { },
-                     { } };
+                     {},
+                     {} };
         return {
             ColorRuleOutcome::Missed,
-            diag ? candidate : std::string { },
-            { },
+            diag ? candidate : std::string {},
+            {},
             diag
                 ? "CICP identity is unavailable in the config under config-only scope"
-                : std::string { },
-            { }
+                : std::string {},
+            {}
         };
     }
 
@@ -422,30 +422,29 @@ namespace {
                              const ColorReadPolicy& p, bool diag)
     {
         if (!f.png_srgb)
-            return { };
+            return {};
         const std::string id = "srgb_rec709_display";
         std::string selected;
         const std::string resolved = resolve_ciid(config, id, p, &selected);
         if (!resolved.empty())
             return { ColorRuleOutcome::Matched,
-                     diag ? (selected.empty() ? id : selected)
-                          : std::string { },
+                     diag ? (selected.empty() ? id : selected) : std::string {},
                      resolved,
-                     { },
-                     { } };
+                     {},
+                     {} };
         if (p.scope != ColorResolutionScope::ConfigOnly)
             return { ColorRuleOutcome::Matched,
-                     diag ? id : std::string { },
+                     diag ? id : std::string {},
                      id,
-                     { },
-                     { } };
+                     {},
+                     {} };
         return {
             ColorRuleOutcome::Missed,
-            diag ? id : std::string { },
-            { },
+            diag ? id : std::string {},
+            {},
             diag ? "PNG sRGB identity is unavailable under config-only scope"
-                 : std::string { },
-            { }
+                 : std::string {},
+            {}
         };
     }
 
@@ -460,27 +459,27 @@ namespace {
                                 bool diag)
     {
         if (!f.has_chromaticities)
-            return { };
+            return {};
         const bool has_nonlinear = f.has_gamma && f.gamma > 1.001f;
         if (with_gamma != has_nonlinear)
-            return { };
+            return {};
         if (p.scope == ColorResolutionScope::Lenient) {
             const std::string id = synthesize_custom_space(f.chromaticities,
                                                            has_nonlinear,
                                                            f.gamma);
             (void)ctx;
             return { ColorRuleOutcome::Matched,
-                     diag ? id : std::string { },
+                     diag ? id : std::string {},
                      id,
-                     { },
+                     {},
                      id };
         }
         return { ColorRuleOutcome::Missed,
-                 diag ? "chromaticities" : std::string { },
-                 { },
+                 diag ? "chromaticities" : std::string {},
+                 {},
                  diag ? "No color space matched the supplied chromaticities"
-                      : std::string { },
-                 { } };
+                      : std::string {},
+                 {} };
     }
 
     RuleResult rule_gamma(const ColorMetadataFacts& f,
@@ -488,7 +487,7 @@ namespace {
                           bool diag)
     {
         if (!f.has_gamma || f.has_chromaticities)
-            return { };
+            return {};
         const bool has_nonlinear = f.gamma > 1.001f;
         if (p.scope == ColorResolutionScope::Lenient) {
             static const float kRec709[8] = { 0.64f, 0.33f, 0.30f,   0.60f,
@@ -497,17 +496,17 @@ namespace {
                 = synthesize_custom_space(kRec709, has_nonlinear, f.gamma);
             (void)ctx;
             return { ColorRuleOutcome::Matched,
-                     diag ? id : std::string { },
+                     diag ? id : std::string {},
                      id,
-                     { },
+                     {},
                      id };
         }
         return { ColorRuleOutcome::Missed,
-                 diag ? Strutil::fmt::format("{}", f.gamma) : std::string { },
-                 { },
+                 diag ? Strutil::fmt::format("{}", f.gamma) : std::string {},
+                 {},
                  diag ? "No color space matched gamma under the active scope"
-                      : std::string { },
-                 { } };
+                      : std::string {},
+                 {} };
     }
 
     // The config's Default Assignment: FileRules final entry, else the default
@@ -516,7 +515,7 @@ namespace {
                                    std::string* reason)
     {
         if (!config)
-            return { };
+            return {};
         // The single-arg form returns the config's default-rule color space when
         // nothing else matches -- i.e. the FileRules Default Assignment.
         string_view fr = config->getColorSpaceFromFilepath(
@@ -534,7 +533,7 @@ namespace {
                       "default role";
             return std::string(role);
         }
-        return { };
+        return {};
     }
 
     std::string finish_miss(const ColorConfig* config,
@@ -552,7 +551,7 @@ namespace {
                                             ColorRuleOutcome::Matched,
                                             ctx.failover,
                                             resolved,
-                                            { } });
+                                            {} });
                     expl->used_failover = true;
                 }
                 return resolved;
@@ -562,7 +561,7 @@ namespace {
                     { ColorRule::Failover,
                       ColorRuleOutcome::Invalid,
                       ctx.failover,
-                      { },
+                      {},
                       "Failover config-local and CIID resolution attempts both missed" });
         }
 
@@ -588,7 +587,7 @@ namespace {
                 if (expl) {
                     expl->steps.push_back({ ColorRule::ConfigDefault,
                                             ColorRuleOutcome::Matched,
-                                            { },
+                                            {},
                                             resolved,
                                             reason });
                     expl->used_default = true;
@@ -596,7 +595,7 @@ namespace {
                 return resolved;
             }
         }
-        return { };
+        return {};
     }
 
 }  // namespace
@@ -635,7 +634,7 @@ resolve_color_metadata(const ColorConfig* config,
                                                 : ColorRuleOutcome::Matched,
                                explicit_assignment,
                                resolved,
-                               { } });
+                               {} });
         if (!resolved.empty()) {
             expl.resolved = resolved;
             return expl;
@@ -802,7 +801,7 @@ infer_color_space_from_spec(const ColorConfig* config, const ImageSpec& spec,
         if (usable(e))
             return e.resolved;
     }
-    return { };
+    return {};
 }
 
 void
@@ -937,7 +936,7 @@ ambient_color_config()
 
 ColorReadPolicy
 ColorReadPolicy::snapshot(const ImageSpec* config_hints,
-                         const ColorConfig* config, string_view filepath)
+                          const ColorConfig* config, string_view filepath)
 {
     // One locked read of the whole policy state, via the shared snapshot
     // primitive (the same mechanism the write-side policy uses). Full spec-09
@@ -1032,9 +1031,9 @@ render_color_read_plan(const ImageSpec& spec, const ColorConfig* config)
     // Preview the full spec-09 ladder: consult the config's declared policy
     // (layer 2/3) and the file-rule matching this source path (layer 5), the
     // same as a real read of this file would.
-    const ColorReadPolicy policy = ColorReadPolicy::snapshot(nullptr, &cfg,
-                                                             ctx.filename);
-    const ColorMetadataFacts facts        = color_facts_from_spec(spec);
+    const ColorReadPolicy policy   = ColorReadPolicy::snapshot(nullptr, &cfg,
+                                                               ctx.filename);
+    const ColorMetadataFacts facts = color_facts_from_spec(spec);
     const ColorResolutionExplanation expl = resolve_color_metadata(&cfg, spec,
                                                                    ctx, policy);
 

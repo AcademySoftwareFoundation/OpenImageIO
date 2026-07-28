@@ -21,8 +21,6 @@
 
 
 
-
-
 // The built-in interop identities config and the interoperability
 // assertion/bootstrap machinery below touch ColorConfig::Impl, which lives in
 // the ABI-versioned v3_1 namespace -- so they must too. The OIIO_API pvt
@@ -591,7 +589,6 @@ derive_mastering_volume_impl(const ColorConfig& config, string_view display,
 }
 
 OIIO_NAMESPACE_END
-
 
 
 

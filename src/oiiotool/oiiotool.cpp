@@ -253,19 +253,25 @@ Oiiotool::clear_input_config()
 
 static std::string
 format_resolution(int w, int h, int x, int y)
-{ return Strutil::fmt::format("{}x{}{:+d}{:+d}", w, h, x, y); }
+{
+    return Strutil::fmt::format("{}x{}{:+d}{:+d}", w, h, x, y);
+}
 
 
 
 static std::string
 format_resolution(float w, float h, float x, float y)
-{ return Strutil::fmt::format("{}x{}{:+g}{:+g}", w, h, x, y); }
+{
+    return Strutil::fmt::format("{}x{}{:+g}{:+g}", w, h, x, y);
+}
 
 
 
 static std::string
 format_resolution(int w, int h, int d, int x, int y, int z)
-{ return Strutil::fmt::format("{}x{}x{}{:+d}{:+d}{:+d}", w, h, d, x, y, z); }
+{
+    return Strutil::fmt::format("{}x{}x{}{:+d}{:+d}{:+d}", w, h, d, x, y, z);
+}
 
 
 
@@ -328,7 +334,9 @@ scan_scale_percent(string_view str, float& x, float& y)
 
 static bool
 scan_scale_percent(string_view str, float& x)
-{ return Strutil::parse_value(str, x) && Strutil::parse_char(str, '%'); }
+{
+    return Strutil::parse_value(str, x) && Strutil::parse_char(str, '%');
+}
 
 
 template<typename T>
@@ -819,7 +827,9 @@ get_value_override(string_view localoption, float defaultval)
 
 inline string_view
 get_value_override(string_view localoption, string_view defaultval)
-{ return localoption.size() ? localoption : defaultval; }
+{
+    return localoption.size() ? localoption : defaultval;
+}
 
 
 
@@ -1175,7 +1185,9 @@ set_dataformat(Oiiotool& ot, cspan<const char*> argv)
 // --compression
 static void
 set_compression(Oiiotool& ot, cspan<const char*> argv)
-{ ot.output_compression = ot.express(argv[1]); }
+{
+    ot.output_compression = ot.express(argv[1]);
+}
 
 
 
@@ -1656,13 +1668,17 @@ Tround(float x);
 template<>
 inline float
 Tround<float>(float x)
-{ return x; }
+{
+    return x;
+}
 
 // Tround of float to int does a round to nearest int.
 template<>
 inline int
 Tround<int>(float x)
-{ return ifloor(x + 0.5f); }
+{
+    return ifloor(x + 0.5f);
+}
 
 
 
@@ -1946,7 +1962,9 @@ set_input_attribute(Oiiotool& ot, cspan<const char*> argv)
 // --caption
 static void
 set_caption(Oiiotool& ot, cspan<const char*> argv)
-{ action_sattrib(ot, { argv[0], "ImageDescription", argv[1] }); }
+{
+    action_sattrib(ot, { argv[0], "ImageDescription", argv[1] });
+}
 
 
 
@@ -1991,7 +2009,9 @@ set_keyword(Oiiotool& ot, cspan<const char*> argv)
 // --clear-keywords
 static void
 clear_keywords(Oiiotool& ot, cspan<const char*> argv)
-{ action_sattrib(ot, { argv[0], "Keywords", "" }); }
+{
+    action_sattrib(ot, { argv[0], "Keywords", "" });
+}
 
 
 
@@ -2010,7 +2030,7 @@ static bool
 do_rotate_orientation(ImageSpec& spec, string_view cmd)
 {
     bool rotcw  = (cmd == "--orientcw" || cmd == "-orientcw" || cmd == "--rotcw"
-                   || cmd == "-rotcw");
+                  || cmd == "-rotcw");
     bool rotccw = (cmd == "--orientccw" || cmd == "-orientccw"
                    || cmd == "--rotccw" || cmd == "-rotccw");
     bool rot180 = (cmd == "--orient180" || cmd == "-orient180"
@@ -2671,7 +2691,9 @@ class OpChnames final : public OiiotoolOp {
 public:
     OpChnames(Oiiotool& ot, string_view opname, cspan<const char*> argv)
         : OiiotoolOp(ot, opname, argv, 1)
-    { preserve_miplevels(true); }
+    {
+        preserve_miplevels(true);
+    }
     // Custom creation of new ImageRec result: don't copy, just change in
     // place.
     ImageRecRef new_output_imagerec() override { return ir(1); }
@@ -3155,7 +3177,7 @@ action_layer_split(Oiiotool& ot, cspan<const char*> argv)
             std::vector<int> channelorder(chend - chbegin);
             std::iota(channelorder.begin(), channelorder.end(), chbegin);
             ImageBufAlgo::channels(*img, (*A)(), chend - chbegin, channelorder,
-                                   { }, newchannelnames);
+                                   {}, newchannelnames);
             img->specmod().attribute("oiio:subimagename", layername);
 
             // Create corresponding ImageRec and push it on the stack
@@ -3622,10 +3644,10 @@ OIIOTOOL_OP(colormap, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 namespace ImageBufAlgox {
 ImageBuf
 cryptomatte_colors(const ImageBuf& src, span<const int> channelset,
-                   ROI roi = { }, int nthreads = 0);
+                   ROI roi = {}, int nthreads = 0);
 bool
 cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
-                   span<const int> channelset, ROI roi = { }, int nthreads = 0);
+                   span<const int> channelset, ROI roi = {}, int nthreads = 0);
 }  // namespace ImageBufAlgox
 
 // The cryptomatte spec can be found here:
@@ -3725,7 +3747,9 @@ public:
     OpCryptomatteColors(Oiiotool& ot, string_view opname,
                         cspan<const char*> argv)
         : OiiotoolOp(ot, opname, argv, 1)
-    { m_cmpattern = Strutil::fmt::format("{}[0-9][0-9]\\..*", args(1)); }
+    {
+        m_cmpattern = Strutil::fmt::format("{}[0-9][0-9]\\..*", args(1));
+    }
     bool setup() override
     {
         int subimages = compute_subimages();
@@ -4424,7 +4448,7 @@ action_cut(Oiiotool& ot, cspan<const char*> argv)
     }
 
     // Make a new ImageRec sized according to the new set of specs
-    ImageRecRef R(new ImageRec(A->name(), subimages, { }, newspecs));
+    ImageRecRef R(new ImageRec(A->name(), subimages, {}, newspecs));
 
     // Crop and populate the new ImageRec
     for (int s = 0; s < subimages; ++s) {
@@ -4468,14 +4492,14 @@ public:
             }
             nochange = false;
             // Compute corresponding data window.
-            float wratio  = float(newspec.full_width) / float(Aspec.full_width);
-            float hratio  = float(newspec.full_height)
-                            / float(Aspec.full_height);
-            newspec.x     = newspec.full_x
-                            + int(floorf((Aspec.x - Aspec.full_x) * wratio));
-            newspec.y     = newspec.full_y
-                            + int(floorf((Aspec.y - Aspec.full_y) * hratio));
-            newspec.width = int(ceilf(Aspec.width * wratio));
+            float wratio = float(newspec.full_width) / float(Aspec.full_width);
+            float hratio = float(newspec.full_height)
+                           / float(Aspec.full_height);
+            newspec.x = newspec.full_x
+                        + int(floorf((Aspec.x - Aspec.full_x) * wratio));
+            newspec.y = newspec.full_y
+                        + int(floorf((Aspec.y - Aspec.full_y) * hratio));
+            newspec.width  = int(ceilf(Aspec.width * wratio));
             newspec.height = int(ceilf(Aspec.height * hratio));
         }
         if (nochange) {
@@ -4534,10 +4558,10 @@ public:
                                / float(Aspec.full_width);
                 float hratio = float(newspec.full_height)
                                / float(Aspec.full_height);
-                newspec.x    = newspec.full_x
-                               + int(floorf((Aspec.x - Aspec.full_x) * wratio));
-                newspec.y    = newspec.full_y
-                               + int(floorf((Aspec.y - Aspec.full_y) * hratio));
+                newspec.x = newspec.full_x
+                            + int(floorf((Aspec.x - Aspec.full_x) * wratio));
+                newspec.y = newspec.full_y
+                            + int(floorf((Aspec.y - Aspec.full_y) * hratio));
                 newspec.width  = int(ceilf(Aspec.width * wratio));
                 newspec.height = int(ceilf(Aspec.height * hratio));
             }
@@ -5846,9 +5870,9 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     string_view stripped_command = command;
     Strutil::parse_char(stripped_command, '-');
     Strutil::parse_char(stripped_command, '-');
-    bool do_tex        = Strutil::starts_with(stripped_command, "otex");
-    bool do_latlong    = Strutil::starts_with(stripped_command, "oenv")
-                         || Strutil::starts_with(stripped_command, "olatlong");
+    bool do_tex     = Strutil::starts_with(stripped_command, "otex");
+    bool do_latlong = Strutil::starts_with(stripped_command, "oenv")
+                      || Strutil::starts_with(stripped_command, "olatlong");
     bool do_shad       = Strutil::starts_with(stripped_command, "oshad");
     bool do_bumpslopes = Strutil::starts_with(stripped_command, "obump");
 
@@ -6082,8 +6106,9 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         bool converted = false;
         for (int s = 0, send = ir->subimages(); s < send; ++s)
             for (int m = 0, mend = ir->miplevels(s); m < mend; ++m)
-                if (pvt::apply_write_canonical_conversion(
-                        (*ir)(s, m), &ot.colorconfig(), filename)) {
+                if (pvt::apply_write_canonical_conversion((*ir)(s, m),
+                                                          &ot.colorconfig(),
+                                                          filename)) {
                     // The pvt call retagged the ImageBuf's own spec in place;
                     // sync the ImageRec's outer spec copy so the write and the
                     // format writer's metadata plan see the canonical space.
@@ -6652,13 +6677,17 @@ print_usage_tips()
 
 inline bool
 has_space(string_view s)
-{ return s.find(' ') != string_view::npos; }
+{
+    return s.find(' ') != string_view::npos;
+}
 
 
 
 inline std::string
 quote_if_spaces(string_view s)
-{ return has_space(s) ? Strutil::fmt::format("\"{}\"", s) : std::string(s); }
+{
+    return has_space(s) ? Strutil::fmt::format("\"{}\"", s) : std::string(s);
+}
 
 
 
@@ -8004,7 +8033,9 @@ Oiiotool::begin_parallel_frame_loop(int nthreads)
 
 void
 Oiiotool::end_parallel_frame_loop()
-{ m_in_parallel_frame_loop = false; }
+{
+    m_in_parallel_frame_loop = false;
+}
 
 
 

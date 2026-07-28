@@ -214,8 +214,8 @@ initialize_probe_values(const ConstConfigRcPtr& config,
         if (cs) {
             auto toRef = transform_for_direction(cs,
                                                  COLORSPACE_DIR_TO_REFERENCE);
-            auto proc = config->getProcessor(context, toRef.transform,
-                                             toRef.direction);
+            auto proc  = config->getProcessor(context, toRef.transform,
+                                              toRef.direction);
             if (!proc->isNoOp()) {
                 auto cpu = proc->getOptimizedCPUProcessor(OPTIMIZATION_NONE);
                 PackedImageDesc img(acesVals.data(), long(acesVals.size() / 4),
@@ -268,18 +268,18 @@ compute_fingerprint(const ConstConfigRcPtr& config,
     if (!cs)
         return std::nullopt;
     try {
-        auto fromRef = transform_for_direction(cs,
-                                               COLORSPACE_DIR_FROM_REFERENCE);
-        auto proc = config->getProcessor(context, fromRef.transform,
-                                         fromRef.direction);
-        auto cpu = proc->getOptimizedCPUProcessor(OPTIMIZATION_NONE);
+        auto fromRef   = transform_for_direction(cs,
+                                                 COLORSPACE_DIR_FROM_REFERENCE);
+        auto proc      = config->getProcessor(context, fromRef.transform,
+                                              fromRef.direction);
+        auto cpu       = proc->getOptimizedCPUProcessor(OPTIMIZATION_NONE);
         const int kind = int(cs->getReferenceSpaceType());
         std::vector<float> values = kind == int(REFERENCE_SPACE_DISPLAY)
                                         ? probes.display
                                         : probes.scene;
         PackedImageDesc img(values.data(), long(values.size() / 4), 1, 4);
         cpu->apply(img);
-        return OIIO::pvt::ColorSpaceFingerprint{ kind, std::move(values) };
+        return OIIO::pvt::ColorSpaceFingerprint { kind, std::move(values) };
     } catch (...) {
         return std::nullopt;
     }
@@ -480,16 +480,15 @@ std::string
 fingerprint_cache_key(const std::string& cfgId, const std::string& ctxId,
                       bool invariant, string_view name)
 {
-    return invariant
-               ? Strutil::fmt::format("{}|invariant|{}", cfgId, name)
-               : Strutil::fmt::format("{}|{}|{}", ctxId, cfgId, name);
+    return invariant ? Strutil::fmt::format("{}|invariant|{}", cfgId, name)
+                     : Strutil::fmt::format("{}|{}|{}", ctxId, cfgId, name);
 }
 
 // The structural config id + current-context id components of a cache key, read
 // from `config`. Empty structural id means the config can't be keyed.
 void
-fingerprint_cache_scope(const OCIO::ConstConfigRcPtr& config, std::string& cfgId,
-                        std::string& ctxId)
+fingerprint_cache_scope(const OCIO::ConstConfigRcPtr& config,
+                        std::string& cfgId, std::string& ctxId)
 {
     cfgId = get_config_cache_id(config);
     ctxId.clear();
@@ -544,7 +543,8 @@ ColorConfig::Impl::fingerprintCached(string_view name)
     // memoized and far cheaper than the fingerprint probe it guards.
     const bool invariant = (analysisFlags(name) & CSInfo::is_context_invariant)
                            != 0;
-    const std::string key = fingerprint_cache_key(cfgId, ctxId, invariant, name);
+    const std::string key = fingerprint_cache_key(cfgId, ctxId, invariant,
+                                                  name);
     auto& cache           = fingerprint_cache();
 
     // Cheap read-locked hit.
@@ -662,7 +662,6 @@ OIIO_NAMESPACE_END
 
 
 
-
 // The pvt shims below are declared (OIIO_API) in the library's "current"
 // namespace by color_pvt.h, so they must be defined there too, not inside
 // the ABI-versioned v3_1 namespace the helpers above live in.
@@ -678,7 +677,7 @@ color_space_fingerprint(const ColorConfig& config, string_view name)
     if (!impl)
         return {};
     auto fp = impl->computeFingerprint(name);
-    return fp ? std::move(*fp) : ColorSpaceFingerprint{};
+    return fp ? std::move(*fp) : ColorSpaceFingerprint {};
 }
 
 bool
@@ -710,7 +709,7 @@ color_space_fingerprint_cached(const ColorConfig& config, string_view name)
     if (!impl)
         return {};
     auto fp = impl->fingerprintCached(name);
-    return fp ? std::move(*fp) : ColorSpaceFingerprint{};
+    return fp ? std::move(*fp) : ColorSpaceFingerprint {};
 }
 
 std::size_t

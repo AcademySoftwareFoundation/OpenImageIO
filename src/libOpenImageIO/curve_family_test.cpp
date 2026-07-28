@@ -72,11 +72,11 @@ test_passthrough_mirror()
     // A catalog carrying paired families (both twins), pass-through-only, and
     // state-neutral curves.
     const std::vector<std::string> catalog {
-        "crv_g24_tx", "crv_g24",       // paired: _tx + suffixless mirror
-        "crv_srgb_tx", "crv_srgb",     // paired
-        "crv_g18_tx",                  // pass-through only, no twin
-        "crv_pq", "crv_dcdm",          // state-neutral: no _tx companion
-        "crv_arrilogc3",               // state-neutral (log)
+        "crv_g24_tx",    "crv_g24",   // paired: _tx + suffixless mirror
+        "crv_srgb_tx",   "crv_srgb",  // paired
+        "crv_g18_tx",                 // pass-through only, no twin
+        "crv_pq",        "crv_dcdm",  // state-neutral: no _tx companion
+        "crv_arrilogc3",              // state-neutral (log)
     };
 
     // Pass-through: _tx suffix (and legacy _scene).

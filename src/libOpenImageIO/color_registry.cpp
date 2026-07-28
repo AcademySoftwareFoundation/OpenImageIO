@@ -23,8 +23,6 @@
 
 
 
-
-
 // The built-in interop identities config and the interoperability
 // assertion/bootstrap machinery below touch ColorConfig::Impl, which lives in
 // the ABI-versioned v3_1 namespace -- so they must too. The OIIO_API pvt
@@ -56,8 +54,8 @@ build_interop_identities_config()
         []() -> OCIO::ConstConfigRcPtr {
         try {
             std::istringstream iss(kInteropIdentitiesConfig);
-            OCIO::ConstConfigRcPtr embedded
-                = OCIO::Config::CreateFromStream(iss);
+            OCIO::ConstConfigRcPtr embedded = OCIO::Config::CreateFromStream(
+                iss);
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
             // Start from OCIO's own latest builtin studio config and layer in
             // only the embedded identities it doesn't already carry. Each
@@ -70,10 +68,9 @@ build_interop_identities_config()
             //   - add bare CIF identities only when the studio config doesn't
             //     already resolve the name, so its own (superior) definition
             //     always wins where present.
-            OCIO::ConfigRcPtr config
-                = OCIO::Config::CreateFromBuiltinConfig(
-                      "ocio://studio-config-latest")
-                      ->createEditableCopy();
+            OCIO::ConfigRcPtr config = OCIO::Config::CreateFromBuiltinConfig(
+                                           "ocio://studio-config-latest")
+                                           ->createEditableCopy();
             for (int i = 0, n = embedded->getNumColorSpaces(); i < n; ++i) {
                 const char* name = embedded->getColorSpaceNameByIndex(i);
                 if (Strutil::starts_with(name, "ocio:"))
@@ -188,7 +185,9 @@ registry_fingerprint_index()
             idx.entries.clear();
         }
         std::sort(idx.entries.begin(), idx.entries.end(),
-                  [](const auto& a, const auto& b) { return a.first < b.first; });
+                  [](const auto& a, const auto& b) {
+                      return a.first < b.first;
+                  });
         return idx;
     }();
     return s_index;
@@ -267,7 +266,6 @@ registry_id_for_fingerprint(const RegistryFingerprintIndex& index,
 }
 
 OIIO_NAMESPACE_END
-
 
 
 

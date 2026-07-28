@@ -4,9 +4,9 @@
 
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
-#include <map>
 #include <OpenImageIO/color_interop_ids.h>
 #include <cctype>
+#include <map>
 #include <optional>
 #include <string>
 #include <utility>
@@ -21,8 +21,8 @@ namespace {
     // C++ query expects. Each axis accepts either a single string ("" means
     // "unconstrained") or a sequence of strings. Anything else (a non-string
     // element, or a non-sequence like bytes/int) raises ValueError.
-    std::vector<std::string>
-    parse_hint_terms(const py::object& value, const char* axis)
+    std::vector<std::string> parse_hint_terms(const py::object& value,
+                                              const char* axis)
     {
         std::vector<std::string> out;
         if (py::isinstance<py::str>(value)) {
@@ -35,11 +35,13 @@ namespace {
             || py::isinstance<py::bytearray>(value)
             || !py::isinstance<py::sequence>(value))
             throw py::value_error(
-                std::string(axis) + " must be a string or a sequence of strings");
+                std::string(axis)
+                + " must be a string or a sequence of strings");
         for (auto item : py::cast<py::sequence>(value)) {
             if (!py::isinstance<py::str>(item))
-                throw py::value_error(std::string(axis)
-                                      + " sequence entries must all be strings");
+                throw py::value_error(
+                    std::string(axis)
+                    + " sequence entries must all be strings");
             out.push_back(py::cast<std::string>(item));
         }
         return out;
@@ -113,27 +115,25 @@ declare_colorconfig(py::module& m)
                                                     ColorSpaceInfoField::Range,
                                                     self.range());
                                })
-        .def_property_readonly(
-            "chromaticities",
-            [](const ColorSpaceInfo& self) -> py::object {
-                cspan<float> c = self.chromaticities();
-                if (c.size() != 8)
-                    return py::none();
-                py::tuple t(8);
-                for (int i = 0; i < 8; ++i)
-                    t[i] = py::float_(c[i]);
-                return t;
-            })
+        .def_property_readonly("chromaticities",
+                               [](const ColorSpaceInfo& self) -> py::object {
+                                   cspan<float> c = self.chromaticities();
+                                   if (c.size() != 8)
+                                       return py::none();
+                                   py::tuple t(8);
+                                   for (int i = 0; i < 8; ++i)
+                                       t[i] = py::float_(c[i]);
+                                   return t;
+                               })
         .def_property_readonly("transfer_function_kind",
                                &ColorSpaceInfo::transfer_function_kind)
-        .def_property_readonly(
-            "transfer_function",
-            [](const ColorSpaceInfo& self) -> py::object {
-                string_view family = self.transfer_function();
-                if (family.empty())
-                    return py::none();
-                return py::str(std::string(family));
-            })
+        .def_property_readonly("transfer_function",
+                               [](const ColorSpaceInfo& self) -> py::object {
+                                   string_view family = self.transfer_function();
+                                   if (family.empty())
+                                       return py::none();
+                                   return py::str(std::string(family));
+                               })
         .def(
             "computed",
             [](const ColorSpaceInfo& self, ColorSpaceInfoField field) {
@@ -355,9 +355,8 @@ declare_colorconfig(py::module& m)
             },
             "chromaticities"_a = "", "transfer_function"_a = "",
             "encoding"_a = "", "image_state"_a = "", py::kw_only(),
-            "include_inactive"_a = false,
-            "include_context_sensitive"_a = false, "include_complex"_a = false,
-            "authored_encoding_only"_a = false,
+            "include_inactive"_a = false, "include_context_sensitive"_a = false,
+            "include_complex"_a = false, "authored_encoding_only"_a = false,
             "context_vars"_a = std::map<std::string, std::string>())
         .def(
             "get_color_space_info",
@@ -365,7 +364,7 @@ declare_colorconfig(py::module& m)
                const std::map<std::string, std::string>& context_vars)
                 -> py::object {
                 ColorSpaceInfoOptions opts;
-                opts.context = context_vars;
+                opts.context        = context_vars;
                 ColorSpaceInfo info = self.get_color_space_info(name, opts);
                 // Invalid input maps to None; the error stays on the
                 // ColorConfig (geterror()).
@@ -466,7 +465,7 @@ declare_colorconfig(py::module& m)
             },
             py::kw_only(), "working_dir"_a = "",
             "context_vars"_a = std::map<std::string, std::string>(),
-            "reset"_a = false)
+            "reset"_a        = false)
         .def(
             "archive",
             [](const ColorConfig& self, const std::string& filename,

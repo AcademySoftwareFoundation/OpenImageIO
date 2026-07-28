@@ -25,8 +25,6 @@
 
 
 
-
-
 // The built-in interop identities config and the interoperability
 // assertion/bootstrap machinery below touch ColorConfig::Impl, which lives in
 // the ABI-versioned v3_1 namespace -- so they must too. The OIIO_API pvt
@@ -93,7 +91,7 @@ std::string
 tf_curve_family(string_view id)
 {
     std::string family = spvt::family_token(search_strip_namespace(id));
-    const size_t sep = family.find('_');
+    const size_t sep   = family.find('_');
     if (sep != std::string::npos)
         family.resize(sep);
     return family;
@@ -114,8 +112,8 @@ probe_signature_over(const ConstCPUProcessorRcPtr& cpu)
         for (double v : axis) {
             float rgb[3] = { float(v), float(v), float(v) };
             cpu->applyRGB(rgb);
-            outputs.push_back(
-                (double(rgb[0]) + double(rgb[1]) + double(rgb[2])) / 3.0);
+            outputs.push_back((double(rgb[0]) + double(rgb[1]) + double(rgb[2]))
+                              / 3.0);
         }
     } catch (...) {
         return {};
@@ -149,7 +147,7 @@ named_transform_keys(const ConstNamedTransformRcPtr& nt)
         add(spvt::family_token(lowered));
 
     for (size_t i = 0, e = nt->getNumAliases(); i < e; ++i) {
-        const std::string alias        = nt->getAlias(i) ? nt->getAlias(i) : "";
+        const std::string alias = nt->getAlias(i) ? nt->getAlias(i) : "";
         const std::string lowered_alias = Strutil::lower(alias);
         if (Strutil::starts_with(lowered_alias, "crv_")) {
             add(alias);
@@ -206,8 +204,9 @@ inspect_authored_transform(const ConstConfigRcPtr& config,
             return { false, false };
         AuthoredInspection result;
         for (int i = 0, e = group->getNumTransforms(); i < e; ++i) {
-            const auto child = inspect_authored_transform(
-                config, context, group->getTransform(i), visited);
+            const auto child
+                = inspect_authored_transform(config, context,
+                                             group->getTransform(i), visited);
             result.allowed &= child.allowed;
             result.has_file_transform |= child.has_file_transform;
         }
@@ -217,11 +216,10 @@ inspect_authored_transform(const ConstConfigRcPtr& config,
         auto file = DynamicPtrCast<const FileTransform>(transform);
         if (!file || !file->getSrc())
             return { false, true };
-        const std::string source = context
-                                       ? context->resolveStringVar(
-                                             file->getSrc())
-                                       : std::string(file->getSrc());
-        const bool allowed = Strutil::iends_with(source, ".spi1d")
+        const std::string source = context ? context->resolveStringVar(
+                                       file->getSrc())
+                                           : std::string(file->getSrc());
+        const bool allowed       = Strutil::iends_with(source, ".spi1d")
                              || Strutil::iends_with(source, ".spimtx")
                              || Strutil::iends_with(source, ".ctf")
                              || Strutil::iends_with(source, ".clf");
@@ -383,7 +381,6 @@ transfer_axis_accepts(const std::vector<ResolvedTransferTerm>& terms,
 
 
 
-
 std::string
 ColorConfig::Impl::effectiveEncoding(string_view name) const
 {
@@ -497,16 +494,15 @@ ColorConfig::Impl::deriveTransferSignature(
     if (!sig)
         return {};
     sig->encoding = effectiveEncoding(resolved);
-    sig->family = tf_curve_family(derive_color_interop_id_impl(*m_self,
-                                                               resolved));
+    sig->family   = tf_curve_family(
+        derive_color_interop_id_impl(*m_self, resolved));
     return sig;
 }
 
 
 
 std::vector<std::string>
-ColorConfig::Impl::find_color_spaces(
-    const spvt::FindColorSpacesOptions& options)
+ColorConfig::Impl::find_color_spaces(const spvt::FindColorSpacesOptions& options)
 {
     if (!options.include_active && !options.include_inactive)
         return {};
@@ -515,11 +511,11 @@ ColorConfig::Impl::find_color_spaces(
 
     // Context overrides are scoped to this one query -- resolve and probe
     // everything below against a context copy carrying the overrides.
-    const OCIO::ConstContextRcPtr ctx = make_context_with_overrides(
-        config_, options.context);
+    const OCIO::ConstContextRcPtr ctx
+        = make_context_with_overrides(config_, options.context);
     // Learned-complex state is scoped to the exact context this query probes
     // under (see markLearnedComplex).
-    const std::string ctx_scope            = context_cache_id(ctx);
+    const std::string ctx_scope           = context_cache_id(ctx);
     const OCIO::ConstConfigRcPtr registry = build_interop_identities_config();
 
     // ---------------- Hint resolution (fail-fast, pre-walk) ----------------
@@ -530,8 +526,8 @@ ColorConfig::Impl::find_color_spaces(
     auto local_space = [&](const std::string& raw) {
         return config_->getColorSpace(raw.c_str());
     };
-    auto registry_space
-        = [&](const std::string& raw) -> OCIO::ConstColorSpaceRcPtr {
+    auto registry_space =
+        [&](const std::string& raw) -> OCIO::ConstColorSpaceRcPtr {
         return registry ? registry->getColorSpace(raw.c_str())
                         : OCIO::ConstColorSpaceRcPtr();
     };
@@ -567,8 +563,8 @@ ColorConfig::Impl::find_color_spaces(
                                              options.context);
     };
 
-    auto resolve_encoding
-        = [&](const std::string& raw) -> std::vector<std::string> {
+    auto resolve_encoding =
+        [&](const std::string& raw) -> std::vector<std::string> {
         if (auto local = local_space(raw)) {
             // Hint-by-example reads the space's own effective encoding
             // (authored, else twin-adopted); strict reads authored only.
@@ -599,8 +595,9 @@ ColorConfig::Impl::find_color_spaces(
         auto gather = [&](const OCIO::ConstConfigRcPtr& cfg) {
             if (!cfg)
                 return;
-            const int nn = cfg->getNumColorSpaces(
-                OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL);
+            const int nn
+                = cfg->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                         OCIO::COLORSPACE_ALL);
             for (int i = 0; i < nn; ++i) {
                 const char* nm = cfg->getColorSpaceNameByIndex(
                     OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL, i);
@@ -617,8 +614,8 @@ ColorConfig::Impl::find_color_spaces(
         return { literal };
     };
 
-    auto resolve_state
-        = [&](const std::string& raw) -> std::vector<std::string> {
+    auto resolve_state =
+        [&](const std::string& raw) -> std::vector<std::string> {
         if (auto local = local_space(raw))
             return { reference_state(local) };
         if (auto rcs = registry_space(raw))
@@ -631,8 +628,8 @@ ColorConfig::Impl::find_color_spaces(
         throw std::invalid_argument("unresolved image-state hint: " + raw);
     };
 
-    auto resolve_chromaticities
-        = [&](const std::string& raw) -> std::vector<spvt::Chromaticities> {
+    auto resolve_chromaticities =
+        [&](const std::string& raw) -> std::vector<spvt::Chromaticities> {
         if (auto local = local_space(raw)) {
             if (auto value = deriveChromaticities(local->getName(), ctx))
                 return { *value };
@@ -643,7 +640,8 @@ ColorConfig::Impl::find_color_spaces(
         // (table-only; gamuts absent from the table, e.g. ciexyzd65, are
         // documented as not-yet-resolvable, sharing the probe-port follow-on).
         if (auto rcs = registry_space(raw)) {
-            if (auto value = spvt::reserved_chromaticities_for_id(rcs->getName()))
+            if (auto value = spvt::reserved_chromaticities_for_id(
+                    rcs->getName()))
                 return { *value };
             throw std::invalid_argument(
                 "chromaticities hint has no derivable value: " + raw);
@@ -652,8 +650,9 @@ ColorConfig::Impl::find_color_spaces(
         const std::string component = Strutil::lower(raw);
         std::vector<spvt::Chromaticities> values;
         if (registry) {
-            const int nn = registry->getNumColorSpaces(
-                OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL);
+            const int nn
+                = registry->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                              OCIO::COLORSPACE_ALL);
             for (int i = 0; i < nn; ++i) {
                 const char* nm = registry->getColorSpaceNameByIndex(
                     OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ALL, i);
@@ -692,7 +691,7 @@ ColorConfig::Impl::find_color_spaces(
                 continue;
 
             ResolvedTransferTerm term;
-            term.mode = mode;
+            term.mode                = mode;
             spvt::TransferHint& hint = term.hint;
             if (auto local = local_space(value)) {
                 const std::string name = local->getName();
@@ -759,8 +758,8 @@ ColorConfig::Impl::find_color_spaces(
                                             : std::string();
                     hint.identity = encoding == "scene-linear"
                                     || encoding == "display-linear";
-                    const std::string transform_name
-                        = Strutil::lower(nt->getName() ? nt->getName() : "");
+                    const std::string transform_name = Strutil::lower(
+                        nt->getName() ? nt->getName() : "");
                     std::optional<spvt::TransferFunctionSignature> sig;
                     if (!hint.identity) {
                         try {
@@ -780,8 +779,9 @@ ColorConfig::Impl::find_color_spaces(
                         && Strutil::starts_with(transform_name, "crv_")) {
                         bool registry_behavior = from_registry;
                         if (!registry_behavior && registry) {
-                            if (auto registered = find_named_transform(
-                                    registry, transform_name)) {
+                            if (auto registered
+                                = find_named_transform(registry,
+                                                       transform_name)) {
                                 try {
                                     auto rproc = registry->getProcessor(
                                         registry->getCurrentContext(),
@@ -851,8 +851,8 @@ ColorConfig::Impl::find_color_spaces(
         }
         try {
             std::unordered_set<std::string> visited { name };
-            const auto authored = inspect_authored_transform(config_, ctx,
-                                                             transform, visited);
+            const auto authored
+                = inspect_authored_transform(config_, ctx, transform, visited);
             if (!authored.allowed || !authored.has_file_transform)
                 return false;
 
@@ -932,9 +932,8 @@ ColorConfig::Impl::find_color_spaces(
             if (!options.strict) {
                 const auto rec = characterization(name, CField::ColorInteropID);
                 std::string twin = twin_encoding_for_id(
-                    rec.available(CField::ColorInteropID)
-                        ? rec.color_interop_id
-                        : std::string());
+                    rec.available(CField::ColorInteropID) ? rec.color_interop_id
+                                                          : std::string());
                 if (!twin.empty() && twin != literal)
                     encoding_values.push_back(std::move(twin));
             }
@@ -948,8 +947,8 @@ ColorConfig::Impl::find_color_spaces(
 
         std::optional<spvt::Chromaticities> chromaticities;
         if (!chromaticity_terms.empty())
-            chromaticities
-                = characterization(name, CField::Chromaticities).chromaticities_xy;
+            chromaticities = characterization(name, CField::Chromaticities)
+                                 .chromaticities_xy;
         if (!chromaticity_axis_accepts(chromaticity_terms, chromaticities))
             continue;
 
@@ -961,8 +960,9 @@ ColorConfig::Impl::find_color_spaces(
             // it probes is authoritative for context-sensitive spaces. The
             // family key still derives from the interop id even when the
             // signature probe fails.
-            const auto rec = characterization(name, CField::TransferFunction
-                                                        | CField::ColorInteropID);
+            const auto rec    = characterization(name,
+                                                 CField::TransferFunction
+                                                     | CField::ColorInteropID);
             transfer.identity = rec.transfer_identity;
             if (rec.available(CField::ColorInteropID))
                 transfer.family = tf_curve_family(rec.color_interop_id);
@@ -973,8 +973,8 @@ ColorConfig::Impl::find_color_spaces(
             continue;
 
         result.push_back({ (flags & CSInfo::is_context_invariant) ? 0 : 1,
-                           active ? 0 : 1,
-                           (flags & CSInfo::is_simple) ? 0 : 1, name });
+                           active ? 0 : 1, (flags & CSInfo::is_simple) ? 0 : 1,
+                           name });
     }
 
     // ---------------- Deterministic order ----------------
@@ -1001,7 +1001,6 @@ OIIO_NAMESPACE_END
 
 
 
-
 // The pvt shims below are declared (OIIO_API) in the library's "current"
 // namespace by color_pvt.h, so they must be defined there too, not inside
 // the ABI-versioned v3_1 namespace the helpers above live in.
@@ -1015,7 +1014,8 @@ find_color_spaces(const ColorConfig& config,
                   const FindColorSpacesOptions& options)
 {
     auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);
-    return impl ? impl->find_color_spaces(options) : std::vector<std::string>{};
+    return impl ? impl->find_color_spaces(options)
+                : std::vector<std::string> {};
 }
 
 }  // namespace pvt

@@ -105,9 +105,9 @@ copy_field(spvt::CharacterizationRecord& dst,
     dst.derived_mask = (dst.derived_mask & ~bit) | (src.derived_mask & bit);
 }
 
-const Field all_fields[] = { Field::EqualityID,     Field::ColorInteropID,
-                             Field::Encoding,       Field::ImageState,
-                             Field::Range,          Field::Chromaticities,
+const Field all_fields[] = { Field::EqualityID,      Field::ColorInteropID,
+                             Field::Encoding,        Field::ImageState,
+                             Field::Range,           Field::Chromaticities,
                              Field::TransferFunction };
 
 // Merge `src` into `dst`, field-wise: a field is copied when `dst` has not
@@ -434,9 +434,8 @@ characterization_cache_erase_config(string_view cfgId)
     auto& cache = char_cache();
     for (auto it = cache.begin(); it != cache.end();) {
         auto segs  = Strutil::splitsv(it->first, "|");
-        bool match = segs.size() >= 2
-                     && (segs[0] == cfgId || segs[1] == cfgId);
-        it = match ? cache.erase(it) : std::next(it);
+        bool match = segs.size() >= 2 && (segs[0] == cfgId || segs[1] == cfgId);
+        it         = match ? cache.erase(it) : std::next(it);
     }
 }
 
@@ -478,15 +477,16 @@ empty_record()
 }  // namespace
 
 
-ColorSpaceInfo::ColorSpaceInfo() = default;
-ColorSpaceInfo::~ColorSpaceInfo() = default;
-ColorSpaceInfo::ColorSpaceInfo(const ColorSpaceInfo&) = default;
+ColorSpaceInfo::ColorSpaceInfo()                          = default;
+ColorSpaceInfo::~ColorSpaceInfo()                         = default;
+ColorSpaceInfo::ColorSpaceInfo(const ColorSpaceInfo&)     = default;
 ColorSpaceInfo::ColorSpaceInfo(ColorSpaceInfo&&) noexcept = default;
 ColorSpaceInfo&
 ColorSpaceInfo::operator=(const ColorSpaceInfo&)
     = default;
 ColorSpaceInfo&
-ColorSpaceInfo::operator=(ColorSpaceInfo&&) noexcept = default;
+ColorSpaceInfo::operator=(ColorSpaceInfo&&) noexcept
+    = default;
 
 ColorSpaceInfo::ColorSpaceInfo(std::shared_ptr<const Impl> impl)
     : m_impl(std::move(impl))
@@ -602,9 +602,8 @@ ColorConfig::get_color_space_info(string_view color_space,
             *this, color_space, uint32_t(spvt::CharacterizationField::None),
             options.context);
         if (!rec.valid()) {
-            getImpl()->error(
-                "get_color_space_info: unknown color space \"{}\"",
-                color_space);
+            getImpl()->error("get_color_space_info: unknown color space \"{}\"",
+                             color_space);
             return {};
         }
         return ColorSpaceInfo(
@@ -720,7 +719,6 @@ ColorConfig::derive_color_space_infos(cspan<std::string> color_spaces,
 }
 
 OIIO_NAMESPACE_END
-
 
 
 

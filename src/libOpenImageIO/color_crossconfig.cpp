@@ -21,8 +21,6 @@
 
 
 
-
-
 // The built-in interop identities config and the interoperability
 // assertion/bootstrap machinery below touch ColorConfig::Impl, which lives in
 // the ABI-versioned v3_1 namespace -- so they must too. The OIIO_API pvt
@@ -228,8 +226,9 @@ bootstrap_display_interchange(const OCIO::ConfigRcPtr& editable,
 
         OCIO::ConstTransformRcPtr bridge;
         auto acesCS = editable->getColorSpace(interchangeScene.c_str());
-        const bool acesIsSceneRef
-            = acesCS && !acesCS->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE);
+        const bool acesIsSceneRef = acesCS
+                                    && !acesCS->getTransform(
+                                        OCIO::COLORSPACE_DIR_TO_REFERENCE);
         if (acesIsSceneRef || sceneRefName == interchangeScene) {
             // The scene reference IS the (positively identified) AP0
             // interchange space: use the builtin alone.
@@ -293,7 +292,7 @@ get_config_cache_id(const OCIO::ConstConfigRcPtr& config)
     if (!config)
         return {};
     try {
-        const char* id = config->getCacheID(OCIO::ConstContextRcPtr{});
+        const char* id = config->getCacheID(OCIO::ConstContextRcPtr {});
         return id ? std::string(id) : std::string();
     } catch (...) {
         return {};
@@ -326,7 +325,7 @@ interopify_config(const OCIO::ConstConfigRcPtr& config)
     OCIO::ConstConfigRcPtr result;
     try {
         OCIO::ConfigRcPtr editable = copy_config(config);
-        std::string interchange = discover_scene_interchange(editable);
+        std::string interchange    = discover_scene_interchange(editable);
         if (!interchange.empty()) {
             // Config carries the interchange space; bind the role to it if the
             // role itself is absent.
@@ -348,8 +347,7 @@ interopify_config(const OCIO::ConstConfigRcPtr& config)
 
         // Ensure lin_ap0_scene resolves (as an alias of the interchange space)
         // so the probe path's fallback lookups find it by that name.
-        if (!interchange.empty()
-            && !editable->getColorSpace("lin_ap0_scene")) {
+        if (!interchange.empty() && !editable->getColorSpace("lin_ap0_scene")) {
             if (auto cs = editable->getColorSpace(interchange.c_str())) {
                 auto editableCS = cs->createEditableCopy();
                 editableCS->addAlias("lin_ap0_scene");
@@ -436,19 +434,24 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
                 return OCIO::Config::GetProcessorFromConfigs(
                     src_config, src.c_str(), interchange_role, dst_config,
                     dst.c_str(), interchange_role);
-            return OCIO::Config::GetProcessorFromConfigs(src_config, src.c_str(),
-                                                         dst_config, dst.c_str());
+            return OCIO::Config::GetProcessorFromConfigs(src_config,
+                                                         src.c_str(),
+                                                         dst_config,
+                                                         dst.c_str());
         }
-        OCIO::ConstContextRcPtr sctx = src_context ? src_context
-                                                   : src_config->getCurrentContext();
-        OCIO::ConstContextRcPtr dctx = dst_context ? dst_context
-                                                   : dst_config->getCurrentContext();
+        OCIO::ConstContextRcPtr sctx = src_context
+                                           ? src_context
+                                           : src_config->getCurrentContext();
+        OCIO::ConstContextRcPtr dctx = dst_context
+                                           ? dst_context
+                                           : dst_config->getCurrentContext();
         if (explicit_interchange)
             return OCIO::Config::GetProcessorFromConfigs(
-                sctx, src_config, src.c_str(), interchange_role, dctx, dst_config,
-                dst.c_str(), interchange_role);
-        return OCIO::Config::GetProcessorFromConfigs(sctx, src_config, src.c_str(),
-                                                     dctx, dst_config, dst.c_str());
+                sctx, src_config, src.c_str(), interchange_role, dctx,
+                dst_config, dst.c_str(), interchange_role);
+        return OCIO::Config::GetProcessorFromConfigs(sctx, src_config,
+                                                     src.c_str(), dctx,
+                                                     dst_config, dst.c_str());
     } catch (OCIO::Exception& e) {
         errmsg = e.what();
     } catch (...) {
@@ -488,13 +491,13 @@ processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
 // (or fall back) for that case.
 OCIO::ConstProcessorRcPtr
 display_processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
-                              string_view src_name,
-                              const OCIO::ConstConfigRcPtr& dst_config,
-                              string_view display, string_view view,
-                              OCIO::TransformDirection direction,
-                              std::string& errmsg,
-                              const OCIO::ConstContextRcPtr& src_context,
-                              const OCIO::ConstContextRcPtr& dst_context)
+                               string_view src_name,
+                               const OCIO::ConstConfigRcPtr& dst_config,
+                               string_view display, string_view view,
+                               OCIO::TransformDirection direction,
+                               std::string& errmsg,
+                               const OCIO::ConstContextRcPtr& src_context,
+                               const OCIO::ConstContextRcPtr& dst_context)
 {
     errmsg.clear();
     if (!src_config || !dst_config) {
@@ -514,26 +517,32 @@ display_processor_from_configs(const OCIO::ConstConfigRcPtr& src_config,
                     src_config, src.c_str(), OCIO::ROLE_INTERCHANGE_SCENE,
                     dst_config, disp.c_str(), vw.c_str(),
                     OCIO::ROLE_INTERCHANGE_SCENE, direction);
-            return OCIO::Config::GetProcessorFromConfigs(src_config, src.c_str(),
-                                                         dst_config, disp.c_str(),
+            return OCIO::Config::GetProcessorFromConfigs(src_config,
+                                                         src.c_str(),
+                                                         dst_config,
+                                                         disp.c_str(),
                                                          vw.c_str(), direction);
         }
-        OCIO::ConstContextRcPtr sctx = src_context ? src_context
-                                                   : src_config->getCurrentContext();
-        OCIO::ConstContextRcPtr dctx = dst_context ? dst_context
-                                                   : dst_config->getCurrentContext();
+        OCIO::ConstContextRcPtr sctx = src_context
+                                           ? src_context
+                                           : src_config->getCurrentContext();
+        OCIO::ConstContextRcPtr dctx = dst_context
+                                           ? dst_context
+                                           : dst_config->getCurrentContext();
         if (explicit_interchange)
             return OCIO::Config::GetProcessorFromConfigs(
                 sctx, src_config, src.c_str(), OCIO::ROLE_INTERCHANGE_SCENE,
                 dctx, dst_config, disp.c_str(), vw.c_str(),
                 OCIO::ROLE_INTERCHANGE_SCENE, direction);
-        return OCIO::Config::GetProcessorFromConfigs(sctx, src_config, src.c_str(),
-                                                     dctx, dst_config, disp.c_str(),
+        return OCIO::Config::GetProcessorFromConfigs(sctx, src_config,
+                                                     src.c_str(), dctx,
+                                                     dst_config, disp.c_str(),
                                                      vw.c_str(), direction);
     } catch (OCIO::Exception& e) {
         errmsg = e.what();
     } catch (...) {
-        errmsg = "Unknown error in OpenColorIO GetProcessorFromConfigs (display)";
+        errmsg
+            = "Unknown error in OpenColorIO GetProcessorFromConfigs (display)";
     }
     return {};
 }
@@ -610,7 +619,7 @@ ColorConfig::Impl::ensure_interop() const
             "a matching color space) to this config to enable "
             "cross-config features.",
             configname());
-        state.warned            = true;
+        state.warned          = true;
         const std::string key = get_config_cache_id(config_);
         if (!key.empty() && note_interop_warning(key))
             Strutil::debug("{}\n", state.warning_message);
@@ -678,12 +687,14 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
     const std::string s(src), d(dst);
     const std::string s_local = try_canonical_name(config_, s.c_str());
     const std::string d_local = try_canonical_name(config_, d.c_str());
-    const std::string s_reg = s_local.empty() ? try_canonical_name(ids, s.c_str())
-                                              : std::string();
-    const std::string d_reg = d_local.empty() ? try_canonical_name(ids, d.c_str())
-                                              : std::string();
-    const bool src_foreign = s_local.empty() && !s_reg.empty();
-    const bool dst_foreign = d_local.empty() && !d_reg.empty();
+    const std::string s_reg   = s_local.empty()
+                                    ? try_canonical_name(ids, s.c_str())
+                                    : std::string();
+    const std::string d_reg   = d_local.empty()
+                                    ? try_canonical_name(ids, d.c_str())
+                                    : std::string();
+    const bool src_foreign    = s_local.empty() && !s_reg.empty();
+    const bool dst_foreign    = d_local.empty() && !d_reg.empty();
 
     // Feature applies only when at least one endpoint is a registry-known
     // identity this config lacks AND the other endpoint resolves locally (or is
@@ -720,14 +731,14 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
         try {
             auto cs = ids->getColorSpace(reg_name.c_str());
             return cs
-                   && cs->getReferenceSpaceType() == OCIO::REFERENCE_SPACE_DISPLAY;
+                   && cs->getReferenceSpaceType()
+                          == OCIO::REFERENCE_SPACE_DISPLAY;
         } catch (...) {
             return false;
         }
     };
-    const bool display_foreign
-        = (src_foreign && foreign_is_display(s_reg))
-          || (dst_foreign && foreign_is_display(d_reg));
+    const bool display_foreign = (src_foreign && foreign_is_display(s_reg))
+                                 || (dst_foreign && foreign_is_display(d_reg));
 
     if (strict && !display_foreign) {
         // Strict mode never touches the interopify/repair machinery for a
@@ -762,10 +773,12 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
         // config.
         OCIO::ConstConfigRcPtr src_cfg = src_foreign ? ids : bridge;
         OCIO::ConstConfigRcPtr dst_cfg = dst_foreign ? ids : bridge;
-        std::string src_name = src_foreign ? s_reg
-                                           : try_canonical_name(bridge, s.c_str());
-        std::string dst_name = dst_foreign ? d_reg
-                                           : try_canonical_name(bridge, d.c_str());
+        std::string src_name           = src_foreign
+                                             ? s_reg
+                                             : try_canonical_name(bridge, s.c_str());
+        std::string dst_name           = dst_foreign
+                                             ? d_reg
+                                             : try_canonical_name(bridge, d.c_str());
         if (src_name.empty())
             src_name = s;
         if (dst_name.empty())
@@ -787,15 +800,17 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
         if (display_foreign) {
             try {
                 prefer_display = ids->hasRole(OCIO::ROLE_INTERCHANGE_DISPLAY)
-                                 && bridge->hasRole(OCIO::ROLE_INTERCHANGE_DISPLAY);
+                                 && bridge->hasRole(
+                                     OCIO::ROLE_INTERCHANGE_DISPLAY);
             } catch (...) {
             }
         }
         std::array<const char*, 2> roles
-            = prefer_display ? std::array<const char*, 2> { OCIO::ROLE_INTERCHANGE_DISPLAY,
-                                                            OCIO::ROLE_INTERCHANGE_SCENE }
-                             : std::array<const char*, 2> { OCIO::ROLE_INTERCHANGE_SCENE,
-                                                            OCIO::ROLE_INTERCHANGE_SCENE };
+            = prefer_display
+                  ? std::array<const char*, 2> { OCIO::ROLE_INTERCHANGE_DISPLAY,
+                                                 OCIO::ROLE_INTERCHANGE_SCENE }
+                  : std::array<const char*, 2> { OCIO::ROLE_INTERCHANGE_SCENE,
+                                                 OCIO::ROLE_INTERCHANGE_SCENE };
         const int n_roles = prefer_display ? 2 : 1;
         for (int r = 0; r < n_roles && !proc; ++r) {
             // R2(b)/R4(b): narrate every cross-config route as one complete msg.
@@ -849,8 +864,8 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
     Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {} Continuing with a "
                    "pass-through (non-strict parsing).\n",
                    configname(), errmsg);
-    return ColorProcessorHandle(new ColorProcessor_Matrix(Imath::M44f(),
-                                                          false));
+    return ColorProcessorHandle(
+        new ColorProcessor_Matrix(Imath::M44f(), false));
 }
 
 
@@ -883,7 +898,8 @@ ColorConfig::Impl::reconcile_cross_config(string_view src, string_view dst,
 ColorProcessorHandle
 ColorConfig::Impl::reconcile_cross_config_display(string_view input,
                                                   string_view display,
-                                                  string_view view, bool inverse,
+                                                  string_view view,
+                                                  bool inverse,
                                                   std::string& errmsg) const
 {
     errmsg.clear();
@@ -939,8 +955,9 @@ ColorConfig::Impl::reconcile_cross_config_display(string_view input,
     OCIO::ConstProcessorRcPtr proc;
     std::string ocio_err;
     if (gate_open) {
-        const OCIO::TransformDirection dir
-            = inverse ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD;
+        const OCIO::TransformDirection dir = inverse
+                                                 ? OCIO::TRANSFORM_DIR_INVERSE
+                                                 : OCIO::TRANSFORM_DIR_FORWARD;
 
         // R3/R4(b): narrate the cross-config display route as one complete
         // message (say "display transform" so the route is identifiable).
@@ -950,8 +967,8 @@ ColorConfig::Impl::reconcile_cross_config_display(string_view input,
             "display \"{}\" view \"{}\" (this config)\n",
             configname(), in_reg, display, view);
 
-        proc = display_processor_from_configs(ids, in_reg, bridge, display, view,
-                                              dir, ocio_err);
+        proc = display_processor_from_configs(ids, in_reg, bridge, display,
+                                              view, dir, ocio_err);
         if (proc) {
             try {
                 return ColorProcessorHandle(new ColorProcessor_OCIO(proc));
@@ -994,8 +1011,8 @@ ColorConfig::Impl::reconcile_cross_config_display(string_view input,
     Strutil::debug("OpenImageIO ColorConfig(\"{}\"): {} Continuing with a "
                    "pass-through (non-strict parsing).\n",
                    configname(), errmsg);
-    return ColorProcessorHandle(new ColorProcessor_Matrix(Imath::M44f(),
-                                                          false));
+    return ColorProcessorHandle(
+        new ColorProcessor_Matrix(Imath::M44f(), false));
 }
 
 
@@ -1075,7 +1092,6 @@ ColorConfig::Impl::interopifiedCacheOff() const
 }
 
 OIIO_NAMESPACE_END
-
 
 
 
@@ -1159,7 +1175,7 @@ cross_config_probe(const ColorConfig& src_config, string_view src_name,
         const std::string k(context_key), v(context_value);
         auto se = sc->getCurrentContext()->createEditableCopy();
         se->setStringVar(k.c_str(), v.c_str());
-        sctx = se;
+        sctx    = se;
         auto de = dc->getCurrentContext()->createEditableCopy();
         de->setStringVar(k.c_str(), v.c_str());
         dctx = de;
@@ -1232,10 +1248,9 @@ identities_display_route_probe(const ColorConfig& config,
     if (!bridge || !ids)
         return out;
     std::string err;
-    auto proc = v3_1::display_processor_from_configs(ids, registry_name, bridge,
-                                                     display, view,
-                                                     OCIO::TRANSFORM_DIR_FORWARD,
-                                                     err);
+    auto proc = v3_1::display_processor_from_configs(
+        ids, registry_name, bridge, display, view, OCIO::TRANSFORM_DIR_FORWARD,
+        err);
     if (!proc)
         return out;
     out.assign(probe.begin(), probe.end());
@@ -1250,7 +1265,8 @@ identities_display_route_probe(const ColorConfig& config,
 
 std::vector<float>
 interopified_display_interchange_probe(const ColorConfig& config,
-                                       string_view scene_name, cspan<float> probe)
+                                       string_view scene_name,
+                                       cspan<float> probe)
 {
     std::vector<float> out;
     auto* impl = v3_1::pvt::ColorConfigClassificationPeek::impl(config);

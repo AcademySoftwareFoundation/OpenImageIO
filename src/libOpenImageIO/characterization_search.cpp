@@ -20,8 +20,8 @@
 // select; an exclusion-only axis starts from the full universe; exclusion
 // always wins last.
 
-#include "imageio_pvt.h"
 #include "color_pvt.h"
+#include "imageio_pvt.h"
 
 #include <OpenImageIO/strutil.h>
 
@@ -70,8 +70,8 @@ parse_search_term(string_view raw)
 
 
 bool
-three_valued_axis(cspan<SearchTermMode> modes, cspan<unsigned char> term_matches,
-                  bool property_known)
+three_valued_axis(cspan<SearchTermMode> modes,
+                  cspan<unsigned char> term_matches, bool property_known)
 {
     OIIO_DASSERT(modes.size() == term_matches.size());
     if (modes.empty())

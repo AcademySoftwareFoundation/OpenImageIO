@@ -63,7 +63,8 @@ test_reserved_chromaticities_for_id()
         pvt::reserved_chromaticities_for_id("g22_adobergb_display").has_value());
     auto plain709 = pvt::reserved_chromaticities_for_id("lin_rec709_scene");
     OIIO_CHECK_ASSERT(plain709.has_value());
-    OIIO_CHECK_EQUAL((*plain709)[1][0], 0.30);  // rec709 green x, not adobergb's
+    OIIO_CHECK_EQUAL((*plain709)[1][0],
+                     0.30);  // rec709 green x, not adobergb's
 
     // Case-insensitive.
     OIIO_CHECK_ASSERT(
@@ -81,14 +82,23 @@ test_chromaticities_from_ap0_probes()
     OIIO_CHECK_ASSERT(c.has_value());
     OIIO_CHECK_EQUAL((*c)[3][0], 0.3127);  // white x
     OIIO_CHECK_EQUAL((*c)[3][1], 0.329);   // white y
-    OIIO_CHECK_EQUAL_THRESH((*c)[0][0], 0.734855, 1e-6);  // AP0 red x (D65-adapted)
+    OIIO_CHECK_EQUAL_THRESH((*c)[0][0], 0.734855,
+                            1e-6);  // AP0 red x (D65-adapted)
 
     // Illuminant-E white probe (equal XYZ) rounds to x == y and is snapped to
     // exact (1/3, 1/3).
-    const std::vector<float> eq {
-        1, 0, 0, 0, 1, 0, 0, 0, 1,
-        1.0540976150737138f, 0.9674863678639096f, 0.9182462840112028f
-    };
+    const std::vector<float> eq { 1,
+                                  0,
+                                  0,
+                                  0,
+                                  1,
+                                  0,
+                                  0,
+                                  0,
+                                  1,
+                                  1.0540976150737138f,
+                                  0.9674863678639096f,
+                                  0.9182462840112028f };
     auto e = pvt::chromaticities_from_ap0_probes(eq);
     OIIO_CHECK_ASSERT(e.has_value());
     OIIO_CHECK_EQUAL((*e)[3][0], 1.0 / 3.0);
@@ -96,7 +106,8 @@ test_chromaticities_from_ap0_probes()
 
     // Wrong span length and a degenerate (all-zero) probe both decline.
     const std::vector<float> shortspan { 1, 0, 0 };
-    OIIO_CHECK_ASSERT(!pvt::chromaticities_from_ap0_probes(shortspan).has_value());
+    OIIO_CHECK_ASSERT(
+        !pvt::chromaticities_from_ap0_probes(shortspan).has_value());
     const std::vector<float> zero(12, 0.0f);
     OIIO_CHECK_ASSERT(!pvt::chromaticities_from_ap0_probes(zero).has_value());
 }

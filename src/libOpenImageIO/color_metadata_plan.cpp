@@ -28,8 +28,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
-#include "imageio_pvt.h"
 #include "color_pvt.h"
+#include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -81,7 +81,8 @@ apply_profile_selection(std::map<std::string, std::string>& keys,
         } else {
             // Profile: merge (or erase) its declared keys. An undefined profile
             // yields no keys -- a graceful fall-through (spec 09).
-            const auto profile_keys = config_declared_policy_keys(config, entry);
+            const auto profile_keys = config_declared_policy_keys(config,
+                                                                  entry);
             for (const auto& kv : profile_keys) {
                 if (remove)
                     keys.erase(kv.first);
@@ -194,126 +195,125 @@ ColorPolicySnapshot::get_int(const char* name, int dflt) const
 
 namespace {
 
-ColorSignalPolicy
-parse_signal(const std::string& v)
-{
-    if (v == "always")
-        return ColorSignalPolicy::Always;
-    if (v == "never")
-        return ColorSignalPolicy::Never;
-    return ColorSignalPolicy::Auto;  // "" or "auto" -- today's behavior
-}
-
-// Resolve one signal to an action + value carrier. `explicit_present` is a
-// value the author already put on the spec (emitted verbatim, Write);
-// `derived` is what OIIO could derive from the color space ("" / empty ==
-// couldn't determine -> Omit, the never-guess rule). A "never" policy
-// suppresses the signal outright; the format-capability gate is applied by
-// the caller.
-ColorPlanField
-plan_string_signal(ColorSignalPolicy pol, bool capable,
-                   const std::string& explicit_present,
-                   const std::string& derived)
-{
-    ColorPlanField f;
-    if (!capable || pol == ColorSignalPolicy::Never) {
-        f.action = capable ? ColorPlanAction::Suppress : ColorPlanAction::Omit;
-        return f;
+    ColorSignalPolicy parse_signal(const std::string& v)
+    {
+        if (v == "always")
+            return ColorSignalPolicy::Always;
+        if (v == "never")
+            return ColorSignalPolicy::Never;
+        return ColorSignalPolicy::Auto;  // "" or "auto" -- today's behavior
     }
-    if (!explicit_present.empty()) {
-        // Verbatim in all modes: the author's bytes are theirs. The marker
-        // collapse below is deliberately NOT applied here -- it governs what
-        // OIIO SYNTHESIZES, not what a user wrote.
-        f.action = ColorPlanAction::Write;
-        f.str    = explicit_present;
-    } else if (!derived.empty()) {
-        // Writer boundary for the unknown-marker family (ADR-0020 Amendment
-        // 2). The markers are OIIO's INTERNAL taxonomy: they carry the *why*
-        // behind an unknown, and the `ocio` namespace in particular is
-        // reserved to the OpenColorIO project. A file gets the Color Interop
-        // Forum's registered vocabulary and nothing else, so a derived marker
-        // is translated on the way out:
-        //   ocio:unknown, error:unknown -> bare "unknown". Nothing is silently
-        //     dropped: "unknown" is the Forum's registered utility id for
-        //     exactly this case, so the FACT survives and only OIIO's private
-        //     reason for it is discarded.
-        //   oiio:unknown -> omitted. It is a TREATMENT marker (synthetic
-        //     isData/NoOp) that may legally coexist with a definite
-        //     oiio:ColorSpace under the disparity rule, so it makes no
-        //     identity claim at all -- and colorInteropID is an identity
-        //     field. Emitting it there would be a category error.
-        // ponytail: nothing today synthesizes oiio:/error:unknown into an id
-        // (only ocio:unknown is minted, color_ocio.cpp), so those two arms are
-        // currently unreachable. They are stated anyway so the boundary is
-        // correct the day a derive path does produce them.
-        switch (classify_interop_marker(derived)) {
-        case InteropMarker::OiioUnknown: return f;  // stays Omit
-        case InteropMarker::OcioUnknown:
-        case InteropMarker::ErrorUnknown: f.str = "unknown"; break;
-        default: f.str = derived; break;
+
+    // Resolve one signal to an action + value carrier. `explicit_present` is a
+    // value the author already put on the spec (emitted verbatim, Write);
+    // `derived` is what OIIO could derive from the color space ("" / empty ==
+    // couldn't determine -> Omit, the never-guess rule). A "never" policy
+    // suppresses the signal outright; the format-capability gate is applied by
+    // the caller.
+    ColorPlanField plan_string_signal(ColorSignalPolicy pol, bool capable,
+                                      const std::string& explicit_present,
+                                      const std::string& derived)
+    {
+        ColorPlanField f;
+        if (!capable || pol == ColorSignalPolicy::Never) {
+            f.action = capable ? ColorPlanAction::Suppress
+                               : ColorPlanAction::Omit;
+            return f;
         }
-        f.action = ColorPlanAction::Derive;
+        if (!explicit_present.empty()) {
+            // Verbatim in all modes: the author's bytes are theirs. The marker
+            // collapse below is deliberately NOT applied here -- it governs what
+            // OIIO SYNTHESIZES, not what a user wrote.
+            f.action = ColorPlanAction::Write;
+            f.str    = explicit_present;
+        } else if (!derived.empty()) {
+            // Writer boundary for the unknown-marker family (ADR-0020 Amendment
+            // 2). The markers are OIIO's INTERNAL taxonomy: they carry the *why*
+            // behind an unknown, and the `ocio` namespace in particular is
+            // reserved to the OpenColorIO project. A file gets the Color Interop
+            // Forum's registered vocabulary and nothing else, so a derived marker
+            // is translated on the way out:
+            //   ocio:unknown, error:unknown -> bare "unknown". Nothing is silently
+            //     dropped: "unknown" is the Forum's registered utility id for
+            //     exactly this case, so the FACT survives and only OIIO's private
+            //     reason for it is discarded.
+            //   oiio:unknown -> omitted. It is a TREATMENT marker (synthetic
+            //     isData/NoOp) that may legally coexist with a definite
+            //     oiio:ColorSpace under the disparity rule, so it makes no
+            //     identity claim at all -- and colorInteropID is an identity
+            //     field. Emitting it there would be a category error.
+            // ponytail: nothing today synthesizes oiio:/error:unknown into an id
+            // (only ocio:unknown is minted, color_ocio.cpp), so those two arms are
+            // currently unreachable. They are stated anyway so the boundary is
+            // correct the day a derive path does produce them.
+            switch (classify_interop_marker(derived)) {
+            case InteropMarker::OiioUnknown: return f;  // stays Omit
+            case InteropMarker::OcioUnknown:
+            case InteropMarker::ErrorUnknown: f.str = "unknown"; break;
+            default: f.str = derived; break;
+            }
+            f.action = ColorPlanAction::Derive;
+        }
+        return f;  // else stays Omit
     }
-    return f;  // else stays Omit
-}
 
-// Feature 2 (spec 09): derive a display gamma from an interop id whose transfer
-// is a *pure* power law, probed as a `g<digits>_` prefix token on the lowered
-// id (g18/g22/g24/g26 -> 1.8/2.2/2.4/2.6). Returns 0 when the id names no pure
-// power-law transfer (e.g. sRGB piecewise, log, PQ) -- verbose never guesses a
-// gamma for a curve that is not a single exponent, so the emitted gAMA stays
-// consistent with the space. Mirrors the pure-gamma cases the PNG writer
-// already special-cases inline.
-float
-gamma_from_id(string_view interop_id)
-{
-    const std::string lo = Strutil::lower(interop_id);
-    static const std::pair<const char*, float> table[] = {
-        { "g18_", 1.8f }, { "g22_", 2.2f }, { "g24_", 2.4f }, { "g26_", 2.6f },
-    };
-    for (const auto& [tok, g] : table)
-        if (Strutil::starts_with(lo, tok))
-            return g;
-    return 0.0f;
-}
+    // Feature 2 (spec 09): derive a display gamma from an interop id whose transfer
+    // is a *pure* power law, probed as a `g<digits>_` prefix token on the lowered
+    // id (g18/g22/g24/g26 -> 1.8/2.2/2.4/2.6). Returns 0 when the id names no pure
+    // power-law transfer (e.g. sRGB piecewise, log, PQ) -- verbose never guesses a
+    // gamma for a curve that is not a single exponent, so the emitted gAMA stays
+    // consistent with the space. Mirrors the pure-gamma cases the PNG writer
+    // already special-cases inline.
+    float gamma_from_id(string_view interop_id)
+    {
+        const std::string lo = Strutil::lower(interop_id);
+        static const std::pair<const char*, float> table[] = {
+            { "g18_", 1.8f },
+            { "g22_", 2.2f },
+            { "g24_", 2.4f },
+            { "g26_", 2.6f },
+        };
+        for (const auto& [tok, g] : table)
+            if (Strutil::starts_with(lo, tok))
+                return g;
+        return 0.0f;
+    }
 
-// True when an interop id names P3-D65 gamut content (a `p3d65` gamut token).
-bool
-is_p3d65_content(string_view interop_id)
-{
-    return Strutil::lower(interop_id).find("p3d65") != std::string::npos;
-}
+    // True when an interop id names P3-D65 gamut content (a `p3d65` gamut token).
+    bool is_p3d65_content(string_view interop_id)
+    {
+        return Strutil::lower(interop_id).find("p3d65") != std::string::npos;
+    }
 
-// Feature B (spec 09): oiio:default's declared write-canonical space mappings.
-// The one locked mapping: g26_p3d65_display (the P3-primaries DCDM form) is
-// canonicalized to g26_xyzd65_display -- a P3->XYZ primaries conversion WITHIN
-// the DCI-white-scaled DCDM family (gamma 2.6 + DCI white headroom, alias
-// dcdm_xyzd65), NOT a headroom change and NOT the P3-primaries form. Any other
-// id passes through unchanged. See spec 09 "Write-canonical mapping in
-// oiio:default".
-std::string
-canonical_write_id(string_view interop_id)
-{
-    if (interop_id == "g26_p3d65_display")
-        return "g26_xyzd65_display";
-    return std::string(interop_id);
-}
+    // Feature B (spec 09): oiio:default's declared write-canonical space mappings.
+    // The one locked mapping: g26_p3d65_display (the P3-primaries DCDM form) is
+    // canonicalized to g26_xyzd65_display -- a P3->XYZ primaries conversion WITHIN
+    // the DCI-white-scaled DCDM family (gamma 2.6 + DCI white headroom, alias
+    // dcdm_xyzd65), NOT a headroom change and NOT the P3-primaries form. Any other
+    // id passes through unchanged. See spec 09 "Write-canonical mapping in
+    // oiio:default".
+    std::string canonical_write_id(string_view interop_id)
+    {
+        if (interop_id == "g26_p3d65_display")
+            return "g26_xyzd65_display";
+        return std::string(interop_id);
+    }
 
 }  // namespace
 
 
 ColorWritePolicy
 ColorWritePolicy::snapshot(const ImageSpec* config_hints,
-                          const ColorConfig* config, string_view filepath)
+                           const ColorConfig* config, string_view filepath)
 {
     ColorWritePolicy p;
     ColorPolicySnapshot snap(config_hints, config, filepath);
 
     p.cicp = parse_signal(
         snap.get_string("oiio:colorpolicy:write:cicp", &p.cicp_layer));
-    p.chromaticities
-        = parse_signal(snap.get_string("oiio:colorpolicy:write:chromaticities",
-                                       &p.chromaticities_layer));
+    p.chromaticities = parse_signal(
+        snap.get_string("oiio:colorpolicy:write:chromaticities",
+                        &p.chromaticities_layer));
     p.gamma = parse_signal(
         snap.get_string("oiio:colorpolicy:write:gamma", &p.gamma_layer));
     p.icc = parse_signal(
@@ -326,9 +326,9 @@ ColorWritePolicy::snapshot(const ImageSpec* config_hints,
 
     p.force_interop_id
         = snap.get_int("oiio:colorpolicy:write:force_interop_id", 0) != 0;
-    p.verbose = snap.get_int("oiio:colorpolicy:write:verbose", 0) != 0;
-    p.canonicalize
-        = snap.get_int("oiio:colorpolicy:write:canonicalize", 0) != 0;
+    p.verbose      = snap.get_int("oiio:colorpolicy:write:verbose", 0) != 0;
+    p.canonicalize = snap.get_int("oiio:colorpolicy:write:canonicalize", 0)
+                     != 0;
     p.broadcast = snap.get_int("oiio:colorpolicy:write:broadcast", 0) != 0;
     return p;
 }
@@ -340,8 +340,8 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
 {
     // A null config means "use the process default" -- the config the writers
     // historically derived against.
-    const ColorConfig& cfg = config ? *config
-                                     : ColorConfig::default_colorconfig();
+    const ColorConfig& cfg       = config ? *config
+                                          : ColorConfig::default_colorconfig();
     const std::string colorspace = spec.get_string_attribute("oiio:ColorSpace");
 
     ColorMetadataPlan plan;
@@ -385,7 +385,8 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     // tuple (get_cicp on the derived id is a cheap table lookup).
     if (caps.cicp && policy.cicp != ColorSignalPolicy::Never) {
         int explicit_cicp[4];
-        if (spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4), explicit_cicp)) {
+        if (spec.getattribute("CICP", TypeDesc(TypeDesc::INT, 4),
+                              explicit_cicp)) {
             plan.cicp.action = ColorPlanAction::Write;
             plan.cicp.ints.assign(explicit_cicp, explicit_cicp + 4);
         } else if (policy.broadcast && is_p3d65_content(derived_id)) {
@@ -477,9 +478,9 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     // ICC: author's ICCProfile blob verbatim; no derivation (omit).
     if (caps.icc && policy.icc != ColorSignalPolicy::Never) {
         if (auto a = spec.find_attribute("ICCProfile")) {
-            plan.icc.action = ColorPlanAction::Write;
-            const unsigned char* p
-                = reinterpret_cast<const unsigned char*>(a->data());
+            plan.icc.action        = ColorPlanAction::Write;
+            const unsigned char* p = reinterpret_cast<const unsigned char*>(
+                a->data());
             plan.icc.ints.assign(p, p + a->type().size());  // raw bytes
         }
     } else if (caps.icc) {
@@ -529,13 +530,13 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     plan.chromaticities.decider = decider(chrom_capable,
                                           plan.chromaticities.action,
                                           policy.chromaticities_layer);
-    plan.gamma.decider = decider(gamma_capable, plan.gamma.action,
-                                 policy.gamma_layer);
+    plan.gamma.decider          = decider(gamma_capable, plan.gamma.action,
+                                          policy.gamma_layer);
     plan.icc.decider = decider(caps.icc, plan.icc.action, policy.icc_layer);
     plan.interop_id.decider = decider(interop_capable, plan.interop_id.action,
                                       policy.interop_id_layer);
-    plan.mdcv.decider = decider(mdcv_capable, plan.mdcv.action,
-                                policy.mdcv_layer);
+    plan.mdcv.decider       = decider(mdcv_capable, plan.mdcv.action,
+                                      policy.mdcv_layer);
 
     // Provenance write rule: drop oiio:SourcePath, keep oiio:SourceFormat.
     plan.suppress_source_path = true;
@@ -568,48 +569,45 @@ color_write_caps_for_format(string_view format_name)
 
 namespace {
 
-const char*
-action_name(ColorPlanAction a)
-{
-    switch (a) {
-    case ColorPlanAction::Write: return "write";
-    case ColorPlanAction::Derive: return "derive";
-    case ColorPlanAction::Suppress: return "suppress";
-    default: return "omit";
+    const char* action_name(ColorPlanAction a)
+    {
+        switch (a) {
+        case ColorPlanAction::Write: return "write";
+        case ColorPlanAction::Derive: return "derive";
+        case ColorPlanAction::Suppress: return "suppress";
+        default: return "omit";
+        }
     }
-}
 
-const char*
-decider_name(ColorPlanDecider d)
-{
-    switch (d) {
-    case ColorPlanDecider::ConfigDeclared: return "config declared";
-    case ColorPlanDecider::GlobalAttribute: return "global attribute";
-    case ColorPlanDecider::MatchedRule: return "matched rule";
-    case ColorPlanDecider::PerSpecAttribute: return "per-spec attribute";
-    case ColorPlanDecider::ExplicitMetadata: return "explicit metadata";
-    case ColorPlanDecider::FormatIncapable: return "format incapable";
-    default: return "builtin default";
+    const char* decider_name(ColorPlanDecider d)
+    {
+        switch (d) {
+        case ColorPlanDecider::ConfigDeclared: return "config declared";
+        case ColorPlanDecider::GlobalAttribute: return "global attribute";
+        case ColorPlanDecider::MatchedRule: return "matched rule";
+        case ColorPlanDecider::PerSpecAttribute: return "per-spec attribute";
+        case ColorPlanDecider::ExplicitMetadata: return "explicit metadata";
+        case ColorPlanDecider::FormatIncapable: return "format incapable";
+        default: return "builtin default";
+        }
     }
-}
 
-// Render the one populated value carrier of a field ("-" when the plan says
-// to emit nothing). ICC bytes are summarized, never dumped.
-std::string
-field_value(const ColorPlanField& f, bool is_icc)
-{
-    if (!f.emit())
-        return "-";
-    if (is_icc)
-        return Strutil::fmt::format("<{} bytes>", f.ints.size());
-    if (!f.str.empty())
-        return f.str;
-    if (f.ints.size())
-        return Strutil::join(f.ints, "/");
-    if (f.floats.size())
-        return Strutil::join(f.floats, ",");
-    return Strutil::fmt::format("{:g}", f.gamma);
-}
+    // Render the one populated value carrier of a field ("-" when the plan says
+    // to emit nothing). ICC bytes are summarized, never dumped.
+    std::string field_value(const ColorPlanField& f, bool is_icc)
+    {
+        if (!f.emit())
+            return "-";
+        if (is_icc)
+            return Strutil::fmt::format("<{} bytes>", f.ints.size());
+        if (!f.str.empty())
+            return f.str;
+        if (f.ints.size())
+            return Strutil::join(f.ints, "/");
+        if (f.floats.size())
+            return Strutil::join(f.floats, ",");
+        return Strutil::fmt::format("{:g}", f.gamma);
+    }
 
 }  // namespace
 
@@ -622,12 +620,12 @@ render_color_write_plan(const ImageSpec& spec, string_view format_name)
     // (spec 09), the same as a real write would. --colorwriteplan takes a
     // format, not an output path, so layer 5 (matched output-rule) does not
     // apply here; layers 2/3 (config default/profiles) and 4/6 do.
-    const ColorMetadataPlan plan
-        = plan_color_metadata(nullptr, spec, caps,
-                              ColorWritePolicy::snapshot(&spec,
-                                                         ambient_color_config()));
-    std::string out = Strutil::fmt::format(
-        "Color write plan for format \"{}\":\n", format_name);
+    const ColorMetadataPlan plan = plan_color_metadata(
+        nullptr, spec, caps,
+        ColorWritePolicy::snapshot(&spec, ambient_color_config()));
+    std::string out
+        = Strutil::fmt::format("Color write plan for format \"{}\":\n",
+                               format_name);
     auto row = [&](const char* signal, const ColorPlanField& f,
                    bool is_icc = false) {
         out += Strutil::fmt::format("  {:<15} {:<9} {:<19} {}\n", signal,
@@ -660,7 +658,7 @@ apply_write_canonical_conversion(ImageBuf& buf, const ColorConfig* config,
     // applies, the space can't be characterized, or the registry lacks the
     // transform -- in every no-op case the buffer keeps its own (truthful) tag.
     const ColorConfig& cfg = config ? *config
-                                     : ColorConfig::default_colorconfig();
+                                    : ColorConfig::default_colorconfig();
     const ColorWritePolicy policy
         = ColorWritePolicy::snapshot(&buf.spec(), config, filepath);
     if (!policy.canonicalize || policy.broadcast)
@@ -696,9 +694,9 @@ apply_forced_interop_id(ImageSpec& spec, string_view format_name,
     if (caps.interop_id)
         return;  // native slot -- the format's own plan path owns the id
 
-    const ColorConfig* config = ambient_color_config();
-    const ColorWritePolicy policy
-        = ColorWritePolicy::snapshot(&spec, config, filepath);
+    const ColorConfig* config     = ambient_color_config();
+    const ColorWritePolicy policy = ColorWritePolicy::snapshot(&spec, config,
+                                                               filepath);
     if (!policy.force_interop_id) {
         // Default contract: a slotless format carries no transport identity.
         // Strip any authored/passthrough id so it stays untagged (the id would
@@ -710,8 +708,8 @@ apply_forced_interop_id(ImageSpec& spec, string_view format_name,
     // space and stamp it so the writer's generic emission (XMP) carries it.
     if (!spec.get_string_attribute("colorInteropID").empty())
         return;
-    const ColorMetadataPlan plan
-        = plan_color_metadata(config, spec, caps, policy);
+    const ColorMetadataPlan plan = plan_color_metadata(config, spec, caps,
+                                                       policy);
     if (plan.interop_id.emit() && is_valid_interop_id(plan.interop_id.str))
         spec.attribute("colorInteropID", plan.interop_id.str);
 }

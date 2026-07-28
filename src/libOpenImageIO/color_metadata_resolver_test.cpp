@@ -93,7 +93,7 @@ test_aces_container()
 {
     ColorMetadataFacts f;
     f.aces_image_container = true;
-    auto e                 = resolve_color_metadata(nullptr, "", f, { }, { });
+    auto e                 = resolve_color_metadata(nullptr, "", f, {}, {});
     OIIO_CHECK_EQUAL(e.resolved, "lin_ap0_scene");
     OIIO_CHECK_ASSERT(e.has_genuine_metadata_match());
 }
@@ -104,7 +104,7 @@ static void
 test_ciid_registry_bridge()
 {
     auto e = resolve_color_metadata(nullptr, "",
-                                    ciid_facts("lin_adobergb_scene"), { }, { });
+                                    ciid_facts("lin_adobergb_scene"), {}, {});
     OIIO_CHECK_EQUAL(e.resolved, "lin_adobergb_scene");
     OIIO_CHECK_ASSERT(e.has_genuine_metadata_match());
 }
@@ -120,7 +120,7 @@ test_unknown_ciid_falls_through_to_cicp(const ColorConfig& config)
 {
     ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
     f.color_interop_id   = "unknown";
-    auto e               = resolve_color_metadata(&config, "", f, { }, { });
+    auto e               = resolve_color_metadata(&config, "", f, {}, {});
     OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
     // The interop-id rule was visited and missed; CICP matched.
     bool saw_ciid_missed = false, saw_cicp_matched = false;
@@ -141,10 +141,10 @@ test_unknown_ciid_falls_through_to_cicp(const ColorConfig& config)
 static void
 test_utility_tokens(const ColorConfig& config)
 {
-    auto e = resolve_color_metadata(&config, "", ciid_facts("data"), { }, { });
+    auto e = resolve_color_metadata(&config, "", ciid_facts("data"), {}, {});
     OIIO_CHECK_EQUAL(e.resolved, "raw_data");
 
-    auto e2 = resolve_color_metadata(nullptr, "", ciid_facts("data"), { }, { });
+    auto e2 = resolve_color_metadata(nullptr, "", ciid_facts("data"), {}, {});
     OIIO_CHECK_EQUAL(e2.resolved, "data");
     // Exactly one step, the interop-id rule, matched.
     OIIO_CHECK_EQUAL(e2.steps.size(), size_t(1));
@@ -184,9 +184,9 @@ colorspaces:
     // The mixed-case NAME must rank 0 for the "bypass" token (lowered name
     // == token), and the mixed-case ALIAS must rank 0 for the "data" token
     // (lowered alias == token).
-    auto e = resolve_color_metadata(&cfg, "", ciid_facts("bypass"), { }, { });
+    auto e = resolve_color_metadata(&cfg, "", ciid_facts("bypass"), {}, {});
     OIIO_CHECK_EQUAL(e.resolved, "ByPass");
-    auto e2 = resolve_color_metadata(&cfg, "", ciid_facts("data"), { }, { });
+    auto e2 = resolve_color_metadata(&cfg, "", ciid_facts("data"), {}, {});
     OIIO_CHECK_EQUAL(e2.resolved, "ByPass");
     Filesystem::remove(path);
 }
@@ -201,7 +201,7 @@ test_strict_terminal(const ColorConfig& config)
     ColorReadPolicy p;
     p.scope              = ColorResolutionScope::ConfigOnly;
     ColorMetadataFacts f = ciid_facts("lin_ap1_scene");  // must be ignored
-    auto e = resolve_color_metadata(&config, "not-a-space", f, { }, p);
+    auto e = resolve_color_metadata(&config, "not-a-space", f, {}, p);
     OIIO_CHECK_EQUAL(e.resolved, "unknown");
     OIIO_CHECK_EQUAL(e.steps.size(), size_t(2));
     OIIO_CHECK_EQUAL(int(e.steps[0].rule), int(ColorRule::ExplicitAssignment));
@@ -219,7 +219,7 @@ test_garbage_icc_falls_through(const ColorConfig& config)
 {
     ColorMetadataFacts f;
     f.icc_profile = std::vector<unsigned char>(200, 0x42);
-    auto e        = resolve_color_metadata(&config, "", f, { }, { });
+    auto e        = resolve_color_metadata(&config, "", f, {}, {});
     OIIO_CHECK_ASSERT(!e.has_genuine_metadata_match());
     bool icc_invalid = false;
     for (auto& s : e.steps)
@@ -251,7 +251,7 @@ test_icc_synthetic(const ColorConfig& config)
 {
     ColorMetadataFacts f;
     f.icc_profile = fake_icc_profile();
-    auto e        = resolve_color_metadata(&config, "", f, { }, { });
+    auto e        = resolve_color_metadata(&config, "", f, {}, {});
     OIIO_CHECK_ASSERT(Strutil::starts_with(e.resolved, "icc:"));
     OIIO_CHECK_EQUAL(e.resolved, e.registered_synthetic);
     // The digest is the full 64-bit strhash64 of the profile bytes on every
@@ -260,9 +260,9 @@ test_icc_synthetic(const ColorConfig& config)
     OIIO_CHECK_EQUAL(e.resolved,
                      Strutil::fmt::format(
                          "icc:{:016x}",
-                         Strutil::strhash64(string_view(
-                             reinterpret_cast<const char*>(p.data()),
-                             p.size()))));
+                         Strutil::strhash64(
+                             string_view(reinterpret_cast<const char*>(p.data()),
+                                         p.size()))));
 }
 
 
@@ -274,7 +274,7 @@ test_cicp_over_icc(const ColorConfig& config)
 {
     ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
     f.icc_profile        = fake_icc_profile();
-    auto e               = resolve_color_metadata(&config, "", f, { }, { });
+    auto e               = resolve_color_metadata(&config, "", f, {}, {});
     OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");
     OIIO_CHECK_ASSERT(!Strutil::starts_with(e.resolved, "icc:"));
     for (auto& s : e.steps)
@@ -292,8 +292,8 @@ static void
 test_spec_impossible_cicp(const ColorConfig& config)
 {
     // Reserved (0,0): no identity mapping, no genuine match, CICP missed.
-    auto e = resolve_color_metadata(&config, "", cicp_facts(0, 0, 0, 0), { },
-                                    { });
+    auto e = resolve_color_metadata(&config, "", cicp_facts(0, 0, 0, 0), {},
+                                    {});
     OIIO_CHECK_ASSERT(!e.has_genuine_metadata_match());
     bool cicp_missed = false;
     for (auto& s : e.steps)
@@ -302,8 +302,8 @@ test_spec_impossible_cicp(const ColorConfig& config)
     OIIO_CHECK_ASSERT(cicp_missed);
 
     // Non-zero matrix byte: identical resolution to the (1,13,0,*) vectors.
-    auto e2 = resolve_color_metadata(&config, "", cicp_facts(1, 13, 5, 1), { },
-                                     { });
+    auto e2 = resolve_color_metadata(&config, "", cicp_facts(1, 13, 5, 1), {},
+                                     {});
     OIIO_CHECK_EQUAL(e2.resolved, "srgb_rec709_display");
     OIIO_CHECK_ASSERT(e2.has_genuine_metadata_match());
 }
@@ -319,8 +319,8 @@ test_filename_invariance(const ColorConfig& config)
     ColorCallContext no_name;
     ColorCallContext with_name;
     with_name.filename = "/tmp/frame.g24_rec709_display.exr";
-    auto a             = resolve_color_metadata(&config, "", f, no_name, { });
-    auto b             = resolve_color_metadata(&config, "", f, with_name, { });
+    auto a             = resolve_color_metadata(&config, "", f, no_name, {});
+    auto b             = resolve_color_metadata(&config, "", f, with_name, {});
     OIIO_CHECK_EQUAL(a.resolved, b.resolved);
     OIIO_CHECK_EQUAL(a.steps.size(), b.steps.size());
     for (size_t i = 0; i < a.steps.size() && i < b.steps.size(); ++i) {
@@ -409,8 +409,7 @@ test_read_caps()
     spec.attribute("oiio:Gamma", 2.2f);
 
     const ColorMetadataFacts full = color_facts_from_spec(spec);
-    OIIO_CHECK_ASSERT(full.has_cicp && full.has_chromaticities
-                      && full.has_gamma
+    OIIO_CHECK_ASSERT(full.has_cicp && full.has_chromaticities && full.has_gamma
                       && full.color_interop_id == "srgb_rec709_scene");
     const ColorMetadataFacts narrowed
         = color_facts_from_spec(spec, color_read_caps_for_format("png"));
@@ -481,7 +480,7 @@ test_deferred_cicp(const ColorConfig& config)
 
         ColorReadPolicy scene;
         scene.cicp_state = ColorStatePreference::Scene;
-        const bool did = resolve_pending_cicp(spec, scene, &config);
+        const bool did   = resolve_pending_cicp(spec, scene, &config);
         OIIO_CHECK_ASSERT(did);
         OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
                          "srgb_rec709_scene");
@@ -630,7 +629,8 @@ test_config_declared_read_policy(const ColorConfig& plaincfg)
     auto keys = config_declared_policy_keys(declcfg, "oiio:default");
     OIIO_CHECK_EQUAL(keys["oiio:colorpolicy:read:cicp_state"], "scene");
     OIIO_CHECK_EQUAL(
-        config_declared_policy_keys(plaincfg, "oiio:default").size(), size_t(0));
+        config_declared_policy_keys(plaincfg, "oiio:default").size(),
+        size_t(0));
 
     const ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
 
@@ -677,10 +677,10 @@ test_config_declared_write_policy(const ColorConfig& plaincfg)
     OIIO_CHECK_ASSERT(!declcfg.has_error());
 
     // Snapshot picks the declared write key up as the ConfigDeclared tier.
-    const ColorWritePolicy wp_plain
-        = ColorWritePolicy::snapshot(nullptr, &plaincfg);
-    const ColorWritePolicy wp_decl
-        = ColorWritePolicy::snapshot(nullptr, &declcfg);
+    const ColorWritePolicy wp_plain = ColorWritePolicy::snapshot(nullptr,
+                                                                 &plaincfg);
+    const ColorWritePolicy wp_decl  = ColorWritePolicy::snapshot(nullptr,
+                                                                 &declcfg);
     OIIO_CHECK_ASSERT(wp_plain.cicp == ColorSignalPolicy::Auto);
     OIIO_CHECK_ASSERT(wp_decl.cicp == ColorSignalPolicy::Never);
     OIIO_CHECK_ASSERT(wp_decl.cicp_layer == ColorPlanDecider::ConfigDeclared);
@@ -691,14 +691,15 @@ test_config_declared_write_policy(const ColorConfig& plaincfg)
     spec.set_colorspace("srgb_rec709_display");
     const int cicp[4] = { 1, 13, 0, 1 };
     spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
-    const ColorWriteCaps caps = color_write_caps_for_format("png");
-    const ColorMetadataPlan plan_plain
-        = plan_color_metadata(&plaincfg, spec, caps, wp_plain);
-    const ColorMetadataPlan plan_decl
-        = plan_color_metadata(&declcfg, spec, caps, wp_decl);
-    OIIO_CHECK_ASSERT(plan_plain.cicp.emit());   // default: emit the tuple
-    OIIO_CHECK_ASSERT(!plan_decl.cicp.emit());   // config-declared: suppressed
-    OIIO_CHECK_ASSERT(plan_decl.cicp.decider == ColorPlanDecider::ConfigDeclared);
+    const ColorWriteCaps caps          = color_write_caps_for_format("png");
+    const ColorMetadataPlan plan_plain = plan_color_metadata(&plaincfg, spec,
+                                                             caps, wp_plain);
+    const ColorMetadataPlan plan_decl  = plan_color_metadata(&declcfg, spec,
+                                                             caps, wp_decl);
+    OIIO_CHECK_ASSERT(plan_plain.cicp.emit());  // default: emit the tuple
+    OIIO_CHECK_ASSERT(!plan_decl.cicp.emit());  // config-declared: suppressed
+    OIIO_CHECK_ASSERT(plan_decl.cicp.decider
+                      == ColorPlanDecider::ConfigDeclared);
 
     Filesystem::remove(declpath);
 }
@@ -747,30 +748,33 @@ colorspaces:
 
     // The matched-rule reader returns the png rule's key for a .png path and
     // nothing for a .exr path (the png rule does not match it).
-    OIIO_CHECK_EQUAL(
-        config_matched_rule_policy_keys(cfg, "a.png")
-            ["oiio:colorpolicy:read:cicp_state"],
-        "scene");
-    OIIO_CHECK_EQUAL(config_matched_rule_policy_keys(cfg, "a.exr").count(
-                         "oiio:colorpolicy:read:cicp_state"),
+    OIIO_CHECK_EQUAL(config_matched_rule_policy_keys(
+                         cfg, "a.png")["oiio:colorpolicy:read:cicp_state"],
+                     "scene");
+    OIIO_CHECK_EQUAL(config_matched_rule_policy_keys(cfg, "a.exr")
+                         .count("oiio:colorpolicy:read:cicp_state"),
                      size_t(0));
 
     // Layer 5 > layer 2: the .png rule (scene) beats the config default
     // (display).
-    OIIO_CHECK_ASSERT(ColorReadPolicy::snapshot(nullptr, &cfg, "a.png").cicp_state
-                      == ColorStatePreference::Scene);
+    OIIO_CHECK_ASSERT(
+        ColorReadPolicy::snapshot(nullptr, &cfg, "a.png").cicp_state
+        == ColorStatePreference::Scene);
     // Non-matching path: only the config default applies -> display.
-    OIIO_CHECK_ASSERT(ColorReadPolicy::snapshot(nullptr, &cfg, "a.exr").cicp_state
-                      == ColorStatePreference::Display);
+    OIIO_CHECK_ASSERT(
+        ColorReadPolicy::snapshot(nullptr, &cfg, "a.exr").cicp_state
+        == ColorStatePreference::Display);
 
     // Layer 5 > layer 4: an explicit global attribute (display) does NOT
     // override the matched .png rule (scene) -- the CSS-specificity footgun.
     OIIO::attribute("oiio:colorpolicy:read:cicp_state", "display");
-    OIIO_CHECK_ASSERT(ColorReadPolicy::snapshot(nullptr, &cfg, "a.png").cicp_state
-                      == ColorStatePreference::Scene);
+    OIIO_CHECK_ASSERT(
+        ColorReadPolicy::snapshot(nullptr, &cfg, "a.png").cicp_state
+        == ColorStatePreference::Scene);
     // ...but for a non-matching path, the global attribute (layer 4) rules.
-    OIIO_CHECK_ASSERT(ColorReadPolicy::snapshot(nullptr, &cfg, "a.exr").cicp_state
-                      == ColorStatePreference::Display);
+    OIIO_CHECK_ASSERT(
+        ColorReadPolicy::snapshot(nullptr, &cfg, "a.exr").cicp_state
+        == ColorStatePreference::Display);
     OIIO::attribute("oiio:colorpolicy:read:cicp_state", "");
 
     // Layer 6 > layer 5: a per-call hint (display) overrides even the matched
@@ -822,7 +826,8 @@ test_config_declared_robustness()
         const ColorReadPolicy p = ColorReadPolicy::snapshot(nullptr, &cfg);
         OIIO_CHECK_ASSERT(p.cicp_state == ColorStatePreference::Auto);
         const auto e = resolve_color_metadata(&cfg, "", f, {}, p);
-        OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");  // default, unmoved
+        OIIO_CHECK_EQUAL(e.resolved,
+                         "srgb_rec709_display");  // default, unmoved
         Filesystem::remove(path);
     }
 
@@ -836,7 +841,8 @@ test_config_declared_robustness()
         const ColorReadPolicy p = ColorReadPolicy::snapshot(nullptr, &cfg);
         OIIO_CHECK_ASSERT(p.cicp_state == ColorStatePreference::Auto);
         const auto e = resolve_color_metadata(&cfg, "", f, {}, p);
-        OIIO_CHECK_EQUAL(e.resolved, "srgb_rec709_display");  // default, unmoved
+        OIIO_CHECK_EQUAL(e.resolved,
+                         "srgb_rec709_display");  // default, unmoved
         Filesystem::remove(path);
     }
 }
@@ -853,26 +859,27 @@ test_policy_optout(const ColorConfig& plaincfg)
     OIIO::attribute("oiio:colorpolicy:write:cicp", "");
 
     // Null config == a real config with zero declared keys == all defaults.
-    const ColorReadPolicy r_null = ColorReadPolicy::snapshot(nullptr, nullptr);
-    const ColorReadPolicy r_plain = ColorReadPolicy::snapshot(nullptr, &plaincfg);
+    const ColorReadPolicy r_null  = ColorReadPolicy::snapshot(nullptr, nullptr);
+    const ColorReadPolicy r_plain = ColorReadPolicy::snapshot(nullptr,
+                                                              &plaincfg);
     OIIO_CHECK_ASSERT(r_null.cicp_state == ColorStatePreference::Auto);
     OIIO_CHECK_ASSERT(r_plain.cicp_state == ColorStatePreference::Auto);
     OIIO_CHECK_ASSERT(r_null.state_pref == r_plain.state_pref);
     OIIO_CHECK_ASSERT(r_null.scope == r_plain.scope);
     OIIO_CHECK_ASSERT(r_null.defer_cicp == r_plain.defer_cicp);
 
-    const ColorWritePolicy w_null = ColorWritePolicy::snapshot(nullptr, nullptr);
-    const ColorWritePolicy w_plain
-        = ColorWritePolicy::snapshot(nullptr, &plaincfg);
+    const ColorWritePolicy w_null  = ColorWritePolicy::snapshot(nullptr,
+                                                                nullptr);
+    const ColorWritePolicy w_plain = ColorWritePolicy::snapshot(nullptr,
+                                                                &plaincfg);
     OIIO_CHECK_ASSERT(w_null.cicp == ColorSignalPolicy::Auto);
     OIIO_CHECK_ASSERT(w_plain.cicp == ColorSignalPolicy::Auto);
 
     // An ambiguous CICP resolves to the display twin under both -- the opt-out
     // changes nothing about the historical null-config behavior.
     const ColorMetadataFacts f = cicp_facts(1, 13, 0, 1);
-    OIIO_CHECK_EQUAL(
-        resolve_color_metadata(nullptr, "", f, {}, r_null).resolved,
-        "srgb_rec709_display");
+    OIIO_CHECK_EQUAL(resolve_color_metadata(nullptr, "", f, {}, r_null).resolved,
+                     "srgb_rec709_display");
 }
 
 
