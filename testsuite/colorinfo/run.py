@@ -38,4 +38,7 @@ command += oiiotool ("-echo \"consumer: invalid name =\" "
 # --- Python binding: None-for-unavailable, batch, error convention ---
 command += pythonbin + " src/test_colorinfo.py >> out.txt 2>&1 ;\n"
 
+# --- Python binding: the canonical interop id registry, color_interop_ids() ---
+command += pythonbin + " src/test_color_interop_ids.py >> out.txt 2>&1 ;\n"
+
 outputs = [ "out.txt" ]
