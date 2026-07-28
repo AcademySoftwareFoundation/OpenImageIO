@@ -332,6 +332,20 @@ clang-format is installed on your local machine, and just run
 
     make clang-format
 
+**clang-format must be older than version 18.** It is an optional dev
+dependency, but a version-sensitive one: clang-format's output is not stable
+across major releases, so a newer binary will reformat the entire tree in a
+way the CI check then rejects. CI pins clang-format 17, and the build
+configuration enforces the same bound — if the clang-format it finds is 18 or
+newer, it prints a warning and disables the `clang-format` target rather than
+let you reformat the tree incorrectly.
+
+If your system clang-format is too new, either install a 17.x build and point
+the configuration at it with `CLANG_FORMAT_EXE_HINT=/path/to/its/bin`, or run
+the pinned version directly without installing anything:
+
+    uvx clang-format@17.0.6 --style=file -i <files>
+
 and it will automatically reformat your code according to the configuration
 file found in the `.clang-format` file at the root directory of the OIIO
 source code checkout.

@@ -630,8 +630,46 @@ if (PROJECT_IS_TOP_LEVEL)
                   NO_DEFAULT_PATH
                   DOC "Path to clang-format executable")
     find_program (CLANG_FORMAT_EXE NAMES clang-format bin/clang-format)
+    # clang-format is an OPTIONAL dev dependency, but a version-sensitive one:
+    # its output is not stable across major releases, so a newer binary will
+    # happily reformat the whole tree in a way the CI check then rejects. The
+    # CI matrix pins clang-format-17 (see CLANG_FORMAT_EXE dance in ci.yml), so
+    # accept only < 18 and otherwise decline to wire the target -- reformatting
+    # with the wrong version is strictly worse than not reformatting at all.
+    set (CLANG_FORMAT_USABLE OFF)
     if (CLANG_FORMAT_EXE)
-        message (STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
+        set (CLANG_FORMAT_USABLE ON)
+        execute_process (COMMAND "${CLANG_FORMAT_EXE}" --version
+                         OUTPUT_VARIABLE CLANG_FORMAT_VERSION_OUTPUT
+                         ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
+                         RESULT_VARIABLE _cf_result)
+        if (_cf_result EQUAL 0 AND
+            CLANG_FORMAT_VERSION_OUTPUT MATCHES "([0-9]+)\\.[0-9]+\\.[0-9]+")
+            set (CLANG_FORMAT_VERSION_MAJOR ${CMAKE_MATCH_1})
+        else ()
+            set (CLANG_FORMAT_VERSION_MAJOR "")
+        endif ()
+        if (NOT CLANG_FORMAT_VERSION_MAJOR)
+            message (STATUS "clang-format found (${CLANG_FORMAT_EXE}) but its "
+                            "version could not be determined -- skipping the "
+                            "clang-format target.")
+            set (CLANG_FORMAT_USABLE OFF)
+        elseif (CLANG_FORMAT_VERSION_MAJOR GREATER_EQUAL 18)
+            message (WARNING
+                     "clang-format ${CLANG_FORMAT_VERSION_MAJOR} found at "
+                     "${CLANG_FORMAT_EXE}, but this project requires "
+                     "clang-format < 18 (CI pins 17). Its output differs from "
+                     "17's, so 'make clang-format' would reformat the tree in "
+                     "a way CI rejects. The 'clang-format' target is disabled. "
+                     "Install a 17.x binary and point CLANG_FORMAT_EXE_HINT at "
+                     "it, or run the pinned version directly with no install: "
+                     "uvx clang-format@17.0.6 --style=file -i <files>")
+            set (CLANG_FORMAT_USABLE OFF)
+        endif ()
+    endif ()
+    if (CLANG_FORMAT_USABLE)
+        message (STATUS "clang-format found: ${CLANG_FORMAT_EXE} "
+                        "(version ${CLANG_FORMAT_VERSION_MAJOR})")
         # Start with the list of files to include when formatting...
         file (GLOB_RECURSE FILES_TO_FORMAT ${CLANG_FORMAT_INCLUDES})
         # ... then process any list of excludes we are given
@@ -644,7 +682,7 @@ if (PROJECT_IS_TOP_LEVEL)
               DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
         add_custom_target (clang-format
             COMMAND "${CLANG_FORMAT_EXE}" -i -style=file ${FILES_TO_FORMAT} )
-    else ()
+    elseif (NOT CLANG_FORMAT_EXE)
         message (STATUS "clang-format not found.")
     endif ()
 endif ()
