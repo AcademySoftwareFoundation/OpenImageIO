@@ -1130,8 +1130,10 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             height = m_processor->imgdata.thumbnail.theight;
         } else {
             // clamp the thumbnail index
-            if (m_thumb_index < 0)
-                m_thumb_index = 0;
+            if (m_thumb_index < 0) {
+                errorfmt("Invalid thumbnail index ({})", m_thumb_index);
+                return false;
+            }
             else if (m_thumb_index >= thumb_count)
                 m_thumb_index = thumb_count - 1;
 
