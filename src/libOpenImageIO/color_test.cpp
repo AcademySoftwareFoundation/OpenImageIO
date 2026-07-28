@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "color_pvt.h"
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
@@ -25,7 +26,6 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 #include <OpenImageIO/typedesc.h>
-#include "color_pvt.h"
 
 #include <OpenImageIO/unittest.h>
 
@@ -177,7 +177,7 @@ test_interop_id_grammar()
     // colons is always invalid).
     OIIO_CHECK_ASSERT(is_valid_interop_id("lin_ap0_scene"));
     OIIO_CHECK_EQUAL((int)parse_interop_id("lin_ap0_scene").form,
-                      (int)InteropIdForm::BASE);
+                     (int)InteropIdForm::BASE);
 
     // "local:srgb" is an ordinary INNER_BASE id at the grammar layer --
     // the grammar has zero knowledge of "local" as special; that's a
@@ -194,8 +194,7 @@ test_interop_id_grammar()
     {
         auto parts = parse_interop_id("show1-config:local:srgb");
         OIIO_CHECK_ASSERT(is_valid_interop_id("show1-config:local:srgb"));
-        OIIO_CHECK_EQUAL((int)parts.form,
-                          (int)InteropIdForm::OUTER_INNER_BASE);
+        OIIO_CHECK_EQUAL((int)parts.form, (int)InteropIdForm::OUTER_INNER_BASE);
         OIIO_CHECK_EQUAL(parts.outer, "show1-config");
         OIIO_CHECK_EQUAL(parts.inner, "local");
         OIIO_CHECK_EQUAL(parts.base, "srgb");
@@ -204,8 +203,7 @@ test_interop_id_grammar()
     {
         auto parts = parse_interop_id("my-studio::srgb");
         OIIO_CHECK_ASSERT(is_valid_interop_id("my-studio::srgb"));
-        OIIO_CHECK_EQUAL((int)parts.form,
-                          (int)InteropIdForm::OUTER_BLANK_BASE);
+        OIIO_CHECK_EQUAL((int)parts.form, (int)InteropIdForm::OUTER_BLANK_BASE);
         OIIO_CHECK_EQUAL(parts.outer, "my-studio");
         OIIO_CHECK_ASSERT(parts.inner.empty());
         OIIO_CHECK_EQUAL(parts.base, "srgb");
@@ -217,7 +215,7 @@ test_interop_id_grammar()
     OIIO_CHECK_FALSE(is_valid_interop_id("a:b:c:d"));
     // Validation never folds case or sanitizes.
     OIIO_CHECK_FALSE(is_valid_interop_id("Lin_AP0_Scene"));
-    OIIO_CHECK_FALSE(is_valid_interop_id("caf\xc3\xa9"));  // "café"
+    OIIO_CHECK_FALSE(is_valid_interop_id("caf\xc3\xa9"));   // "café"
     OIIO_CHECK_FALSE(is_valid_interop_id("\xe4\xb8\xad"));  // "中"
     OIIO_CHECK_FALSE(is_valid_interop_id("outer::"));
     OIIO_CHECK_FALSE(is_valid_interop_id("outer:"));
@@ -248,7 +246,9 @@ test_interop_id_grammar()
         OIIO_CHECK_EQUAL(got, "^");
         OIIO_CHECK_EQUAL(got.size(), size_t(1));
     }
-    OIIO_CHECK_EQUAL(sanitize_id_token("a\xe4\xb8\xad" "b"), "a^b");
+    OIIO_CHECK_EQUAL(sanitize_id_token("a\xe4\xb8\xad"
+                                       "b"),
+                     "a^b");
 
     // Namespace stripping: pure substring op, independent of validity,
     // never assumes the result is itself a valid id.
@@ -333,8 +333,7 @@ test_registry_invariants()
     // registry-side code needed. Proof it's an alias and not a coincidental
     // separate entry: the stripped form does not itself appear in the
     // config's own declared-name list.
-    std::unordered_set<std::string> declared_names(names.begin(),
-                                                    names.end());
+    std::unordered_set<std::string> declared_names(names.begin(), names.end());
     int namespaced_checked = 0;
     for (const auto& name : names) {
         auto parts = parse_interop_id(name);
@@ -372,11 +371,18 @@ test_registry_invariants()
     // A representative subset of the published IDs; extend to the full
     // list if it is ever vendored.
     static const char* published_ids[] = {
-        "lin_ap0_scene",       "lin_rec709_scene",     "lin_p3d65_scene",
-        "lin_rec2020_scene",   "lin_adobergb_scene",   "srgb_rec709_display",
-        "g24_rec709_display",  "g22_rec709_display",   "lin_rec709_display",
-        "lin_p3d65_display",   "lin_p3d60_display",    // oiio: alias, bare
-        "lin_ciexyzd65_display",                       // ocio: alias, bare
+        "lin_ap0_scene",
+        "lin_rec709_scene",
+        "lin_p3d65_scene",
+        "lin_rec2020_scene",
+        "lin_adobergb_scene",
+        "srgb_rec709_display",
+        "g24_rec709_display",
+        "g22_rec709_display",
+        "lin_rec709_display",
+        "lin_p3d65_display",
+        "lin_p3d60_display",      // oiio: alias, bare
+        "lin_ciexyzd65_display",  // ocio: alias, bare
         "data",
     };
     for (const char* id : published_ids)
@@ -425,8 +431,8 @@ test_registry_round_trip()
             OIIO_CHECK_ASSERT(cc.equivalent("lin_ap1_scene", "ACEScg"));
     }
 
-    const bool have_studio
-        = ColorConfig::OpenColorIO_version_hex() >= 0x02050000;
+    const bool have_studio = ColorConfig::OpenColorIO_version_hex()
+                             >= 0x02050000;
     std::vector<std::string> configs = { "ocio://default" };
     if (have_studio)
         configs.emplace_back("ocio://studio-config-latest");
@@ -802,7 +808,7 @@ display_colorspaces:
         - !<MatrixTransform> {matrix: [3.2409699419, -1.5373831776, -0.4986107603, 0, -0.9692436363, 1.8759675015, 0.0415550574, 0, 0.0556300797, -0.2039769589, 1.0569715142, 0, 0, 0, 0, 1]}
         - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
 )";
-    std::string path = Filesystem::temp_directory_path()
+    std::string path        = Filesystem::temp_directory_path()
                        + "/oiio_transfer_discrimination.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(path, yaml));
     ColorConfig cc(path);
@@ -826,8 +832,8 @@ display_colorspaces:
         // disagreement over the six identity probe pixels (the 24 floats the
         // matcher actually compares) and require it to clear the documented
         // gate. The number belongs in the P1-4 PR body.
-        float worst   = 0.0f;
-        size_t worst_i = 0;
+        float worst        = 0.0f;
+        size_t worst_i     = 0;
         const size_t bound = std::min<size_t>(24, srgb.values.size());
         for (size_t i = 0; i < bound; ++i) {
             const float d = std::abs(srgb.values[i] - g22.values[i]);
@@ -850,10 +856,10 @@ display_colorspaces:
     // registry carries both srgb_rec709_display and g22_rec709_display, so a
     // tolerance too loose to separate the curves would show up here as two
     // spaces claiming one id (whichever the deterministic walk reached first).
-    const std::string srgb_id(OIIO::pvt::derive_color_interop_id(cc,
-                                                                 "srgb_disp"));
-    const std::string g22_id(OIIO::pvt::derive_color_interop_id(cc,
-                                                                "g22_disp"));
+    const std::string srgb_id(
+        OIIO::pvt::derive_color_interop_id(cc, "srgb_disp"));
+    const std::string g22_id(
+        OIIO::pvt::derive_color_interop_id(cc, "g22_disp"));
     Strutil::print("  derived ids: srgb_disp -> '{}', g22_disp -> '{}'\n",
                    srgb_id, g22_id);
     OIIO_CHECK_ASSERT(srgb_id != g22_id);
@@ -924,7 +930,8 @@ colorspaces:
     std::string stripped_path = Filesystem::temp_directory_path()
                                 + "/oiio_color_test_stripped.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(interop_path, interop_yaml));
-    OIIO_CHECK_ASSERT(Filesystem::write_text_file(stripped_path, stripped_yaml));
+    OIIO_CHECK_ASSERT(
+        Filesystem::write_text_file(stripped_path, stripped_yaml));
 
     // --- Interoperable config ---------------------------------------------
     {
@@ -1007,9 +1014,8 @@ colorspaces:
   - !<ColorSpace>
     name: ACES2065-1
 )";
-        std::string identifiable_path
-            = Filesystem::temp_directory_path()
-              + "/oiio_color_test_identifiable.ocio";
+        std::string identifiable_path        = Filesystem::temp_directory_path()
+                                        + "/oiio_color_test_identifiable.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(identifiable_path, identifiable_yaml));
         ColorConfig cc(identifiable_path);
@@ -1323,7 +1329,7 @@ colorspaces:
     name: ap0
     aliases: [lin_ap0_scene]
 )";
-        std::string alias_path = Filesystem::temp_directory_path()
+        std::string alias_path        = Filesystem::temp_directory_path()
                                  + "/oiio_color_test_xconv_alias.ocio";
         OIIO_CHECK_ASSERT(Filesystem::write_text_file(alias_path, alias_yaml));
         ColorConfig cc(alias_path);
@@ -1509,7 +1515,7 @@ colorspaces:
     encoding: scene-linear
     to_scene_reference: !<MatrixTransform> {{matrix: [0.6954522414, 0.1406786965, 0.1638690622, 0, 0.0447945634, 0.8596711185, 0.0955343182, 0, -0.0055258826, 0.0040252103, 1.0015006723, 0, 0, 0, 0, 1]}}
 )",
-                                   strict ? "true" : "false");
+                                    strict ? "true" : "false");
     };
 
     for (bool strict : { true, false }) {
@@ -1523,7 +1529,8 @@ colorspaces:
         auto handle = cc.createColorProcessor("srgb_rec709_display", "ACEScg");
         OIIO_CHECK_ASSERT(handle.get() != nullptr);  // bridges under BOTH modes
         if (handle) {
-            OIIO_CHECK_FALSE(handle->isNoOp());  // a real colorimetric transform
+            OIIO_CHECK_FALSE(
+                handle->isNoOp());  // a real colorimetric transform
 
             // Colorimetric: display white -> scene white (no blow-up), matrix
             // preserves neutral (equal channels stay equal).
@@ -1597,7 +1604,7 @@ display_colorspaces:
         - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
         - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
 )";
-    std::string path = Filesystem::temp_directory_path()
+    std::string path        = Filesystem::temp_directory_path()
                        + "/oiio_xconv_disp_interchange.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(path, yaml));
     ColorConfig cc(path);
@@ -1609,7 +1616,8 @@ display_colorspaces:
         // XYZ-D65 white (the CIE white point). A colorimetric anchor maps it to
         // the scene space's white (1,1,1).
         const float xyz_white[3] = { 0.95047f, 1.0f, 1.08883f };
-        auto w = interopified_display_interchange_probe(cc, "ACEScg", xyz_white);
+        auto w = interopified_display_interchange_probe(cc, "ACEScg",
+                                                        xyz_white);
         OIIO_CHECK_EQUAL(w.size(), size_t(3));
         if (w.size() == 3)
             for (int c = 0; c < 3; ++c)
@@ -1954,10 +1962,10 @@ colorspaces:
     from_scene_reference: !<MatrixTransform> {matrix: [3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 3, 0, 0, 0, 0, 1]}
 )";
 
-    std::string dir     = Filesystem::temp_directory_path();
-    std::string path_a  = dir + "/oiio_color_test_fpcache_a.ocio";
-    std::string path_b  = dir + "/oiio_color_test_fpcache_b.ocio";
-    std::string path_o  = dir + "/oiio_color_test_fpcache_other.ocio";
+    std::string dir    = Filesystem::temp_directory_path();
+    std::string path_a = dir + "/oiio_color_test_fpcache_a.ocio";
+    std::string path_b = dir + "/oiio_color_test_fpcache_b.ocio";
+    std::string path_o = dir + "/oiio_color_test_fpcache_other.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(path_a, cfg_yaml));
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(path_b, cfg_yaml));
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(path_o, other_yaml));
@@ -1973,10 +1981,12 @@ colorspaces:
     // (1) Same-name lookup twice: the first is a miss that publishes one entry,
     // the second is a hit that returns the identical fingerprint and does not
     // grow the cache.
-    ColorSpaceFingerprint m1 = color_space_fingerprint_cached(cc1, "matrix_inv");
+    ColorSpaceFingerprint m1 = color_space_fingerprint_cached(cc1,
+                                                              "matrix_inv");
     OIIO_CHECK_ASSERT(m1.computed());
     OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(1));
-    ColorSpaceFingerprint m1b = color_space_fingerprint_cached(cc1, "matrix_inv");
+    ColorSpaceFingerprint m1b = color_space_fingerprint_cached(cc1,
+                                                               "matrix_inv");
     OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(1));  // hit
     OIIO_CHECK_ASSERT(m1.values == m1b.values);
 
@@ -1992,8 +2002,10 @@ colorspaces:
 
     // (2a) The context-invariant space collapses to the single bucket cc1
     // already populated: querying it through cc2 is a hit (no growth).
-    ColorSpaceFingerprint m2 = color_space_fingerprint_cached(cc2, "matrix_inv");
-    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(2));  // collapsed
+    ColorSpaceFingerprint m2 = color_space_fingerprint_cached(cc2,
+                                                              "matrix_inv");
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(),
+                     size_t(2));  // collapsed
     OIIO_CHECK_ASSERT(m1.values == m2.values);
 
     // (2b) The context-sensitive space does NOT collapse: cc2's different
@@ -2001,7 +2013,8 @@ colorspaces:
     // collapsing proved cc1 and cc2 share one structural config id, so the only
     // thing that can grow the cache here is ctx_space's differing context id.
     ColorSpaceFingerprint s2 = color_space_fingerprint_cached(cc2, "ctx_space");
-    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), size_t(3));  // new bucket
+    OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(),
+                     size_t(3));  // new bucket
     OIIO_CHECK_ASSERT(s2.computed());
     // And the VALUES differ: each instance probes under its OWN current
     // context (gamma_a's 2.2 curve vs gamma_b's 1.8 curve), even though both
@@ -2014,8 +2027,9 @@ colorspaces:
     {
         ColorConfig cco(path_o);
         OIIO_CHECK_ASSERT(!cco.has_error());
-        size_t before = color_space_fingerprint_cache_size();
-        ColorSpaceFingerprint d = color_space_fingerprint_cached(cco, "doubler");
+        size_t before           = color_space_fingerprint_cache_size();
+        ColorSpaceFingerprint d = color_space_fingerprint_cached(cco,
+                                                                 "doubler");
         if (d.computed())
             OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), before + 1);
     }
@@ -2090,7 +2104,7 @@ colorspaces:
     aliases: [my_local_alias, unknown]
     from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
 )";
-    std::string base_path = Filesystem::temp_directory_path()
+    std::string base_path        = Filesystem::temp_directory_path()
                             + "/oiio_color_test_resolve_base.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(base_path, base_yaml));
     {
@@ -2105,11 +2119,11 @@ colorspaces:
         // Tier 1a'': config-local "<config>:local:<base>" form, matched
         // against names/aliases only. A hit through an alias...
         OIIO_CHECK_EQUAL(cc.resolve("resolvetest:local:my_local_alias"),
-                          "local_target");
+                         "local_target");
         // ...and a miss when the base names nothing in this config (proves
         // the tier doesn't fall back to a fuzzy match).
         OIIO_CHECK_EQUAL(cc.resolve("resolvetest:local:no_such_space"),
-                          "resolvetest:local:no_such_space");
+                         "resolvetest:local:no_such_space");
 
         // "unknown" is a literal name/alias lookup only -- never routed
         // through the ranked data-space search. Reachable here because
@@ -2120,7 +2134,7 @@ colorspaces:
         // Regression guard: a name that matches nothing in any tier is
         // still passed through unchanged (main's historical behavior).
         OIIO_CHECK_EQUAL(cc.resolve("totally_unrecognized_id"),
-                          "totally_unrecognized_id");
+                         "totally_unrecognized_id");
     }
     Filesystem::remove(base_path);
 
@@ -2148,7 +2162,7 @@ colorspaces:
     aliases: [Unknown, Bypass]
     isdata: true
 )";
-        std::string upper_path = Filesystem::temp_directory_path()
+        std::string upper_path        = Filesystem::temp_directory_path()
                                  + "/oiio_color_test_resolve_upper.ocio";
         OIIO_CHECK_ASSERT(Filesystem::write_text_file(upper_path, upper_yaml));
         ColorConfig cc(upper_path);
@@ -2178,7 +2192,7 @@ colorspaces:
     name: Raw
     isdata: true
 )";
-        std::string raw_path = Filesystem::temp_directory_path()
+        std::string raw_path        = Filesystem::temp_directory_path()
                                + "/oiio_color_test_resolve_raw.ocio";
         OIIO_CHECK_ASSERT(Filesystem::write_text_file(raw_path, raw_yaml));
         ColorConfig cc(raw_path);
@@ -2210,7 +2224,7 @@ colorspaces:
     interop_id: "app2:z"
     from_scene_reference: !<ExponentTransform> {value: [1.6, 1.6, 1.6, 1]}
 )";
-        std::string safe_path = Filesystem::temp_directory_path()
+        std::string safe_path        = Filesystem::temp_directory_path()
                                 + "/oiio_color_test_resolve_safe.ocio";
         OIIO_CHECK_ASSERT(Filesystem::write_text_file(safe_path, safe_yaml));
         {
@@ -2241,7 +2255,7 @@ colorspaces:
     interop_id: "oiio:x"
     from_scene_reference: !<ExponentTransform> {value: [1.7, 1.7, 1.7, 1]}
 )";
-        std::string reject_path = Filesystem::temp_directory_path()
+        std::string reject_path        = Filesystem::temp_directory_path()
                                   + "/oiio_color_test_resolve_reject.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(reject_path, reject_yaml));
@@ -2285,7 +2299,7 @@ colorspaces:
     interop_id: "app9:q"
     from_scene_reference: !<ExponentTransform> {value: [2.1, 2.1, 2.1, 1]}
 )";
-        std::string localns_path = Filesystem::temp_directory_path()
+        std::string localns_path        = Filesystem::temp_directory_path()
                                    + "/oiio_color_test_resolve_localns.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(localns_path, localns_yaml));
@@ -2300,8 +2314,7 @@ colorspaces:
             // The bare declared form itself is unreachable too.
             OIIO_CHECK_EQUAL(cc.resolve("local:x"), "local:x");
             // The genuine config-local tier still resolves for THIS config.
-            OIIO_CHECK_EQUAL(cc.resolve("localns:local:xbase"),
-                             "inner_target");
+            OIIO_CHECK_EQUAL(cc.resolve("localns:local:xbase"), "inner_target");
             // Ordinary declared attributes are unaffected (attribute-side
             // strip still matches).
             OIIO_CHECK_EQUAL(cc.resolve("q"), "normal_attr");
@@ -2333,7 +2346,7 @@ colorspaces:
     name: plain_data_space
     isdata: true
 )";
-        std::string rank_full_path = Filesystem::temp_directory_path()
+        std::string rank_full_path        = Filesystem::temp_directory_path()
                                      + "/oiio_color_test_resolve_rank_full.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(rank_full_path, rank_full_yaml));
@@ -2410,7 +2423,7 @@ colorspaces:
   - !<ColorSpace>
     name: another_ap0_identity_space
 )";
-        std::string registry_path = Filesystem::temp_directory_path()
+        std::string registry_path        = Filesystem::temp_directory_path()
                                     + "/oiio_color_test_resolve_registry.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(registry_path, registry_yaml));
@@ -2425,7 +2438,7 @@ colorspaces:
         // order and returns the first match, which alphabetically is
         // "another_ap0_identity_space".
         OIIO_CHECK_EQUAL(cc.resolve("lin_ap0_scene"),
-                          "another_ap0_identity_space");
+                         "another_ap0_identity_space");
 
         // A utility token has no registry fingerprint and must not attempt
         // one, even on a config that is otherwise interoperable and would
@@ -3247,7 +3260,7 @@ colorspaces:
     aliases: [my_unmatched_curve]
     from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
 )";
-    std::string named_path = Filesystem::temp_directory_path()
+    std::string named_path        = Filesystem::temp_directory_path()
                              + "/oiio_color_test_derive_named.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(named_path, named_yaml));
     {
@@ -3262,7 +3275,7 @@ colorspaces:
         OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "implicit_data_space"),
                          "data");
         OIIO_CHECK_EQUAL(cc.get_color_interop_id("implicit_data_space"),
-                          "data");
+                         "data");
 
         // Step 2: an identity-transform space with no declared id and no
         // registry-precluding classification is genuinely fingerprint-
@@ -3274,7 +3287,7 @@ colorspaces:
                                                  "registry_equivalent_space"),
                          "lin_ap0_scene");
         OIIO_CHECK_EQUAL(cc.get_color_interop_id("registry_equivalent_space"),
-                          "");
+                         "");
 
         // Step 2 miss -> step 3: no registry scene-side entry is a bare
         // gamma-exponent curve, so this space has no fingerprint match; the
@@ -3329,7 +3342,7 @@ colorspaces:
     name: unknown
     from_scene_reference: !<ExponentTransform> {value: [2.0, 2.0, 2.0, 1]}
 )";
-        std::string unknown_path = Filesystem::temp_directory_path()
+        std::string unknown_path        = Filesystem::temp_directory_path()
                                    + "/oiio_color_test_derive_unknown.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(unknown_path, unknown_yaml));
@@ -3382,14 +3395,13 @@ colorspaces:
     aliases: [my_unmatched_curve]
     from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
 )";
-        std::string unnamed_path = Filesystem::temp_directory_path()
+        std::string unnamed_path        = Filesystem::temp_directory_path()
                                    + "/oiio_color_test_derive_unnamed.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(unnamed_path, unnamed_yaml));
         ColorConfig cc(unnamed_path);
         OIIO_CHECK_ASSERT(!cc.has_error());
-        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "my_unmatched_curve"),
-                         "");
+        OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "my_unmatched_curve"), "");
         Filesystem::remove(unnamed_path);
     }
 
@@ -3424,7 +3436,7 @@ colorspaces:
     name: Solo Space
     from_scene_reference: !<ExponentTransform> {value: [2.1, 2.1, 2.1, 1]}
 )";
-        std::string collide_path = Filesystem::temp_directory_path()
+        std::string collide_path        = Filesystem::temp_directory_path()
                                    + "/oiio_color_test_derive_collide.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(collide_path, collide_yaml));
@@ -3439,9 +3451,9 @@ colorspaces:
         // Read side: the ambiguous token resolves to NEITHER space (the
         // total-miss passthrough), while the unique token still resolves.
         OIIO_CHECK_EQUAL(cc.resolve("collide_cfg:local:foo_bar"),
-                          "collide_cfg:local:foo_bar");
+                         "collide_cfg:local:foo_bar");
         OIIO_CHECK_EQUAL(cc.resolve("collide_cfg:local:solo_space"),
-                          "Solo Space");
+                         "Solo Space");
         Filesystem::remove(collide_path);
     }
 
@@ -3474,7 +3486,7 @@ colorspaces:
     name: declared_unknown_space
     interop_id: "unknown"
 )";
-        std::string declared_path = Filesystem::temp_directory_path()
+        std::string declared_path        = Filesystem::temp_directory_path()
                                     + "/oiio_color_test_derive_declared.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(declared_path, declared_yaml));
@@ -3486,7 +3498,7 @@ colorspaces:
         OIIO_CHECK_EQUAL(derive_color_interop_id(cc, "declared_explicit_space"),
                          "custom:explicit_id");
         OIIO_CHECK_EQUAL(cc.get_color_interop_id("declared_explicit_space"),
-                          "custom:explicit_id");
+                         "custom:explicit_id");
         // A declared interop_id of literally "unknown" is the config-side
         // declaration of unknownness: the derivation emits the
         // "ocio:unknown" marker rather than bare "unknown".
@@ -3506,7 +3518,8 @@ bench_child_construct_and_exit()
 {
     Timer timer;
     ColorConfig cc("ocio://default");
-    std::cout << Strutil::fmt::format("construct_ms {:.6f}\n", timer() * 1000.0);
+    std::cout << Strutil::fmt::format("construct_ms {:.6f}\n",
+                                      timer() * 1000.0);
     return cc.has_error() ? 1 : 0;
 }
 
@@ -3547,7 +3560,7 @@ run_bench_phases()
         return;
     }
     std::cout << Strutil::fmt::format("load_ms                : {:10.4f}\n",
-                                       load_ms);
+                                      load_ms);
 
     // Phase 2: simple_catalog_ms -- the first classification query for any
     // name triggers the config-wide "simple color space" catalog scan
@@ -3556,7 +3569,7 @@ run_bench_phases()
     color_space_analysis_flags(cc, probe_name);
     double simple_catalog_ms = t_catalog() * 1000.0;
     std::cout << Strutil::fmt::format("simple_catalog_ms      : {:10.4f}\n",
-                                       simple_catalog_ms);
+                                      simple_catalog_ms);
 
     // Phase 3: cold_resolve_ms / warm_resolve_ms -- first-vs-second
     // fingerprint-cache lookup for one name.
@@ -3568,16 +3581,16 @@ run_bench_phases()
     color_space_fingerprint_cached(cc, probe_name);
     double warm_resolve_ms = t_warm_resolve() * 1000.0;
     std::cout << Strutil::fmt::format("cold_resolve_ms        : {:10.4f}\n",
-                                       cold_resolve_ms);
+                                      cold_resolve_ms);
     std::cout << Strutil::fmt::format("warm_resolve_ms        : {:10.4f}\n",
-                                       warm_resolve_ms);
+                                      warm_resolve_ms);
 
     // Phase 4: fingerprint_vector_ms -- the bulk all-simple-spaces
     // fingerprint pass (uncached; the classification catalog is already
     // warm from phase 2, so this isolates fingerprint compute cost).
     Timer t_vector;
     std::vector<std::string> order = color_space_fingerprint_order(cc);
-    double fingerprint_vector_ms = t_vector() * 1000.0;
+    double fingerprint_vector_ms   = t_vector() * 1000.0;
     std::cout << Strutil::fmt::format(
         "fingerprint_vector_ms  : {:10.4f}  (simple_candidate_count={}, "
         "fingerprint_vector_count={})\n",
@@ -3599,7 +3612,7 @@ run_bench_phases()
     // spawn a fresh subprocess per config so construct_ms isn't
     // contaminated by that.
     std::string cmd = "\"" + Sysutil::this_program_path()
-                       + "\" --bench-child-construct";
+                      + "\" --bench-child-construct";
 #ifdef _MSC_VER
     FILE* pipe = _popen(cmd.c_str(), "r");
 #else
@@ -3766,7 +3779,7 @@ colorspaces:
     name: doubler
     from_scene_reference: !<MatrixTransform> {matrix: [2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1]}
 )";
-    std::string cfg2_path = Filesystem::temp_directory_path()
+    std::string cfg2_path        = Filesystem::temp_directory_path()
                             + "/oiio_color_test_stress2.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(cfg2_path, cfg2_yaml));
     ColorConfig cc2(cfg2_path);
@@ -3782,10 +3795,11 @@ colorspaces:
     // memo (s_memo, first-writer-wins, keyed by structural config id) on their
     // genuinely cold first touch -- the state the prior stress predates. Gated on
     // OCIO >= 2.3 (two-config display bridge) and registry CIID availability.
-    const bool do_xconfig
-        = ColorConfig::OpenColorIO_version_hex() >= 0x02030000
-          && OIIO::pvt::interop_identities_config_resolves("lin_ap1_scene")
-          && OIIO::pvt::interop_identities_config_resolves("srgb_rec709_display");
+    const bool do_xconfig = ColorConfig::OpenColorIO_version_hex() >= 0x02030000
+                            && OIIO::pvt::interop_identities_config_resolves(
+                                "lin_ap1_scene")
+                            && OIIO::pvt::interop_identities_config_resolves(
+                                "srgb_rec709_display");
     static const char* cfg3_yaml = R"(ocio_profile_version: 2.1
 strictparsing: false
 search_path: ""
@@ -3813,7 +3827,7 @@ display_colorspaces:
         - !<MatrixTransform> {matrix: [2.49349691194143, -0.931383617919124, -0.402710784450717, 0, -0.829488969561575, 1.76266406031835, 0.0236246858419436, 0, 0.0358458302437845, -0.0761723892680418, 0.956884524007688, 0, 0, 0, 0, 1]}
         - !<ExponentTransform> {value: 2.2, style: mirror, direction: inverse}
 )";
-    std::string cfg3_path = Filesystem::temp_directory_path()
+    std::string cfg3_path        = Filesystem::temp_directory_path()
                             + "/oiio_color_test_stress3.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(cfg3_path, cfg3_yaml));
     ColorConfig cc3(cfg3_path);
@@ -3825,7 +3839,7 @@ display_colorspaces:
     // CIID strings that drive resolve()'s registry-equivalence tier; constant
     // regardless of config, so resolve() reaches the registry fingerprint index.
     static const char* ciids[] = {
-        "lin_ap1_scene", "srgb_rec709_scene",  "g24_rec709_display",
+        "lin_ap1_scene", "srgb_rec709_scene",   "g24_rec709_display",
         "data",          "srgb_rec709_display", "unknown",
     };
 
@@ -3843,7 +3857,7 @@ display_colorspaces:
         while (!go.load())
             std::this_thread::yield();  // all workers hit the cold caches together
         for (int it = 0; it < iters; ++it) {
-            const ColorConfig& cc     = (tid & 1) ? cc2 : cc1;
+            const ColorConfig& cc                 = (tid & 1) ? cc2 : cc1;
             const std::vector<std::string>& names = (tid & 1) ? names2 : names1;
 
             // resolve() -- registry-equivalence tier -> registry index bootstrap
@@ -3855,7 +3869,8 @@ display_colorspaces:
                 // fingerprint + registry + interopify memo
                 (void)cc.get_color_interop_id(nm);
                 // flyweight fingerprint cache: first-insert / publish / hit
-                ColorSpaceFingerprint fp = color_space_fingerprint_cached(cc, nm);
+                ColorSpaceFingerprint fp = color_space_fingerprint_cached(cc,
+                                                                          nm);
                 (void)fp;
             }
 
@@ -3969,7 +3984,7 @@ colorspaces:
     name: plain_space
     from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
 )";
-    std::string config_path = Filesystem::temp_directory_path()
+    std::string config_path        = Filesystem::temp_directory_path()
                               + "/oiio_color_test_info.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(config_path, config_yaml));
     ColorConfig cc(config_path);
@@ -4042,9 +4057,8 @@ colorspaces:
         OIIO_CHECK_FALSE(bad.valid());
         OIIO_CHECK_ASSERT(cc.has_error());
         std::string err = cc.geterror();
-        OIIO_CHECK_ASSERT(
-            Strutil::contains(err, "unknown color space")
-            && Strutil::contains(err, "no_such_space_xyzzy"));
+        OIIO_CHECK_ASSERT(Strutil::contains(err, "unknown color space")
+                          && Strutil::contains(err, "no_such_space_xyzzy"));
     }
 
     // Batch: input order and duplicates preserved, one record per input.
@@ -4230,7 +4244,7 @@ colorspaces:
     name: plain_space
     from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}
 )";
-        std::string config_path = Filesystem::temp_directory_path()
+        std::string config_path        = Filesystem::temp_directory_path()
                                   + "/oiio_color_test_derive.ocio";
         OIIO_CHECK_ASSERT(
             Filesystem::write_text_file(config_path, config_yaml));
@@ -4243,9 +4257,9 @@ colorspaces:
         ColorSpaceInfo plain = cc.derive_color_space_info("plain_space");
         OIIO_CHECK_ASSERT(plain.valid());
         OIIO_CHECK_ASSERT(!cc.has_error());
-        for (F f : { F::EqualityID, F::ColorInteropID, F::Encoding,
-                     F::ImageState, F::Range, F::Chromaticities,
-                     F::TransferFunction })
+        for (F f :
+             { F::EqualityID, F::ColorInteropID, F::Encoding, F::ImageState,
+               F::Range, F::Chromaticities, F::TransferFunction })
             OIIO_CHECK_ASSERT(plain.computed(f));
         OIIO_CHECK_FALSE(plain.available(F::EqualityID));
         OIIO_CHECK_FALSE(plain.available(F::Chromaticities));
@@ -4269,8 +4283,7 @@ colorspaces:
         // Batch: order and duplicates preserved; per-field failure is not a
         // batch failure.
         {
-            std::vector<std::string> names { "plain_space",
-                                             "srgb_rec709_scene",
+            std::vector<std::string> names { "plain_space", "srgb_rec709_scene",
                                              "plain_space" };
             std::vector<ColorSpaceInfo> infos = cc.derive_color_space_infos(
                 names);
@@ -4372,7 +4385,7 @@ colorspaces:
     name: ctx_space
     to_scene_reference: !<ColorSpaceTransform> {src: $CTX_CS, dst: ref}
 )";
-        std::string ctx_path = Filesystem::temp_directory_path()
+        std::string ctx_path        = Filesystem::temp_directory_path()
                                + "/oiio_color_test_derive_ctx.ocio";
         OIIO_CHECK_ASSERT(Filesystem::write_text_file(ctx_path, ctx_yaml));
         ColorConfig cc(ctx_path);
@@ -4463,7 +4476,7 @@ colorspaces:
     name: gamma_a
     from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
 )";
-    std::string config_path = Filesystem::temp_directory_path()
+    std::string config_path        = Filesystem::temp_directory_path()
                               + "/oiio_color_test_searchconv.ocio";
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(config_path, config_yaml));
     ColorConfig cc(config_path);
@@ -4556,7 +4569,7 @@ test_config_serialize()
     // ...but the interopified in-memory copy's serialization shows the
     // repair: evidence of what is in memory, not what was on disk.
     ColorConfig::SerializeOptions iopts;
-    iopts.interopified = true;
+    iopts.interopified   = true;
     std::string repaired = cc.serialize(iopts);
     OIIO_CHECK_ASSERT(!cc.has_error());
     OIIO_CHECK_ASSERT(repaired.find("aces_interchange") != std::string::npos);
@@ -4672,7 +4685,7 @@ test_config_evolve()
     // Context-variable overrides serialize with the evolved config (they
     // change its structural cache identity); the source is untouched.
     ColorConfig::EvolveOptions copts;
-    copts.context = { { "SHOT", "sh010" } };
+    copts.context      = { { "SHOT", "sh010" } };
     ColorConfig ctxcfg = cc.evolve(copts);
     OIIO_CHECK_ASSERT(!ctxcfg.has_error());
     OIIO_CHECK_ASSERT(ctxcfg.serialize().find("SHOT") != std::string::npos);
@@ -4686,7 +4699,7 @@ test_config_evolve()
         !Strutil::ends_with(chain.configname(), "#evolved#evolved"));
     // ...and reset returns to the ORIGINAL root, dropping prior overrides.
     ColorConfig::EvolveOptions ropts;
-    ropts.reset = true;
+    ropts.reset      = true;
     ColorConfig back = ctxcfg.evolve(ropts);
     OIIO_CHECK_ASSERT(!back.has_error());
     OIIO_CHECK_EQUAL(back.serialize(), original_text);
@@ -4699,7 +4712,7 @@ test_config_evolve()
     std::string arc = Filesystem::temp_directory_path()
                       + "/oiio_color_test_evolve.ocioz";
     ColorConfig::EvolveOptions wopts;
-    wopts.working_dir  = wd;
+    wopts.working_dir = wd;
     ColorConfig wdcfg = cc.evolve(wopts);
     OIIO_CHECK_ASSERT(!wdcfg.has_error());
     OIIO_CHECK_ASSERT(!cc.archive(arc));  // source still has no working dir

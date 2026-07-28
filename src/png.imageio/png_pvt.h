@@ -18,8 +18,8 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/typedesc.h>
 
-#include "imageio_pvt.h"
 #include "color_pvt.h"
+#include "imageio_pvt.h"
 
 
 #define OIIO_LIBPNG_VERSION                                    \
@@ -861,8 +861,8 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     // reorder RGBW->WRGB and unscale (xy/50000, luminance/10000).
     {
         static const char* xykeys[8]
-            = { "mdcv_red_x",  "mdcv_red_y",   "mdcv_green_x", "mdcv_green_y",
-                "mdcv_blue_x", "mdcv_blue_y",  "mdcv_white_x", "mdcv_white_y" };
+            = { "mdcv_red_x",  "mdcv_red_y",  "mdcv_green_x", "mdcv_green_y",
+                "mdcv_blue_x", "mdcv_blue_y", "mdcv_white_x", "mdcv_white_y" };
         int64_t xy[8];
         bool have_xy = true;
         for (int i = 0; i < 8; ++i) {
