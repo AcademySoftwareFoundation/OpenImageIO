@@ -956,6 +956,98 @@ test_exr_invalid_id_omitted()
 }
 
 
+// ADR-0020 Amendment 2 -- the writer boundary for the unknown-marker family.
+// The markers are OIIO's INTERNAL taxonomy (they carry the *why* behind an
+// unknown, and `ocio:` is a namespace the Color Interop Forum reserves to the
+// OpenColorIO project). A file gets the Forum's registered vocabulary and
+// nothing else, so a DERIVED marker is translated on the way out:
+//   ocio:unknown / error:unknown -> bare "unknown" (the Forum's registered
+//     utility id for exactly this case: the fact persists, only OIIO's private
+//     reason for it is dropped)
+//   oiio:unknown -> omitted (a TREATMENT marker that makes no identity claim;
+//     colorInteropID is an identity field)
+// DERIVED values only. An author's explicitly-set attribute is still emitted
+// verbatim in all modes -- the contrast cases below pin that, so a future
+// change that erodes the verbatim doctrine fails here.
+static void
+test_unknown_marker_write_boundary()
+{
+    // --- Derived path: a config that DECLARES unknownness (a space named
+    // "unknown") is the one thing that actually synthesizes a marker today.
+    const std::string path = Filesystem::temp_directory_path()
+                             + "/oiio_cmp_declared_unknown.ocio";
+    {
+        std::ofstream f(path);
+        f << R"(ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: lin_ap1_scene
+  scene_linear: lin_ap1_scene
+colorspaces:
+  - !<ColorSpace>
+    name: lin_ap1_scene
+  - !<ColorSpace>
+    name: unknown
+)";
+    }
+    ColorConfig cfg(path);
+    if (!cfg.has_error()) {
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("oiio:ColorSpace", "unknown");
+
+        // The derive side is UNCHANGED: ADR-0020 owns the internal spelling,
+        // and this gate deliberately does not touch it.
+        OIIO_CHECK_EQUAL(std::string(derive_color_interop_id(cfg, "unknown")),
+                         "ocio:unknown");
+
+        // The write plan collapses it to the registered bare token.
+        auto p = plan_color_metadata(&cfg, spec, all_caps(), ColorWritePolicy());
+        OIIO_CHECK_EQUAL(int(p.interop_id.action), int(ColorPlanAction::Derive));
+        OIIO_CHECK_EQUAL(p.interop_id.str, "unknown");
+        // The namespaced form must not survive into the plan at all.
+        OIIO_CHECK_ASSERT(p.interop_id.str.find(':') == std::string::npos);
+    }
+    Filesystem::remove(path);
+
+    // --- Author-supplied contrast: verbatim, in all modes, bytes on disk.
+    if (!ImageOutput::create("exr")) {
+        Strutil::print("EXR plugin unavailable; skipping marker byte check\n");
+        return;
+    }
+    const std::string file = Filesystem::temp_directory_path()
+                             + "/oiio_cmp_marker.exr";
+    std::vector<float> pix(4 * 4 * 3, 0.5f);
+    for (const char* marker :
+         { "ocio:unknown", "oiio:unknown", "error:unknown", "unknown" }) {
+        ImageSpec spec(4, 4, 3, TypeHalf);
+        spec.attribute("colorInteropID", marker);
+        auto o = ImageOutput::create(file);
+        OIIO_CHECK_ASSERT(o && o->open(file, spec));
+        if (o) {
+            OIIO_CHECK_ASSERT(o->write_image(TypeFloat, pix.data()));
+            OIIO_CHECK_ASSERT(o->close());
+        }
+        // Read-back says the author's bytes survived...
+        auto in = ImageInput::open(file);
+        OIIO_CHECK_ASSERT(in.get());
+        if (in) {
+            OIIO_CHECK_EQUAL(in->spec().get_string_attribute("colorInteropID"),
+                             marker);
+            in->close();
+        }
+        // ...and so do the actual bytes in the file, not just what OIIO
+        // reports back to us.
+        std::ifstream raw(file, std::ios::binary);
+        const std::string bytes((std::istreambuf_iterator<char>(raw)),
+                                std::istreambuf_iterator<char>());
+        OIIO_CHECK_ASSERT(bytes.find("colorInteropID") != std::string::npos);
+        OIIO_CHECK_ASSERT(bytes.find(marker) != std::string::npos);
+    }
+    Filesystem::remove(file);
+}
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -973,6 +1065,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_exr_multipart_first_part_only();
     test_exr_chromaticities_dropped_and_aces_kept();
     test_exr_invalid_id_omitted();
+    test_unknown_marker_write_boundary();
 
     const std::string cfgpath = write_test_config();
     ColorConfig config(cfgpath);

@@ -8,3 +8,6 @@ matched-vs-global: srgb_rec709_scene
 w_plain CICP chunk:
     CICP: 1, 13, 0, 1
 w_wdecl CICP chunk (suppressed by config):
+  interop_id      derive    builtin default     unknown
+w_unknown colorInteropID (marker collapsed to bare token):
+    colorInteropID: "unknown"

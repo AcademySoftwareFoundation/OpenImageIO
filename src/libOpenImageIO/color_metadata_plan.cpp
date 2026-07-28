@@ -221,11 +221,38 @@ plan_string_signal(ColorSignalPolicy pol, bool capable,
         return f;
     }
     if (!explicit_present.empty()) {
+        // Verbatim in all modes: the author's bytes are theirs. The marker
+        // collapse below is deliberately NOT applied here -- it governs what
+        // OIIO SYNTHESIZES, not what a user wrote.
         f.action = ColorPlanAction::Write;
         f.str    = explicit_present;
     } else if (!derived.empty()) {
+        // Writer boundary for the unknown-marker family (ADR-0020 Amendment
+        // 2). The markers are OIIO's INTERNAL taxonomy: they carry the *why*
+        // behind an unknown, and the `ocio` namespace in particular is
+        // reserved to the OpenColorIO project. A file gets the Color Interop
+        // Forum's registered vocabulary and nothing else, so a derived marker
+        // is translated on the way out:
+        //   ocio:unknown, error:unknown -> bare "unknown". Nothing is silently
+        //     dropped: "unknown" is the Forum's registered utility id for
+        //     exactly this case, so the FACT survives and only OIIO's private
+        //     reason for it is discarded.
+        //   oiio:unknown -> omitted. It is a TREATMENT marker (synthetic
+        //     isData/NoOp) that may legally coexist with a definite
+        //     oiio:ColorSpace under the disparity rule, so it makes no
+        //     identity claim at all -- and colorInteropID is an identity
+        //     field. Emitting it there would be a category error.
+        // ponytail: nothing today synthesizes oiio:/error:unknown into an id
+        // (only ocio:unknown is minted, color_ocio.cpp), so those two arms are
+        // currently unreachable. They are stated anyway so the boundary is
+        // correct the day a derive path does produce them.
+        switch (classify_interop_marker(derived)) {
+        case InteropMarker::OiioUnknown: return f;  // stays Omit
+        case InteropMarker::OcioUnknown:
+        case InteropMarker::ErrorUnknown: f.str = "unknown"; break;
+        default: f.str = derived; break;
+        }
         f.action = ColorPlanAction::Derive;
-        f.str    = derived;
     }
     return f;  // else stays Omit
 }

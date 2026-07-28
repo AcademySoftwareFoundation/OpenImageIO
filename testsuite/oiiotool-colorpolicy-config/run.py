@@ -101,4 +101,28 @@ command += ("( env OCIO=" + plaincfg + " " + oiio_app("oiiotool")
             + " --info -v w_wdecl.png 2>&1 | grep CICP || true )" + redirect
             + " ;\n")
 
+
+# --- Writer boundary for the unknown-marker family (ADR-0020 Amendment 2) ---
+# A config that DECLARES unknownness (a space named `unknown`) makes OIIO
+# derive its internal "ocio:unknown" marker. That marker is OIIO's private
+# taxonomy -- it carries the *why* -- and `ocio:` is a namespace the Color
+# Interop Forum reserves to the OpenColorIO project, so it must not reach a
+# file. On the way out it collapses to the Forum's registered bare `unknown`
+# utility id: the FACT that the space is unknown persists, only OIIO's private
+# reason for it is dropped. The plan row shows `derive unknown` (not
+# `ocio:unknown`) and the written EXR carries the bare token.
+unkcfg = "src/unknowndecl.ocio"
+umk = ("--pattern constant:color=0.5,0.5,0.5 16x16 3 "
+       "--attrib oiio:ColorSpace unknown ")
+
+command += ("env OCIO=" + unkcfg + " " + oiio_app("oiiotool") + " " + umk
+            + "--colorwriteplan exr | grep '^  interop_id' " + redirect + " ;\n")
+command += ("env OCIO=" + unkcfg + " " + oiio_app("oiiotool") + " " + umk
+            + "-o w_unknown.exr " + redirect + " ;\n")
+command += ("echo 'w_unknown colorInteropID (marker collapsed to bare token):' "
+            + redirect + " ;\n")
+command += ("( env OCIO=" + unkcfg + " " + oiio_app("oiiotool")
+            + " --info -v w_unknown.exr 2>&1 | grep colorInteropID || true )"
+            + redirect + " ;\n")
+
 outputs = ["out.txt"]
