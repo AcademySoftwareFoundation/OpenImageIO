@@ -106,6 +106,16 @@ struct ColorSpaceSearchOptions {
     bool authored_encoding_only = false;
     /// OCIO context-variable overrides, scoped to the one call.
     std::map<std::string, std::string> context;
+    /// Name of a config-declared color policy profile to interpret this
+    /// call under. Accepted and currently ignored; honored when the policy
+    /// layer lands. (3.2.0)
+    std::string profile;
+    /// Inline color-policy overrides for this call, in the
+    /// `oiio:colorpolicy:*` grammar. These are policies, NOT OCIO context
+    /// variables -- `context` above remains the context mechanism.
+    /// Accepted and currently ignored; honored when the policy layer
+    /// lands. (3.2.0)
+    std::string policies;
 };
 
 
@@ -144,6 +154,16 @@ enum class ColorTransferFunctionKind : uint8_t {
 struct ColorSpaceInfoOptions {
     /// OCIO context-variable overrides, scoped to the one call.
     std::map<std::string, std::string> context;
+    /// Name of a config-declared color policy profile to interpret this
+    /// call under. Accepted and currently ignored; honored when the policy
+    /// layer lands. (3.2.0)
+    std::string profile;
+    /// Inline color-policy overrides for this call, in the
+    /// `oiio:colorpolicy:*` grammar. These are policies, NOT OCIO context
+    /// variables -- `context` above remains the context mechanism.
+    /// Accepted and currently ignored; honored when the policy layer
+    /// lands. (3.2.0)
+    std::string policies;
 };
 
 
