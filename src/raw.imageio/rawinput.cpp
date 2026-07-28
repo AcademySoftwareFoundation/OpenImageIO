@@ -1133,9 +1133,9 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             if (m_thumb_index < 0) {
                 errorfmt("Invalid thumbnail index ({})", m_thumb_index);
                 return false;
-            }
-            else if (m_thumb_index >= thumb_count)
+            } else if (m_thumb_index >= thumb_count) {
                 m_thumb_index = thumb_count - 1;
+            }
 
             // sort the thumbnails by their size if requested
             int sort_order = config.get_int_attribute("raw:thumbnail_sort", 0);
