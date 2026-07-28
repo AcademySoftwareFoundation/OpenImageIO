@@ -1537,6 +1537,14 @@ ColorConfig::resolve(string_view name) const
 
 
 
+string_view
+ColorConfig::resolve(string_view name, string_view failover) const
+{
+    return getImpl()->resolve(name, failover);
+}
+
+
+
 namespace {
 
 // Helpers for the interop-ID resolution tiers layered onto resolve(). They
@@ -1865,7 +1873,7 @@ ColorConfig::Impl::resolve_syntactic(string_view name) const
 
 
 string_view
-ColorConfig::Impl::resolve(string_view name) const
+ColorConfig::Impl::resolve(string_view name, string_view failover) const
 {
     // Every syntactic (fingerprint-free) tier first.
     if (string_view r = resolve_syntactic(name); !r.empty())
@@ -1889,9 +1897,10 @@ ColorConfig::Impl::resolve(string_view name) const
             return r;
     }
 
-    // Total miss: preserve OIIO's historical passthrough -- return the input
-    // name unchanged so callers that assumed identity resolution keep working.
-    return name;
+    // Total miss: the caller decides. The 1-arg public resolve() passes the
+    // input name, preserving OIIO's historical passthrough so callers that
+    // assumed identity resolution keep working.
+    return failover;
 }
 
 

@@ -299,10 +299,14 @@ declare_colorconfig(py::module& m)
              })
         .def(
             "resolve",
-            [](const ColorConfig& self, const std::string& name) {
-                return std::string(self.resolve(name));
+            [](const ColorConfig& self, const std::string& name,
+               const std::optional<std::string>& failover) {
+                // failover=None keeps the historical passthrough (the 1-arg
+                // C++ overload); any string, including "", is a failover.
+                return failover ? std::string(self.resolve(name, *failover))
+                                : std::string(self.resolve(name));
             },
-            "name"_a)
+            "name"_a, "failover"_a = py::none())
         .def(
             "equivalent",
             [](const ColorConfig& self, const std::string& color_space,

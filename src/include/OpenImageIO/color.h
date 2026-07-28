@@ -649,6 +649,17 @@ public:
     /// If none of these recognize the name, the name is returned unchanged.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
+    /// Like resolve(name), but a name that no tier recognizes returns
+    /// `failover` instead of the name unchanged. Passing an empty failover
+    /// therefore distinguishes "resolved" from "not recognized", which the
+    /// 1-arg overload's historical passthrough cannot. The returned view is
+    /// either a view of long-lived config/registry storage (a hit) or the
+    /// caller's own `failover` (a miss).
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD string_view resolve(string_view name,
+                                       string_view failover) const;
+
     /// Are the two color space names/aliases/roles equivalent? Each name is
     /// resolve()d first, so color interop IDs and aliases participate on either
     /// side.

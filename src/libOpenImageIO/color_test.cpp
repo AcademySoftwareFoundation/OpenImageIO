@@ -2135,6 +2135,17 @@ colorspaces:
         // still passed through unchanged (main's historical behavior).
         OIIO_CHECK_EQUAL(cc.resolve("totally_unrecognized_id"),
                          "totally_unrecognized_id");
+
+        // The failover overload: a miss yields the caller's failover (an
+        // empty one making "not recognized" distinguishable from a name
+        // that resolves to itself), while a hit is unaffected by it.
+        OIIO_CHECK_EQUAL(cc.resolve("totally_unrecognized_id", ""), "");
+        OIIO_CHECK_EQUAL(cc.resolve("totally_unrecognized_id", "sentinel"),
+                         "sentinel");
+        OIIO_CHECK_EQUAL(cc.resolve("resolvetest:local:my_local_alias", ""),
+                         "local_target");
+        // "local_target" resolves to itself -- a hit, not a passthrough.
+        OIIO_CHECK_EQUAL(cc.resolve("local_target", ""), "local_target");
     }
     Filesystem::remove(base_path);
 

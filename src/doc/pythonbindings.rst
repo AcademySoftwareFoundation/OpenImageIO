@@ -4006,6 +4006,30 @@ is provided for minimal color support.
 ..
   TODO: The documentation for this class is incomplete.
 
+.. py:method:: resolve (name, failover=None)
+
+    Turn `name` -- a color space name, alias, role, OIIO-understood universal
+    name (like `"sRGB"`), or a recognized Color Interop ID form -- into a
+    canonical color space name of this config.
+
+    If no tier recognizes the name, the result depends on `failover`: the
+    default `None` returns `name` unchanged (OpenImageIO's longstanding
+    behavior), while any string -- including `""` -- is returned instead, so
+    that an unrecognized name can be told apart from one that resolves to
+    itself.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        canonical = colorconfig.resolve("acescg")
+        if not colorconfig.resolve("no_such_space", ""):
+            print("not a color space this config knows")
+
+    The `failover` argument was added in OpenImageIO 3.2.
+
+
 .. py:method:: get_cicp (colorspace)
 
     Find CICP code corresponding to the colorspace.
