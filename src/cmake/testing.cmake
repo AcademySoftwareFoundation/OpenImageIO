@@ -170,6 +170,7 @@ macro (oiio_add_all_tests)
                     cmake-consumer
                     cryptomatte
                     docs-examples-cpp
+                    texture-device
                     iinfo igrep
                     nonwhole-tiles
                     oiiotool
@@ -183,6 +184,7 @@ macro (oiio_add_all_tests)
                     oiiotool-readerror
                     oiiotool-subimage
                     oiiotool-text
+                    oiiotool-thumbnail-get
                     oiiotool-xform
                     diff
                     flip
@@ -259,11 +261,23 @@ macro (oiio_add_all_tests)
         endif ()
         oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
             "${CMAKE_BINARY_DIR}/lib/python/nanobind")
+        # Keep in sync with the pybind11 python-* tests below as dual-backend
+        # coverage expands. imageinput/imagebufalgo also need oiio-images.
         set (nanobind_python_tests
+             python-colorconfig
+             python-deep
+             python-imagebuf
+             python-imagecache
+             python-imageoutput
              python-imagespec
+             python-oiio
              python-paramlist
              python-roi
+             python-texturesys
              python-typedesc)
+        set (nanobind_python_tests_imagedir
+             python-imageinput
+             python-imagebufalgo)
         set (nanobind_python_test_suffix ".nanobind")
         if (OIIO_BUILD_PYTHON_PYBIND11)
             oiio_add_tests (
@@ -296,6 +310,12 @@ macro (oiio_add_all_tests)
             oiio_add_tests (
                 ${nanobind_python_tests}
                 SUFFIX ${nanobind_python_test_suffix}
+                ENVIRONMENT "${_nanobind_tests_pythonpath}"
+                )
+            oiio_add_tests (
+                ${nanobind_python_tests_imagedir}
+                SUFFIX ${nanobind_python_test_suffix}
+                IMAGEDIR oiio-images
                 ENVIRONMENT "${_nanobind_tests_pythonpath}"
                 )
         endif ()
@@ -455,6 +475,8 @@ macro (oiio_add_all_tests)
                     ENABLEVAR ENABLE_TARGA
                     IMAGEDIR oiio-images)
     endif()
+    oiio_add_tests (oiiotool-thumbnail-set
+                    ENABLEVAR ENABLE_TARGA)
     if (WIN32)
         if (OIIO_BUILD_TOOLS)
             # Add test for long path handling if support is enabled at the system level.

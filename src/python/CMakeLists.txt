@@ -8,7 +8,15 @@ set (python_dual_backend_srcs
      py_roi.cpp
      py_typedesc.cpp
      py_imagespec.cpp
-     py_paramvalue.cpp)
+     py_paramvalue.cpp
+     py_deepdata.cpp
+     py_colorconfig.cpp
+     py_imageinput.cpp
+     py_imageoutput.cpp
+     py_imagebuf.cpp
+     py_imagecache.cpp
+     py_texturesys.cpp
+     py_imagebufalgo.cpp)
 
 # Full pybind11 module (pybind11 or both backends).
 if (OIIO_BUILD_PYTHON_PYBIND11)

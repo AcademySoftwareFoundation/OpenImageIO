@@ -14,6 +14,15 @@ import numpy as np
 TEST_CONFIG_PATH: Path = Path(__file__).parent/"oiio_test_v0.9.2.ocio"
 
 try:
+    # Regression test: default_colorconfig() returns a non-copyable singleton
+    # reference and must use a reference return-value policy (without it,
+    # callers can get a copy/wrapper that is not the shared instance, or the
+    # binding can fail for non-copyable ColorConfig).
+    default_a = oiio.ColorConfig.default_colorconfig()
+    default_b = oiio.ColorConfig.default_colorconfig()
+    print ("default_colorconfig same instance =", default_a is default_b)
+    print ("default_colorconfig usable =", default_a.getNumColorSpaces() > 0)
+
     config = oiio.ColorConfig()
     print ("getNumColorSpaces =", config.getNumColorSpaces())
     print ("getColorSpaceNames =", config.getColorSpaceNames())

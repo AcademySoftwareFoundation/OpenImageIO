@@ -63,7 +63,7 @@ public:
 
 
 void
-declare_wrap(py::module& m)
+declare_wrap(py_module& m)
 {
     py::enum_<Tex::Wrap>(m, "Wrap")
         .value("Default", Tex::Wrap::Default)
@@ -79,7 +79,7 @@ declare_wrap(py::module& m)
 
 
 void
-declare_mipmpode(py::module& m)
+declare_mipmpode(py_module& m)
 {
     py::enum_<Tex::MipMode>(m, "MipMode")
         .value("Default", Tex::MipMode::Default)
@@ -92,7 +92,7 @@ declare_mipmpode(py::module& m)
 
 
 void
-declare_interpmode(py::module& m)
+declare_interpmode(py_module& m)
 {
     py::enum_<Tex::InterpMode>(m, "InterpMode")
         .value("Closest", Tex::InterpMode::Closest)
@@ -104,13 +104,13 @@ declare_interpmode(py::module& m)
 
 
 void
-declare_textureopt(py::module& m)
+declare_textureopt(py_module& m)
 {
     py::class_<TextureOptWrap>(m, "TextureOpt")
         .def(py::init<>())
-        .def_readwrite("firstchannel", &TextureOptWrap::firstchannel)
-        .def_readwrite("subimage", &TextureOptWrap::subimage)
-        .def_property(
+        .OIIO_PY_RW("firstchannel", &TextureOptWrap::firstchannel)
+        .OIIO_PY_RW("subimage", &TextureOptWrap::subimage)
+        .OIIO_PY_PROP_RW(
             "subimagename",
             [](const TextureOptWrap& texopt) {
                 return std::string(texopt.subimagename);
@@ -118,19 +118,19 @@ declare_textureopt(py::module& m)
             [](TextureOptWrap& texopt, const std::string& subimagename) {
                 texopt.subimagename = subimagename;
             })
-        .def_property(
+        .OIIO_PY_PROP_RW(
             "swrap",
             [](const TextureOptWrap& texopt) { return (Tex::Wrap)texopt.swrap; },
             [](TextureOptWrap& texopt, const Tex::Wrap wrap) {
                 texopt.swrap = (TextureOpt::Wrap)wrap;
             })
-        .def_property(
+        .OIIO_PY_PROP_RW(
             "twrap",
             [](const TextureOptWrap& texopt) { return (Tex::Wrap)texopt.twrap; },
             [](TextureOptWrap& texopt, const Tex::Wrap wrap) {
                 texopt.twrap = (TextureOpt::Wrap)wrap;
             })
-        .def_property(
+        .OIIO_PY_PROP_RW(
             "mipmode",
             [](const TextureOptWrap& texopt) {
                 return (Tex::MipMode)texopt.mipmode;
@@ -138,7 +138,7 @@ declare_textureopt(py::module& m)
             [](TextureOptWrap& texopt, const Tex::MipMode mipmode) {
                 texopt.mipmode = (TextureOpt::MipMode)mipmode;
             })
-        .def_property(
+        .OIIO_PY_PROP_RW(
             "interpmode",
             [](const TextureOptWrap& texopt) {
                 return (Tex::InterpMode)texopt.interpmode;
@@ -146,33 +146,30 @@ declare_textureopt(py::module& m)
             [](TextureOptWrap& texopt, const Tex::InterpMode interp) {
                 texopt.interpmode = (TextureOpt::InterpMode)interp;
             })
-        .def_readwrite("anisotropic", &TextureOptWrap::anisotropic)
-        .def_readwrite("conservative_filter",
-                       &TextureOptWrap::conservative_filter)
-        .def_readwrite("sblur", &TextureOptWrap::sblur)
-        .def_readwrite("tblur", &TextureOptWrap::tblur)
-        .def_readwrite("swidth", &TextureOptWrap::swidth)
-        .def_readwrite("twidth", &TextureOptWrap::twidth)
-        .def_readwrite("fill", &TextureOptWrap::fill)
-        .def_property("missingcolor", &TextureOptWrap::get_missingcolor,
-                      &TextureOptWrap::set_missingcolor)
-        .def_readwrite("rnd", &TextureOptWrap::rnd)
-        .def_property(
+        .OIIO_PY_RW("anisotropic", &TextureOptWrap::anisotropic)
+        .OIIO_PY_RW("conservative_filter", &TextureOptWrap::conservative_filter)
+        .OIIO_PY_RW("sblur", &TextureOptWrap::sblur)
+        .OIIO_PY_RW("tblur", &TextureOptWrap::tblur)
+        .OIIO_PY_RW("swidth", &TextureOptWrap::swidth)
+        .OIIO_PY_RW("twidth", &TextureOptWrap::twidth)
+        .OIIO_PY_RW("fill", &TextureOptWrap::fill)
+        .OIIO_PY_PROP_RW_NONE("missingcolor", &TextureOptWrap::get_missingcolor,
+                              &TextureOptWrap::set_missingcolor)
+        .OIIO_PY_RW("rnd", &TextureOptWrap::rnd)
+        .OIIO_PY_PROP_RW(
             "rwrap",
             [](const TextureOptWrap& texopt) { return (Tex::Wrap)texopt.rwrap; },
             [](TextureOptWrap& texopt, const Tex::Wrap wrap) {
                 texopt.rwrap = (TextureOpt::Wrap)wrap;
             })
-        .def_readwrite("rwidth", &TextureOptWrap::rwidth);
+        .OIIO_PY_RW("rwidth", &TextureOptWrap::rwidth);
 }
 
 
 
 void
-declare_texturesystem(py::module& m)
+declare_texturesystem(py_module& m)
 {
-    using namespace pybind11::literals;
-
     py::class_<TextureSystemWrap>(m, "TextureSystem")
         .def(py::init<bool>(), "shared"_a = true)
         .def_static("destroy", &TextureSystemWrap::destroy)
@@ -322,9 +319,10 @@ declare_texturesystem(py::module& m)
                 std::vector<ustring> filenames;
                 ts.m_texsys->inventory_udim(ustring(filename), filenames,
                                             nutiles, nvtiles);
-                std::vector<PY_STR> strs;
-                for (auto f : filenames)
+                std::vector<std::string> strs;
+                for (auto f : filenames) {
                     strs.emplace_back(f.string());
+                }
                 py::tuple ret = py::make_tuple(nutiles, nvtiles, strs);
                 return ret;
             },

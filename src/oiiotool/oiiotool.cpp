@@ -887,6 +887,7 @@ adjust_output_options(string_view filename, ImageSpec& spec,
                       const ImageSpec* nativespec, const Oiiotool& ot,
                       int subimage_index, int nsubimages,
                       bool format_supports_tiles,
+                      bool format_supports_thumbnail,
                       const ParamValueList& fileoptions,
                       bool was_direct_read = false)
 {
@@ -1059,6 +1060,16 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     spec.erase_attribute("oiio:SHA-1");
     spec.erase_attribute("oiio:ConstantColor");
     spec.erase_attribute("oiio:AverageColor");
+
+    // If the output format can't embed a thumbnail, don't let the thumbnail
+    // bookkeeping attributes leak into the file as metadata describing a
+    // thumbnail that isn't actually there.
+    if (!format_supports_thumbnail) {
+        spec.erase_attribute("thumbnail_width");
+        spec.erase_attribute("thumbnail_height");
+        spec.erase_attribute("thumbnail_nchannels");
+        spec.erase_attribute("thumbnail_image");
+    }
 }
 
 
@@ -3210,6 +3221,118 @@ action_subimage_append_all(Oiiotool& ot, cspan<const char*> argv)
     OTScopedTimer timer(ot, command);
 
     action_subimage_append_n(ot, int(ot.image_stack.size() + 1), command);
+}
+
+
+
+// --thumbnail-get
+static void
+action_thumbnail_get(Oiiotool& ot, cspan<const char*> argv)
+{
+    if (ot.postpone_callback(1, action_thumbnail_get, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+
+    // Parse options from the command token, e.g.
+    //     --thumbnail-get:fail=0:index=0
+    auto options = ot.extract_options(command);
+
+    bool fail_if_missing = options.get_int("fail", 1);
+    int index            = options.get_int("index", 0);
+
+    // The current ImageInput/ImageBuf API exposes only a single (primary)
+    // thumbnail per subimage. Formats that embed multiple thumbnails at
+    // different resolutions (such as some camera raw formats) cannot yet be
+    // distinguished, so for now only index 0 is valid. The `:index=` modifier
+    // reserves the syntax for when the API gains multi-thumbnail support.
+    // See https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/4888
+    if (index != 0) {
+        ot.errorfmt(command,
+                    "Thumbnail index {} is not available; only the primary "
+                    "thumbnail (index 0) is currently supported",
+                    index);
+        return;
+    }
+
+    ImageRecRef A = ot.pop();
+    // Reading the spec loads the thumbnail, so avoid a full pixel read.
+    if (!ot.read_nativespec(A)) {
+        ot.push(A);
+        return;
+    }
+
+    auto thumb = (*A)(0, 0).get_thumbnail();
+    if (!thumb || !thumb->initialized()) {
+        if (fail_if_missing) {
+            ot.errorfmt(command, "Image \"{}\" has no thumbnail", A->name());
+            ot.push(A);
+            return;
+        }
+
+        // synthesize a thumbnail from the image itself
+        if (!ot.read(A)) {
+            ot.push(A);
+            return;
+        }
+
+        const ImageBuf& Aib((*A)(0, 0));
+        const ImageSpec& Aspec(Aib.spec());
+
+        // Fit inside a box, preserving aspect ratio and never enlarging
+        const int boxsize = 256;
+        int longest       = std::max(1,
+                                     std::max(Aspec.full_width, Aspec.full_height));
+        float scale       = std::min(1.0f, float(boxsize) / float(longest));
+        int tw            = std::max(1, int(roundf(Aspec.full_width * scale)));
+        int th            = std::max(1, int(roundf(Aspec.full_height * scale)));
+        ROI roi(0, tw, 0, th, 0, 1, 0, Aspec.nchannels);
+
+        ImageBufRef generated(new ImageBuf(
+            ImageBufAlgo::resize(Aib, ImageBufAlgo::KWArgs(), roi)));
+
+        if (generated->has_error()) {
+            ot.errorfmt(command, "{}", generated->geterror());
+            ot.push(A);
+            return;
+        }
+        ot.push(new ImageRec(generated, false));
+        return;
+    }
+    ot.push(new ImageRec(ImageBufRef(new ImageBuf(*thumb)), false));
+}
+
+
+
+// --thumbnail-set
+static void
+action_thumbnail_set(Oiiotool& ot, cspan<const char*> argv)
+{
+    if (ot.postpone_callback(2, action_thumbnail_set, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+
+    // Top image is the thumbnail
+    ImageRecRef T = ot.pop();
+    ImageRecRef A = ot.pop();
+    if (!ot.read(T) || !ot.read(A)) {
+        ot.push(A);
+        ot.push(T);
+        return;
+    }
+
+    const ImageBuf& thumb((*T)(0, 0));
+    if (!thumb.initialized()) {
+        ot.errorfmt(command, "Thumbnail image \"{}\" is empty", T->name());
+        ot.push(A);
+        ot.push(T);
+        return;
+    }
+
+    (*A)(0, 0).set_thumbnail(thumb);
+    A->update_spec_from_imagebuf(0, 0);
+    ot.push(A);
 }
 
 
@@ -5495,6 +5618,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                                                     ot.printinfo_format);
     TypeDesc input_dataformat(fileoptions.get_string("type"));
     std::string channel_set = fileoptions["ch"];
+    bool get_thumbnail      = fileoptions.get_int("get_thumbnail", 0);
 
     for (int i = 0; i < std::ssize(argv); i++) {
         // FIXME: this loop is pointless, since there is ever only one arg
@@ -5637,6 +5761,20 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
         // the input timer.
         timer.stop();
 
+        if (get_thumbnail && !substitute) {
+            // Swap in the embedded thumbnail via the --thumbnail-get logic.
+            // Done before autoorient/autocc so they apply to the thumbnail.
+            std::string thumbcmd = "--thumbnail-get";
+            if (fileoptions.contains("fail"))
+                thumbcmd += Strutil::fmt::format(":fail={}",
+                                                 fileoptions.get_int("fail"));
+            if (fileoptions.contains("index"))
+                thumbcmd += Strutil::fmt::format(":index={}",
+                                                 fileoptions.get_int("index"));
+            const char* argv[] = { thumbcmd.c_str() };
+            action_thumbnail_get(ot, argv);
+        }
+
         if (ot.autoorient) {
             void action_reorient(Oiiotool & ot, cspan<const char*> argv);
             const char* argv[] = { "--reorient" };
@@ -5684,6 +5822,45 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
 
     ot.clear_input_config();
     ot.input_channel_set.clear();
+    ot.check_peak_memory();
+    // ot.total_readtime.stop();
+    return 0;
+}
+
+
+
+// --testread
+static int
+test_read(Oiiotool& ot, cspan<const char*> argv)
+{
+    // ot.total_readtime.start();
+    string_view command  = ot.express(argv[0]);
+    string_view filename = ot.express(argv[1]);
+    auto fileoptions     = ot.extract_options(command);
+    TypeDesc input_dataformat(fileoptions.get_string("type", "uint8"));
+
+    OTScopedTimer timer(ot, command);
+
+    bool ok  = true;
+    auto inp = OIIO::ImageInput::open(filename, ot.input_config_set
+                                                    ? &ot.input_config
+                                                    : nullptr);
+    if (inp)
+        ok = OIIO::pvt::test_read_all_images(*inp, input_dataformat);
+    if (!ok || !inp) {
+        ot.error("testread",
+                 ot.format_read_error(filename, inp ? inp->geterror()
+                                                    : OIIO::geterror()));
+    } else {
+        OIIO::print("OK {}\n", filename);
+    }
+    ot.printed_info = true;
+
+    // Everything past this point should be credited to other ops, so stop
+    // the input timer.
+    timer.stop();
+
+    ot.process_pending();
     ot.check_peak_memory();
     // ot.total_readtime.stop();
     return 0;
@@ -5897,8 +6074,9 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     }
     bool supports_displaywindow  = out->supports("displaywindow");
     bool supports_negativeorigin = out->supports("negativeorigin");
-    bool supports_tiles = out->supports("tiles") || ot.output_force_tiles;
-    bool procedural     = out->supports("procedural");
+    bool supports_tiles     = out->supports("tiles") || ot.output_force_tiles;
+    bool procedural         = out->supports("procedural");
+    bool supports_thumbnail = out->supports("thumbnail");
     if (!ot.read()) {
         return;
     }
@@ -6078,7 +6256,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     if (do_tex || do_latlong || do_bumpslopes) {
         ImageSpec configspec;
         adjust_output_options(filename, configspec, nullptr, ot, 0, 1,
-                              supports_tiles, fileoptions);
+                              supports_tiles, supports_thumbnail, fileoptions);
         prep_texture_config(ot, configspec, fileoptions);
         ImageBufAlgo::MakeTextureMode mode = ImageBufAlgo::MakeTxTexture;
         if (do_shad)
@@ -6108,8 +6286,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         for (int s = 0, send = ir->subimages(); s < send; ++s) {
             ImageSpec spec = *ir->spec(s, 0);
             adjust_output_options(filename, spec, ir->nativespec(s), ot, s,
-                                  send, supports_tiles, fileoptions,
-                                  (*ir)[s].was_direct_read());
+                                  send, supports_tiles, supports_thumbnail,
+                                  fileoptions, (*ir)[s].was_direct_read());
             // If it's not tiled and MIP-mapped, remove any "textureformat"
             if (!spec.tile_pixels() || ir->miplevels(s) <= 1)
                 spec.erase_attribute("textureformat");
@@ -6150,7 +6328,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
             for (int m = 0, mend = ir->miplevels(s); m < mend && ok; ++m) {
                 ImageSpec spec = *ir->spec(s, m);
                 adjust_output_options(filename, spec, ir->nativespec(s, m), ot,
-                                      s, send, supports_tiles, fileoptions,
+                                      s, send, supports_tiles,
+                                      supports_thumbnail, fileoptions,
                                       (*ir)[s].was_direct_read());
                 if (s > 0 || m > 0) {  // already opened first subimage/level
                     if (!out->open(tmpfilename, spec, mode)) {
@@ -6942,13 +7121,17 @@ Oiiotool::getargs(int argc, char* argv[])
 
     ap.separator("Commands that read images:");
     ap.arg("-i %s:FILENAME")
-      .help("Input file (options: autocc=, ch=, info=, infoformat=, native=, now=, type=, unpremult=)")
+      .help("Input file (options: autocc=, ch=, get_thumbnail=, info=, "
+            "infoformat=, native=, now=, type=, unpremult=)")
       .OTACTION(input_file);
     ap.arg("--iconfig %s:NAME %s:VALUE")
       .help("Sets input config attribute (options: type=...)")
       .OTACTION(set_input_attribute);
     ap.arg("--missingfile %s:OPTION", &ot.missingfile_policy)
       .help("Set policy for missing input files: 'error' (default), 'black', 'checker'");
+    ap.arg("--testread %s:FILENAME")
+      .help("Test file read (do not keep image; used for debugging)")
+      .OTACTION(test_read);
 
     ap.separator("Commands that write images:");
     ap.arg("-o %s:FILENAME")
@@ -7393,6 +7576,12 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--flatten")
       .help("Flatten deep image to non-deep")
       .OTACTION(action_flatten);
+    ap.arg("--thumbnail-get")
+      .help("Extract an embedded thumbnail (options: fail=, index=)")
+      .OTACTION(action_thumbnail_get);
+    ap.arg("--thumbnail-set")
+      .help("Attach the top image as the thumbnail of the image below it")
+      .OTACTION(action_thumbnail_set);
 
     ap.separator("Image stack manipulation:");
     ap.arg("--label %s")

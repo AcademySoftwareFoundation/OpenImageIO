@@ -70,29 +70,24 @@ DeepData_merge_deep_pixels(DeepData& dd, int64_t pixel, const DeepData& src,
 
 // Declare the OIIO DeepData class to Python
 void
-declare_deepdata(py::module& m)
+declare_deepdata(py_module& m)
 {
-    using namespace pybind11::literals;
-
     py::class_<DeepData>(m, "DeepData")
-        .def_property_readonly("pixels",
-                               [](const DeepData& d) { return d.pixels(); })
-        .def_property_readonly("channels",
-                               [](const DeepData& d) { return d.channels(); })
-        .def_property_readonly("A_channel",
-                               [](const DeepData& d) { return d.A_channel(); })
-        .def_property_readonly("AR_channel",
-                               [](const DeepData& d) { return d.AR_channel(); })
-        .def_property_readonly("AG_channel",
-                               [](const DeepData& d) { return d.AG_channel(); })
-        .def_property_readonly("AB_channel",
-                               [](const DeepData& d) { return d.AB_channel(); })
-        .def_property_readonly("Z_channel",
-                               [](const DeepData& d) { return d.Z_channel(); })
-        .def_property_readonly("Zback_channel",
-                               [](const DeepData& d) {
-                                   return d.Zback_channel();
-                               })
+        .OIIO_PY_PROP_RO("pixels", [](const DeepData& d) { return d.pixels(); })
+        .OIIO_PY_PROP_RO("channels",
+                         [](const DeepData& d) { return d.channels(); })
+        .OIIO_PY_PROP_RO("A_channel",
+                         [](const DeepData& d) { return d.A_channel(); })
+        .OIIO_PY_PROP_RO("AR_channel",
+                         [](const DeepData& d) { return d.AR_channel(); })
+        .OIIO_PY_PROP_RO("AG_channel",
+                         [](const DeepData& d) { return d.AG_channel(); })
+        .OIIO_PY_PROP_RO("AB_channel",
+                         [](const DeepData& d) { return d.AB_channel(); })
+        .OIIO_PY_PROP_RO("Z_channel",
+                         [](const DeepData& d) { return d.Z_channel(); })
+        .OIIO_PY_PROP_RO("Zback_channel",
+                         [](const DeepData& d) { return d.Zback_channel(); })
 
         .def(py::init<>())
         .def("init", &DeepData_init, "npixels"_a, "nchannels"_a,

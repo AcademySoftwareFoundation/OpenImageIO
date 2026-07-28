@@ -185,7 +185,7 @@ IBA_channels(ImageBuf& dst, const ImageBuf& src, py::tuple channelorder_,
              py::tuple newchannelnames_, bool shuffle_channel_names,
              int nthreads)
 {
-    size_t nchannels = (size_t)len(channelorder_);
+    size_t nchannels = (size_t)py::len(channelorder_);
     if (nchannels < 1) {
         dst.errorfmt("No channels selected");
         return false;
@@ -195,11 +195,11 @@ IBA_channels(ImageBuf& dst, const ImageBuf& src, py::tuple channelorder_,
     for (size_t i = 0; i < nchannels; ++i) {
         auto orderi = channelorder_[i];
         if (py::isinstance<py::int_>(orderi)) {
-            channelorder[i] = orderi.cast<py::int_>();
+            channelorder[i] = py::cast<int>(orderi);
         } else if (py::isinstance<py::float_>(orderi)) {
-            channelvalues[i] = orderi.cast<py::float_>();
+            channelvalues[i] = py::cast<float>(orderi);
         } else if (py::isinstance<py::str>(orderi)) {
-            std::string chname = orderi.cast<py::str>();
+            std::string chname = oiio_py::str_to_stdstring(orderi);
             for (int c = 0; c < src.nchannels(); ++c) {
                 if (src.spec().channelnames[c] == chname)
                     channelorder[i] = c;
@@ -2497,51 +2497,66 @@ IBA_demosaic(ImageBuf& dst, const ImageBuf& src,
 }
 
 void
-declare_imagebufalgo(py::module& m)
+declare_imagebufalgo(py_module& m)
 {
-    using namespace pybind11::literals;
-    using py::arg;
-
-    py::enum_<ImageBufAlgo::NonFiniteFixMode>(m, "NonFiniteFixMode")
-        .value("NONFINITE_NONE", ImageBufAlgo::NONFINITE_NONE)
+    py::enum_<ImageBufAlgo::NonFiniteFixMode> nonfinite_fix_mode(
+        m, "NonFiniteFixMode");
+    nonfinite_fix_mode.value("NONFINITE_NONE", ImageBufAlgo::NONFINITE_NONE)
         .value("NONFINITE_BLACK", ImageBufAlgo::NONFINITE_BLACK)
-        .value("NONFINITE_BOX3", ImageBufAlgo::NONFINITE_BOX3)
-        .export_values();
+        .value("NONFINITE_BOX3", ImageBufAlgo::NONFINITE_BOX3);
+#if !defined(OIIO_PY_BACKEND_NANOBIND)
+    nonfinite_fix_mode.export_values();
+#else
+    m.attr("NONFINITE_NONE")  = py::cast(ImageBufAlgo::NONFINITE_NONE);
+    m.attr("NONFINITE_BLACK") = py::cast(ImageBufAlgo::NONFINITE_BLACK);
+    m.attr("NONFINITE_BOX3")  = py::cast(ImageBufAlgo::NONFINITE_BOX3);
+#endif
 
-    py::enum_<ImageBufAlgo::MakeTextureMode>(m, "MakeTextureMode")
-        .value("MakeTxTexture", ImageBufAlgo::MakeTxTexture)
+    py::enum_<ImageBufAlgo::MakeTextureMode> make_texture_mode(
+        m, "MakeTextureMode");
+    make_texture_mode.value("MakeTxTexture", ImageBufAlgo::MakeTxTexture)
         .value("MakeTxShadow", ImageBufAlgo::MakeTxShadow)
         .value("MakeTxEnvLatl", ImageBufAlgo::MakeTxEnvLatl)
         .value("MakeTxEnvLatlFromLightProbe",
                ImageBufAlgo::MakeTxEnvLatlFromLightProbe)
-        .value("MakeTxBumpWithSlopes", ImageBufAlgo::MakeTxBumpWithSlopes)
-        .export_values();
+        .value("MakeTxBumpWithSlopes", ImageBufAlgo::MakeTxBumpWithSlopes);
+#if !defined(OIIO_PY_BACKEND_NANOBIND)
+    make_texture_mode.export_values();
+#else
+    m.attr("MakeTxTexture") = py::cast(ImageBufAlgo::MakeTxTexture);
+    m.attr("MakeTxShadow")  = py::cast(ImageBufAlgo::MakeTxShadow);
+    m.attr("MakeTxEnvLatl") = py::cast(ImageBufAlgo::MakeTxEnvLatl);
+    m.attr("MakeTxEnvLatlFromLightProbe") = py::cast(
+        ImageBufAlgo::MakeTxEnvLatlFromLightProbe);
+    m.attr("MakeTxBumpWithSlopes") = py::cast(
+        ImageBufAlgo::MakeTxBumpWithSlopes);
+#endif
 
     py::class_<ImageBufAlgo::PixelStats>(m, "PixelStats")
         .def(py::init<>())
-        .def_readonly("min", &ImageBufAlgo::PixelStats::min)
-        .def_readonly("max", &ImageBufAlgo::PixelStats::max)
-        .def_readonly("avg", &ImageBufAlgo::PixelStats::avg)
-        .def_readonly("stddev", &ImageBufAlgo::PixelStats::stddev)
-        .def_readonly("nancount", &ImageBufAlgo::PixelStats::nancount)
-        .def_readonly("infcount", &ImageBufAlgo::PixelStats::infcount)
-        .def_readonly("finitecount", &ImageBufAlgo::PixelStats::finitecount)
-        .def_readonly("sum", &ImageBufAlgo::PixelStats::sum)
-        .def_readonly("sum2", &ImageBufAlgo::PixelStats::sum2);
+        .OIIO_PY_RO("min", &ImageBufAlgo::PixelStats::min)
+        .OIIO_PY_RO("max", &ImageBufAlgo::PixelStats::max)
+        .OIIO_PY_RO("avg", &ImageBufAlgo::PixelStats::avg)
+        .OIIO_PY_RO("stddev", &ImageBufAlgo::PixelStats::stddev)
+        .OIIO_PY_RO("nancount", &ImageBufAlgo::PixelStats::nancount)
+        .OIIO_PY_RO("infcount", &ImageBufAlgo::PixelStats::infcount)
+        .OIIO_PY_RO("finitecount", &ImageBufAlgo::PixelStats::finitecount)
+        .OIIO_PY_RO("sum", &ImageBufAlgo::PixelStats::sum)
+        .OIIO_PY_RO("sum2", &ImageBufAlgo::PixelStats::sum2);
 
     py::class_<ImageBufAlgo::CompareResults>(m, "CompareResults")
         .def(py::init<>())
-        .def_readonly("meanerror", &ImageBufAlgo::CompareResults::meanerror)
-        .def_readonly("rms_error", &ImageBufAlgo::CompareResults::rms_error)
-        .def_readonly("PSNR", &ImageBufAlgo::CompareResults::PSNR)
-        .def_readonly("maxerror", &ImageBufAlgo::CompareResults::maxerror)
-        .def_readonly("maxx", &ImageBufAlgo::CompareResults::maxx)
-        .def_readonly("maxy", &ImageBufAlgo::CompareResults::maxy)
-        .def_readonly("maxz", &ImageBufAlgo::CompareResults::maxz)
-        .def_readonly("maxc", &ImageBufAlgo::CompareResults::maxc)
-        .def_readonly("nwarn", &ImageBufAlgo::CompareResults::nwarn)
-        .def_readonly("nfail", &ImageBufAlgo::CompareResults::nfail)
-        .def_readonly("error", &ImageBufAlgo::CompareResults::error);
+        .OIIO_PY_RO("meanerror", &ImageBufAlgo::CompareResults::meanerror)
+        .OIIO_PY_RO("rms_error", &ImageBufAlgo::CompareResults::rms_error)
+        .OIIO_PY_RO("PSNR", &ImageBufAlgo::CompareResults::PSNR)
+        .OIIO_PY_RO("maxerror", &ImageBufAlgo::CompareResults::maxerror)
+        .OIIO_PY_RO("maxx", &ImageBufAlgo::CompareResults::maxx)
+        .OIIO_PY_RO("maxy", &ImageBufAlgo::CompareResults::maxy)
+        .OIIO_PY_RO("maxz", &ImageBufAlgo::CompareResults::maxz)
+        .OIIO_PY_RO("maxc", &ImageBufAlgo::CompareResults::maxc)
+        .OIIO_PY_RO("nwarn", &ImageBufAlgo::CompareResults::nwarn)
+        .OIIO_PY_RO("nfail", &ImageBufAlgo::CompareResults::nfail)
+        .OIIO_PY_RO("error", &ImageBufAlgo::CompareResults::error);
 
     // Put this all inside "ImageBufAlgo"
     py::class_<IBA_dummy>(m, "ImageBufAlgo")
