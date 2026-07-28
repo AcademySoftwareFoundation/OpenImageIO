@@ -32,7 +32,12 @@ public:
     {
         return (feature == "alpha" || feature == "nchannels"
                 || feature == "exif" || feature == "ioproxy"
-                || feature == "tiles");
+                || feature == "tiles"
+                // JPEG XL carries CICP in its native colour-encoding field
+                // (JxlColorEncoding), which this writer builds from the CICP
+                // attribute below. It must be declared, or ImageOutput's
+                // check_open() strips the attribute before we ever see it.
+                || feature == "cicp");
     }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode = Create) override;

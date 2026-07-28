@@ -38,7 +38,11 @@ public:
     const char* format_name(void) const override { return "jpegxl"; }
     int supports(string_view feature) const override
     {
-        return (feature == "exif" || feature == "ioproxy");
+        // "cicp": this reader recovers a CICP tuple from the file's native
+        // colour-encoding field, so it declares the capability the same way
+        // the PNG and HEIF readers do.
+        return (feature == "exif" || feature == "ioproxy"
+                || feature == "cicp");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
 
