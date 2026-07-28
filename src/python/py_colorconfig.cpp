@@ -4,7 +4,6 @@
 
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
-#include <OpenImageIO/color_interop_ids.h>
 #include <cctype>
 #include <map>
 #include <optional>
@@ -533,19 +532,6 @@ declare_colorconfig(py::module& m)
 
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
     m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();
-
-    // color_interop_ids(): the canonical Color Interop Forum ids declared
-    // by OIIO's built-in interop identities registry (the same data as
-    // C++ OIIO::ColorInteropIDs::all()), as a tuple of plain strings --
-    // registry data, not an enum, because the id grammar is open
-    // (custom/icc/local/user-namespaced ids cannot be enumerated).
-    m.def("color_interop_ids", []() {
-        cspan<string_view> ids = ColorInteropIDs::all();
-        py::tuple result(ids.size());
-        for (size_t i = 0; i < ids.size(); ++i)
-            result[i] = py::str(ids[i].data(), ids[i].size());
-        return result;
-    });
 }
 
 }  // namespace PyOpenImageIO

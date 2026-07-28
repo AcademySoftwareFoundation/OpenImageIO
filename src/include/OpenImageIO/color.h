@@ -917,14 +917,6 @@ public:
     derive_color_space_infos(cspan<std::string> color_spaces,
                              const ColorSpaceInfoOptions& options = {}) const;
 
-    // See <OpenImageIO/color_interop_ids.h> for `ColorInteropIDs::all()`,
-    // which returns every canonical Color Interop Forum id declared by
-    // OIIO's built-in interop identities registry -- each usable anywhere a
-    // `string_view` CIID is accepted above (e.g. as the argument to
-    // resolve() or equivalent(), or compared against
-    // get_color_interop_id()'s return value). The Python binding exposes
-    // the same data as `OpenImageIO.color_interop_ids()`, a tuple of str.
-
     /// Convenience alias so callers may spell the options type
     /// `ColorConfig::SerializeOptions`.
     using SerializeOptions = ColorConfigSerializeOptions;

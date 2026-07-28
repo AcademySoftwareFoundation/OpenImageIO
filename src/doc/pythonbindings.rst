@@ -4430,26 +4430,6 @@ is provided for minimal color support.
     This class was added in OpenImageIO 3.2.
 
 
-.. py:function:: color_interop_ids()
-
-    Returns a ``tuple`` of plain strings: the canonical Color Interop Forum
-    ids that OpenImageIO's built-in interop identities registry declares,
-    in deterministic registry order -- the same data as the C++
-    ``OIIO::ColorInteropIDs::all()`` (``<OpenImageIO/color_interop_ids.h>``).
-    This is registry data, not an enum: the id grammar is open (custom,
-    ICC, local, and user-namespaced ids cannot be enumerated), and plain
-    strings remain the parameter type everywhere a CIID is accepted.
-
-    Example:
-
-    .. code-block:: python
-
-        assert "srgb_rec709_display" in oiio.color_interop_ids()
-        interop_id = colorconfig.get_color_interop_id("srgb_rec709_display")
-
-    This function was added in OpenImageIO 3.2.
-
-
 .. _sec-pythonmiscapi:
 
 Miscellaneous Utilities

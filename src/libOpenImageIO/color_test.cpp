@@ -17,7 +17,6 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
-#include <OpenImageIO/color_interop_ids.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -487,46 +486,6 @@ test_registry_round_trip()
                              std::string("g24_rec709_scene"));
         }
     }
-}
-
-
-
-// The public ColorInteropIDs::all() lookup must be an exact-set match for
-// the canonical `interop_id:` set declared in the embedded interop
-// identities registry source (NOT the composite parsed config, whose
-// declared names diverge from the canonical id set under OCIO >= 2.5's
-// studio-config overlay), and its storage must be stable for the life of
-// the process.
-static void
-test_color_interop_ids_all_sync()
-{
-    using OIIO::pvt::embedded_interop_identities_ids;
-
-    std::vector<std::string> registry = embedded_interop_identities_ids();
-    OIIO_CHECK_GT(registry.size(), size_t(0));
-
-    std::unordered_set<std::string> registry_set(registry.begin(),
-                                                 registry.end());
-    cspan<string_view> all = ColorInteropIDs::all();
-    std::unordered_set<std::string> all_set;
-    for (string_view id : all)
-        all_set.emplace(id);
-
-    OIIO_CHECK_EQUAL(all_set.size(), registry_set.size());
-    for (const auto& id : registry_set) {
-        if (all_set.count(id) != 1)
-            Strutil::print("  registry id missing from all(): {}\n", id);
-        OIIO_CHECK_ASSERT(all_set.count(id) == 1);
-    }
-    for (const auto& id : all_set) {
-        if (registry_set.count(id) != 1)
-            Strutil::print("  all() id not in registry: {}\n", id);
-        OIIO_CHECK_ASSERT(registry_set.count(id) == 1);
-    }
-
-    // Process-lifetime storage: repeated calls return the same data.
-    OIIO_CHECK_ASSERT(ColorInteropIDs::all().data() == all.data());
-    OIIO_CHECK_EQUAL(ColorInteropIDs::all().size(), all.size());
 }
 
 
@@ -4856,7 +4815,6 @@ main(int argc, char* argv[])
     test_interop_id_grammar();
     test_registry_invariants();
     test_registry_round_trip();
-    test_color_interop_ids_all_sync();
     test_legacy_table_registry_sync();
     test_color_space_classification();
     test_color_space_fingerprint();
