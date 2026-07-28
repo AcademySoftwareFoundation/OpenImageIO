@@ -4594,10 +4594,12 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     names mirror the `ColorConfig::find_color_spaces` C++/Python parameter
     and option names):
 
-    - `gamut=` *terms*, `transfer_function=` *terms*, `encoding=` *terms*,
-      `image_state=` *terms* :
+    - `chromaticities=` *terms*, `transfer_function=` *terms*,
+      `encoding=` *terms*, `image_state=` *terms* :
 
-      The gamut, transfer-function, encoding, and image-state axes. A term
+      The chromaticities (gamut), transfer-function, encoding, and
+      image-state axes. `chrm=` is an accepted shorthand for
+      `chromaticities=`, echoing PNG's `cHRM` chunk. A term
       is matched by default; a leading `-` excludes proven matches; a leading
       `~` keeps only spaces proven to have the opposite property; a backslash
       escapes a leading operator. A returned space passes every axis that was
@@ -4628,7 +4630,7 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     unquoted `:` is :program:`oiiotool`'s own option delimiter (remember
     that the quotes themselves must survive your shell). Examples::
 
-        oiiotool --colorspacesearch:gamut=rec709:encoding=-scene-linear
+        oiiotool --colorspacesearch:chromaticities=rec709:encoding=-scene-linear
         oiiotool '--colorspacesearch:transfer_function="custom:acme:supercurve"'
 
 .. option:: --colorconfig <filename>

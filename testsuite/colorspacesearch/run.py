@@ -19,11 +19,11 @@ core = "src/search_core.ocio"           # small config: universe + encoding/stat
 # chromaticity + transfer axes (rec709 gamut, any non-linear transfer)
 command += oiiotool ("-echo \"consumer: rec709 gamut, nonlinear transfer =\" "
                      "--colorconfig " + acc + " "
-                     "--colorspacesearch:gamut=lin_rec709_scene:transfer_function=~lin_rec709_scene")
+                     "--colorspacesearch:chromaticities=lin_rec709_scene:transfer_function=~lin_rec709_scene")
 # chromaticity + transfer + image-state axes (the sRGB display space)
 command += oiiotool ("-echo \"consumer: srgb display-referred =\" "
                      "--colorconfig " + acc + " "
-                     "--colorspacesearch:gamut=srgb_rec709_display:transfer_function=srgb_rec709_display:image_state=display")
+                     "--colorspacesearch:chrm=srgb_rec709_display:transfer_function=srgb_rec709_display:image_state=display")
 # encoding axis, three-valued split (plain / inverse / exclude) + visibility
 command += oiiotool ("-echo \"consumer: default universe =\" "
                      "--colorconfig " + core + " --colorspacesearch")

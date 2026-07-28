@@ -2387,8 +2387,8 @@ set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 // --colorspacesearch
 // Query the color config for color spaces matching a partial characterization
 // and print their names, one per line. Each axis is given as a comma-separated
-// list of terms via the modifier options gamut=, transfer_function=,
-// encoding=, image_state=; the inclusion toggles include_inactive=,
+// list of terms via the modifier options chromaticities= (shorthand chrm=,
+// echoing PNG's cHRM chunk), transfer_function=, encoding=, image_state=; the inclusion toggles include_inactive=,
 // include_context_sensitive=, include_complex=, and authored_encoding_only=
 // (no interop-identity twin inference on the encoding axis) mirror the
 // ColorSpaceSearchOptions fields of the C++/Python API.
@@ -2403,7 +2403,7 @@ colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
     // custom:*, icc:*, or <config>:local:* interop ID) can be given by
     // quoting the modifier value -- extract_options() takes a single- or
     // double-quoted value whole, colons included, as in
-    //   --colorspacesearch:gamut="custom:acme:widegamut"
+    //   --colorspacesearch:chromaticities="custom:acme:widegamut"
     auto terms = [](string_view s) {
         std::vector<std::string> out;
         for (auto& t : Strutil::splitsv(s, ","))
@@ -2411,8 +2411,11 @@ colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
                 out.emplace_back(t);
         return out;
     };
-    std::vector<std::string> chromaticities = terms(
-        options.get_string("gamut"));
+    // "chromaticities" is canonical; "chrm" is an accepted shorthand.
+    std::string chrm_terms = options.get_string("chromaticities");
+    if (chrm_terms.empty())
+        chrm_terms = options.get_string("chrm");
+    std::vector<std::string> chromaticities = terms(chrm_terms);
     std::vector<std::string> transfer = terms(
         options.get_string("transfer_function"));
     std::vector<std::string> encoding = terms(options.get_string("encoding"));
@@ -7651,7 +7654,8 @@ Oiiotool::getargs(int argc, char* argv[])
       .OTACTION(set_colorconfig);
     ap.arg("--colorspacesearch")
       .help("Print the color spaces matching a partial characterization "
-            "(options: gamut=, transfer_function=, encoding=, image_state=, "
+            "(options: chromaticities= (or chrm=), transfer_function=, "
+            "encoding=, image_state=, "
             "include_inactive=, include_context_sensitive=, "
             "include_complex=, authored_encoding_only=)")
       .OTACTION(colorspacesearch);
