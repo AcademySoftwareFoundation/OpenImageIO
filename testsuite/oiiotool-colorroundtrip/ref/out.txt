@@ -11,6 +11,12 @@
     colorInteropID: "srgb_rec709_display"
 === JPG forced: config-declared force -- colorInteropID carried ===
     colorInteropID: "srgb_rec709_display"
+=== authored id at the writer boundary (default policy) ===
+leak.png: colorInteropID in file bytes = False
+leak.fits: colorInteropID in file bytes = False
+leak.tif: colorInteropID in file bytes = False
+leak.jpg: colorInteropID in file bytes = False
+leak.exr: colorInteropID in file bytes = True
 === g26 default: canonicalized to g26_xyzd65_display on write ===
     colorInteropID: "g26_xyzd65_display"
 === g26 default: pixels CONVERTED not relabeled (differ from baseline) ===

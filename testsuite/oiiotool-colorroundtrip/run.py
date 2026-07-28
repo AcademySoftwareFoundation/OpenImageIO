@@ -88,6 +88,32 @@ command += forced_section("tif", "config-declared force -- colorInteropID carrie
 command += forced_section("jpg", "config-declared force -- colorInteropID carried")
 
 
+# Spec 09 Feature 1, the OTHER direction: the DEFAULT contract. A slotless
+# format carries no transport identity, so an AUTHORED colorInteropID must be
+# stripped at the writer boundary rather than falling through to the format's
+# generic attribute emission. Regression for the leak where the policy verdict
+# was computed and then silently not applied because the writer was never
+# wired to pvt::apply_forced_interop_id (PNG tEXt, FITS header card, JPEG XL
+# XMP aux:ColorInteropID -- TIFF and JPEG were wired, the rest were not).
+#
+# Checked against the file's RAW BYTES, not a read-back: PNG's reader does not
+# map its tEXt colorInteropID key back to an attribute, so a round-trip
+# assertion passes while the file still carries the id. EXR is the positive
+# control -- it HAS a native slot, so it must keep the id.
+leaksrc = ("--create 8x8 3 --attrib oiio:ColorSpace srgb_rec709_display "
+           "--attrib colorInteropID my-studio:secret_space ")
+checker = "src/check_interop_leak.py"
+
+command += "echo '=== authored id at the writer boundary (default policy) ==='" + redirect + " ;\n"
+for fmt in ("png", "fits", "tif", "jpg", "exr"):
+    command += ("env OCIO=" + cfg + " " + ot + " " + leaksrc + "-o leak." + fmt
+                + " >/dev/null 2>&1 ;\n")
+# One checker invocation over all of them, so the reference block stays compact.
+command += (pythonbin + " " + checker + " my-studio:secret_space "
+            + " ".join("leak." + f for f in ("png", "fits", "tif", "jpg", "exr"))
+            + redirect + " ;\n")
+
+
 # Spec 09 Feature B (reconciler write-shape): write-canonical CONVERSION in
 # oiio:default. The config's oiio:default profile declares
 # oiio:colorpolicy:write:canonicalize, so a g26_p3d65_display source is CONVERTED

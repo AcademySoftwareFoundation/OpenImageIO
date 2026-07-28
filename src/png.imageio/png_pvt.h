@@ -906,6 +906,13 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
                    reinterpret_cast<png_bytep>(exifBlob.data()));
 #endif
 
+    // Feature 1 (spec 09): PNG has no native colorInteropID slot. Under the
+    // force_interop_id policy, stamp the derived id so the tEXt emission below
+    // carries it; otherwise strip it so the file stays untagged. Must run
+    // BEFORE the generic loop -- that loop would otherwise emit an authored id
+    // as a tEXt chunk verbatim, ignoring write:interop_id=never.
+    pvt::apply_forced_interop_id(spec, "png", filename);
+
     // Deal with all other params
     for (size_t p = 0; p < spec.extra_attribs.size(); ++p)
         put_parameter(sp, ip, spec.extra_attribs[p].name().string(),
