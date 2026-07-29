@@ -164,7 +164,7 @@ JpgInput::valid_file(Filesystem::IOProxy* ioproxy) const
     if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Read)
         return false;
 
-    uint8_t magic[2] { };
+    uint8_t magic[2] {};
     const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
     return numRead == sizeof(magic) && magic[0] == JPEG_MAGIC1
            && magic[1] == JPEG_MAGIC2;
