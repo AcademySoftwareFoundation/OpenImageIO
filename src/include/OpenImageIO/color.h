@@ -720,8 +720,16 @@ public:
     ///     namespace stripped;
     ///   - a "<config>:local:<space>" id resolves against this config's own
     ///     color space names/aliases when "<config>" matches this config's name;
-    ///   - an id equal to a color space's explicit `interop_id` attribute, or to
-    ///     it with exactly one side's namespace stripped (OCIO 2.5+);
+    ///   - an id equal to a color space's explicit `interop_id` attribute, or
+    ///     to it with exactly one side's namespace stripped (OCIO 2.5+). This
+    ///     tier is an OpenImageIO extension, not part of the recommendation's
+    ///     search: the recommendation states that the `interop_id` attribute
+    ///     is *not* used when searching a config, because the same id may
+    ///     legally appear on several color spaces and the config author
+    ///     expresses precedence through aliases. This tier runs only after
+    ///     the name/alias tiers above have all missed, so it never overrides
+    ///     that precedence -- it only makes an id reachable that no alias
+    ///     claimed;
     ///   - the utility token "data" (and, as an OpenImageIO extension not
     ///     defined by the CIF recommendation, "bypass") resolves to a ranked
     ///     data color space (while "unknown" only matches a literal color
