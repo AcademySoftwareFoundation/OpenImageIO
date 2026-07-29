@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 
@@ -106,6 +108,16 @@ struct ColorSpaceSearchOptions {
     bool authored_encoding_only = false;
     /// OCIO context-variable overrides, scoped to the one call.
     std::map<std::string, std::string> context;
+    /// Name of a config-declared color policy profile to interpret this
+    /// call under. Accepted and currently ignored; honored when the policy
+    /// layer lands. (3.2.0)
+    std::string profile;
+    /// Inline color-policy overrides for this call, in the
+    /// `oiio:colorpolicy:*` grammar. These are policies, NOT OCIO context
+    /// variables -- `context` above remains the context mechanism.
+    /// Accepted and currently ignored; honored when the policy layer
+    /// lands. (3.2.0)
+    std::string policies;
 };
 
 
@@ -144,6 +156,16 @@ enum class ColorTransferFunctionKind : uint8_t {
 struct ColorSpaceInfoOptions {
     /// OCIO context-variable overrides, scoped to the one call.
     std::map<std::string, std::string> context;
+    /// Name of a config-declared color policy profile to interpret this
+    /// call under. Accepted and currently ignored; honored when the policy
+    /// layer lands. (3.2.0)
+    std::string profile;
+    /// Inline color-policy overrides for this call, in the
+    /// `oiio:colorpolicy:*` grammar. These are policies, NOT OCIO context
+    /// variables -- `context` above remains the context mechanism.
+    /// Accepted and currently ignored; honored when the policy layer
+    /// lands. (3.2.0)
+    std::string policies;
 };
 
 
@@ -193,12 +215,70 @@ struct ColorConfigArchiveOptions {
 };
 
 
-/// Options controlling ColorConfig::getDebugInfo(). There are no options
+/// Options controlling ColorConfig::get_debug_info(). There are no options
 /// yet; the struct exists so future report selectors can be added without
-/// changing the method signature.
+/// changing the method signature. It has no other caller, so it belongs
+/// with get_debug_info() and the two types below -- if that method ever
+/// moves, this moves with it rather than being stranded here empty.
 ///
 /// @version 3.2
 struct ColorConfigDebugInfoOptions {};
+
+
+/// State of a config's scene-interchange discovery, as reported by
+/// ColorConfigDebugInfo::interchange_state. `Pending` is a distinct,
+/// load-bearing value: querying the debug info never triggers the lazy
+/// discovery, so a discovery that has not run yet reports as pending
+/// rather than as a negative result.
+///
+/// @version 3.2
+enum class ColorInterchangeState : uint8_t {
+    Pending,        ///< discovery has not run (querying does not trigger it)
+    Interoperable,  ///< a scene interchange space was identified
+    NotFound,       ///< discovery ran and identified none
+};
+
+
+/// A config's identity and cache state, as returned by
+/// ColorConfig::get_debug_info(), for diagnostics and bug reports. Every
+/// field is formatted from existing internal state: constructing this
+/// never triggers lazy work.
+///
+/// @version 3.2
+struct OIIO_API ColorConfigDebugInfo {
+    /// OpenImageIO version string.
+    std::string oiio_version;
+    /// OpenColorIO version string (empty if OCIO is unavailable).
+    std::string ocio_version;
+    /// This config's name (see ColorConfig::configname()).
+    std::string config_name;
+    /// The config's structural cache identity -- context excluded.
+    std::string structural_cache_id;
+    /// OCIO's cache id for the config, with the context folded in.
+    std::string cache_id;
+    /// Data version of the built-in interop identities registry.
+    std::string registry_data_version;
+
+    /// Whether a scene interchange space has been identified for this
+    /// config, or whether that discovery has simply not run yet.
+    ColorInterchangeState interchange_state = ColorInterchangeState::Pending;
+    /// The identified scene interchange space name; empty unless
+    /// `interchange_state` is `Interoperable`.
+    std::string interchange_name;
+
+    /// Per-cache-layer entry counts, keyed by layer name (e.g.
+    /// "color processors", "fingerprints", "characterizations"). A map,
+    /// not one fixed field per layer, deliberately: cache layers come and
+    /// go, and the CONTENTS of a map are not ABI, whereas a field per
+    /// layer would make every future cache change an ABI break. Treat the
+    /// key set as informational, not as a contract.
+    std::map<std::string, std::size_t> cache_entries;
+
+    /// Render all of the above as a human-readable multi-line report, so a
+    /// bug report has one thing to paste. The exact text is informational
+    /// and may change between versions -- display it, don't parse it.
+    std::string to_string() const;
+};
 
 
 /// Options controlling ColorConfig::clear_caches(). There are no options
@@ -649,6 +729,17 @@ public:
     /// If none of these recognize the name, the name is returned unchanged.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
+    /// Like resolve(name), but a name that no tier recognizes returns
+    /// `failover` instead of the name unchanged. Passing an empty failover
+    /// therefore distinguishes "resolved" from "not recognized", which the
+    /// 1-arg overload's historical passthrough cannot. The returned view is
+    /// either a view of long-lived config/registry storage (a hit) or the
+    /// caller's own `failover` (a miss).
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD string_view resolve(string_view name,
+                                       string_view failover) const;
+
     /// Are the two color space names/aliases/roles equivalent? Each name is
     /// resolve()d first, so color interop IDs and aliases participate on either
     /// side.
@@ -826,13 +917,26 @@ public:
     derive_color_space_infos(cspan<std::string> color_spaces,
                              const ColorSpaceInfoOptions& options = {}) const;
 
-    // See <OpenImageIO/color_interop_ids.h> for `ColorInteropIDs::all()`,
-    // which returns every canonical Color Interop Forum id declared by
-    // OIIO's built-in interop identities registry -- each usable anywhere a
-    // `string_view` CIID is accepted above (e.g. as the argument to
-    // resolve() or equivalent(), or compared against
-    // get_color_interop_id()'s return value). The Python binding exposes
-    // the same data as `OpenImageIO.color_interop_ids()`, a tuple of str.
+    /// The canonical Color Interop Forum IDs declared by OpenImageIO's
+    /// built-in interop identities registry (see the CIF recommendation
+    /// "An ID for Color Interop",
+    /// https://github.com/AcademySoftwareFoundation/ColorInterop/wiki), in
+    /// deterministic (sorted) registry order. Each is usable anywhere a
+    /// `string_view` CIID is accepted -- as the argument to resolve() or
+    /// equivalent(), or compared against get_color_interop_id()'s return
+    /// value.
+    ///
+    /// Static because the builtin IDs come from the embedded registry, not
+    /// from any config: there is no instance to consult. The returned
+    /// storage has process lifetime, so the span stays valid and repeated
+    /// calls return the same data.
+    ///
+    /// This is registry *data*, not an exhaustive ID grammar: raw strings
+    /// remain first-class for the ids no finite set can enumerate
+    /// (local/custom/icc/user-namespaced).
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD static cspan<string_view> get_builtin_interop_ids();
 
     /// Convenience alias so callers may spell the options type
     /// `ColorConfig::SerializeOptions`.
@@ -913,20 +1017,20 @@ public:
     /// `ColorConfig::DebugInfoOptions`.
     using DebugInfoOptions = ColorConfigDebugInfoOptions;
 
-    /// Return a human-readable multi-line report of this config's identity
-    /// and cache state, for diagnostics and bug reports: the OpenImageIO
-    /// and OpenColorIO versions, the config's name and cache identities,
-    /// the interoperability (interchange discovery) state, the built-in
-    /// interop registry data version, and cache entry counts. This is
-    /// formatting of existing internal state only: it never triggers lazy
-    /// work (a discovery that has not yet run reports as pending), and the
-    /// exact text is informational and may change between versions --
-    /// display it, don't parse it. `options` is reserved for future report
-    /// selectors.
+    /// Return this config's identity and cache state, for diagnostics and
+    /// bug reports: the OpenImageIO and OpenColorIO versions, the config's
+    /// name and cache identities, the interoperability (interchange
+    /// discovery) state, the built-in interop registry data version, and
+    /// per-layer cache entry counts. This reads existing internal state
+    /// only: it never triggers lazy work, so a discovery that has not yet
+    /// run reports as `ColorInterchangeState::Pending`.
+    /// `ColorConfigDebugInfo::to_string()` renders the same
+    /// human-readable report for pasting into a bug report. `options` is
+    /// reserved for future report selectors.
     ///
     /// @version 3.2
-    OIIO_NODISCARD std::string
-    getDebugInfo(const DebugInfoOptions& options = {}) const;
+    OIIO_NODISCARD ColorConfigDebugInfo
+    get_debug_info(const DebugInfoOptions& options = {}) const;
 
     /// Convenience alias so callers may spell the options type
     /// `ColorConfig::ClearCachesOptions`.
@@ -937,7 +1041,7 @@ public:
     /// identity in the process-global fingerprint and characterization
     /// memo caches. Clearing is semantics-free -- every cache repopulates
     /// on demand -- so the only observable effects are memory and
-    /// recompute time (getDebugInfo() reports the entry counts). Shared
+    /// recompute time (get_debug_info() reports the entry counts). Shared
     /// process data not scoped to this config (e.g. the built-in interop
     /// registry) is unaffected. `options` is reserved for future
     /// selectors.

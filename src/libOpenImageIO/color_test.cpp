@@ -17,7 +17,6 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
-#include <OpenImageIO/color_interop_ids.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagebufalgo.h>
@@ -491,14 +490,14 @@ test_registry_round_trip()
 
 
 
-// The public ColorInteropIDs::all() lookup must be an exact-set match for
-// the canonical `interop_id:` set declared in the embedded interop
-// identities registry source (NOT the composite parsed config, whose
-// declared names diverge from the canonical id set under OCIO >= 2.5's
-// studio-config overlay), and its storage must be stable for the life of
-// the process.
+// The public ColorConfig::get_builtin_interop_ids() lookup must be an
+// exact-set match for the canonical `interop_id:` set declared in the
+// embedded interop identities registry source (NOT the composite parsed
+// config, whose declared names diverge from the canonical id set under
+// OCIO >= 2.5's studio-config overlay), and its storage must be stable for
+// the life of the process.
 static void
-test_color_interop_ids_all_sync()
+test_builtin_interop_ids_sync()
 {
     using OIIO::pvt::embedded_interop_identities_ids;
 
@@ -507,7 +506,7 @@ test_color_interop_ids_all_sync()
 
     std::unordered_set<std::string> registry_set(registry.begin(),
                                                  registry.end());
-    cspan<string_view> all = ColorInteropIDs::all();
+    cspan<string_view> all = ColorConfig::get_builtin_interop_ids();
     std::unordered_set<std::string> all_set;
     for (string_view id : all)
         all_set.emplace(id);
@@ -515,18 +514,20 @@ test_color_interop_ids_all_sync()
     OIIO_CHECK_EQUAL(all_set.size(), registry_set.size());
     for (const auto& id : registry_set) {
         if (all_set.count(id) != 1)
-            Strutil::print("  registry id missing from all(): {}\n", id);
+            Strutil::print("  registry id missing from builtin ids: {}\n", id);
         OIIO_CHECK_ASSERT(all_set.count(id) == 1);
     }
     for (const auto& id : all_set) {
         if (registry_set.count(id) != 1)
-            Strutil::print("  all() id not in registry: {}\n", id);
+            Strutil::print("  builtin id not in registry: {}\n", id);
         OIIO_CHECK_ASSERT(registry_set.count(id) == 1);
     }
 
     // Process-lifetime storage: repeated calls return the same data.
-    OIIO_CHECK_ASSERT(ColorInteropIDs::all().data() == all.data());
-    OIIO_CHECK_EQUAL(ColorInteropIDs::all().size(), all.size());
+    OIIO_CHECK_ASSERT(ColorConfig::get_builtin_interop_ids().data()
+                      == all.data());
+    OIIO_CHECK_EQUAL(ColorConfig::get_builtin_interop_ids().size(),
+                     all.size());
 }
 
 
@@ -2135,6 +2136,17 @@ colorspaces:
         // still passed through unchanged (main's historical behavior).
         OIIO_CHECK_EQUAL(cc.resolve("totally_unrecognized_id"),
                          "totally_unrecognized_id");
+
+        // The failover overload: a miss yields the caller's failover (an
+        // empty one making "not recognized" distinguishable from a name
+        // that resolves to itself), while a hit is unaffected by it.
+        OIIO_CHECK_EQUAL(cc.resolve("totally_unrecognized_id", ""), "");
+        OIIO_CHECK_EQUAL(cc.resolve("totally_unrecognized_id", "sentinel"),
+                         "sentinel");
+        OIIO_CHECK_EQUAL(cc.resolve("resolvetest:local:my_local_alias", ""),
+                         "local_target");
+        // "local_target" resolves to itself -- a hit, not a passthrough.
+        OIIO_CHECK_EQUAL(cc.resolve("local_target", ""), "local_target");
     }
     Filesystem::remove(base_path);
 
@@ -4731,24 +4743,39 @@ test_config_debug_info()
     if (!ColorConfig::supportsOpenColorIO())
         return;
 
-    ColorConfig cc     = ColorConfig::from_text(utility_config_yaml);
-    std::string report = cc.getDebugInfo();
+    ColorConfig cc            = ColorConfig::from_text(utility_config_yaml);
+    ColorConfigDebugInfo info = cc.get_debug_info();
     OIIO_CHECK_FALSE(cc.has_error());
-    // Identity: versions, config name, registry data version. (The exact
-    // formatting is documented as unstable; assert only stable tokens.)
+    // Identity: versions, config name, registry data version.
+    OIIO_CHECK_ASSERT(info.oiio_version.size());
+    OIIO_CHECK_ASSERT(info.ocio_version.size());
+    OIIO_CHECK_EQUAL(info.config_name, cc.configname());
+    OIIO_CHECK_ASSERT(Strutil::contains(info.registry_data_version,
+                                        "interop-identities-config"));
+    OIIO_CHECK_ASSERT(info.cache_entries.size());
+    // Reporting is lazy: a fresh config's interchange discovery is pending,
+    // and get_debug_info itself must not have triggered it.
+    OIIO_CHECK_ASSERT(info.interchange_state == ColorInterchangeState::Pending);
+    OIIO_CHECK_ASSERT(info.interchange_name.empty());
+    OIIO_CHECK_ASSERT(cc.get_debug_info().interchange_state
+                      == ColorInterchangeState::Pending);
+    // to_string() renders the same paste-able report. (The exact formatting
+    // is documented as unstable; assert only stable tokens.)
+    std::string report = info.to_string();
     OIIO_CHECK_ASSERT(Strutil::contains(report, "OpenImageIO"));
     OIIO_CHECK_ASSERT(Strutil::contains(report, "OpenColorIO"));
     OIIO_CHECK_ASSERT(Strutil::contains(report, cc.configname()));
     OIIO_CHECK_ASSERT(Strutil::contains(report, "interop-identities-config"));
-    // Reporting is lazy: a fresh config's interchange discovery is pending,
-    // and getDebugInfo itself must not have triggered it.
     OIIO_CHECK_ASSERT(Strutil::contains(report, "pending"));
-    OIIO_CHECK_ASSERT(Strutil::contains(cc.getDebugInfo(), "pending"));
     // Once a query runs the discovery, the result is reported.
     ColorConfig::SerializeOptions iopts;
     iopts.interopified = true;
     (void)cc.serialize(iopts);
-    OIIO_CHECK_ASSERT(Strutil::contains(cc.getDebugInfo(), "ACES2065-1"));
+    info = cc.get_debug_info();
+    OIIO_CHECK_ASSERT(info.interchange_state
+                      == ColorInterchangeState::Interoperable);
+    OIIO_CHECK_ASSERT(Strutil::contains(info.interchange_name, "ACES2065-1"));
+    OIIO_CHECK_ASSERT(Strutil::contains(info.to_string(), "ACES2065-1"));
 }
 
 
@@ -4830,7 +4857,7 @@ main(int argc, char* argv[])
     test_interop_id_grammar();
     test_registry_invariants();
     test_registry_round_trip();
-    test_color_interop_ids_all_sync();
+    test_builtin_interop_ids_sync();
     test_legacy_table_registry_sync();
     test_color_space_classification();
     test_color_space_fingerprint();

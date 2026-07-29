@@ -475,7 +475,7 @@ public:
                                                   : found->second;
     }
 
-    // Diagnostic counters for ColorConfig::getDebugInfo().
+    // Diagnostic counters for ColorConfig::get_debug_info().
     size_t processorCacheSize() const
     {
         spin_rw_read_lock lock(m_mutex);
@@ -508,7 +508,11 @@ public:
         return colorspaces[index].name.c_str();
     }
 
-    string_view resolve(string_view name) const;
+    // Full resolution cascade. `failover` is what a total miss returns: the
+    // public 1-arg ColorConfig::resolve() passes `name` (historical
+    // passthrough), the 2-arg overload passes the caller's failover.
+    string_view resolve(string_view name, string_view failover) const;
+    string_view resolve(string_view name) const { return resolve(name, name); }
 
     // The syntactic (fingerprint-free) subset of resolve(): direct OCIO
     // name/role/alias, informal aliases, stripped-namespace retry,

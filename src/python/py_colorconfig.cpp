@@ -4,7 +4,6 @@
 
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
-#include <OpenImageIO/color_interop_ids.h>
 #include <cctype>
 #include <map>
 #include <optional>
@@ -63,6 +62,28 @@ declare_colorconfig(py::module& m)
         .value("Range", ColorSpaceInfoField::Range)
         .value("Chromaticities", ColorSpaceInfoField::Chromaticities)
         .value("TransferFunction", ColorSpaceInfoField::TransferFunction);
+
+    py::enum_<ColorInterchangeState>(m, "ColorInterchangeState")
+        .value("Pending", ColorInterchangeState::Pending)
+        .value("Interoperable", ColorInterchangeState::Interoperable)
+        .value("NotFound", ColorInterchangeState::NotFound);
+
+    py::class_<ColorConfigDebugInfo>(m, "ColorConfigDebugInfo")
+        .def_readonly("oiio_version", &ColorConfigDebugInfo::oiio_version)
+        .def_readonly("ocio_version", &ColorConfigDebugInfo::ocio_version)
+        .def_readonly("config_name", &ColorConfigDebugInfo::config_name)
+        .def_readonly("structural_cache_id",
+                      &ColorConfigDebugInfo::structural_cache_id)
+        .def_readonly("cache_id", &ColorConfigDebugInfo::cache_id)
+        .def_readonly("registry_data_version",
+                      &ColorConfigDebugInfo::registry_data_version)
+        .def_readonly("interchange_state",
+                      &ColorConfigDebugInfo::interchange_state)
+        .def_readonly("interchange_name",
+                      &ColorConfigDebugInfo::interchange_name)
+        .def_readonly("cache_entries", &ColorConfigDebugInfo::cache_entries)
+        .def("to_string", &ColorConfigDebugInfo::to_string)
+        .def("__str__", &ColorConfigDebugInfo::to_string);
 
     py::enum_<ColorTransferFunctionKind>(m, "ColorTransferFunctionKind")
         .value("Undetermined", ColorTransferFunctionKind::Undetermined)
@@ -299,10 +320,14 @@ declare_colorconfig(py::module& m)
              })
         .def(
             "resolve",
-            [](const ColorConfig& self, const std::string& name) {
-                return std::string(self.resolve(name));
+            [](const ColorConfig& self, const std::string& name,
+               const std::optional<std::string>& failover) {
+                // failover=None keeps the historical passthrough (the 1-arg
+                // C++ overload); any string, including "", is a failover.
+                return failover ? std::string(self.resolve(name, *failover))
+                                : std::string(self.resolve(name));
             },
-            "name"_a)
+            "name"_a, "failover"_a = py::none())
         .def(
             "equivalent",
             [](const ColorConfig& self, const std::string& color_space,
@@ -480,11 +505,11 @@ declare_colorconfig(py::module& m)
             },
             "filename"_a, py::kw_only(), "working_dir"_a = "",
             "interopified"_a = false)
-        .def("getDebugInfo",
+        .def("get_debug_info",
              [](const ColorConfig& self) {
-                 // Pure C++ formatting of existing state: release the GIL.
+                 // Pure C++ reading of existing state: release the GIL.
                  py::gil_scoped_release gil;
-                 return self.getDebugInfo();
+                 return self.get_debug_info();
              })
         .def("clear_caches",
              [](const ColorConfig& self) {
@@ -501,25 +526,25 @@ declare_colorconfig(py::module& m)
                 return ColorConfig::from_text(config_text, working_dir);
             },
             "config_text"_a, "working_dir"_a = "")
-        .def_static("default_colorconfig", []() -> const ColorConfig& {
-            return ColorConfig::default_colorconfig();
+        .def_static("default_colorconfig",
+                    []() -> const ColorConfig& {
+                        return ColorConfig::default_colorconfig();
+                    })
+        // get_builtin_interop_ids(): the canonical Color Interop Forum ids
+        // declared by OIIO's built-in interop identities registry, as a
+        // tuple of plain strings -- registry data, not an enum, because the
+        // id grammar is open (custom/icc/local/user-namespaced ids cannot
+        // be enumerated).
+        .def_static("get_builtin_interop_ids", []() {
+            cspan<string_view> ids = ColorConfig::get_builtin_interop_ids();
+            py::tuple result(ids.size());
+            for (size_t i = 0; i < ids.size(); ++i)
+                result[i] = py::str(ids[i].data(), ids[i].size());
+            return result;
         });
 
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
     m.attr("OpenColorIO_version_hex") = ColorConfig::OpenColorIO_version_hex();
-
-    // color_interop_ids(): the canonical Color Interop Forum ids declared
-    // by OIIO's built-in interop identities registry (the same data as
-    // C++ OIIO::ColorInteropIDs::all()), as a tuple of plain strings --
-    // registry data, not an enum, because the id grammar is open
-    // (custom/icc/local/user-namespaced ids cannot be enumerated).
-    m.def("color_interop_ids", []() {
-        cspan<string_view> ids = ColorInteropIDs::all();
-        py::tuple result(ids.size());
-        for (size_t i = 0; i < ids.size(); ++i)
-            result[i] = py::str(ids[i].data(), ids[i].size());
-        return result;
-    });
 }
 
 }  // namespace PyOpenImageIO

@@ -1462,49 +1462,76 @@ ColorConfig::evolve(const EvolveOptions& options) const
 
 
 
-std::string
-ColorConfig::getDebugInfo(const DebugInfoOptions& /*options*/) const
+ColorConfigDebugInfo
+ColorConfig::get_debug_info(const DebugInfoOptions& /*options*/) const
 {
-    using Strutil::fmt::format;
     const Impl* impl = getImpl();
-    std::string out;
-    out += format("OpenImageIO {} / OpenColorIO {}\n", OIIO_VERSION_STRING,
-                  OCIO::GetVersion());
-    out += format("config: \"{}\"\n", configname());
-    std::string structural, withcontext;
+    ColorConfigDebugInfo info;
+    info.oiio_version          = OIIO_VERSION_STRING;
+    info.ocio_version          = OCIO::GetVersion();
+    info.config_name           = configname();
+    info.registry_data_version = interop_registry_data_version();
     if (impl->config_ && !disable_ocio) {
-        structural = get_config_cache_id(impl->config_);
+        info.structural_cache_id = get_config_cache_id(impl->config_);
         try {
             if (const char* id = impl->config_->getCacheID())
-                withcontext = id;
+                info.cache_id = id;
         } catch (...) {
         }
     }
-    out += format("  structural cache id: {}\n",
-                  structural.size() ? structural : "(none)");
-    out += format("  cache id (context folded in): {}\n",
-                  withcontext.size() ? withcontext : "(none)");
     // Interchange discovery: report the existing state, never trigger the
     // lazy bootstrap.
     if (!impl->interopComputed())
+        info.interchange_state = ColorInterchangeState::Pending;
+    else if (impl->interopIsInteroperable()) {
+        info.interchange_state = ColorInterchangeState::Interoperable;
+        info.interchange_name  = impl->interopInterchangeName();
+    } else
+        info.interchange_state = ColorInterchangeState::NotFound;
+    info.cache_entries["color processors"] = impl->processorCacheSize();
+    info.cache_entries["color processors requested"]
+        = std::size_t(std::max(0, impl->processorsRequested()));
+    info.cache_entries["color processors created"]
+        = std::size_t(std::max(0, impl->processorsCreated()));
+    info.cache_entries["fingerprints"]
+        = OIIO::pvt::color_space_fingerprint_cache_size();
+    info.cache_entries["characterizations"]
+        = OIIO::pvt::characterization_cache_size();
+    return info;
+}
+
+
+
+std::string
+ColorConfigDebugInfo::to_string() const
+{
+    using Strutil::fmt::format;
+    std::string out;
+    out += format("OpenImageIO {} / OpenColorIO {}\n", oiio_version,
+                  ocio_version);
+    out += format("config: \"{}\"\n", config_name);
+    out += format("  structural cache id: {}\n", structural_cache_id.size()
+                                                     ? structural_cache_id
+                                                     : "(none)");
+    out += format("  cache id (context folded in): {}\n",
+                  cache_id.size() ? cache_id : "(none)");
+    switch (interchange_state) {
+    case ColorInterchangeState::Pending:
         out += "interchange discovery: pending (not yet queried)\n";
-    else if (impl->interopIsInteroperable())
+        break;
+    case ColorInterchangeState::Interoperable:
         out += format(
             "interchange discovery: interoperable (scene interchange \"{}\")\n",
-            impl->interopInterchangeName());
-    else
+            interchange_name);
+        break;
+    case ColorInterchangeState::NotFound:
         out += "interchange discovery: no scene interchange identified\n";
-    out += format("interop registry data: {}\n",
-                  interop_registry_data_version());
+        break;
+    }
+    out += format("interop registry data: {}\n", registry_data_version);
     out += "caches:\n";
-    out += format(
-        "  color processors (this config): {} entries ({} requested, {} created)\n",
-        impl->processorCacheSize(), impl->processorsRequested(),
-        impl->processorsCreated());
-    out += format("  fingerprints (process-global): {} entries\n",
-                  OIIO::pvt::color_space_fingerprint_cache_size());
-    out += format("  characterizations (process-global): {} entries\n",
-                  OIIO::pvt::characterization_cache_size());
+    for (const auto& kv : cache_entries)
+        out += format("  {}: {} entries\n", kv.first, kv.second);
     return out;
 }
 
@@ -1533,6 +1560,14 @@ string_view
 ColorConfig::resolve(string_view name) const
 {
     return getImpl()->resolve(name);
+}
+
+
+
+string_view
+ColorConfig::resolve(string_view name, string_view failover) const
+{
+    return getImpl()->resolve(name, failover);
 }
 
 
@@ -1865,7 +1900,7 @@ ColorConfig::Impl::resolve_syntactic(string_view name) const
 
 
 string_view
-ColorConfig::Impl::resolve(string_view name) const
+ColorConfig::Impl::resolve(string_view name, string_view failover) const
 {
     // Every syntactic (fingerprint-free) tier first.
     if (string_view r = resolve_syntactic(name); !r.empty())
@@ -1889,9 +1924,10 @@ ColorConfig::Impl::resolve(string_view name) const
             return r;
     }
 
-    // Total miss: preserve OIIO's historical passthrough -- return the input
-    // name unchanged so callers that assumed identity resolution keep working.
-    return name;
+    // Total miss: the caller decides. The 1-arg public resolve() passes the
+    // input name, preserving OIIO's historical passthrough so callers that
+    // assumed identity resolution keep working.
+    return failover;
 }
 
 

@@ -79,9 +79,9 @@ interop_identities_config_names();
 /// (with OCIO >= 2.5 that composite is the studio config plus OIIO's
 /// additions, whose declared names are not the canonical id set). This is
 /// the canonical CIID set, gathered by an `interop_id:` token scan of the
-/// source file; it backs the public OIIO::ColorInteropIDs::all() lookup,
-/// and a unit test asserts all() stays an exact-set match for it. For
-/// internal/test use only.
+/// source file; it backs the public ColorConfig::get_builtin_interop_ids()
+/// lookup, and a unit test asserts that accessor stays an exact-set match
+/// for it. For internal/test use only.
 OIIO_API std::vector<std::string>
 embedded_interop_identities_ids();
 

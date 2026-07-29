@@ -14,7 +14,6 @@
 #include <utility>
 #include <vector>
 
-#include <OpenImageIO/color_interop_ids.h>
 #include <OpenImageIO/strutil.h>
 
 #include "color_ocio_pvt.h"
@@ -265,6 +264,20 @@ registry_id_for_fingerprint(const RegistryFingerprintIndex& index,
     return {};
 }
 
+
+
+cspan<string_view>
+ColorConfig::get_builtin_interop_ids()
+{
+    // Built once from the embedded registry scan; process lifetime. The
+    // scan shim lives in the library's "current" namespace (color_pvt.h),
+    // not in this ABI-versioned one, hence the explicit qualification.
+    static const std::vector<std::string> ids
+        = OIIO::pvt::embedded_interop_identities_ids();
+    static const std::vector<string_view> views(ids.begin(), ids.end());
+    return cspan<string_view>(views.data(), views.size());
+}
+
 OIIO_NAMESPACE_END
 
 
@@ -322,7 +335,7 @@ embedded_interop_identities_ids()
     // canonical CIID set, independent of the linked OCIO version (the
     // parsed composite config's declared names diverge from the canonical
     // id set with OCIO >= 2.5's studio-config overlay). This scan backs
-    // the public ColorInteropIDs::all() lookup below.
+    // the public ColorConfig::get_builtin_interop_ids() lookup below.
     std::set<std::string> ids;
     string_view yaml(kInteropIdentitiesConfig);  // array is NUL-terminated
     for (string_view line : Strutil::splitsv(yaml, "\n")) {
@@ -334,20 +347,5 @@ embedded_interop_identities_ids()
 }
 
 }  // namespace pvt
-
-
-namespace ColorInteropIDs {
-
-cspan<string_view>
-all()
-{
-    // Built once from the embedded registry scan; process lifetime.
-    static const std::vector<std::string> ids
-        = pvt::embedded_interop_identities_ids();
-    static const std::vector<string_view> views(ids.begin(), ids.end());
-    return cspan<string_view>(views.data(), views.size());
-}
-
-}  // namespace ColorInteropIDs
 
 OIIO_NAMESPACE_END

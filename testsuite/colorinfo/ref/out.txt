@@ -96,3 +96,21 @@ derive: invalid batch =
   result = []
   error = derive_color_space_infos[1]: unknown color space "nope"
 Done.
+get_builtin_interop_ids: shape
+  is a tuple           = True
+  non-empty            = True
+  all str              = True
+  all canonical form   = True
+  unique               = True
+  sorted               = True
+  stable across calls  = True
+get_builtin_interop_ids: known members
+  data                 = True
+  lin_ap0_scene        = True
+  srgb_rec709_scene    = True
+  srgb_rec709_display  = True
+get_builtin_interop_ids: agree with get_color_interop_id
+  reachable via instance = True
+  my_srgb    -> srgb_rec709_scene    member = True
+  rawdata    -> data                 member = True
+Done.

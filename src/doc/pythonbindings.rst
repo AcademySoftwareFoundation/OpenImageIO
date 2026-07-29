@@ -4006,6 +4006,30 @@ is provided for minimal color support.
 ..
   TODO: The documentation for this class is incomplete.
 
+.. py:method:: resolve (name, failover=None)
+
+    Turn `name` -- a color space name, alias, role, OIIO-understood universal
+    name (like `"sRGB"`), or a recognized Color Interop ID form -- into a
+    canonical color space name of this config.
+
+    If no tier recognizes the name, the result depends on `failover`: the
+    default `None` returns `name` unchanged (OpenImageIO's longstanding
+    behavior), while any string -- including `""` -- is returned instead, so
+    that an unrecognized name can be told apart from one that resolves to
+    itself.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        canonical = colorconfig.resolve("acescg")
+        if not colorconfig.resolve("no_such_space", ""):
+            print("not a color space this config knows")
+
+    The `failover` argument was added in OpenImageIO 3.2.
+
+
 .. py:method:: get_cicp (colorspace)
 
     Find CICP code corresponding to the colorspace.
@@ -4265,18 +4289,117 @@ is provided for minimal color support.
     This function was added in OpenImageIO 3.2.
 
 
-.. py:method:: getDebugInfo ()
+.. py:staticmethod:: get_builtin_interop_ids ()
 
-    Return a human-readable multi-line report of the config's identity and
-    cache state, for diagnostics and bug reports: the OpenImageIO and
-    OpenColorIO versions, the config's name and cache identities, the
-    interoperability (interchange discovery) state, the built-in interop
-    registry data version, and cache entry counts. It reports existing
-    state only and never triggers lazy work (a discovery that has not yet
-    run reports as pending). The exact text is informational and may
-    change between versions -- display it, don't parse it.
+    Returns a ``tuple`` of plain strings: the canonical Color Interop Forum
+    ids that OpenImageIO's built-in interop identities registry declares, in
+    deterministic (sorted) registry order. Each is usable anywhere a CIID is
+    accepted -- as the argument to :py:meth:`resolve`, or compared against
+    what :py:meth:`get_color_interop_id` returns.
+
+    Static, because the builtin ids come from the embedded registry rather
+    than from any config, so no instance is consulted.
+
+    This is registry data, not an enum: the id grammar is open (custom, ICC,
+    local, and user-namespaced ids cannot be enumerated), and plain strings
+    remain the parameter type everywhere a CIID is accepted.
+
+    Example:
+
+    .. code-block:: python
+
+        ids = oiio.ColorConfig.get_builtin_interop_ids()
+        assert "srgb_rec709_display" in ids
 
     This function was added in OpenImageIO 3.2.
+
+
+.. py:method:: get_debug_info ()
+
+    Return a :py:class:`ColorConfigDebugInfo` describing the config's
+    identity and cache state, for diagnostics and bug reports. It reports
+    existing state only and never triggers lazy work, so a discovery that
+    has not yet run reports as
+    :py:data:`ColorInterchangeState.Pending`.
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        info = colorconfig.get_debug_info()
+        print(info.ocio_version, info.config_name)
+        print(info)   # the same paste-able report as info.to_string()
+
+    This function was added in OpenImageIO 3.2.
+
+
+.. py:class:: ColorConfigDebugInfo
+
+    The identity and cache state of a :py:class:`ColorConfig`, as returned
+    by :py:meth:`ColorConfig.get_debug_info`. All properties are
+    read-only.
+
+    .. py:attribute:: oiio_version
+
+        The OpenImageIO version string.
+
+    .. py:attribute:: ocio_version
+
+        The OpenColorIO version string (empty if OCIO is unavailable).
+
+    .. py:attribute:: config_name
+
+        The config's name (see :py:meth:`ColorConfig.configname`).
+
+    .. py:attribute:: structural_cache_id
+
+        The config's structural cache identity, context excluded.
+
+    .. py:attribute:: cache_id
+
+        OCIO's cache id for the config, with the context folded in.
+
+    .. py:attribute:: registry_data_version
+
+        Data version of the built-in interop identities registry.
+
+    .. py:attribute:: interchange_state
+
+        A :py:class:`ColorInterchangeState`: whether a scene interchange
+        space has been identified for this config, or whether that
+        discovery has simply not run yet.
+
+    .. py:attribute:: interchange_name
+
+        The identified scene interchange space name; empty unless
+        `interchange_state` is
+        :py:data:`ColorInterchangeState.Interoperable`.
+
+    .. py:attribute:: cache_entries
+
+        A dict of per-cache-layer entry counts, keyed by layer name. The
+        key set is informational, not a contract: cache layers come and
+        go between versions.
+
+    .. py:method:: to_string ()
+
+        Render a human-readable multi-line report of all of the above,
+        so a bug report has one thing to paste. Also what `str(info)`
+        gives. The exact text is informational and may change between
+        versions -- display it, don't parse it.
+
+    This class was added in OpenImageIO 3.2.
+
+
+.. py:class:: ColorInterchangeState
+
+    The state of a config's scene-interchange discovery. Values:
+    `Pending` (the discovery has not run; querying the debug info does
+    not trigger it), `Interoperable` (a scene interchange space was
+    identified), and `NotFound` (the discovery ran and identified none).
+
+    This class was added in OpenImageIO 3.2.
 
 
 .. py:method:: clear_caches ()
@@ -4286,7 +4409,7 @@ is provided for minimal color support.
     identity in the process-global fingerprint and characterization memo
     caches. Clearing is semantics-free -- every cache repopulates on
     demand -- so the only observable effects are memory and recompute time
-    (:py:meth:`getDebugInfo` reports the entry counts). Shared process
+    (:py:meth:`get_debug_info` reports the entry counts). Shared process
     data not scoped to this config (e.g. the built-in interop registry) is
     unaffected.
 
@@ -4330,26 +4453,6 @@ is provided for minimal color support.
     function: ``Undetermined``, ``Linear``, ``Named``, ``Sampled``.
 
     This class was added in OpenImageIO 3.2.
-
-
-.. py:function:: color_interop_ids()
-
-    Returns a ``tuple`` of plain strings: the canonical Color Interop Forum
-    ids that OpenImageIO's built-in interop identities registry declares,
-    in deterministic registry order -- the same data as the C++
-    ``OIIO::ColorInteropIDs::all()`` (``<OpenImageIO/color_interop_ids.h>``).
-    This is registry data, not an enum: the id grammar is open (custom,
-    ICC, local, and user-namespaced ids cannot be enumerated), and plain
-    strings remain the parameter type everywhere a CIID is accepted.
-
-    Example:
-
-    .. code-block:: python
-
-        assert "srgb_rec709_display" in oiio.color_interop_ids()
-        interop_id = colorconfig.get_color_interop_id("srgb_rec709_display")
-
-    This function was added in OpenImageIO 3.2.
 
 
 .. _sec-pythonmiscapi:
