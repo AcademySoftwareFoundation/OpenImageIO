@@ -164,7 +164,7 @@ JpgInput::valid_file(Filesystem::IOProxy* ioproxy) const
     if (!ioproxy || ioproxy->mode() != Filesystem::IOProxy::Read)
         return false;
 
-    uint8_t magic[2] {};
+    uint8_t magic[2] { };
     const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
     return numRead == sizeof(magic) && magic[0] == JPEG_MAGIC1
            && magic[1] == JPEG_MAGIC2;
@@ -796,81 +796,76 @@ JpgInput::jpeg_decode_iptc(string_view buf)
 void
 JpgInput::scan_for_thumbnail(cspan<uint8_t> exif)
 {
-    try {
-        bool host_little = littleendian();
-        bool file_little = (exif[0] == 0x49 && exif[1] == 0x49);
-        bool swab        = (host_little != file_little);
+    bool host_little = littleendian();
+    bool file_little = (exif[0] == 0x49 && exif[1] == 0x49);
+    bool swab        = (host_little != file_little);
 
-        const uint8_t* soi_ptr = nullptr;
-        const uint8_t* eoi_ptr = nullptr;
+    const uint8_t* soi_ptr = nullptr;
+    const uint8_t* eoi_ptr = nullptr;
 
-        size_t i = 0;
-        while (i < exif.size() - 1) {
-            if (exif[i] == 0xFF && exif[i + 1] == 0xD8) {
-                soi_ptr = &exif[i];
-                break;
-            }
-            i++;
+    size_t i = 0;
+    while (i < exif.size() - 1) {
+        if (exif[i] == 0xFF && exif[i + 1] == 0xD8) {
+            soi_ptr = &exif[i];
+            break;
         }
+        i++;
+    }
 
-        if (!soi_ptr)
-            return;
+    if (!soi_ptr)
+        return;
 
-        // extract image properties along the way
-        uint16_t width  = 0;
-        uint16_t height = 0;
-        int numchan     = 0;
+    // extract image properties along the way
+    uint16_t width  = 0;
+    uint16_t height = 0;
+    int numchan     = 0;
 
-        while (i < exif.size() - 1) {
-            if (exif[i++] == 0xFF) {
-                const auto marker = exif[i];
-                if (marker == 0xD9) {
-                    eoi_ptr = &exif[i] + 1;  // one past (exclusive)
-                    break;
-                } else if (marker == 0xC0 || marker == 0xC2) {
-                    uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
-                    height          = (exif.at(i + 5) << 8) + exif.at(i + 4);
-                    width           = (exif.at(i + 7) << 8) + exif.at(i + 6);
-                    numchan         = exif[i + 8];
+    while (i < exif.size() - 1) {
+        if (exif[i++] == 0xFF) {
+            const auto marker = exif[i];
+            if (marker == 0xD9) {
+                eoi_ptr = &exif[i] + 1;  // one past (exclusive)
+                break;
+            } else if (marker == 0xC0 || marker == 0xC2) {
+                uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
+                height          = (exif.at(i + 5) << 8) + exif.at(i + 4);
+                width           = (exif.at(i + 7) << 8) + exif.at(i + 6);
+                numchan         = exif[i + 8];
 
-                    if (swab) {
-                        swap_endian(&length);
-                        swap_endian(&height);
-                        swap_endian(&width);
-                    }
+                if (swab) {
+                    swap_endian(&length);
+                    swap_endian(&height);
+                    swap_endian(&width);
+                }
 
-                    length -= 2;
+                length -= 2;
 
-                    if (i + length < exif.size() - 1) {
-                        i += length;
-                    }
-                } else if ((marker >= 0xC0 && marker < 0xD0)
-                           || (marker > 0xD9 && marker <= 0xFE)) {
-                    // Skip ahead for markers that have an associated length
-                    uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
+                if (i + length < exif.size() - 1) {
+                    i += length;
+                }
+            } else if ((marker >= 0xC0 && marker < 0xD0)
+                       || (marker > 0xD9 && marker <= 0xFE)) {
+                // Skip ahead for markers that have an associated length
+                uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
 
-                    if (swab) {
-                        swap_endian(&length);
-                    }
+                if (swab) {
+                    swap_endian(&length);
+                }
 
-                    length -= 2;
+                length -= 2;
 
-                    if (i + length < exif.size() - 1) {
-                        i += length;
-                    }
+                if (i + length < exif.size() - 1) {
+                    i += length;
                 }
             }
         }
+    }
 
-        if (eoi_ptr) {
-            m_thumbnail_data = cspan<uint8_t>(soi_ptr, eoi_ptr);
-            m_spec.attribute("thumbnail_width", width);
-            m_spec.attribute("thumbnail_height", height);
-            m_spec.attribute("thumbnail_nchannels", numchan);
-        }
-
-    } catch (const std::exception& e) {
-        errorfmt("ERROR scanning for thumbnail: {}", e.what());
+    if (eoi_ptr) {
+        m_thumbnail_data = cspan<uint8_t>(soi_ptr, eoi_ptr);
+        m_spec.attribute("thumbnail_width", width);
+        m_spec.attribute("thumbnail_height", height);
+        m_spec.attribute("thumbnail_nchannels", numchan);
     }
 }
 
@@ -878,7 +873,7 @@ bool
 JpgInput::get_thumbnail(ImageBuf& thumb, int subimage)
 {
     if (!m_decomp_create) {
-        errorfmt("ImageInput hasn't been initialised properly");
+        errorfmt("ImageInput hasn't been initialized properly");
         return false;
     }
 
@@ -907,8 +902,7 @@ JpgInput::get_thumbnail(ImageBuf& thumb, int subimage)
 
     result = image_input->open("", image_spec, temp_spec);
     if (!result) {
-        errorfmt(
-            "failed to initialise an ImageInput object with the thumbnail data");
+        errorfmt("{}", image_input->geterror());
         return false;
     }
 
@@ -918,8 +912,7 @@ JpgInput::get_thumbnail(ImageBuf& thumb, int subimage)
                                      image_spec.format, thumb.localpixels());
 
     if (!result) {
-        errorfmt(
-            "failed to initialise an ImageInput object of type \"jpeg\" with the thumbnail data");
+        errorfmt("{}", image_input->geterror());
         image_input->close();
         return false;
     }

@@ -235,6 +235,7 @@ macro (oiio_add_all_tests)
 
     # Tests that require oiio-images:
     oiio_add_tests (gpsread
+                    jpeg-thumbnail
                     oiiotool-attribs
                     texture-filtersize
                     texture-filtersize-stochastic
@@ -299,7 +300,6 @@ macro (oiio_add_all_tests)
             # These Python tests also need access to oiio-images
             oiio_add_tests (
                 python-imageinput python-imagebufalgo
-                python-thumbnail-jpeg
                 IMAGEDIR oiio-images
                 ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
