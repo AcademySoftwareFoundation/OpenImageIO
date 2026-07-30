@@ -576,9 +576,9 @@ Here is a code example that opens an image file that will contain a 32x32
 pixel crop window within an abstract 640 x 480 full size image.
 Notice that the pixel indices (column, scanline, slice) passed to the
 "write" functions are the coordinates relative to the full image, not
-relative to the crop widow, but the data pointer passed to the "write"
+relative to the crop window, but the data pointer passed to the "write"
 functions should point to the beginning of the actual pixel data being
-passed (not the the hypothetical start of the full data, if it was all
+passed (not the hypothetical start of the full data, if it was all
 present).
 
 .. tabs::
@@ -1421,7 +1421,7 @@ identical to the original input.
 
 A special ``copy_image()`` method of ``ImageOutput`` is available that
 attempts to copy an image from an open ``ImageInput`` (of the same format)
-to the output as efficiently as possible with without altering pixel values,
+to the output as efficiently as possible without altering pixel values,
 if at all possible.
 
 Not all format plugins will provide an implementation of ``copy_image()``
