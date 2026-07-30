@@ -1134,7 +1134,6 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             height = m_processor->imgdata.thumbnail.theight;
         } else {
             m_thumb_index = std::min(m_thumb_index, thumb_count - 1);
-        }
 
             // sort the thumbnails by their size if requested
             int sort_order = config.get_int_attribute("raw:thumbnail_sort", 0);
