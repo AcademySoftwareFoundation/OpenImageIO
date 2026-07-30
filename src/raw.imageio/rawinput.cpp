@@ -1124,18 +1124,17 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         int width  = 0;
         int height = 0;
 
+        if (m_thumb_index < -1) {
+            errorfmt("Invalid thumbnail index ({})", m_thumb_index);
+            return false;
+        }
         if (m_thumb_index == -1) {
             // Use the default from LibRaw, which will always be the largest one
             width  = m_processor->imgdata.thumbnail.twidth;
             height = m_processor->imgdata.thumbnail.theight;
         } else {
-            // clamp the thumbnail index
-            if (m_thumb_index < 0) {
-                errorfmt("Invalid thumbnail index ({})", m_thumb_index);
-                return false;
-            } else if (m_thumb_index >= thumb_count) {
-                m_thumb_index = thumb_count - 1;
-            }
+            m_thumb_index = std::min(m_thumb_index, thumb_count - 1);
+        }
 
             // sort the thumbnails by their size if requested
             int sort_order = config.get_int_attribute("raw:thumbnail_sort", 0);
