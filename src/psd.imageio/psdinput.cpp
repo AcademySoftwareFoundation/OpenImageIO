@@ -590,6 +590,23 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    // Set m_type_desc to the appropriate TypeDesc (depends only on the depth,
+    // which load_header has just validated).
+    set_type_desc();
+
+    // Do the resolution/etc sanity checks here, the earliest point at which
+    // the composite resolution, channel count, and data type are known --
+    // before any section allocates or seeks based on them.
+    {
+        ImageSpec headerspec((int)m_header.width, (int)m_header.height,
+                             (int)m_header.channel_count, m_type_desc);
+        if (!check_open(headerspec, { 0, 300000, 0, 300000, 0, 1, 0, 56 })
+            || !check_compression_ratio(headerspec, ioproxy()->size())) {
+            close();
+            return false;
+        }
+    }
+
     // Color Mode Data
     if (!load_color_data()) {
         errorfmt("failed to open \"{}\": failed load_color_data", name);
@@ -628,24 +645,8 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
 
     // Layer count + 1 for merged composite (Image Data Section)
     m_subimage_count = m_layers.size() + 1;
-    // Set m_type_desc to the appropriate TypeDesc
-    set_type_desc();
     // Setup ImageSpecs and m_channels
-    bool ok = true;
-    ok &= setup();
-
-    // Enforce open-time extent/policy limits and a decompression-bomb guard on
-    // the composite image before any pixel read is attempted. Per-dimension
-    // sanity is already done in validate_header(); check_open() adds the global
-    // limits:* policy (channels/resolution/imagesize) and check_compression_ratio
-    // rejects a tiny file that declares a huge uncompressed composite.
-    if (ok && !m_specs.empty()) {
-        if (!check_open(m_specs[0], { 0, 300000, 0, 300000, 0, 1, 0, 56 })
-            || !check_compression_ratio(m_specs[0], ioproxy()->size())) {
-            close();
-            return false;
-        }
-    }
+    bool ok = setup();
 
     if (ok)
         ok &= seek_subimage(0, 0);
