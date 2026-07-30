@@ -333,7 +333,7 @@ public:
     /// All other fields are set to the obvious defaults -- the image is an
     /// ordinary 2D image (not a volume), the image is not offset or a crop
     /// of a bigger image, the image is scanline-oriented (not tiled),
-    /// channel names are "R", "G", "B," and "A" (up to and including 4
+    /// channel names are "R", "G", "B", and "A" (up to and including 4
     /// channels, beyond that they are named "channel *n*"), the fourth
     /// channel (if it exists) is assumed to be alpha.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeUInt8) noexcept;
