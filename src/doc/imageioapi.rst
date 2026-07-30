@@ -323,7 +323,7 @@ inside the source code.
 .. cpp:var:: OPENIMAGEIO_PLUGIN_PATH
 
     A colon-separated list of directories to search for OpenImageIO plugins
-    (dynamicaly loadable libraries that implement image format readers
+    (dynamically loadable libraries that implement image format readers
     and writers).
 
     This is a new name beginning with OpenImageIO 2.6.3. The old name

@@ -893,7 +893,7 @@ hints are supported by each reader) are:
    * - ``oiio:reorient``
      - int
      - If zero, disables any automatic reorientation that the reader may
-       ordinarily do to present te pixels in the preferred display orientation.
+       ordinarily do to present the pixels in the preferred display orientation.
 
 Examples:
 

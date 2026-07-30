@@ -212,7 +212,7 @@ attributes are supported:
        example by reading from memory rather than the file system.    
 
 Additionally, an integer ``dds:bc5normal`` global attribute is supported
-to control behaviour of images compressed in BC5/ATI2 compression format.
+to control behavior of images compressed in BC5/ATI2 compression format.
 When the attribute value is set to non-zero (default is zero), any input
 image using BC5/ATI2 compression format is assumed to be a normal map,
 even if pixel format "normal map" flag is not set.
@@ -1134,7 +1134,7 @@ via the `ImageInput::set_ioproxy()` method and the special
 
 **Ultra HDR**
 
-JPEG input also suports Ultra HDR images.
+JPEG input also supports Ultra HDR images.
 Ultra HDR is an image format that encodes a high dynamic range image
 in a JPEG image file by including a gain map in addition to the
 primary image.
@@ -1393,7 +1393,7 @@ control aspects of the writing itself:
    * - ``jpegxl:jumb_box``
      - int (bool)
      - If nonzero, will enable JUMBF metadata writing to the output file.
-       Default is 0. (dows not supported at this moment in OIIO)
+       Default is 0. (This is not supported at this moment in OIIO.)
    * - ``jpegxl:iptc_box``
      - int (bool)
      - If nonzero, will enable IPTC metadata writing to the output file.
@@ -1856,7 +1856,7 @@ attributes are supported:
        example by reading from memory rather than the file system.
    * - ``png:linear_premult``
      - int
-     - If nonzero, will convert  or gamma-encoded values to linear color
+     - If nonzero, will convert sRGB or gamma-encoded values to linear color
        space for any premultiplication-by-alpha step done by the PNG reader.
        If zero (the default), any needed premultiplication will happen directly
        to the encoded values.
@@ -2302,7 +2302,7 @@ options are supported:
        (Default: 0)
    * - ``raw:camera_to_scene_linear_scale``
      - float
-     - Whilst the libraw pixel values are linear, they are normalized based on
+     - While the libraw pixel values are linear, they are normalized based on
        the whitepoint / sensor / ISO and shooting conditions. An additional multiplication
        is needed to bring exposure levels up so that a correctly photographed 18% grey card
        has pixel values at 0.18. Setting this metadata key implies ``raw:apply_scene_linear_scale``.
@@ -2735,7 +2735,7 @@ the `set_ioproxy()` methods.
   silently convert all output images to UINT8 (except if UINT16 is
   explicitly requested).
 * Targa only supports grayscale, RGB, and RGBA; the OpenImageIO TGA writer
-  will fail its call to ``open()`` if it is asked create a file with more
+  will fail its call to ``open()`` if it is asked to create a file with more
   than 4 color channels.
 
 
@@ -2791,7 +2791,7 @@ There's also a `256color` method that just uses the 6x6x6 color space in the
 256 color palette -- which looks horrible -- and an experimental `dither`
 which does a half-assed Floyd-Steinberg dithering, horizontally only, and
 frankly is not an improvement unless you squint really hard. These may
-change or be eliminted in the future.
+change or be eliminated in the future.
 
 In all cases, the image will automatically be resized to fit in the terminal
 and keep approximately the correct aspect ratio, as well as converted to
@@ -2909,7 +2909,7 @@ aspects of the writing itself:
      - Requests that the RGB image be converted and saved in the TIFF file in
        a non-RGB color space. Choices are ``RGB``, ``CMYK``.  (Note that
        ``YCbCr``, ``CIELAB``, ``ICCLAB``, ``ITULAB`` are not yet supported
-       for convertion. However, if the `oiio:ColorSpace` is one of those,
+       for conversion. However, if the `oiio:ColorSpace` is one of those,
        meaning that the image data is presumed to already be in that
        space, the TIFF PhotometricInterpretation tag will be set to convey
        this information.)
