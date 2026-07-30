@@ -298,7 +298,7 @@ explained in detail in Section :ref:`sec-ROI`, is replicated for Python.
 
 .. py:method:: ROI.contains (other)
 
-    Returns `True` if the ROI `other` is entirel contained within
+    Returns `True` if the ROI `other` is entirely contained within
     this ROI.
 
 
@@ -2329,13 +2329,13 @@ Pattern generation
                bool ImageBufAlgo.fill (dst, top, bottom, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.fill (dst, topleft, topright, bottomleft, bottomright, roi=ROI.All, nthreads=0)
 
-    Return a filled float image of size `roi`, or set the the pixels of
+    Return a filled float image of size `roi`, or set the pixels of
     image `dst` within the ROI to a color or gradient.
     
-    Three fill optins are available: (a) if one color tuple is supplied, the
+    Three fill options are available: (a) if one color tuple is supplied, the
     whole ROI will be filled with that constant value, (b) if two color
     tuples are supplied, a linear gradient will be applied from top to
-    bottom, (c) if four color cuples are supplied, the ROI will be be filled
+    bottom, (c) if four color tuples are supplied, the ROI will be filled
     with values bilinearly interpolated from the four corner colors
     supplied.
 
@@ -2651,7 +2651,7 @@ Image transformations and data movement
 .. py:method:: ImageBuf ImageBufAlgo.reorient (src, nthreads=0)
                bool ImageBufAlgo.reorient (dst, src, nthreads=0)
 
-    Copy `src`, applying whatever seties of rotations, flips,
+    Copy `src`, applying whatever series of rotations, flips,
     or flops are necessary to transform the pixels into the configuration
     suggested by the `"Orientation"` metadata of the image (and the
     `"Orientation"` metadata is then set to 1, ordinary orientation).
@@ -2685,7 +2685,7 @@ Image transformations and data movement
                bool ImageBufAlgo.rotate (dst, src, angle, filtername="", filtersize=0.0, recompute_roi=False, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.rotate (dst, src, angle, center_x, center_y, filtername="", filtersize=0.0, recompute_roi=False, roi=ROI.All, nthreads=0)
 
-    Copy arotated version of the corresponding portion of `src`.  The angle
+    Copy a rotated version of the corresponding portion of `src`.  The angle
     is in radians, with positive values indicating clockwise rotation. If
     the filter and size are not specified, an appropriate default will be
     chosen.
@@ -2759,7 +2759,7 @@ Image transformations and data movement
 
     Set `dst`, over the ROI, to be a low-quality (but fast) resized version
     of the corresponding portion of `src`, either using a simple "closest
-    pixel" choice or by bilinaerly interpolating (depending on
+    pixel" choice or by bilinearly interpolating (depending on
     `interpolate`).
 
     Example:
@@ -2858,7 +2858,7 @@ Image arithmetic
 .. py:method:: ImageBuf ImageBufAlgo.scale (A, B, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.scale (dst, A, B, roi=ROI.All, nthreads=0)
 
-    Per-pixel multiply all channels of one image by the single channle of the
+    Per-pixel multiply all channels of one image by the single channel of the
     other image. One of the input images must have only one channel.
 
     Example:
@@ -3229,7 +3229,7 @@ Image comparison and statistics
 .. py:method:: PixelStats ImageBufAlgo.computePixelStats (src, roi=ROI.All, nthreads=0)
 
     Compute statistics about the ROI of the image `src`. The `PixelStats`
-    structure is defined as contining the following data fields: `min`,
+    structure is defined as containing the following data fields: `min`,
     `max`, `avg`, `stddev`, `nancount`, `infcount`, `finitecount`, `sum`,
     `sum2`, each of which is a tuple with one value for each channel of the
     image.
@@ -3799,7 +3799,7 @@ Color manipulation
 
     `unpremult` divides colors by alpha, but preserves original color if
     alpha is 0. `premult` multiplies colors by alpha (even if alpha is 0).
-    `repreumlt` is the true inverse of `unpremult`, multiplying color by
+    `repremult` is the true inverse of `unpremult`, multiplying color by
     alpha, but preserving color values in the alpha = 0 case.
 
     Example:
@@ -4198,7 +4198,7 @@ following boilerplate:
 
 .. code-block:: python
 
-    # Create an ImageBuf holding a n image of constant color, given the
+    # Create an ImageBuf holding an image of constant color, given the
     # resolution, data format (defaulting to UINT8), fill value, and image
     # origin.
     def make_constimage (xres: int, yres: int, chans: int=3, format: TypeDesc=oiio.UINT8, value: tuple[int, int, int]=(0,0,0),

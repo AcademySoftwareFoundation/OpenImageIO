@@ -231,11 +231,11 @@ Disk file format info/hints
     an example, the OpenEXR writer supports `none`, `rle`, `zip`, `zips`,
     `piz`, `pxr24`, `b44`, `b44a`, `dwaa`, or `dwab`.
 
-    he compression name is permitted to have a quality value to be appended
+    The compression name is permitted to have a quality value to be appended
     after a colon, for example `dwaa:60`.  The exact meaning and range of
-    he quality value can vary between different file formats and compression
-    odes, and some don't support quality values at all (it will be ignored if
-    ot supported, or if out of range).
+    The quality value can vary between different file formats and compression
+    modes, and some don't support quality values at all (it will be ignored if
+    not supported, or if out of range).
 
 .. option:: "CompressionQuality" : int
 
@@ -406,12 +406,12 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
 
 .. option:: "oiio:SHA-1" : string
 
-    f present, is a 40-byte SHA-1 hash of the input image (possibly salted
-    with arious maketx options) that can serve to quickly compare two
-    separate extures to know if they contain the same pixels. While it's
-    not, echnically, 100% guaranteed that no separate textures will match,
-    it's so stronomically unlikely that we discount the possibility (you'd
-    be rendering ovies for centuries before finding a single match).
+    If present, is a 40-byte SHA-1 hash of the input image (possibly salted
+    with various maketx options) that can serve to quickly compare two
+    separate textures to know if they contain the same pixels. While it's
+    not, technically, 100% guaranteed that no separate textures will match,
+    it's so astronomically unlikely that we discount the possibility (you'd
+    be rendering movies for centuries before finding a single match).
 
 
 
@@ -540,7 +540,7 @@ The kind of light source:
     11   shade
     12   daylight fluorescent (D 5700-7100K)
     13   day white fluorescent (N 4600-5400K)
-    14   cool white fuorescent (W 3900 - 4500K)
+    14   cool white fluorescent (W 3900 - 4500K)
     15   white fluorescent (WW 3200 - 3700K)
     17   standard light A
     18   standard light B
@@ -607,7 +607,7 @@ A sum of:
 
 .. option:: "Exif:FlashEnergy" : float
 
-    Strobe energy when the image was captures, measured in Beam Candle Power
+    Strobe energy when the image was captured, measured in Beam Candle Power
     Seconds (BCPS).
 
 .. option:: "Exif:FocalPlaneXResolution" : float
@@ -637,7 +637,7 @@ A sum of:
 
 .. option:: "Exif:SensingMethod" : int
 
-    The image sensor type on the camra:
+    The image sensor type on the camera:
 
     ===  ==============================================================
     1    undefined
