@@ -451,7 +451,7 @@ private:
                              uint32_t unpacked_length);
     bool decompress_zip(span<char> src, span<char> dest);
     bool decompress_zip_prediction(span<char> src, span<char> dest,
-                                   const uint32_t width, const uint32_t height);
+                                   const uint64_t width, const uint64_t height);
 
     // These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char* additional_info_psb[];
@@ -2394,8 +2394,8 @@ bool
 PSDInput::decompress_packbits(const char* src, char* dst,
                               uint32_t packed_length, uint32_t unpacked_length)
 {
-    int32_t src_remaining = packed_length;
-    int32_t dst_remaining = unpacked_length;
+    int64_t src_remaining = packed_length;
+    int64_t dst_remaining = unpacked_length;
     int16_t header;
     int length;
 
@@ -2495,7 +2495,7 @@ PSDInput::decompress_zip(span<char> src, span<char> dest)
 
 bool
 PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
-                                    const uint32_t width, const uint32_t height)
+                                    const uint64_t width, const uint64_t height)
 {
     OIIO_ASSERT(width * height * (m_header.depth / 8) == dest.size());
     bool ok = true;
