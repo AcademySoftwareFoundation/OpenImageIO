@@ -74,6 +74,22 @@ Description of the image
 Display hints
 =============
 
+.. |orient1img| image:: figures/orientation1.jpg
+    :height: 1 in
+.. |orient2img| image:: figures/orientation2.jpg
+    :height: 1 in
+.. |orient3img| image:: figures/orientation3.jpg
+    :height: 1 in
+.. |orient4img| image:: figures/orientation4.jpg
+    :height: 1 in
+.. |orient5img| image:: figures/orientation5.jpg
+    :width: 1 in
+.. |orient6img| image:: figures/orientation6.jpg
+    :width: 1 in
+.. |orient7img| image:: figures/orientation7.jpg
+    :width: 1 in
+.. |orient8img| image:: figures/orientation8.jpg
+    :width: 1 in
 
 .. option:: "Orientation" : int
 
@@ -83,16 +99,16 @@ Display hints
     `"Orientation"` field can suggest that it should be displayed with
     a different orientation, according to the TIFF/EXIF conventions:
 
-    ===  ==========================================================================
-     1   normal (top to bottom, left to right)
-     2   flipped horizontally (top to bottom, right to left)
-     3   rotated :math:`180^\circ` (bottom to top, right to left)
-     4   flipped vertically (bottom to top, left to right)
-     5   transposed (left to right, top to bottom)
-     6   rotated :math:`90^\circ` clockwise (right to left, top to bottom)
-     7   transverse (right to left, bottom to top)
-     8   rotated :math:`90^\circ` counter-clockwise (left to right, bottom to top)
-    ===  ==========================================================================
+    ===  ============  ==========================================================================
+     1   |orient1img|  normal (top to bottom, left to right)
+     2   |orient2img|  flipped horizontally (top to bottom, right to left)
+     3   |orient3img|  rotated :math:`180^\circ` (bottom to top, right to left)
+     4   |orient4img|  flipped vertically (bottom to top, left to right)
+     5   |orient5img|  transposed (left to right, top to bottom)
+     6   |orient6img|  rotated :math:`90^\circ` clockwise (right to left, top to bottom)
+     7   |orient7img|  transverse (right to left, bottom to top)
+     8   |orient8img|  rotated :math:`90^\circ` counter-clockwise (left to right, bottom to top)
+    ===  ============  ==========================================================================
 
 .. option:: "PixelAspectRatio" : float
 
