@@ -235,6 +235,7 @@ macro (oiio_add_all_tests)
 
     # Tests that require oiio-images:
     oiio_add_tests (gpsread
+                    jpeg-thumbnail
                     oiiotool-attribs
                     texture-filtersize
                     texture-filtersize-stochastic

@@ -4,6 +4,9 @@ src/corrupt-exif.jpg :  256 x  256, 3 channel, uint8 jpeg
     channel list: R, G, B
     Orientation: 1 (normal)
     ResolutionUnit: "in"
+    thumbnail_height: 160
+    thumbnail_nchannels: 3
+    thumbnail_width: 160
     XResolution: 300
     YResolution: 300
     jpeg:subsampling: "4:2:0"

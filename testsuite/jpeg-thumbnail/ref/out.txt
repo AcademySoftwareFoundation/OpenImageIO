@@ -1,0 +1,2 @@
+ 320 x  240, 3 channel, uint8 
+    channel list: R, G, B

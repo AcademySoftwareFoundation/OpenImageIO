@@ -1,12 +1,15 @@
 Reading ../oiio-images/tahoe-gps.jpg
 ../oiio-images/tahoe-gps.jpg : 2048 x 1536, 3 channel, uint8 jpeg
-    SHA-1: C3B420EF8C20C4771F6F7BF89EA9D9D4002BA016
+    SHA-1: 71EBEC73B8E8B3533780B15147E61D895C80E8B1
     channel list: R, G, B
     Make: "HTC"
     Model: "T-Mobile G1"
     Orientation: 1 (normal)
     ResolutionUnit: "none"
     Software: "title;va"
+    thumbnail_height: 240
+    thumbnail_nchannels: 3
+    thumbnail_width: 320
     XResolution: 72
     YResolution: 72
     Exif:ColorSpace: 1
