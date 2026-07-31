@@ -552,7 +552,7 @@ int
 Filesystem::fseek(FILE* file, int64_t offset, int whence)
 {
 #ifdef _WIN32
-    return _fseeki64(file, __int64(offset), whence);
+    return _fseeki64(file, static_cast<__int64>(offset), whence);
 #else
     return fseeko(file, offset, whence);
 #endif
