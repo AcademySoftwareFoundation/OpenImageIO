@@ -1161,7 +1161,7 @@ public:
                     stride_t ystride      = AutoStride,
                     stride_t zstride      = AutoStride);
 
-    /// Potentially unsafe set_pixels() using raw pointers. Use with catution!
+    /// Potentially unsafe set_pixels() using raw pointers. Use with caution!
     OIIO_IB_DEPRECATE_RAW_PTR
     bool set_pixels(ROI roi, TypeDesc format, const void* data,
                     stride_t xstride = AutoStride,

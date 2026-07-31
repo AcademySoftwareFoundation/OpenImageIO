@@ -242,7 +242,7 @@ It is also encouraged, when it makes sense to do so, to put a subcategory in
 parenthesis after the prefix, like `fix(exr):` or `feat(IBA):`. It's ok to use
 obvious abbreviations for major classes or subsections: IB=ImageBuf,
 IBA=ImageBufAlgo, IC=ImageCache, TS=TextureSystem, etc. If there is no clear
-single format or class that is the man focus of the patch, then you can omit
+single format or class that is the main focus of the patch, then you can omit
 the subcategory.
 
 API or ABI-breaking changes should additionally be marked with an exclamation

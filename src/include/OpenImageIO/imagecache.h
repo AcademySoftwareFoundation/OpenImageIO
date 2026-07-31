@@ -28,7 +28,7 @@
 OIIO_NAMESPACE_3_1_BEGIN
 
 
-/// Define an API to an abstract class that manages image files,
+/// Define an API to a class that manages image files,
 /// caches of open file handles as well as tiles of pixels so that truly
 /// huge amounts of image data may be accessed by an application with low
 /// memory footprint.
@@ -37,8 +37,7 @@ public:
     /// @{
     /// @name Creating and destroying an image cache
     ///
-    /// ImageCache is an abstract API described as a pure virtual class.
-    /// The actual internal implementation is not exposed through the
+    /// ImageCache's actual internal implementation is not exposed through the
     /// external API of OpenImageIO.  Because of this, you cannot construct
     /// or destroy the concrete implementation, so two static methods of
     /// ImageCache are provided:
@@ -499,7 +498,7 @@ public:
     ///
     /// 1. Don't worry about it at all: don't use the methods that want
     ///    `Perthread` pointers, or always pass `nullptr` for any
-    ///    `Perthread*1 arguments, and ImageCache will do
+    ///    `Perthread*` arguments, and ImageCache will do
     ///    thread-specific-pointer retrieval as necessary (though at some
     ///    small cost).
     ///
@@ -779,9 +778,9 @@ public:
     /// @param  subimage
     ///             The subimage to query.
     /// @returns
-    ///             `true` upon success, `false` upon failure failure (such
+    ///             `true` upon success, `false` upon failure (such
     ///             as being unable to find, open, or read the file, or if
-    ///             it does not contain the designated subimage.
+    ///             it does not contain the designated subimage).
     bool get_imagespec(ustring filename, ImageSpec& spec, int subimage = 0);
     /// A more efficient variety of `get_imagespec()` for cases where you
     /// can use an `ImageHandle*` to specify the image and optionally have a
@@ -871,9 +870,9 @@ public:
     /// @param  subimage/miplevel
     ///             The subimage and mip level to query.
     /// @returns
-    ///             `true` upon success, `false` upon failure failure (such
+    ///             `true` upon success, `false` upon failure (such
     ///             as being unable to find, open, or read the file, or if
-    ///             it does not contain the designated subimage or mip level.
+    ///             it does not contain the designated subimage or mip level).
     bool get_cache_dimensions(ustring filename, ImageSpec& spec,
                               int subimage = 0, int miplevel = 0);
     /// A more efficient variety of `get_cache_dimensions()` for cases where
@@ -895,7 +894,7 @@ public:
     /// @param  subimage
     ///             The subimage to query.
     /// @returns
-    ///             `true` upon success, `false` upon failure failure (such
+    ///             `true` upon success, `false` upon failure (such
     ///             as being unable to find, open, or read the file, or if
     ///             it does not contain a thumbnail).
     bool get_thumbnail(ustring filename, ImageBuf& thumbnail, int subimage = 0);
@@ -1322,7 +1321,7 @@ public:
     std::string getstats(int level = 1) const;
 
     /// Reset most statistics to be as they were with a fresh ImageCache.
-    /// Caveat emptor: this does not flush the cache itelf, so the resulting
+    /// Caveat emptor: this does not flush the cache itself, so the resulting
     /// statistics from the next set of texture requests will not match the
     /// number of tile reads, etc., that would have resulted from a new
     /// ImageCache.
