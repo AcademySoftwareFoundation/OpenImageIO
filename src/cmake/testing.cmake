@@ -356,7 +356,7 @@ macro (oiio_add_all_tests)
                     IMAGEDIR oiio-images/psd)
     oiio_add_tests (ptex
                     FOUNDVAR Ptex_FOUND ENABLEVAR ENABLE_PTEX)
-    oiio_add_tests (raw
+    oiio_add_tests (raw raw-thumbnail
                     FOUNDVAR LIBRAW_FOUND ENABLEVAR ENABLE_LIBRAW
                     IMAGEDIR oiio-images/raw)
     oiio_add_tests (rla

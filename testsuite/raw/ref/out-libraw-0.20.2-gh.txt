@@ -10,6 +10,8 @@
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     Software: "Firmware Version 1.0.7"
+    thumbnail_height: 3456
+    thumbnail_width: 5184
     Canon:AESetting: 0 (normal AE)
     Canon:AFAreaMode: 0
     Canon:AFPoint: 0
@@ -96,6 +98,8 @@
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     Software: "Ver.1.00 "
+    thumbnail_height: 4032
+    thumbnail_width: 6048
     Exif:ApertureValue: 4.97085 (f/5.6)
     Exif:Contrast: 0 (normal)
     Exif:CustomRendered: 0 (no)
@@ -187,6 +191,8 @@
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     Software: "Digital Camera FinePix F700  Ver2.00"
+    thumbnail_height: 960
+    thumbnail_width: 1280
     Exif:ApertureValue: 3.69599 (f/3.6)
     Exif:BrightnessValue: 773/100 (7.73)
     Exif:CompressedBitsPerPixel: 30/10 (3)
@@ -261,6 +267,8 @@
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     Software: "Ver.1.00 "
+    thumbnail_height: 4032
+    thumbnail_width: 6048
     Exif:ApertureValue: 4.97085 (f/5.6)
     Exif:Contrast: 0 (normal)
     Exif:CustomRendered: 0 (no)
@@ -355,6 +363,8 @@
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     Software: "Version 1.0                    "
+    thumbnail_height: 1200
+    thumbnail_width: 1600
     Exif:ApertureValue: 2 (f/2.0)
     Exif:Contrast: 0 (normal)
     Exif:CustomRendered: 1 (yes)
@@ -428,6 +438,8 @@
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     Software: "K200D Ver 1.00         "
+    thumbnail_height: 2592
+    thumbnail_width: 3872
     Exif:ApertureValue: 6 (f/8.0)
     Exif:Contrast: 0 (normal)
     Exif:CustomRendered: 0 (no)
@@ -497,6 +509,8 @@
     Orientation: 1 (normal)
     PixelAspectRatio: 1
     Software: "DSLR-A300 v1.00"
+    thumbnail_height: 1080
+    thumbnail_width: 1616
     Exif:ApertureValue: 4.97085 (f/5.6)
     Exif:BrightnessValue: 137/100 (1.37)
     Exif:CompressedBitsPerPixel: 8/1 (8)
