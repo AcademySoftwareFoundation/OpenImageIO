@@ -1,3 +1,57 @@
+Release 3.1.16.0 (Aug 1, 2026) -- compared to 3.1.15.0
+---------------------------------------------------------
+  - *oiiotool*: Add thumbnail get/set commands and fix TGA thumbnail I/O. [#5236](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5236) (by @jinhgkim / Jinnie Kim)
+  - *api*: Add `"limits:resolution"` global attribute to cap per-dimension image size, used for guarding against decompression-bomb attacks. [#5297](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5297)
+  - *testing*: Add libFuzzer-based fuzzing infrastructure for format readers. [#5314](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5314)
+  - *texture*: Experimental GPU texture system prototype, implemented as a standalone testsuite executable (does not modify the core library). [#5228](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5228) (by @aconty / Alejandro Conty)
+  - *bmp*: Validate scanline file position before reading, guarding against corrupt files. [#5274](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5274)
+  - *cineon*: Validate bit depth against libcineon's supported set, fixing a heap out-of-bounds write on invalid bit depths. [#5283](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5283) (CVE-2026-63638)
+  - *dds*: Reject corrupt bytes-per-pixel before it forces a huge allocation, and clamp pixel memcpy to `sizeof(uint32_t)` to prevent stack overflow. [#5286](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5286) [#5287](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5287)
+  - *dpx*: Detect corrupt userbuf size with an overflow guard, and fix a heap overflow in 1-channel 10-bit filled scanline swap. [#5271](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5271) [#5298](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5298)
+  - *exif*: Beef up Exif error detection for corrupt or malformed blocks (affects all formats that embed Exif). [#5322](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5322)
+  - *exr*: Use rectangle row stride for partial edge tile reads, fixing a heap out-of-bounds write. [#5295](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5295) (CVE-2026-63422)
+  - *exr*: Add `check_open()` guard to the `exrinput_c` C API. [#5280](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5280)
+  - *ffmpeg*: Align swscale output buffers. [#5301](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5301) (by @br0nzu / Dongju Lee)
+  - *filesystem*: Overflow-safe bounds check in `IOMemReader::pread`. [#5262](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5262)
+  - *gif*: Handle empty error from gif_lib, and address corrupt files with bad resolutions and int overflow. [#5269](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5269) [#5257](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5257)
+  - *gif*, *targa*: Avoid int32 overflow in palette-split pixel-count math and reject implausible image dimensions before allocating, fixing a signed overflow that could crash TGA-to-GIF conversion. [#5292](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5292) [#5293](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5293) (CVE-2026-65969)
+  - *gif*: Guard canvas index overflow. [#5299](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5299) (by @br0nzu / Dongju Lee)
+  - *hdr*: Validate resolution to detect corrupted files, and resolve a format-detection conflict between the HDR and RAW readers for `.hdr` files. [#5256](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5256) [#5339](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5339)
+  - *ico*: Better error checking for PNG-in-ICO files, and avoid leaking an error string across a `png_chunk_error` longjmp. [#5264](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5264) [#5289](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5289)
+  - *iff*: Detect corrupt chunk sizes, flags, and channel configs, fixing a tile read that could write past the caller's buffer. [#5268](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5268) (CVE-2026-63419)
+  - *iff*: Add resolution validity checking, and reject implausible image dimensions before allocating the tile buffer. [#5285](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5285) [#5284](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5284)
+  - *imagebuf*: Fix a data race that could corrupt multithreaded reads. [#5325](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5325)
+  - *imageio*: Ignore invalid RowsPerStrip chunking. [#5300](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5300) (by @br0nzu / Dongju Lee)
+  - *jpeg2000*: Reject corrupt component geometry and subsampling, and guard against oversized and decompression-bomb headers before decode. [#5270](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5270) [#5327](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5327)
+  - *jxl*: Guard corrupt basic-info dimensions early. [#5305](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5305)
+  - *ptex*: More comprehensive `valid_file` and header validation. [#5265](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5265)
+  - *psd*: Validate `color_mode` before the RawColor early return, fixing an out-of-bounds read and allocation DoS. [#5282](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5282) (CVE-2026-63635)
+  - *psd*: Detect implausibly large ICC, Exif, and XMP blocks before allocating, and identify corruption of layer resolutions and EOF in strings. [#5288](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5288) [#5259](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5259)
+  - *psd*: Guard row interleave bounds on corrupt data, fixing an out-of-bounds read in `interleave_row`. [#5307](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5307) (CVE-2026-63420)
+  - *psd*: Avoid signed overflow computing layer/mask extents. [#5306](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5306)
+  - *raw*: Apply LibRaw memory cap before unpack to prevent OOM, and reject decompression-bomb / corrupt headers before unpack. [#5275](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5275) [#5312](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5312)
+  - *raw*: Pass the bad-pixels parameter through to LibRaw. [#5323](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5323) (by @antond-weta / Anton Dukhovnikov)
+  - *rla*: Better detection of corrupted RLE encoding. [#5337](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5337) [#5258](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5258)
+  - *sgi*: Size RLE offset tables by spec dimensions to prevent OOB on corrupt headers, prevent an oversized-allocation crash from a bogus RLE length/offset table, and handle corrupt 16-bit RLE runs with odd byte counts. [#5279](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5279) [#5303](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5303) [#5321](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5321)
+  - *softimage*: Support channel packets with differing bit depths. [#5309](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5309)
+  - *tiff*: Avoid use-after-scope in multithreaded scanline reads. [#5294](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5294) (CVE-2026-65970)
+  - *tiff*: Fix heap overflow unpacking sub-8-bit contiguous CMYK samples. [#5296](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5296) (CVE-2026-67549)
+  - *tiff*: Fix additional int32 overflows, and guard against decompression bombs. [#5319](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5319)
+  - *webp*: Improve `valid_file` to check the header for magic words. [#5266](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5266)
+  - *int*: Consolidate the decompression-bomb guard used across format readers into a shared helper. [#5328](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5328)
+  - *build*: Fix `EMBEDPLUGINS=0`, and make many build options environment-overridable. [#5272](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5272)
+  - *build*: Support building to WebAssembly (wasm). [#5304](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5304) (by @nickdademo / Nick D'Ademo)
+  - *build*: Support OpenCV 5, and add a standalone header smoke test. [#5326](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5326)
+  - *build*: Recommend libtiff >= 4.5 for security fixes. [#5277](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5277)
+  - *build*: Fix clang warnings about giflib headers on some platforms/versions. [#5263](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5263)
+  - *ci*: Add vfx2027 container tests; test against and document the latest dependency versions. [#5302](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5302) [#5330](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5330)
+  - *docs*: Fix typos. [#5349](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5349) (by @jinhgkim / Jinnie Kim)
+  - *docs*: Update ImageCache docs, clean up outdated docs, and fix typos. [#5352](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5352) (by @luna-y-kim / Luna Kim)
+  - *docs*: Fix vcpkg install command syntax in INSTALL.md. [#5332](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5332) (by @BrianHanke / Brian R Hanke)
+  - *admin*: SECURITY.md updates; very minor fixes to README & SECURITY; update SECURITY with new CVE assignments; document more security CVE number assignments. [#5311](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5311) [#5320](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5320) [#5329](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5329)
+  - *Contributors*: First-time contributors to this release: Brian R Hanke, Dongju Lee, Jinnie Kim, Nick D'Ademo.
+
+
 Release 3.1.15.0 (Jul 1, 2026) -- compared to 3.1.14.1
 ---------------------------------------------------------
   - *deepdata*: Widen `merge_deep_pixels` srcpixel to int64_t, change its return type, and add `OIIO_NODISCARD_ERROR`. [#5252](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5252) [#5253](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5253) (by @luna-y-kim / Luna Kim)
@@ -553,6 +607,26 @@ asterisk) had not previously contributed to the project.
 
 ---
 ---
+
+
+Release 3.0.21.0 (Aug 1, 2026) -- compared to 3.0.20.0
+---------------------------------------------------------
+  - *cineon*: Validate bit depth against libcineon's supported set, rejecting corrupt files with unsupported bit depths before they crash the vendored library. [CVE-2026-63638](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-9hxv-jvgr-3x8g) Fixed by [#5283](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5283)
+  - *dpx*: Detect corrupt userbuf size and guard against integer multiply overflow. [#5271](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5271)
+  - *exr*: Fix out-of-bounds write when reading partial edge tiles of a tiled EXR whose dimensions aren't a multiple of the tile size. [CVE-2026-63422](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-xh5r-whph-qmc5) Fixed by Fixed by [#5295](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5295)
+  - *gif*: Handle empty error from gif_lib. [#5269](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5269)
+  - *gif*: Preserve RGB values of transparent pixels instead of zeroing them. [#5188](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5188) (by @adskWangl / Lumina Wang)
+  - *gif*: Address corrupt files with bad resolutions and integer overflow. [#5257](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5257)
+  - *gif,targa*: Avoid int32 overflow in TGA-to-GIF palette-split pixel-count math that could cause a SIGSEGV. [CVE-2026-65969](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-9mwc-fjgj-8wmq) Fixed by [#5292](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5292) [#5293](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5293)
+  - *iff*: Detect corrupt chunk sizes, flags, and channel configurations. [CVE-2026-63419](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-w6wc-gcf4-5pj2) Fixed by [#5268](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5268)
+  - *psd*: Identify corruptions of layer resolutions and EOF hit mid-string. [#5259](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5259)
+  - *psd*: Fix indexed-color transparency handling when the transparent palette index is 0. [#5177](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5177) (by @ssh4net / Vlad Erium)
+  - *psd*: Detect implausibly large ICC, Exif, or XMP blocks before allocating. [#5288](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5288)
+  - *psd*: Guard row interleave bounds on corrupt data. [CVE-2026-63420](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-x877-h4xx-5m5j) Fixed by [#5307](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5307)
+  - *psd*: Validate color_mode before the RawColor early return, fixing an out-of-bounds read reachable via the RawColor config attribute on a crafted file. [CVE-2026-63635](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-3c8w-9xvm-r6gf) Fixed by [#5282](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5282)
+  - *tiff*: Fix the "tiff:half" hint only applying to the first MIP level. [#5240](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5240) (by @lgritz / Larry Gritz)
+  - *opencv*: Support OpenCV 5, add standalone header smoke test. [#5326](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5326) (by @lgritz / Larry Gritz)
+  - *admin*: SECURITY.md updates and new CVE assignments. [#5311](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5311) [#5320](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5320) [#5329](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5329)
 
 
 Release 3.0.20.0 (Jul 1, 2026) -- compared to 3.0.19.1
