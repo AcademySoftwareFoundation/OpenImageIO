@@ -1,3 +1,23 @@
+Release 3.0.21.0 (Aug 1, 2026) -- compared to 3.0.20.0
+---------------------------------------------------------
+  - *cineon*: Validate bit depth against libcineon's supported set, rejecting corrupt files with unsupported bit depths before they crash the vendored library. [CVE-2026-63638](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-9hxv-jvgr-3x8g) Fixed by [#5283](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5283)
+  - *dpx*: Detect corrupt userbuf size and guard against integer multiply overflow. [#5271](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5271)
+  - *exr*: Fix out-of-bounds write when reading partial edge tiles of a tiled EXR whose dimensions aren't a multiple of the tile size. [CVE-2026-63422](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-xh5r-whph-qmc5) Fixed by Fixed by [#5295](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5295)
+  - *gif*: Handle empty error from gif_lib. [#5269](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5269)
+  - *gif*: Preserve RGB values of transparent pixels instead of zeroing them. [#5188](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5188) (by @adskWangl / Lumina Wang)
+  - *gif*: Address corrupt files with bad resolutions and integer overflow. [#5257](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5257)
+  - *gif,targa*: Avoid int32 overflow in TGA-to-GIF palette-split pixel-count math that could cause a SIGSEGV. [CVE-2026-65969](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-9mwc-fjgj-8wmq) Fixed by [#5292](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5292) [#5293](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5293)
+  - *iff*: Detect corrupt chunk sizes, flags, and channel configurations. [CVE-2026-63419](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-w6wc-gcf4-5pj2) Fixed by [#5268](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5268)
+  - *psd*: Identify corruptions of layer resolutions and EOF hit mid-string. [#5259](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5259)
+  - *psd*: Fix indexed-color transparency handling when the transparent palette index is 0. [#5177](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5177) (by @ssh4net / Vlad Erium)
+  - *psd*: Detect implausibly large ICC, Exif, or XMP blocks before allocating. [#5288](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5288)
+  - *psd*: Guard row interleave bounds on corrupt data. [CVE-2026-63420](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-x877-h4xx-5m5j) Fixed by [#5307](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5307)
+  - *psd*: Validate color_mode before the RawColor early return, fixing an out-of-bounds read reachable via the RawColor config attribute on a crafted file. [CVE-2026-63635](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-3c8w-9xvm-r6gf) Fixed by [#5282](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5282)
+  - *tiff*: Fix the "tiff:half" hint only applying to the first MIP level. [#5240](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5240) (by @lgritz / Larry Gritz)
+  - *opencv*: Support OpenCV 5, add standalone header smoke test. [#5326](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5326) (by @lgritz / Larry Gritz)
+  - *admin*: SECURITY.md updates and new CVE assignments. [#5311](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5311) [#5320](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5320) [#5329](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5329)
+
+
 Release 3.0.20.0 (Jul 1, 2026) -- compared to 3.0.19.1
 ---------------------------------------------------------
   - *cineon*: More robust to invalid numbers of channels and bit depths; also fixes a channel-naming counter bug and a memory leak in init() [#5250](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5250) (by @lgritz / Larry Gritz)
