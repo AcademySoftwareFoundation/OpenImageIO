@@ -584,7 +584,7 @@ ImageBufImpl::~ImageBufImpl()
 
     // Upon destruction, print uncaught errors to help users who don't know
     // how to properly check for errors.
-    if (!m_err.empty() /* Note: safe becausethis is the dtr */
+    if (!m_err.empty() /* Note: safe because this is the dtr */
         && OIIO::pvt::imagebuf_print_uncaught_errors) {
         try {
             OIIO::print(

@@ -86,7 +86,7 @@ typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
 
 /// ROI is a small helper struct describing a rectangular region of interest
-/// in an image. The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
+/// in an image. The region is [xbegin,xend) x [ybegin,yend) x [zbegin,zend),
 /// with the "end" designators signifying one past the last pixel in each
 /// dimension, a la STL style.
 ///
@@ -333,7 +333,7 @@ public:
     /// All other fields are set to the obvious defaults -- the image is an
     /// ordinary 2D image (not a volume), the image is not offset or a crop
     /// of a bigger image, the image is scanline-oriented (not tiled),
-    /// channel names are "R", "G", "B"' and "A" (up to and including 4
+    /// channel names are "R", "G", "B", and "A" (up to and including 4
     /// channels, beyond that they are named "channel *n*"), the fourth
     /// channel (if it exists) is assumed to be alpha.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeUInt8) noexcept;
@@ -366,7 +366,7 @@ public:
     /// Sets the `channelnames` to reasonable defaults for the number of
     /// channels.  Specifically, channel names are set to "R", "G", "B,"
     /// and "A" (up to and including 4 channels, beyond that they are named
-    /// "channel*n*".
+    /// "channel*n*").
     void default_channel_names () noexcept;
 
     /// Returns the number of bytes comprising each channel of each pixel
@@ -3996,7 +3996,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///   But for less sophisticated applications (or users), this is very useful
 ///   for forcing display of error messages so that users can see relevant
 ///   errors even if they never check them explicitly, thus self-diagnose
-///   their troubles before asking the project dev deam for help. Advanced
+///   their troubles before asking the project dev team for help. Advanced
 ///   users who for some reason desire to neither retrieve errors themselves
 ///   nor have them printed in this manner can disable the behavior by setting
 ///   this attribute to 0.
@@ -4011,7 +4011,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///   applications (or users), this is very useful for forcing display of
 ///   error messages so that users can see relevant errors even if they never
 ///   check them explicitly, thus self-diagnose their troubles before asking
-///   the project dev deam for help. Advanced users who for some reason desire
+///   the project dev team for help. Advanced users who for some reason desire
 ///   to neither retrieve errors themselves nor have them printed in this
 ///   manner can disable the behavior by setting this attribute to 0.
 ///
@@ -4183,7 +4183,7 @@ inline bool attribute(string_view name, string_view value) {
 /// - int64_t IB_local_mem_peak
 ///
 ///   Current and peak size (in bytes) of how much memory was consumed by
-///   ImageBufs that owned their own allcoated local pixel buffers. (Added in
+///   ImageBufs that owned their own allocated local pixel buffers. (Added in
 ///   OpenImageIO 2.5.)
 ///
 /// - float IB_total_open_time
@@ -4192,12 +4192,12 @@ inline bool attribute(string_view name, string_view value) {
 ///   Total amount of time (in seconds) that ImageBufs spent opening
 ///   (including reading header information) and reading pixel data from files
 ///   that they opened and read themselves (that is, excluding I/O from IBs
-///   that were backed by ImageCach.  (Added in OpenImageIO 2.5.)
+///   that were backed by ImageCache).  (Added in OpenImageIO 2.5.)
 ///
 /// - `string opencolorio_version`
 ///
 ///   Returns the version (such as "2.2.0") of OpenColorIO that is used by
-///   OpenImageiO, or "0.0.0" if no OpenColorIO support has been enabled.
+///   OpenImageIO, or "0.0.0" if no OpenColorIO support has been enabled.
 ///   (Added in OpenImageIO 2.4.6)
 ///
 /// - `string hw:simd`
@@ -4223,7 +4223,7 @@ inline bool attribute(string_view name, string_view value) {
 ///
 /// - `string build:dependencies` (read-only)
 ///
-///   List of library dependencieis (where known) and versions, separatd by
+///   List of library dependencies (where known) and versions, separated by
 ///   semicolons. (Added in OpenImageIO 2.5.8.)
 ///
 /// - `int resident_memory_used_MB`
