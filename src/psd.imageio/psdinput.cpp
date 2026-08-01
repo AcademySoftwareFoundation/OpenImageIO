@@ -451,7 +451,7 @@ private:
                              uint32_t unpacked_length);
     bool decompress_zip(span<char> src, span<char> dest);
     bool decompress_zip_prediction(span<char> src, span<char> dest,
-                                   const uint32_t width, const uint32_t height);
+                                   const uint64_t width, const uint64_t height);
 
     // These are AdditionalInfo entries that, for PSBs, have an 8-byte length
     static const char* additional_info_psb[];
@@ -590,6 +590,23 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    // Set m_type_desc to the appropriate TypeDesc (depends only on the depth,
+    // which load_header has just validated).
+    set_type_desc();
+
+    // Do the resolution/etc sanity checks here, the earliest point at which
+    // the composite resolution, channel count, and data type are known --
+    // before any section allocates or seeks based on them.
+    {
+        ImageSpec headerspec((int)m_header.width, (int)m_header.height,
+                             (int)m_header.channel_count, m_type_desc);
+        if (!check_open(headerspec, { 0, 300000, 0, 300000, 0, 1, 0, 56 })
+            || !check_compression_ratio(headerspec, ioproxy()->size())) {
+            close();
+            return false;
+        }
+    }
+
     // Color Mode Data
     if (!load_color_data()) {
         errorfmt("failed to open \"{}\": failed load_color_data", name);
@@ -628,11 +645,8 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
 
     // Layer count + 1 for merged composite (Image Data Section)
     m_subimage_count = m_layers.size() + 1;
-    // Set m_type_desc to the appropriate TypeDesc
-    set_type_desc();
     // Setup ImageSpecs and m_channels
-    bool ok = true;
-    ok &= setup();
+    bool ok = setup();
 
     if (ok)
         ok &= seek_subimage(0, 0);
@@ -1783,7 +1797,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         // randomly so we parse the data up-front and store it
         std::vector<char> compressed_data(channel_info.data_length);
         channel_info.decompressed_data = std::vector<char>(
-            width * height * (m_header.depth / 8));
+            size_t(width) * size_t(height) * (m_header.depth / 8));
 
         if (!ioseek(channel_info.data_pos))
             return false;
@@ -1800,7 +1814,7 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         // randomly so we parse the data up-front and store it
         std::vector<char> compressed_data(channel_info.data_length);
         channel_info.decompressed_data = std::vector<char>(
-            width * height * (m_header.depth / 8));
+            size_t(width) * size_t(height) * (m_header.depth / 8));
 
         if (!ioseek(channel_info.data_pos))
             return false;
@@ -2381,8 +2395,8 @@ bool
 PSDInput::decompress_packbits(const char* src, char* dst,
                               uint32_t packed_length, uint32_t unpacked_length)
 {
-    int32_t src_remaining = packed_length;
-    int32_t dst_remaining = unpacked_length;
+    int64_t src_remaining = packed_length;
+    int64_t dst_remaining = unpacked_length;
     int16_t header;
     int length;
 
@@ -2482,7 +2496,7 @@ PSDInput::decompress_zip(span<char> src, span<char> dest)
 
 bool
 PSDInput::decompress_zip_prediction(span<char> src, span<char> dest,
-                                    const uint32_t width, const uint32_t height)
+                                    const uint64_t width, const uint64_t height)
 {
     OIIO_ASSERT(width * height * (m_header.depth / 8) == dest.size());
     bool ok = true;
