@@ -480,7 +480,7 @@ Reading ../oiio-images/psd/psd_bitmap.psd
     stRef:originalDocumentID: "E146B3E37A92795EE3EA6577040DE6D5"
 Reading ../oiio-images/psd/psd_indexed_trans.psd
 ../oiio-images/psd/psd_indexed_trans.psd :  320 x  240, 4 channel, uint8 psd
-    SHA-1: 5B548EAE1F69EC4B65D762F52D8C542CF18515D5
+    SHA-1: 3DEA3F342B61B6B2064310C06B2AE23692079EE7
     channel list: R, G, B, A
     Artist: "Daniel Wyatt"
     DateTime: "2007-01-18T15:49:21"
@@ -2122,4 +2122,7 @@ oiiotool ERROR: -info : SHA-1: Corrupt PSD channel data for row 0
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-rowbounds-f999.psd
 src/crash-rowbounds-f999.psd :   10 x  111, 3 channel, uint8 psd
-   channel list: R, G, B
+    channel list: R, G, B
+oiiotool ERROR: read : "src/crash-bomb-30000.psd": psd header claims a 2574 MB image from a 40 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-bomb-30000.psd

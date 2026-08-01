@@ -40,3 +40,5 @@ command += info_command ("src/crash-layerres.psd", failureok=True)
 command += info_command ("src/crash-eofstring.psd", failureok=True)
 # Corruption where short per-channel rows could overrun interleaving
 command += info_command ("src/crash-rowbounds-f999.psd", failureok=True)
+# Tiny file declaring a huge composite (decompression bomb) is rejected
+command += info_command ("src/crash-bomb-30000.psd", failureok=True)

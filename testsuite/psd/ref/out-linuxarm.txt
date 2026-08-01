@@ -2123,3 +2123,6 @@ Full command line was:
 > oiiotool --info -v -a --hash src/crash-rowbounds-f999.psd
 src/crash-rowbounds-f999.psd :   10 x  111, 3 channel, uint8 psd
     channel list: R, G, B
+oiiotool ERROR: read : "src/crash-bomb-30000.psd": psd header claims a 2574 MB image from a 40 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-bomb-30000.psd
