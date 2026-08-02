@@ -718,51 +718,6 @@ test_context_override()
 }
 
 
-// The public ColorConfig::find_color_spaces thin adapter: it must map
-// ColorSpaceSearchOptions onto the internal option set and forward to the
-// pvt core, always searching active spaces (there is no include_active
-// toggle on the public shape), and it must convert the core's fail-fast
-// throw into the has_error()/geterror() convention (the public method never
-// throws).
-void
-test_public_adapter()
-{
-    ScratchDir dir;
-    ColorConfig config = config_from_text(dir, "search.ocio", kSearchConfig);
-
-    // A hint through the public method returns the same result as the core.
-    std::vector<std::string> enc = { "-scene-linear" };
-    pvt::FindColorSpacesOptions core;
-    core.encodings = enc;
-    OIIO_CHECK_ASSERT(config.find_color_spaces({}, {}, enc, {})
-                      == pvt::find_color_spaces(config, core));
-
-    // Default (all axes empty) exposes the active/simple universe.
-    OIIO_CHECK_ASSERT(
-        config.find_color_spaces()
-        == std::vector<std::string>(
-            { "active_simple", "display_simple", "unknown_encoding" }));
-
-    // include_inactive flows through the adapter.
-    ColorSpaceSearchOptions inactive_opts;
-    inactive_opts.include_inactive = true;
-    OIIO_CHECK_ASSERT(
-        config.find_color_spaces({}, {}, {}, {}, inactive_opts)
-        == std::vector<std::string>({ "active_simple", "display_simple",
-                                      "unknown_encoding", "inactive_simple" }));
-
-    // The core's fail-fast throw on an unresolvable hint is converted to
-    // the error convention: empty result, has_error() set, never a throw.
-    std::vector<std::string> bad = { "bogus" };
-    std::vector<std::string> r;
-    OIIO_CHECK_ASSERT(!throws_invalid_argument(
-        [&] { r = config.find_color_spaces({}, {}, {}, bad); }));
-    OIIO_CHECK_ASSERT(r.empty());
-    OIIO_CHECK_ASSERT(config.has_error());
-    OIIO_CHECK_ASSERT(!config.geterror().empty());
-    OIIO_CHECK_ASSERT(!config.has_error());  // geterror() cleared it
-}
-
 }  // namespace
 
 
@@ -780,6 +735,5 @@ main(int /*argc*/, char* /*argv*/[])
     test_exhaustive_realize_clean_gate();
     test_transfer_axis();
     test_context_override();
-    test_public_adapter();
     return unit_test_failures;
 }

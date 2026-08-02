@@ -349,8 +349,7 @@ plan_color_metadata(const ColorConfig* config, const ImageSpec& spec,
     // One full derivation cascade (declared id, registry fingerprint match,
     // legacy table, config-local id) feeds both derived signals below,
     // consumed through the shared characterization engine's DERIVE tier --
-    // the same cached records the public derive_color_space_info verbs and
-    // the search walk publish, so a space is characterized once, not per
+    // the same cached records the private search walk publishes, so a space is characterized once, not per
     // consumer. Write planning is the intentional home of the expensive
     // derivation, so this requests the interop-id field's full cascade
     // (never the cheap subset, which a mislabeled config's syntactic table

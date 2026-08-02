@@ -506,16 +506,15 @@ test_set_colorspace_hygiene(const ColorConfig& config)
         spec.attribute("oiio:ColorSpace:range", "narrow");
         spec.attribute("oiio:ColorSpace:equality_id", "stale_equality_id");
         config.set_colorspace(spec, "lin_test_scene");
-        ColorSpaceInfo info = config.get_color_space_info("lin_test_scene");
+        auto info = characterize_color_space(config, "lin_test_scene");
         OIIO_CHECK_ASSERT(info.valid());
-        OIIO_CHECK_EQUAL(info.image_state(), "scene");
-        check_descriptor(spec, "oiio:ColorSpace:state", info.image_state());
-        check_descriptor(spec, "oiio:ColorSpace:encoding", info.encoding());
+        OIIO_CHECK_EQUAL(info.image_state, "scene");
+        check_descriptor(spec, "oiio:ColorSpace:state", info.image_state);
+        check_descriptor(spec, "oiio:ColorSpace:encoding", info.encoding);
         // Stale values that the cheap get cannot vouch for are erased,
         // never retained and never derived.
-        check_descriptor(spec, "oiio:ColorSpace:range", info.range());
-        check_descriptor(spec, "oiio:ColorSpace:equality_id",
-                         info.equality_id());
+        check_descriptor(spec, "oiio:ColorSpace:range", info.range);
+        check_descriptor(spec, "oiio:ColorSpace:equality_id", info.equality_id);
         OIIO_CHECK_EQUAL(color_space_fingerprint_cache_size(), fp_before);
     }
 
@@ -671,14 +670,14 @@ test_hygiene_per_class(const ColorConfig& config)
         OIIO_CHECK_ASSERT(!s.find_attribute("CICP"));
         OIIO_CHECK_ASSERT(!s.find_attribute("colorInteropID"));
         OIIO_CHECK_ASSERT(!s.find_attribute("ICCProfile"));
-        ColorSpaceInfo info = config.get_color_space_info("lin_test_scene");
+        auto info = characterize_color_space(config, "lin_test_scene");
         OIIO_CHECK_ASSERT(info.valid());
-        check_descriptor(s, "oiio:ColorSpace:state", info.image_state());
-        check_descriptor(s, "oiio:ColorSpace:encoding", info.encoding());
+        check_descriptor(s, "oiio:ColorSpace:state", info.image_state);
+        check_descriptor(s, "oiio:ColorSpace:encoding", info.encoding);
         // Range operation-awareness: an ordinary conversion does not
         // invent a range, and the stale pre-operation value is gone.
-        check_descriptor(s, "oiio:ColorSpace:range", info.range());
-        OIIO_CHECK_ASSERT(info.range().empty());
+        check_descriptor(s, "oiio:ColorSpace:range", info.range);
+        OIIO_CHECK_ASSERT(info.range.empty());
     }
     // Known, inferred source: identical hygiene (uniform rule).
     {
@@ -811,7 +810,8 @@ test_hygiene_equality_id(const ColorConfig& config)
 
     // An explicit derive caches the full record; a fresh operation now
     // sees the cached value (or a settled negative, which stays erased).
-    ColorSpaceInfo derived = config.derive_color_space_info("lin_test_scene");
+    auto derived = characterize_color_space(config, "lin_test_scene",
+                                            CharacterizationField::All);
     OIIO_CHECK_ASSERT(derived.valid());
     ImageBuf src2 = make_hinted_src("srgb_rec709_scene");
     ImageBuf out2 = ImageBufAlgo::colorconvert(src2, "srgb_rec709_scene",
@@ -819,7 +819,7 @@ test_hygiene_equality_id(const ColorConfig& config)
                                                &config);
     OIIO_CHECK_ASSERT(!out2.has_error());
     check_descriptor(out2.spec(), "oiio:ColorSpace:equality_id",
-                     derived.equality_id());
+                     derived.equality_id);
 }
 
 

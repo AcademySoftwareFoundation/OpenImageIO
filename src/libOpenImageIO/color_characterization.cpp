@@ -3,14 +3,11 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 // The field-selective color-space characterization engine
-// (pvt::characterize_color_space), its process-global cache, and the public
-// surface adapted to it: the opaque immutable ColorSpaceInfo record and
-// ColorConfig::get_color_space_info (scalar and batch). See color_pvt.h for
-// the engine contract. Split alongside color_search.cpp; see
-// color_ocio_pvt.h for the shared internal declarations.
+// (pvt::characterize_color_space) and its process-global cache. See
+// color_pvt.h for the engine contract. Split alongside color_search.cpp;
+// see color_ocio_pvt.h for the shared internal declarations.
 
 #include <map>
-#include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -333,7 +330,7 @@ characterize_color_space_impl(const ColorConfig& config,
         }
         rec.transfer_identity = identity;
         if (identity) {
-            rec.transfer_kind = ColorTransferFunctionKind::Linear;
+            rec.transfer_kind = spvt::ColorTransferFunctionKind::Linear;
         } else if (!is_data) {
             std::optional<spvt::TransferFunctionSignature> sig;
             try {
@@ -343,17 +340,17 @@ characterize_color_space_impl(const ColorConfig& config,
             if (sig) {
                 rec.transfer_signature = sig;  // raw evidence, for search
                 if (sig->is_linear) {
-                    rec.transfer_kind = ColorTransferFunctionKind::Linear;
+                    rec.transfer_kind = spvt::ColorTransferFunctionKind::Linear;
                 } else if (!sig->family.empty()) {
-                    rec.transfer_kind     = ColorTransferFunctionKind::Named;
+                    rec.transfer_kind = spvt::ColorTransferFunctionKind::Named;
                     rec.transfer_function = sig->family;
                 } else {
-                    rec.transfer_kind = ColorTransferFunctionKind::Sampled;
+                    rec.transfer_kind = spvt::ColorTransferFunctionKind::Sampled;
                 }
             }
         }
         const bool determined = rec.transfer_kind
-                                != ColorTransferFunctionKind::Undetermined;
+                                != spvt::ColorTransferFunctionKind::Undetermined;
         mark(rec, Field::TransferFunction, determined, determined);
     }
 
@@ -440,283 +437,6 @@ characterization_cache_erase_config(string_view cfgId)
 }
 
 
-
-// ---------------------------------------------------------------------------
-// The public opaque record: a shared immutable CharacterizationRecord.
-// Everything out of line; no inline function dereferences the PIMPL.
-// ---------------------------------------------------------------------------
-
-class ColorSpaceInfo::Impl {
-public:
-    spvt::CharacterizationRecord rec;
-    explicit Impl(spvt::CharacterizationRecord r)
-        : rec(std::move(r))
-    {
-    }
-};
-
-namespace {
-
-// The public field enumerators are declared in the same order as the
-// internal CharacterizationField bits, so the bit for public field `f` is
-// 1 << int(f).
-uint32_t
-field_bit(ColorSpaceInfoField f)
-{
-    return uint32_t(1) << uint32_t(f);
-}
-
-// The record a default-constructed (impl-less) ColorSpaceInfo reports.
-const spvt::CharacterizationRecord&
-empty_record()
-{
-    static const spvt::CharacterizationRecord empty;
-    return empty;
-}
-
-}  // namespace
-
-
-ColorSpaceInfo::ColorSpaceInfo()                          = default;
-ColorSpaceInfo::~ColorSpaceInfo()                         = default;
-ColorSpaceInfo::ColorSpaceInfo(const ColorSpaceInfo&)     = default;
-ColorSpaceInfo::ColorSpaceInfo(ColorSpaceInfo&&) noexcept = default;
-ColorSpaceInfo&
-ColorSpaceInfo::operator=(const ColorSpaceInfo&)
-    = default;
-ColorSpaceInfo&
-ColorSpaceInfo::operator=(ColorSpaceInfo&&) noexcept
-    = default;
-
-ColorSpaceInfo::ColorSpaceInfo(std::shared_ptr<const Impl> impl)
-    : m_impl(std::move(impl))
-{
-}
-
-bool
-ColorSpaceInfo::valid() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.valid();
-}
-
-string_view
-ColorSpaceInfo::name() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.name;
-}
-
-string_view
-ColorSpaceInfo::equality_id() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.equality_id;
-}
-
-string_view
-ColorSpaceInfo::color_interop_id() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.color_interop_id;
-}
-
-string_view
-ColorSpaceInfo::encoding() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.encoding;
-}
-
-string_view
-ColorSpaceInfo::image_state() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.image_state;
-}
-
-string_view
-ColorSpaceInfo::range() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.range;
-}
-
-cspan<float>
-ColorSpaceInfo::chromaticities() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.chromaticities;
-}
-
-ColorTransferFunctionKind
-ColorSpaceInfo::transfer_function_kind() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.transfer_kind;
-}
-
-string_view
-ColorSpaceInfo::transfer_function() const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return rec.transfer_function;
-}
-
-bool
-ColorSpaceInfo::computed(ColorSpaceInfoField field) const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return (rec.computed_mask & field_bit(field)) != 0;
-}
-
-bool
-ColorSpaceInfo::available(ColorSpaceInfoField field) const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return (rec.available_mask & field_bit(field)) != 0;
-}
-
-bool
-ColorSpaceInfo::derived(ColorSpaceInfoField field) const noexcept
-{
-    const auto& rec = m_impl ? m_impl->rec : empty_record();
-    return (rec.derived_mask & field_bit(field)) != 0;
-}
-
-
-
-// ---------------------------------------------------------------------------
-// Public ColorConfig entry points: the CHEAP getter, scalar and batch. Both
-// request no derivation fields from the engine (direct/cached work only)
-// and convert engine misses into the class's has_error()/geterror()
-// convention. Neither throws.
-// ---------------------------------------------------------------------------
-
-ColorSpaceInfo
-ColorConfig::get_color_space_info(string_view color_space,
-                                  const ColorSpaceInfoOptions& options) const
-{
-    try {
-        spvt::CharacterizationRecord rec = characterize_color_space_impl(
-            *this, color_space, uint32_t(spvt::CharacterizationField::None),
-            options.context);
-        if (!rec.valid()) {
-            getImpl()->error("get_color_space_info: unknown color space \"{}\"",
-                             color_space);
-            return {};
-        }
-        return ColorSpaceInfo(
-            std::make_shared<const ColorSpaceInfo::Impl>(std::move(rec)));
-    } catch (const std::exception& e) {
-        getImpl()->error("get_color_space_info: {}", e.what());
-        return {};
-    }
-}
-
-
-
-std::vector<ColorSpaceInfo>
-ColorConfig::get_color_space_infos(cspan<std::string> color_spaces,
-                                   const ColorSpaceInfoOptions& options) const
-{
-    try {
-        std::vector<ColorSpaceInfo> results;
-        results.reserve(color_spaces.size());
-        // Every input is validated before any record is returned: one
-        // invalid name fails the whole batch with an indexed error. Batch
-        // order and duplicates are preserved.
-        for (size_t i = 0; i < size_t(color_spaces.size()); ++i) {
-            spvt::CharacterizationRecord rec = characterize_color_space_impl(
-                *this, color_spaces[i],
-                uint32_t(spvt::CharacterizationField::None), options.context);
-            if (!rec.valid()) {
-                getImpl()->error(
-                    "get_color_space_infos[{}]: unknown color space \"{}\"", i,
-                    color_spaces[i]);
-                return {};
-            }
-            results.push_back(ColorSpaceInfo(
-                std::make_shared<const ColorSpaceInfo::Impl>(std::move(rec))));
-        }
-        return results;
-    } catch (const std::exception& e) {
-        getImpl()->error("get_color_space_infos: {}", e.what());
-        return {};
-    }
-}
-
-
-
-// ---------------------------------------------------------------------------
-// Public ColorConfig entry points: the DERIVE verbs, scalar and batch. Both
-// request full derivation of every field from the engine (which publishes
-// completed attempts -- successful and negative -- to the shared cache) and
-// convert engine misses into the class's has_error()/geterror() convention.
-// Neither throws.
-// ---------------------------------------------------------------------------
-
-ColorSpaceInfo
-ColorConfig::derive_color_space_info(string_view color_space,
-                                     const ColorSpaceInfoOptions& options) const
-{
-    try {
-        spvt::CharacterizationRecord rec = characterize_color_space_impl(
-            *this, color_space, uint32_t(spvt::CharacterizationField::All),
-            options.context);
-        if (!rec.valid()) {
-            getImpl()->error(
-                "derive_color_space_info: unknown color space \"{}\"",
-                color_space);
-            return {};
-        }
-        return ColorSpaceInfo(
-            std::make_shared<const ColorSpaceInfo::Impl>(std::move(rec)));
-    } catch (const std::exception& e) {
-        getImpl()->error("derive_color_space_info: {}", e.what());
-        return {};
-    }
-}
-
-
-
-std::vector<ColorSpaceInfo>
-ColorConfig::derive_color_space_infos(cspan<std::string> color_spaces,
-                                      const ColorSpaceInfoOptions& options) const
-{
-    try {
-        // Resolve and validate EVERY requested name before deriving any
-        // record, so one bad input costs no processor work. The validation
-        // pass is the engine's cheap tier (no derivation requested).
-        for (size_t i = 0; i < size_t(color_spaces.size()); ++i) {
-            spvt::CharacterizationRecord probe = characterize_color_space_impl(
-                *this, color_spaces[i],
-                uint32_t(spvt::CharacterizationField::None), options.context);
-            if (!probe.valid()) {
-                getImpl()->error(
-                    "derive_color_space_infos[{}]: unknown color space \"{}\"",
-                    i, color_spaces[i]);
-                return {};
-            }
-        }
-        std::vector<ColorSpaceInfo> results;
-        results.reserve(color_spaces.size());
-        // Batch order and duplicates are preserved. Per-field derivation
-        // failure is an unavailable field on a valid record, never a failed
-        // batch.
-        for (const std::string& name : color_spaces) {
-            spvt::CharacterizationRecord rec = characterize_color_space_impl(
-                *this, name, uint32_t(spvt::CharacterizationField::All),
-                options.context);
-            results.push_back(ColorSpaceInfo(
-                std::make_shared<const ColorSpaceInfo::Impl>(std::move(rec))));
-        }
-        return results;
-    } catch (const std::exception& e) {
-        getImpl()->error("derive_color_space_infos: {}", e.what());
-        return {};
-    }
-}
 
 OIIO_NAMESPACE_END
 

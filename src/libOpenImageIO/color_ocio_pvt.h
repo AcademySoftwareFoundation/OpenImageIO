@@ -294,10 +294,6 @@ public:
     // copy-on-modify contract that the phase-1 cache depends on.
     OCIO::ConstConfigRcPtr config_;
     OCIO::ConstConfigRcPtr builtinconfig_;
-    // The config as FIRST constructed (before any evolve() modifications),
-    // carried through evolve chains so `EvolveOptions::reset` can always
-    // return to the root. Equals config_ for a non-evolved config.
-    OCIO::ConstConfigRcPtr original_config_;
 
 private:
     std::vector<CSInfo> colorspaces;
@@ -383,21 +379,6 @@ public:
 
     bool init(string_view filename);
 
-    // Initialize from OCIO config YAML text held in memory (see
-    // ColorConfig::from_text). `working_dir`, if non-empty, becomes the
-    // config's working directory.
-    bool init_from_text(string_view config_text, string_view working_dir);
-
-    // Initialize from an already-built (frozen) OCIO config -- the shared
-    // adoption path behind the from-memory factories. `name` becomes the
-    // configname() identifier. `original`, if non-null, records the root
-    // config an evolve chain resets to (defaults to `config` itself).
-    bool init_from_config(OCIO::ConstConfigRcPtr config, string_view name,
-                          OCIO::ConstConfigRcPtr original = nullptr);
-
-    // Re-point the back-reference after a ColorConfig move.
-    void set_self(ColorConfig* self) { m_self = self; }
-
     void add(const std::string& name, int index, int flags = 0)
     {
         spin_rw_write_lock lock(m_mutex);
@@ -475,32 +456,6 @@ public:
                                                   : found->second;
     }
 
-    // Diagnostic counters for ColorConfig::get_debug_info().
-    size_t processorCacheSize() const
-    {
-        spin_rw_read_lock lock(m_mutex);
-        return colorprocmap.size();
-    }
-    int processorsRequested() const { return colorprocs_requested; }
-    int processorsCreated() const { return colorprocs_created; }
-
-    // Drop this instance's cached derived processors and per-query hints
-    // (see ColorConfig::clear_caches). The lazy classification, probe, and
-    // interop state is identity-derived and deliberately untouched: its
-    // publication protocol (acquire/release flags) assumes monotonic
-    // computation, and re-deriving it could never produce different
-    // results for the same frozen config.
-    void clearInstanceCaches()
-    {
-        {
-            spin_rw_write_lock lock(m_mutex);
-            colorprocmap.clear();
-            m_lenient_fallbacks.clear();
-        }
-        std::lock_guard<std::mutex> lock(m_learned_complex_mutex);
-        m_learned_complex.clear();
-    }
-
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
     const char* getColorSpaceNameByIndex(int index) const
@@ -508,9 +463,8 @@ public:
         return colorspaces[index].name.c_str();
     }
 
-    // Full resolution cascade. `failover` is what a total miss returns: the
-    // public 1-arg ColorConfig::resolve() passes `name` (historical
-    // passthrough), the 2-arg overload passes the caller's failover.
+    // Full internal resolution cascade used by processor construction.
+    // `failover` is what a total miss returns.
     string_view resolve(string_view name, string_view failover) const;
     string_view resolve(string_view name) const { return resolve(name, name); }
 
@@ -1037,7 +991,7 @@ std::string
 interop_registry_data_version();
 
 // Erase every process-global fingerprint-cache entry scoped to structural
-// config id `cfgId` (see ColorConfig::clear_caches). Defined in
+// config id `cfgId`. Defined in
 // color_fingerprint.cpp.
 void
 fingerprint_cache_erase_config(string_view cfgId);

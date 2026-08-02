@@ -2390,8 +2390,7 @@ set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 // list of terms via the modifier options chromaticities= (shorthand chrm=,
 // echoing PNG's cHRM chunk), transfer_function=, encoding=, image_state=; the inclusion toggles include_inactive=,
 // include_context_sensitive=, include_complex=, and authored_encoding_only=
-// (no interop-identity twin inference on the encoding axis) mirror the
-// ColorSpaceSearchOptions fields of the C++/Python API.
+// (no interop-identity twin inference on the encoding axis).
 static void
 colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
 {
@@ -2416,28 +2415,30 @@ colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
     if (chrm_terms.empty())
         chrm_terms = options.get_string("chrm");
     std::vector<std::string> chromaticities = terms(chrm_terms);
-    std::vector<std::string> transfer = terms(
+    std::vector<std::string> transfer       = terms(
         options.get_string("transfer_function"));
     std::vector<std::string> encoding = terms(options.get_string("encoding"));
     std::vector<std::string> image_state = terms(
         options.get_string("image_state"));
 
-    OIIO::ColorSpaceSearchOptions searchopts;
+    OIIO::pvt::FindColorSpacesOptions searchopts;
+    searchopts.chromaticities            = std::move(chromaticities);
+    searchopts.transfer_functions        = std::move(transfer);
+    searchopts.encodings                 = std::move(encoding);
+    searchopts.image_states              = std::move(image_state);
     searchopts.include_inactive          = options.get_int("include_inactive");
     searchopts.include_context_sensitive = options.get_int(
         "include_context_sensitive");
-    searchopts.include_complex        = options.get_int("include_complex");
-    searchopts.authored_encoding_only = options.get_int(
-        "authored_encoding_only");
+    searchopts.exhaustive = options.get_int("include_complex");
+    searchopts.strict     = options.get_int("authored_encoding_only");
 
-    std::vector<std::string> results
-        = ot.colorconfig().find_color_spaces(chromaticities, transfer, encoding,
-                                             image_state, searchopts);
-    if (ot.colorconfig().has_error()) {
-        ot.errorfmt("--colorspacesearch", "{}", ot.colorconfig().geterror());
-    } else {
+    try {
+        std::vector<std::string> results
+            = OIIO::pvt::find_color_spaces(ot.colorconfig(), searchopts);
         for (auto& name : results)
             Strutil::print("{}\n", name);
+    } catch (const std::exception& e) {
+        ot.errorfmt("--colorspacesearch", "find_color_spaces: {}", e.what());
     }
     ot.printed_info = true;
 }
@@ -6462,9 +6463,8 @@ action_colorreadplan(Oiiotool& ot, cspan<const char*> argv)
 // Print the characterization info the color config can supply cheaply for
 // each named color space (a comma-separated list; an empty list means the
 // current top image's color space): one row per field with its
-// computed/available/derived marker. This is the command-line consumer of
-// the public ColorConfig::get_color_space_info API, and shares its cheap
-// contract -- nothing here probes transforms or derives missing fields;
+// computed/available/derived marker. This uses the private characterization
+// engine's cheap contract -- nothing here probes transforms or derives missing fields;
 // underivable-so-far fields simply print as uncomputed.
 static void
 action_colorinfo(Oiiotool& ot, cspan<const char*> argv)
@@ -6495,45 +6495,52 @@ action_colorinfo(Oiiotool& ot, cspan<const char*> argv)
     }
     OTScopedTimer timer(ot, command);
 
-    ColorConfig& cc  = ot.colorconfig();
-    const auto infos = cc.get_color_space_infos(names);
-    if (cc.has_error()) {
-        ot.errorfmt(command, "{}", cc.geterror());
-        return;
+    ColorConfig& cc = ot.colorconfig();
+    std::vector<pvt::CharacterizationRecord> infos;
+    infos.reserve(names.size());
+    for (size_t i = 0; i < names.size(); ++i) {
+        auto info = pvt::characterize_color_space(cc, names[i]);
+        if (!info.valid()) {
+            ot.errorfmt(command,
+                        "get_color_space_infos[{}]: unknown color space \"{}\"",
+                        i, names[i]);
+            return;
+        }
+        infos.emplace_back(std::move(info));
     }
 
-    auto status = [](const ColorSpaceInfo& info, ColorSpaceInfoField field) {
+    auto status = [](const pvt::CharacterizationRecord& info,
+                     pvt::CharacterizationField field) {
         if (!info.computed(field))
             return "uncomputed";
         if (!info.available(field))
             return "unavailable";
         return info.derived(field) ? "derived" : "available";
     };
-    auto row = [&](const ColorSpaceInfo& info, const char* label,
-                   ColorSpaceInfoField field, const std::string& value) {
+    auto row = [&](const pvt::CharacterizationRecord& info, const char* label,
+                   pvt::CharacterizationField field, const std::string& value) {
         Strutil::print("  {:<17} {:<12} {}\n", label, status(info, field),
                        value.empty() ? std::string("-") : value);
     };
-    for (const ColorSpaceInfo& info : infos) {
-        using F = ColorSpaceInfoField;
-        Strutil::print("Color space info for \"{}\":\n", info.name());
-        row(info, "image_state", F::ImageState,
-            std::string(info.image_state()));
-        row(info, "color_interop_id", F::ColorInteropID,
-            std::string(info.color_interop_id()));
-        row(info, "encoding", F::Encoding, std::string(info.encoding()));
-        row(info, "range", F::Range, std::string(info.range()));
-        row(info, "equality_id", F::EqualityID,
-            std::string(info.equality_id()));
+    for (const auto& info : infos) {
+        using F = pvt::CharacterizationField;
+        Strutil::print("Color space info for \"{}\":\n", info.name);
+        row(info, "image_state", F::ImageState, info.image_state);
+        row(info, "color_interop_id", F::ColorInteropID, info.color_interop_id);
+        row(info, "encoding", F::Encoding, info.encoding);
+        row(info, "range", F::Range, info.range);
+        row(info, "equality_id", F::EqualityID, info.equality_id);
         row(info, "chromaticities", F::Chromaticities,
-            Strutil::join(info.chromaticities(), ","));
+            Strutil::join(info.chromaticities, ","));
         std::string transfer;
-        switch (info.transfer_function_kind()) {
-        case ColorTransferFunctionKind::Linear: transfer = "linear"; break;
-        case ColorTransferFunctionKind::Named:
-            transfer = info.transfer_function();
+        switch (info.transfer_kind) {
+        case pvt::ColorTransferFunctionKind::Linear: transfer = "linear"; break;
+        case pvt::ColorTransferFunctionKind::Named:
+            transfer = info.transfer_function;
             break;
-        case ColorTransferFunctionKind::Sampled: transfer = "sampled"; break;
+        case pvt::ColorTransferFunctionKind::Sampled:
+            transfer = "sampled";
+            break;
         default: break;
         }
         row(info, "transfer_function", F::TransferFunction, transfer);

@@ -79,9 +79,7 @@ interop_identities_config_names();
 /// (with OCIO >= 2.5 that composite is the studio config plus OIIO's
 /// additions, whose declared names are not the canonical id set). This is
 /// the canonical CIID set, gathered by an `interop_id:` token scan of the
-/// source file; it backs the public ColorConfig::get_builtin_interop_ids()
-/// lookup, and a unit test asserts that accessor stays an exact-set match
-/// for it. For internal/test use only.
+/// source file. For internal/test use only.
 OIIO_API std::vector<std::string>
 embedded_interop_identities_ids();
 
@@ -770,9 +768,9 @@ find_color_spaces(const ColorConfig& config,
 
 
 // ---------------------------------------------------------------------------
-// Field-selective color-space characterization engine -- the one internal
-// entry the public get/derive characterization queries and (in a later
-// convergence) the search walk adapt to. characterize_color_space() always
+// Field-selective color-space characterization engine. The search walk,
+// metadata planner, and tool-facing inspection all adapt to this one entry.
+// characterize_color_space() always
 // performs the cheap direct-fact pass (canonical name, image state, cheap
 // interop-id subset, authored encoding, intrinsic range) and merges any
 // previously cached derived facts; `requested_fields` selects which fields
@@ -787,10 +785,8 @@ find_color_spaces(const ColorConfig& config,
 // ---------------------------------------------------------------------------
 
 /// Bitmask of characterization fields to attempt full derivation for.
-/// `None` is the cheap/direct-only pass (what the public
-/// ColorConfig::get_color_space_info() requests); `All` is the complete
-/// derivation the future public derive verb requests; the search walk
-/// requests only the fields its non-empty axes need.
+/// `None` is the cheap/direct-only pass; `All` is complete derivation; the
+/// search walk requests only the fields its non-empty axes need.
 enum class CharacterizationField : uint32_t {
     None             = 0,
     EqualityID       = 1u << 0,
@@ -814,11 +810,18 @@ operator&(CharacterizationField a, CharacterizationField b)
     return (uint32_t(a) & uint32_t(b)) != 0;
 }
 
+/// Semantic classification of a characterized transfer function.
+enum class ColorTransferFunctionKind : uint8_t {
+    Undetermined,
+    Linear,
+    Named,
+    Sampled,
+};
+
 /// One characterization record: the value slots plus the per-field
 /// computed / available / derived tri-state (bitmasks of
-/// CharacterizationField). This is the payload behind the public opaque
-/// ColorSpaceInfo. An empty `name` denotes an invalid record (unknown or
-/// unresolvable query).
+/// CharacterizationField). An empty `name` denotes an invalid record
+/// (unknown or unresolvable query).
 struct CharacterizationRecord {
     std::string name;             ///< canonical local name; empty = invalid
     uint32_t computed_mask  = 0;  ///< fields whose determination was attempted
@@ -840,8 +843,7 @@ struct CharacterizationRecord {
     std::string transfer_function;  ///< normalized family, or empty
 
     // Internal search payload -- the raw evidence the search walk's
-    // three-valued matching consumes, cached alongside the public-facing
-    // values above but never exposed through ColorSpaceInfo:
+    // three-valued matching consumes:
     // double-precision rounded chromaticities (the float vector above is a
     // lossy public copy; exact-== matching needs the doubles), the probed
     // transfer signature, and the conservative ambient-context linearity
@@ -1166,7 +1168,7 @@ scrub_color_metadata(ImageSpec& spec);
 
 /// Update-or-erase maintenance of the four cheap current-state descriptors
 /// (`oiio:ColorSpace:state` / `:encoding` / `:range` / `:equality_id`) from
-/// ColorConfig::get_color_space_info() -- the descriptor half of the
+/// the private characterization engine -- the descriptor half of the
 /// identity-known finish, shared by ColorOperationHygiene::finish() and
 /// ColorConfig::set_colorspace(). Cheap get only: direct or previously
 /// cached values update the sub-attribute, an unavailable value erases it
@@ -1204,7 +1206,7 @@ enum class ColorOperationIdentity {
 ///   file-provenance facts (uniformly -- explicit and inferred sources
 ///   alike), and maintain the cheap current-state descriptors
 ///   `oiio:ColorSpace:state` / `:encoding` / `:range` / `:equality_id`
-///   from ColorConfig::get_color_space_info(): direct or cached values
+///   from private characterization: direct or cached values
 ///   update the sub-attribute, unavailable values erase it -- never
 ///   guessed, never derived by this path (no chromaticities or transfer
 ///   information is requested).

@@ -317,17 +317,18 @@ colorspaces:
     const std::string cascade(derive_color_interop_id(cc, "srgb_rec709_scene"));
     OIIO_CHECK_EQUAL(cascade, "lin_ap0_scene");
 
-    // The engine's derive tier (via the public derive verb) agrees with the
-    // cascade bit-exact, and reports the correction as a derived value.
-    ColorSpaceInfo info = cc.derive_color_space_info("srgb_rec709_scene");
+    // The private engine's derive tier agrees with the cascade bit-exact and
+    // reports the correction as a derived value.
+    auto info = characterize_color_space(cc, "srgb_rec709_scene",
+                                         CharacterizationField::All);
     OIIO_CHECK_ASSERT(info.valid());
-    OIIO_CHECK_EQUAL(info.color_interop_id(), cascade);
-    OIIO_CHECK_ASSERT(info.derived(ColorSpaceInfoField::ColorInteropID));
+    OIIO_CHECK_EQUAL(info.color_interop_id, cascade);
+    OIIO_CHECK_ASSERT(info.derived(CharacterizationField::ColorInteropID));
 
     // The corrected verdict survives the cache merge with a later fresh
     // cheap pass (the derived value outranks the table match).
-    ColorSpaceInfo cheap = cc.get_color_space_info("srgb_rec709_scene");
-    OIIO_CHECK_EQUAL(cheap.color_interop_id(), cascade);
+    auto cheap = characterize_color_space(cc, "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(cheap.color_interop_id, cascade);
 
     // And the planner's Derive verdict is that same answer.
     ColorWritePolicy pol;

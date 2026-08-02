@@ -11,7 +11,6 @@
 #include <mutex>
 #include <optional>
 #include <set>
-#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -523,45 +522,6 @@ ColorConfig::ColorConfig(string_view filename) { (void)reset(filename); }
 
 
 
-ColorConfig::ColorConfig(UninitTag)
-    : m_impl(new Impl(this))
-{
-}
-
-
-
-ColorConfig::ColorConfig(ColorConfig&& other) noexcept
-    : m_impl(std::move(other.m_impl))
-{
-    if (m_impl)
-        m_impl->set_self(this);
-}
-
-
-
-ColorConfig&
-ColorConfig::operator=(ColorConfig&& other) noexcept
-{
-    if (this != &other) {
-        m_impl = std::move(other.m_impl);
-        if (m_impl)
-            m_impl->set_self(this);
-    }
-    return *this;
-}
-
-
-
-ColorConfig
-ColorConfig::from_text(string_view config_text, string_view working_dir)
-{
-    ColorConfig cc { UninitTag() };
-    (void)cc.m_impl->init_from_text(config_text, working_dir);
-    return cc;
-}
-
-
-
 ColorConfig::~ColorConfig() {}
 
 
@@ -683,9 +643,6 @@ ColorConfig::Impl::finish_init()
     OIIO_MAYBE_UNUSED Timer timer;
     bool ok = config_.get() != nullptr;
 
-    if (!original_config_)
-        original_config_ = config_;
-
     inventory();
     // NOTE: inventory already does classify_by_name
 
@@ -718,59 +675,6 @@ ColorConfig::Impl::finish_init()
         timer.lap());
 
     return ok;
-}
-
-
-
-bool
-ColorConfig::Impl::init_from_config(OCIO::ConstConfigRcPtr config,
-                                    string_view name,
-                                    OCIO::ConstConfigRcPtr original)
-{
-    auto oldlog = OCIO::GetLoggingLevel();
-    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
-    init_builtin();
-    OCIO::SetLoggingLevel(oldlog);
-
-    configname(name);
-    config_          = std::move(config);
-    original_config_ = original ? std::move(original) : config_;
-    return finish_init();
-}
-
-
-
-bool
-ColorConfig::Impl::init_from_text(string_view config_text,
-                                  string_view working_dir)
-{
-    auto oldlog = OCIO::GetLoggingLevel();
-    OCIO::SetLoggingLevel(OCIO::LOGGING_LEVEL_NONE);
-
-    OCIO::ConstConfigRcPtr frozen;
-    std::string name = "text:(invalid)";
-    try {
-        std::istringstream iss { std::string(config_text) };
-        auto cfg = OCIO::Config::CreateFromStream(iss);
-        if (cfg) {
-            // Fix up a mutable copy, then freeze it into the const member.
-            OCIO::ConfigRcPtr copy = copy_config(cfg);
-            if (!working_dir.empty())
-                copy->setWorkingDir(std::string(working_dir).c_str());
-            const char* cfgname = copy->getName();
-            name                = (cfgname && *cfgname)
-                                      ? Strutil::fmt::format("text:{}", cfgname)
-                                      : std::string("text:(anonymous)");
-            frozen              = copy;
-        }
-    } catch (OCIO::Exception& e) {
-        error("Error reading OCIO config from text: {}", e.what());
-    } catch (...) {
-        error("Error reading OCIO config from text");
-    }
-    OCIO::SetLoggingLevel(oldlog);
-
-    return init_from_config(std::move(frozen), name);
 }
 
 
@@ -1331,243 +1235,16 @@ ColorConfig::configname() const
 
 
 
-std::string
-ColorConfig::serialize(const SerializeOptions& options) const
-{
-    OCIO::ConstConfigRcPtr config;
-    if (getImpl()->config_ && !disable_ocio)
-        config = options.interopified ? getImpl()->interopifiedConfig()
-                                      : getImpl()->config_;
-    if (!config) {
-        getImpl()->error(
-            "ColorConfig::serialize: no {}config is available to serialize",
-            options.interopified ? "interoperability-repaired " : "");
-        return {};
-    }
-    try {
-        std::ostringstream os;
-        config->serialize(os);
-        return os.str();
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("ColorConfig::serialize: {}", e.what());
-    } catch (...) {
-        getImpl()->error(
-            "ColorConfig::serialize: unknown error in OpenColorIO serialize");
-    }
-    return {};
-}
-
-
-
-bool
-ColorConfig::archive(string_view filename, const ArchiveOptions& options) const
-{
-    OCIO::ConstConfigRcPtr config;
-    if (getImpl()->config_ && !disable_ocio)
-        config = options.interopified ? getImpl()->interopifiedConfig()
-                                      : getImpl()->config_;
-    if (!config) {
-        getImpl()->error(
-            "ColorConfig::archive: no {}config is available to archive",
-            options.interopified ? "interoperability-repaired " : "");
-        return false;
-    }
-    try {
-        if (options.working_dir.size()) {
-            // Archive as if the working directory were the override, without
-            // touching the frozen member config.
-            OCIO::ConfigRcPtr copy = copy_config(config);
-            copy->setWorkingDir(options.working_dir.c_str());
-            config = copy;
-        }
-        if (!config->isArchivable()) {
-            getImpl()->error(
-                "ColorConfig::archive: config \"{}\" is not archivable "
-                "(it needs a working directory, and every search path and "
-                "FileTransform source must stay within it){}",
-                configname(),
-                options.working_dir.empty()
-                    ? " -- consider passing ArchiveOptions::working_dir"
-                    : "");
-            return false;
-        }
-        OIIO::ofstream out;
-        Filesystem::open(out, filename,
-                         std::ios_base::out | std::ios_base::binary
-                             | std::ios_base::trunc);
-        if (!out) {
-            getImpl()->error("ColorConfig::archive: could not open \"{}\"",
-                             filename);
-            return false;
-        }
-        config->archive(out);
-        out.close();
-        if (!out) {
-            getImpl()->error("ColorConfig::archive: error writing \"{}\"",
-                             filename);
-            return false;
-        }
-        return true;
-    } catch (OCIO::Exception& e) {
-        getImpl()->error("ColorConfig::archive: {}", e.what());
-    } catch (...) {
-        getImpl()->error(
-            "ColorConfig::archive: unknown error in OpenColorIO archive");
-    }
-    return false;
-}
-
-
-
-ColorConfig
-ColorConfig::evolve(const EvolveOptions& options) const
-{
-    ColorConfig cc { UninitTag() };
-
-    OCIO::ConstConfigRcPtr base;
-    if (getImpl()->config_ && !disable_ocio)
-        base = options.reset ? getImpl()->original_config_ : getImpl()->config_;
-    // The evolved instance's configname marks its provenance (once -- an
-    // evolve chain doesn't stack suffixes).
-    std::string name = getImpl()->configname();
-    if (!Strutil::ends_with(name, "#evolved"))
-        name += "#evolved";
-
-    OCIO::ConstConfigRcPtr modified;
-    if (!base) {
-        cc.m_impl->error(
-            "ColorConfig::evolve: no config is available to evolve");
-    } else {
-        try {
-            OCIO::ConfigRcPtr copy = copy_config(base);
-            if (options.working_dir.size())
-                copy->setWorkingDir(options.working_dir.c_str());
-            for (const auto& kv : options.context)
-                copy->addEnvironmentVar(kv.first.c_str(), kv.second.c_str());
-            modified = copy;
-        } catch (OCIO::Exception& e) {
-            cc.m_impl->error("ColorConfig::evolve: {}", e.what());
-        } catch (...) {
-            cc.m_impl->error(
-                "ColorConfig::evolve: unknown error in OpenColorIO");
-        }
-    }
-    // Adopt the modified copy (or, on failure, initialize the usual
-    // failed-config fallback state with the error preserved). The evolved
-    // instance inherits this config's ORIGINAL as its reset root.
-    (void)cc.m_impl->init_from_config(std::move(modified), name,
-                                      getImpl()->original_config_);
-    return cc;
-}
-
-
-
-ColorConfigDebugInfo
-ColorConfig::get_debug_info(const DebugInfoOptions& /*options*/) const
-{
-    const Impl* impl = getImpl();
-    ColorConfigDebugInfo info;
-    info.oiio_version          = OIIO_VERSION_STRING;
-    info.ocio_version          = OCIO::GetVersion();
-    info.config_name           = configname();
-    info.registry_data_version = interop_registry_data_version();
-    if (impl->config_ && !disable_ocio) {
-        info.structural_cache_id = get_config_cache_id(impl->config_);
-        try {
-            if (const char* id = impl->config_->getCacheID())
-                info.cache_id = id;
-        } catch (...) {
-        }
-    }
-    // Interchange discovery: report the existing state, never trigger the
-    // lazy bootstrap.
-    if (!impl->interopComputed())
-        info.interchange_state = ColorInterchangeState::Pending;
-    else if (impl->interopIsInteroperable()) {
-        info.interchange_state = ColorInterchangeState::Interoperable;
-        info.interchange_name  = impl->interopInterchangeName();
-    } else
-        info.interchange_state = ColorInterchangeState::NotFound;
-    info.cache_entries["color processors"] = impl->processorCacheSize();
-    info.cache_entries["color processors requested"]
-        = std::size_t(std::max(0, impl->processorsRequested()));
-    info.cache_entries["color processors created"]
-        = std::size_t(std::max(0, impl->processorsCreated()));
-    info.cache_entries["fingerprints"]
-        = OIIO::pvt::color_space_fingerprint_cache_size();
-    info.cache_entries["characterizations"]
-        = OIIO::pvt::characterization_cache_size();
-    return info;
-}
-
-
-
-std::string
-ColorConfigDebugInfo::to_string() const
-{
-    using Strutil::fmt::format;
-    std::string out;
-    out += format("OpenImageIO {} / OpenColorIO {}\n", oiio_version,
-                  ocio_version);
-    out += format("config: \"{}\"\n", config_name);
-    out += format("  structural cache id: {}\n", structural_cache_id.size()
-                                                     ? structural_cache_id
-                                                     : "(none)");
-    out += format("  cache id (context folded in): {}\n",
-                  cache_id.size() ? cache_id : "(none)");
-    switch (interchange_state) {
-    case ColorInterchangeState::Pending:
-        out += "interchange discovery: pending (not yet queried)\n";
-        break;
-    case ColorInterchangeState::Interoperable:
-        out += format(
-            "interchange discovery: interoperable (scene interchange \"{}\")\n",
-            interchange_name);
-        break;
-    case ColorInterchangeState::NotFound:
-        out += "interchange discovery: no scene interchange identified\n";
-        break;
-    }
-    out += format("interop registry data: {}\n", registry_data_version);
-    out += "caches:\n";
-    for (const auto& kv : cache_entries)
-        out += format("  {}: {} entries\n", kv.first, kv.second);
-    return out;
-}
-
-
-
-void
-ColorConfig::clear_caches(const ClearCachesOptions& /*options*/) const
-{
-    // This instance's processor cache and per-query hints.
-    getImpl()->clearInstanceCaches();
-    // The process-global memo entries scoped to this config's structural
-    // identity. Shared process data not scoped to it (the built-in interop
-    // registry and its fingerprint index) is untouched.
-    if (getImpl()->config_ && !disable_ocio) {
-        const std::string cfgId = get_config_cache_id(getImpl()->config_);
-        if (cfgId.size()) {
-            fingerprint_cache_erase_config(cfgId);
-            characterization_cache_erase_config(cfgId);
-        }
-    }
-}
-
-
-
 string_view
 ColorConfig::resolve(string_view name) const
 {
-    return getImpl()->resolve(name);
-}
-
-
-
-string_view
-ColorConfig::resolve(string_view name, string_view failover) const
-{
-    return getImpl()->resolve(name, failover);
+    // Keep this long-standing public query fingerprint-free: syntactic
+    // interop-ID forms enrich its answers without hiding processor work in a
+    // formerly cheap method. Internal processor routing uses the full resolver.
+    if (string_view resolved = getImpl()->resolve_syntactic(name);
+        !resolved.empty())
+        return resolved;
+    return name;
 }
 
 
@@ -1976,39 +1653,7 @@ bool
 ColorConfig::equivalent(string_view color_space1,
                         string_view color_space2) const
 {
-    // Empty color spaces never match
-    if (color_space1.empty() || color_space2.empty())
-        return false;
-    // Easy case: matching names are the same!
-    if (Strutil::iequals(color_space1, color_space2))
-        return true;
-
-    // If "resolved" names (after converting aliases and roles to color
-    // spaces) match, they are equivalent.
-    color_space1 = resolve(color_space1);
-    color_space2 = resolve(color_space2);
-    if (color_space1.empty() || color_space2.empty())
-        return false;
-    if (Strutil::iequals(color_space1, color_space2))
-        return true;
-
-    // If the color spaces' flags (when masking only the bits that refer to
-    // specific known color spaces) match, consider them equivalent.
-    const int mask = CSInfo::is_srgb | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
-                     | CSInfo::is_Rec709;
-    const CSInfo* csi1 = getImpl()->find(color_space1);
-    const CSInfo* csi2 = getImpl()->find(color_space2);
-    if (csi1 && csi2) {
-        int flags1 = csi1->flags() & mask;
-        int flags2 = csi2->flags() & mask;
-        if ((flags1 | flags2) && csi1->flags() == csi2->flags())
-            return true;
-        if ((csi1->canonical.size() && csi2->canonical.size())
-            && Strutil::iequals(csi1->canonical, csi2->canonical))
-            return true;
-    }
-
-    return false;
+    return getImpl()->equivalent_syntactic(color_space1, color_space2);
 }
 
 
@@ -2086,8 +1731,8 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
     OCIO::ConstProcessorRcPtr p;
     if (getImpl()->config_ && !disable_ocio) {
         // Canonicalize the names
-        inputColorSpace  = ustring(resolve(inputColorSpace));
-        outputColorSpace = ustring(resolve(outputColorSpace));
+        inputColorSpace  = ustring(getImpl()->resolve(inputColorSpace));
+        outputColorSpace = ustring(getImpl()->resolve(outputColorSpace));
         // DBG("after role substitution, {} -> {}\n", inputColorSpace,
         //                outputColorSpace);
         auto config = getImpl()->config_;
@@ -2224,12 +1869,12 @@ ColorConfig::createLookTransform(ustring looks, ustring inputColorSpace,
                 // look -> src.  This is an unintuitive result for the artist
                 // (who would expect in, out to remain unchanged), so we
                 // account for that here by flipping src/dst
-                transform->setSrc(c_str(resolve(outputColorSpace)));
-                transform->setDst(c_str(resolve(inputColorSpace)));
+                transform->setSrc(c_str(getImpl()->resolve(outputColorSpace)));
+                transform->setDst(c_str(getImpl()->resolve(inputColorSpace)));
                 dir = OCIO::TRANSFORM_DIR_INVERSE;
             } else {  // forward
-                transform->setSrc(c_str(resolve(inputColorSpace)));
-                transform->setDst(c_str(resolve(outputColorSpace)));
+                transform->setSrc(c_str(getImpl()->resolve(inputColorSpace)));
+                transform->setDst(c_str(getImpl()->resolve(outputColorSpace)));
                 dir = OCIO::TRANSFORM_DIR_FORWARD;
             }
             auto context = config->getCurrentContext();
@@ -2281,6 +1926,7 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                                     bool inverse, ustring context_key,
                                     ustring context_value) const
 {
+    inputColorSpace = ustring(getImpl()->resolve(inputColorSpace));
     if (display.empty() || display == "default")
         display = getDefaultDisplayName();
     if (view.empty() || view == "default")
@@ -3559,39 +3205,6 @@ ColorConfig::get_cicp(string_view colorspace) const
 }
 
 
-std::vector<std::string>
-ColorConfig::find_color_spaces(cspan<std::string> chromaticities,
-                               cspan<std::string> transfer_function,
-                               cspan<std::string> encoding,
-                               cspan<std::string> image_state,
-                               const ColorSpaceSearchOptions& search) const
-{
-    // Thin public adapter: fill the internal option set (the active-space
-    // toggle has no public counterpart -- the public API always searches
-    // active spaces) and forward to the pvt search core. The internal core
-    // throws std::invalid_argument on a malformed/unresolvable hint; the
-    // public surface converts that to the class's has_error()/geterror()
-    // convention and never throws.
-    OIIO::pvt::FindColorSpacesOptions options;
-    options.chromaticities.assign(chromaticities.begin(), chromaticities.end());
-    options.transfer_functions.assign(transfer_function.begin(),
-                                      transfer_function.end());
-    options.encodings.assign(encoding.begin(), encoding.end());
-    options.image_states.assign(image_state.begin(), image_state.end());
-    options.include_inactive          = search.include_inactive;
-    options.include_context_sensitive = search.include_context_sensitive;
-    options.exhaustive                = search.include_complex;
-    options.strict                    = search.authored_encoding_only;
-    options.context                   = search.context;
-    try {
-        return OIIO::pvt::find_color_spaces(*this, options);
-    } catch (const std::exception& e) {
-        getImpl()->error("find_color_spaces: {}", e.what());
-        return {};
-    }
-}
-
-
 //////////////////////////////////////////////////////////////////////////
 //
 // Image Processing Implementations
@@ -4657,24 +4270,24 @@ void
 maintain_color_state_descriptors(ImageSpec& spec, const ColorConfig& config,
                                  string_view color_space)
 {
-    // Cheap get only: get_color_space_info() does direct or previously
-    // cached work -- it never builds a processor, probes a transform, or
-    // computes a fingerprint. Direct/cached values update the
+    // Cheap private characterization only: this direct field set never
+    // builds a processor, probes a transform, or computes a fingerprint.
+    // Direct/cached values update the
     // sub-attribute; an unavailable value erases it -- update-or-erase,
     // never guess. (An uncomputed equality id in particular is removed,
     // never derived here: retaining the previous id would be observably
     // wrong, forcing a fingerprint would violate the cheap-only rule.)
-    ColorSpaceInfo info = config.get_color_space_info(color_space);
-    auto set_or_erase   = [&](const char* name, string_view value) {
+    CharacterizationRecord info = characterize_color_space(config, color_space);
+    auto set_or_erase           = [&](const char* name, string_view value) {
         if (value.size())
             spec.attribute(name, value);
         else
             spec.erase_attribute(name);
     };
-    set_or_erase("oiio:ColorSpace:state", info.image_state());
-    set_or_erase("oiio:ColorSpace:encoding", info.encoding());
-    set_or_erase("oiio:ColorSpace:range", info.range());
-    set_or_erase("oiio:ColorSpace:equality_id", info.equality_id());
+    set_or_erase("oiio:ColorSpace:state", info.image_state);
+    set_or_erase("oiio:ColorSpace:encoding", info.encoding);
+    set_or_erase("oiio:ColorSpace:range", info.range);
+    set_or_erase("oiio:ColorSpace:equality_id", info.equality_id);
 }
 
 
