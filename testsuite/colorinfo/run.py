@@ -4,9 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# The public cheap characterization surface: `oiiotool --colorinfo` (the
-# in-tree consumer of ColorConfig::get_color_space_info) and the Python
-# binding. The config is self-contained to this directory and identifies its
+# The tool-facing cheap characterization surface. The config is self-contained
+# to this directory and identifies its
 # interop-id-named space through the static table (no interop_id attribute),
 # so the output does not vary by OCIO version. Everything here exercises the
 # CHEAP contract only: no field is derived, so the derivable fields print as
@@ -34,11 +33,5 @@ command += oiiotool ("-echo \"consumer: current image =\" "
 command += oiiotool ("-echo \"consumer: invalid name =\" "
                      "--colorconfig " + cfg + " "
                      "--colorinfo plain_space,nope_xyzzy", failureok = 1)
-
-# --- Python binding: None-for-unavailable, batch, error convention ---
-command += pythonbin + " src/test_colorinfo.py >> out.txt 2>&1 ;\n"
-
-# --- Python binding: ColorConfig.get_builtin_interop_ids() ---
-command += pythonbin + " src/test_color_interop_ids.py >> out.txt 2>&1 ;\n"
 
 outputs = [ "out.txt" ]

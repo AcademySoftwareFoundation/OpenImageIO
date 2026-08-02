@@ -4590,9 +4590,7 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     description, one per line. This lets you ask "which color spaces in this
     config have the Rec.709 gamut but are not scene-linear?" without knowing
     the config's naming conventions. Each of the four hint axes is given as a
-    comma-separated list of terms through an appended modifier (the modifier
-    names mirror the `ColorConfig::find_color_spaces` C++/Python parameter
-    and option names):
+    comma-separated list of terms through an appended modifier:
 
     - `chromaticities=` *terms*, `transfer_function=` *terms*,
       `encoding=` *terms*, `image_state=` *terms* :

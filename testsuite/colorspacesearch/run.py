@@ -4,9 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# Color space search by characterization: the public
-# ColorConfig::find_color_spaces API, its `oiiotool --colorspacesearch`
-# in-tree consumer, and the Python binding. Refs are self-contained to this
+# Color space search by characterization through the tool-facing private
+# engine used by `oiiotool --colorspacesearch`. Refs are self-contained to this
 # directory; the results below do not vary by OCIO version.
 
 redirect = " >> out.txt 2>&1 "
@@ -45,8 +44,5 @@ command += oiiotool ("-echo \"consumer: state=display =\" "
 command += oiiotool ("-echo \"consumer: quoted colon-bearing term =\" "
                      "--colorconfig " + core + " "
                      "--colorspacesearch:encoding=\\\"acme:special\\\"")
-
-# --- Python binding: hint coercion, escape grammar, determinism ---
-command += pythonbin + " src/test_colorspacesearch.py >> out.txt 2>&1 ;\n"
 
 outputs = [ "out.txt" ]

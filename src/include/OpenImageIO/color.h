@@ -5,8 +5,10 @@
 #pragma once
 
 #include <cstddef>
+#ifdef OIIO_INTERNAL
 #include <cstdint>
 #include <map>
+#endif
 #include <memory>
 
 #include <OpenImageIO/export.h>
@@ -87,6 +89,8 @@ struct ColorConfigClassificationPeek;
 }  // namespace pvt
 #endif
 
+
+#ifdef OIIO_INTERNAL
 
 /// Options controlling ColorConfig::find_color_spaces(). The four hint axes
 /// are passed separately; this bundles the search-scope toggles and the
@@ -364,6 +368,8 @@ private:
     explicit ColorSpaceInfo(std::shared_ptr<const Impl>);
     friend class ColorConfig;
 };
+
+#endif  // OIIO_INTERNAL
 
 
 class OIIO_API ColorConfig {
@@ -737,6 +743,7 @@ public:
     /// If none of these recognize the name, the name is returned unchanged.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
+#ifdef OIIO_INTERNAL
     /// Like resolve(name), but a name that no tier recognizes returns
     /// `failover` instead of the name unchanged. Passing an empty failover
     /// therefore distinguishes "resolved" from "not recognized", which the
@@ -747,6 +754,7 @@ public:
     /// @version 3.2
     OIIO_NODISCARD string_view resolve(string_view name,
                                        string_view failover) const;
+#endif
 
     /// Are the two color space names/aliases/roles equivalent? Each name is
     /// resolve()d first, so color interop IDs and aliases participate on either
@@ -785,6 +793,7 @@ public:
     /// @version 3.1
     OIIO_NODISCARD string_view get_color_interop_id(const int cicp[4]) const;
 
+#ifdef OIIO_INTERNAL
     /// Search the config for color spaces matching a partial color-space
     /// characterization, and return their names ordered deterministically by
     /// (context-invariant, active, simple, name).
@@ -1056,6 +1065,7 @@ public:
     ///
     /// @version 3.2
     void clear_caches(const ClearCachesOptions& options = {}) const;
+#endif
 
     /// Return a filename or other identifier for the config we're using.
     OIIO_NODISCARD std::string configname() const;

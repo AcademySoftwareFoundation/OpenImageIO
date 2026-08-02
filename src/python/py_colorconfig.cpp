@@ -4,48 +4,11 @@
 
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
-#include <cctype>
-#include <map>
 #include <optional>
 #include <string>
 #include <utility>
-#include <vector>
-
-#include <pybind11/eval.h>
 
 namespace PyOpenImageIO {
-
-namespace {
-    // Coerce a characterization-search axis argument into the term list the
-    // C++ query expects. Each axis accepts either a single string ("" means
-    // "unconstrained") or a sequence of strings. Anything else (a non-string
-    // element, or a non-sequence like bytes/int) raises ValueError.
-    std::vector<std::string> parse_hint_terms(const py::object& value,
-                                              const char* axis)
-    {
-        std::vector<std::string> out;
-        if (py::isinstance<py::str>(value)) {
-            std::string s = py::cast<std::string>(value);
-            if (!s.empty())
-                out.push_back(std::move(s));
-            return out;
-        }
-        if (py::isinstance<py::bytes>(value)
-            || py::isinstance<py::bytearray>(value)
-            || !py::isinstance<py::sequence>(value))
-            throw py::value_error(
-                std::string(axis)
-                + " must be a string or a sequence of strings");
-        for (auto item : py::cast<py::sequence>(value)) {
-            if (!py::isinstance<py::str>(item))
-                throw py::value_error(
-                    std::string(axis)
-                    + " sequence entries must all be strings");
-            out.push_back(py::cast<std::string>(item));
-        }
-        return out;
-    }
-}  // namespace
 
 
 // Declare the OIIO ColorConfig class to Python
@@ -53,126 +16,6 @@ void
 declare_colorconfig(py::module& m)
 {
     using namespace pybind11::literals;
-
-    py::enum_<ColorSpaceInfoField>(m, "ColorSpaceInfoField")
-        .value("EqualityID", ColorSpaceInfoField::EqualityID)
-        .value("ColorInteropID", ColorSpaceInfoField::ColorInteropID)
-        .value("Encoding", ColorSpaceInfoField::Encoding)
-        .value("ImageState", ColorSpaceInfoField::ImageState)
-        .value("Range", ColorSpaceInfoField::Range)
-        .value("Chromaticities", ColorSpaceInfoField::Chromaticities)
-        .value("TransferFunction", ColorSpaceInfoField::TransferFunction);
-
-    py::enum_<ColorInterchangeState>(m, "ColorInterchangeState")
-        .value("Pending", ColorInterchangeState::Pending)
-        .value("Interoperable", ColorInterchangeState::Interoperable)
-        .value("NotFound", ColorInterchangeState::NotFound);
-
-    py::class_<ColorConfigDebugInfo>(m, "ColorConfigDebugInfo")
-        .def_readonly("oiio_version", &ColorConfigDebugInfo::oiio_version)
-        .def_readonly("ocio_version", &ColorConfigDebugInfo::ocio_version)
-        .def_readonly("config_name", &ColorConfigDebugInfo::config_name)
-        .def_readonly("structural_cache_id",
-                      &ColorConfigDebugInfo::structural_cache_id)
-        .def_readonly("cache_id", &ColorConfigDebugInfo::cache_id)
-        .def_readonly("registry_data_version",
-                      &ColorConfigDebugInfo::registry_data_version)
-        .def_readonly("interchange_state",
-                      &ColorConfigDebugInfo::interchange_state)
-        .def_readonly("interchange_name",
-                      &ColorConfigDebugInfo::interchange_name)
-        .def_readonly("cache_entries", &ColorConfigDebugInfo::cache_entries)
-        .def("to_string", &ColorConfigDebugInfo::to_string)
-        .def("__str__", &ColorConfigDebugInfo::to_string);
-
-    py::enum_<ColorTransferFunctionKind>(m, "ColorTransferFunctionKind")
-        .value("Undetermined", ColorTransferFunctionKind::Undetermined)
-        .value("Linear", ColorTransferFunctionKind::Linear)
-        .value("Named", ColorTransferFunctionKind::Named)
-        .value("Sampled", ColorTransferFunctionKind::Sampled);
-
-    // A helper for the optional string properties: an unavailable field maps
-    // to None; empty strings are not used to erase the difference between
-    // "unavailable" and a legitimate empty value.
-    auto opt_field = [](const ColorSpaceInfo& self, ColorSpaceInfoField field,
-                        string_view value) -> py::object {
-        if (!self.available(field))
-            return py::none();
-        return py::str(std::string(value));
-    };
-
-    py::class_<ColorSpaceInfo>(m, "ColorSpaceInfo")
-        .def_property_readonly("name",
-                               [](const ColorSpaceInfo& self) {
-                                   return std::string(self.name());
-                               })
-        .def_property_readonly("equality_id",
-                               [opt_field](const ColorSpaceInfo& self) {
-                                   return opt_field(
-                                       self, ColorSpaceInfoField::EqualityID,
-                                       self.equality_id());
-                               })
-        .def_property_readonly(
-            "color_interop_id",
-            [opt_field](const ColorSpaceInfo& self) {
-                return opt_field(self, ColorSpaceInfoField::ColorInteropID,
-                                 self.color_interop_id());
-            })
-        .def_property_readonly("encoding",
-                               [opt_field](const ColorSpaceInfo& self) {
-                                   return opt_field(
-                                       self, ColorSpaceInfoField::Encoding,
-                                       self.encoding());
-                               })
-        .def_property_readonly("image_state",
-                               [opt_field](const ColorSpaceInfo& self) {
-                                   return opt_field(
-                                       self, ColorSpaceInfoField::ImageState,
-                                       self.image_state());
-                               })
-        .def_property_readonly("range",
-                               [opt_field](const ColorSpaceInfo& self) {
-                                   return opt_field(self,
-                                                    ColorSpaceInfoField::Range,
-                                                    self.range());
-                               })
-        .def_property_readonly("chromaticities",
-                               [](const ColorSpaceInfo& self) -> py::object {
-                                   cspan<float> c = self.chromaticities();
-                                   if (c.size() != 8)
-                                       return py::none();
-                                   py::tuple t(8);
-                                   for (int i = 0; i < 8; ++i)
-                                       t[i] = py::float_(c[i]);
-                                   return t;
-                               })
-        .def_property_readonly("transfer_function_kind",
-                               &ColorSpaceInfo::transfer_function_kind)
-        .def_property_readonly("transfer_function",
-                               [](const ColorSpaceInfo& self) -> py::object {
-                                   string_view family = self.transfer_function();
-                                   if (family.empty())
-                                       return py::none();
-                                   return py::str(std::string(family));
-                               })
-        .def(
-            "computed",
-            [](const ColorSpaceInfo& self, ColorSpaceInfoField field) {
-                return self.computed(field);
-            },
-            "field"_a)
-        .def(
-            "available",
-            [](const ColorSpaceInfo& self, ColorSpaceInfoField field) {
-                return self.available(field);
-            },
-            "field"_a)
-        .def(
-            "derived",
-            [](const ColorSpaceInfo& self, ColorSpaceInfoField field) {
-                return self.derived(field);
-            },
-            "field"_a);
 
     py::class_<ColorConfig>(m, "ColorConfig")
 
@@ -320,14 +163,10 @@ declare_colorconfig(py::module& m)
              })
         .def(
             "resolve",
-            [](const ColorConfig& self, const std::string& name,
-               const std::optional<std::string>& failover) {
-                // failover=None keeps the historical passthrough (the 1-arg
-                // C++ overload); any string, including "", is a failover.
-                return failover ? std::string(self.resolve(name, *failover))
-                                : std::string(self.resolve(name));
+            [](const ColorConfig& self, const std::string& name) {
+                return std::string(self.resolve(name));
             },
-            "name"_a, "failover"_a = py::none())
+            "name"_a)
         .def(
             "equivalent",
             [](const ColorConfig& self, const std::string& color_space,
@@ -353,194 +192,9 @@ declare_colorconfig(py::module& m)
                  }
                  return std::nullopt;
              })
-        .def(
-            "find_color_spaces",
-            [](const ColorConfig& self, const py::object& chromaticities,
-               const py::object& transfer_function, const py::object& encoding,
-               const py::object& image_state, bool include_inactive,
-               bool include_context_sensitive, bool include_complex,
-               bool authored_encoding_only,
-               const std::map<std::string, std::string>& context_vars) {
-                auto chrom = parse_hint_terms(chromaticities, "chromaticities");
-                auto tf    = parse_hint_terms(transfer_function,
-                                              "transfer_function");
-                auto enc   = parse_hint_terms(encoding, "encoding");
-                auto state = parse_hint_terms(image_state, "image_state");
-                OIIO::ColorSpaceSearchOptions opts;
-                opts.include_inactive          = include_inactive;
-                opts.include_context_sensitive = include_context_sensitive;
-                opts.include_complex           = include_complex;
-                opts.authored_encoding_only    = authored_encoding_only;
-                opts.context                   = context_vars;
-                // The search can probe transforms and build OCIO processors
-                // (potentially every space of the config): pure C++ work, no
-                // Python objects -- release the GIL for its duration.
-                py::gil_scoped_release gil;
-                return self.find_color_spaces(chrom, tf, enc, state, opts);
-            },
-            "chromaticities"_a = "", "transfer_function"_a = "",
-            "encoding"_a = "", "image_state"_a = "", py::kw_only(),
-            "include_inactive"_a = false, "include_context_sensitive"_a = false,
-            "include_complex"_a = false, "authored_encoding_only"_a = false,
-            "context_vars"_a = std::map<std::string, std::string>())
-        .def(
-            "get_color_space_info",
-            [](const ColorConfig& self, const std::string& name,
-               const std::map<std::string, std::string>& context_vars)
-                -> py::object {
-                ColorSpaceInfoOptions opts;
-                opts.context        = context_vars;
-                ColorSpaceInfo info = self.get_color_space_info(name, opts);
-                // Invalid input maps to None; the error stays on the
-                // ColorConfig (geterror()).
-                if (!info.valid())
-                    return py::none();
-                return py::cast(info);
-            },
-            "name"_a, py::kw_only(),
-            "context_vars"_a = std::map<std::string, std::string>())
-        .def(
-            "get_color_space_infos",
-            [](const ColorConfig& self, const std::vector<std::string>& names,
-               const std::map<std::string, std::string>& context_vars) {
-                ColorSpaceInfoOptions opts;
-                opts.context = context_vars;
-                std::vector<ColorSpaceInfo> infos;
-                {
-                    // Pure C++ work, no Python objects: release the GIL for
-                    // the batch (invalid batch input returns [] and leaves
-                    // the error on the ColorConfig).
-                    py::gil_scoped_release gil;
-                    infos = self.get_color_space_infos(names, opts);
-                }
-                return infos;
-            },
-            "names"_a, py::kw_only(),
-            "context_vars"_a = std::map<std::string, std::string>())
-        .def(
-            "derive_color_space_info",
-            [](const ColorConfig& self, const std::string& name,
-               const std::map<std::string, std::string>& context_vars)
-                -> py::object {
-                ColorSpaceInfoOptions opts;
-                opts.context = context_vars;
-                ColorSpaceInfo info;
-                {
-                    // Full derivation can probe transforms and build OCIO
-                    // processors: pure C++ work, no Python objects --
-                    // release the GIL for its duration.
-                    py::gil_scoped_release gil;
-                    info = self.derive_color_space_info(name, opts);
-                }
-                // Invalid input maps to None; the error stays on the
-                // ColorConfig (geterror()).
-                if (!info.valid())
-                    return py::none();
-                return py::cast(info);
-            },
-            "name"_a, py::kw_only(),
-            "context_vars"_a = std::map<std::string, std::string>())
-        .def(
-            "derive_color_space_infos",
-            [](const ColorConfig& self, const std::vector<std::string>& names,
-               const std::map<std::string, std::string>& context_vars) {
-                ColorSpaceInfoOptions opts;
-                opts.context = context_vars;
-                std::vector<ColorSpaceInfo> infos;
-                {
-                    // Pure C++ work, no Python objects: release the GIL for
-                    // the batch (invalid batch input returns [] and leaves
-                    // the error on the ColorConfig).
-                    py::gil_scoped_release gil;
-                    infos = self.derive_color_space_infos(names, opts);
-                }
-                return infos;
-            },
-            "names"_a, py::kw_only(),
-            "context_vars"_a = std::map<std::string, std::string>())
         .def("configname", &ColorConfig::configname)
-        .def(
-            "serialize",
-            [](const ColorConfig& self, bool interopified) {
-                ColorConfig::SerializeOptions opts;
-                opts.interopified = interopified;
-                std::string text;
-                {
-                    // Pure C++ work (may trigger the lazy interoperability
-                    // bootstrap): release the GIL for its duration.
-                    py::gil_scoped_release gil;
-                    text = self.serialize(opts);
-                }
-                return text;
-            },
-            py::kw_only(), "interopified"_a = false)
-        .def(
-            "evolve",
-            [](const ColorConfig& self, const std::string& working_dir,
-               const std::map<std::string, std::string>& context_vars,
-               bool reset) {
-                ColorConfig::EvolveOptions opts;
-                opts.working_dir = working_dir;
-                opts.context     = context_vars;
-                opts.reset       = reset;
-                // Pure C++ work (full config construction): release the
-                // GIL for its duration.
-                py::gil_scoped_release gil;
-                return self.evolve(opts);
-            },
-            py::kw_only(), "working_dir"_a = "",
-            "context_vars"_a = std::map<std::string, std::string>(),
-            "reset"_a        = false)
-        .def(
-            "archive",
-            [](const ColorConfig& self, const std::string& filename,
-               const std::string& working_dir, bool interopified) {
-                ColorConfig::ArchiveOptions opts;
-                opts.working_dir  = working_dir;
-                opts.interopified = interopified;
-                // Pure C++ work (config copy + zip I/O): release the GIL
-                // for its duration.
-                py::gil_scoped_release gil;
-                return self.archive(filename, opts);
-            },
-            "filename"_a, py::kw_only(), "working_dir"_a = "",
-            "interopified"_a = false)
-        .def("get_debug_info",
-             [](const ColorConfig& self) {
-                 // Pure C++ reading of existing state: release the GIL.
-                 py::gil_scoped_release gil;
-                 return self.get_debug_info();
-             })
-        .def("clear_caches",
-             [](const ColorConfig& self) {
-                 // Pure C++ cache maintenance: release the GIL.
-                 py::gil_scoped_release gil;
-                 self.clear_caches();
-             })
-        .def_static(
-            "from_text",
-            [](const std::string& config_text, const std::string& working_dir) {
-                // Pure C++ work (full config construction): release the GIL
-                // for its duration.
-                py::gil_scoped_release gil;
-                return ColorConfig::from_text(config_text, working_dir);
-            },
-            "config_text"_a, "working_dir"_a = "")
-        .def_static("default_colorconfig",
-                    []() -> const ColorConfig& {
-                        return ColorConfig::default_colorconfig();
-                    })
-        // get_builtin_interop_ids(): the canonical Color Interop Forum ids
-        // declared by OIIO's built-in interop identities registry, as a
-        // tuple of plain strings -- registry data, not an enum, because the
-        // id grammar is open (custom/icc/local/user-namespaced ids cannot
-        // be enumerated).
-        .def_static("get_builtin_interop_ids", []() {
-            cspan<string_view> ids = ColorConfig::get_builtin_interop_ids();
-            py::tuple result(ids.size());
-            for (size_t i = 0; i < ids.size(); ++i)
-                result[i] = py::str(ids[i].data(), ids[i].size());
-            return result;
+        .def_static("default_colorconfig", []() -> const ColorConfig& {
+            return ColorConfig::default_colorconfig();
         });
 
     m.attr("supportsOpenColorIO")     = ColorConfig::supportsOpenColorIO();
