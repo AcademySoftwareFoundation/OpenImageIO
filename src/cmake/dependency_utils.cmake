@@ -615,7 +615,7 @@ macro (build_dependency_with_cmake pkgname)
         # singleValueKeywords:
         "GIT_REPOSITORY;GIT_TAG;GIT_COMMIT;VERSION;SOURCE_SUBDIR;QUIET"
         # multiValueKeywords:
-        "CMAKE_ARGS"
+        "CMAKE_ARGS;GIT_SUBMODULES"
         # argsToParse:
         ${ARGN})
 
@@ -699,6 +699,17 @@ macro (build_dependency_with_cmake pkgname)
     else ()
         message (FATAL_ERROR
             "${pkgname}: Neither GIT_TAG nor GIT_COMMIT was specified.")
+    endif ()
+
+    # Initialize any requested submodules (paths relative to the package
+    # source dir). This runs after the checkout above, so the submodule
+    # commits are the ones pinned by the verified superproject commit and
+    # inherit its supply-chain guarantee.
+    if (NOT "${_pkg_GIT_SUBMODULES}" STREQUAL "")
+        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update
+                                --init --depth 1 -- ${_pkg_GIT_SUBMODULES}
+                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+                        ${_pkg_exec_quiet})
     endif ()
 
     # Configure the package
