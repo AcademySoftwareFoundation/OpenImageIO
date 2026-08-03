@@ -54,7 +54,7 @@ export TESTSUITE_CLEANUP_ON_SUCCESS=${TESTSUITE_CLEANUP_ON_SUCCESS:=1}
 export OpenImageIO_BUILD_MISSING_DEPS=${OpenImageIO_BUILD_MISSING_DEPS:=all}
 
 # Build both set of python bindings in main/3.2 for now
-export OIIO_PYTHON_BINDINGS_BACKEND=both
+export OIIO_PYTHON_BINDINGS_BACKEND=${OIIO_PYTHON_BINDINGS_BACKEND:=both}
 
 # Sonar
 export BUILD_WRAPPER_OUT_DIR="${PWD}/bw_output"
