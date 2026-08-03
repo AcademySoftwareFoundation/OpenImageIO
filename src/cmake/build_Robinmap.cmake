@@ -6,10 +6,10 @@
 # Robinmap by hand!
 ######################################################################
 
-set_cache (Robinmap_BUILD_VERSION 1.4.0 "Robinmap version for local builds")
+set_cache (Robinmap_BUILD_VERSION 1.4.1 "Robinmap version for local builds")
 set (Robinmap_GIT_REPOSITORY "https://github.com/Tessil/robin-map")
 set (Robinmap_GIT_TAG "v${Robinmap_BUILD_VERSION}")
-set_cache (Robinmap_GIT_COMMIT "4ec1bf19c6a96125ea22062f38c2cf5b958e448e"
+set_cache (Robinmap_GIT_COMMIT "bd14e6830a1474fed9d2d03f5c3b0683d818d540"
            "commit hash to verify tag against")
 
 build_dependency_with_cmake(Robinmap
@@ -23,9 +23,10 @@ build_dependency_with_cmake(Robinmap
         -D CMAKE_POLICY_VERSION_MINIMUM=3.5
     )
 
-# Set some things up that we'll need for a subsequent find_package to work
-set (Robinmap_ROOT ${Robinmap_INSTALL_DIR})
-
-# Signal to caller that we need to find again at the installed location
+# Signal to caller that we need to find again at the installed location,
+# this time via the real upstream package name (see the NAMES tsl-robin-map
+# on the checked_find_package call in externalpackages.cmake) so that we
+# get the genuine tsl::robin_map target -- the same one nanobind looks for.
 set (Robinmap_REFIND TRUE)
-set (Robinmap_VERSION ${Robinmap_BUILD_VERSION})
+set (Robinmap_REFIND_ARGS CONFIG NAMES tsl-robin-map)
+set (Robinmap_REFIND_VERSION ${Robinmap_BUILD_VERSION})

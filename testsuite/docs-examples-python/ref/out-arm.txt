@@ -1,4 +1,12 @@
+docs-examples-imageioapi.py
+docs-examples-imageoutput.py
+docs-examples-imageinput.py
 pixels holds unassociated alpha
+docs-examples-writingplugins.py
+docs-examples-imagecache.py
+docs-examples-texturesys.py
+docs-examples-imagebuf.py
+docs-examples-imagebufalgo.py
 example1
 example_output_error1
 error: Uninitialized input image

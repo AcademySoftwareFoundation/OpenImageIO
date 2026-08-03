@@ -31,9 +31,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * zlib >= 1.2.7 (tested through 1.3.2)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.2 and master).
    If not found at build time, this will be automatically downloaded and built.
- * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
-   through 1.4, which is the recommended version). If not found at build time,
-   this will be automatically downloaded and built.
+ * **[Robin-map](https://github.com/Tessil/robin-map) >= 1.3** (tested through
+   1.4, which is the recommended version). If not found at build time, this
+   will be automatically downloaded and built.
 
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
@@ -42,12 +42,14 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 3.9 (tested through 3.14).
-     * pybind11 >= 2.7 (tested through 3.0)
+     * **[nanobind](https://github.com/wjakob/nanobind) >= 2.8** (tested through 2.13),
+       if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to either
+       `nanobind` or `both`.  If not found at build time, nanobind will be
+       automatically downloaded and built.
+     * [pybind11](https://github.com/pybind/pybind11) >= 2.7 (tested through
+       3.0), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
+       either `pybind11` or `both`.
      * NumPy (tested through 2.4.4)
-     * If you enable the optional nanobind (WIP) backend for source/CMake
-       builds (`OIIO_PYTHON_BINDINGS_BACKEND` is `nanobind` or `both`):
-         * nanobind discoverable by CMake, or installed in the active Python
-           environment so `python -m nanobind --cmake_dir` works
  * If you want support for PNG files:
      * libPNG >= 1.6.0 (tested though 1.6.58)
  * If you want support for camera "RAW" formats:
