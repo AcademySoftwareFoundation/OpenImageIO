@@ -90,10 +90,14 @@ endif ()
 checked_find_package (libuhdr
                       VERSION_MIN 1.3)
 
-# Static libtiff configs may reference this target without importing it.
-# https://gitlab.com/libtiff/libtiff/-/work_items/871
+# Static libtiff configs may reference Deflate::Deflate without importing it
+# (https://gitlab.com/libtiff/libtiff/-/work_items/871), so libdeflate must be
+# located before TIFF discovery. In particular, a previously auto-built static
+# TIFF rediscovered from the local deps cache needs this; the libdeflate found
+# during build_TIFF.cmake does not carry over to later reconfigures.
 if (NOT TARGET Deflate::Deflate)
-    find_package (libdeflate CONFIG QUIET)
+    checked_find_package (libdeflate
+                          VERSION_MIN 1.18)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_static)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_shared)
 endif ()
