@@ -87,8 +87,8 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Defined in exrinput_c.cpp. Declare here at C++ namespace scope (not inside
 // the extern "C" block below) so the linkage matches the definition in the
 // non-embedded (dynamic plugin) build where OIIO_PLUGIN_EXPORTS_BEGIN is
-// `extern "C"`.
-extern ImageInput*
+// `extern "C"`. Use OIIO_EXPORT to ensure safe unity build on Windows.
+extern OIIO_EXPORT ImageInput*
 openexrcore_input_imageio_create();
 #endif
 
