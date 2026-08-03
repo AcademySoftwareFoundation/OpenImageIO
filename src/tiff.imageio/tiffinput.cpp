@@ -1962,7 +1962,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     }
 
     // Make sure there's enough scratch space
-    int nvals = m_spec.width * m_inputchannels;
+    imagesize_t nvals = imagesize_t(m_spec.width) * m_inputchannels;
     if (m_photometric == PHOTOMETRIC_PALETTE && m_bitspersample > 8)
         m_scratch.resize(nvals * 2);  // special case for 16 bit palette
     else
@@ -2279,6 +2279,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                          read_raw_strips ? "Raw" : "Encoded", y,
                          err.size() ? err.c_str() : "unknown error");
                 ok = false;
+                break;  // failed strip read -- bail, don't decompress
             }
             auto out            = this;
             auto uncompress_etc = [=, &ok](int /*id*/) {
@@ -2345,7 +2346,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
     // If we have left over scanlines, read them serially
     m_next_scanline = y - m_spec.y;
-    for (; y < yend; ++y) {
+    for (; ok && y < yend; ++y) {
         if (!read_native_scanline_locked(subimage, miplevel, y, data)) {
             ok = false;
             break;
