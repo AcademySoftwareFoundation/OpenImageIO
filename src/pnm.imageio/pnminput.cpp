@@ -278,8 +278,16 @@ PNMInput::read_file_scanline(void* data, int y)
     }
 
     std::vector<unsigned char> buf;
-    int nsamples = m_spec.width * m_spec.nchannels;
-    bool good    = true;
+    imagesize_t width(m_spec.width);  // 64 bit to avoid overflow
+    imagesize_t nsamples = width * m_spec.nchannels;
+    imagesize_t numbytes;
+    if (m_pnm_type == P4)
+        numbytes = (width + 7) / 8;
+    else if (m_pnm_type == PF || m_pnm_type == Pf)
+        numbytes = nsamples * 4;
+    else
+        numbytes = m_spec.scanline_bytes();
+    bool good = true;
     // If y is farther ahead, skip scanlines to get to it
     for (; good && m_y_next <= y; ++m_y_next) {
         // PFM files are bottom-to-top, so we need to seek to the right spot
@@ -293,19 +301,11 @@ PNMInput::read_file_scanline(void* data, int y)
 
         if ((m_pnm_type >= P4 && m_pnm_type <= P6) || m_pnm_type == PF
             || m_pnm_type == Pf) {
-            int numbytes;
-            if (m_pnm_type == P4)
-                numbytes = (m_spec.width + 7) / 8;
-            else if (m_pnm_type == PF || m_pnm_type == Pf)
-                numbytes = m_spec.nchannels * 4 * m_spec.width;
-            else
-                numbytes = m_spec.scanline_bytes();
             if (size_t(numbytes) > m_remaining.size()) {
                 errorfmt("Premature end of file");
                 return false;
             }
             buf.assign(m_remaining.begin(), m_remaining.begin() + numbytes);
-
             m_remaining.remove_prefix(numbytes);
         }
 
