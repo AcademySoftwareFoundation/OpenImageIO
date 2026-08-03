@@ -591,7 +591,7 @@ OIIO_DECLARE_NB_MODULE(OpenImageIO)
 {
     m.doc() = "OpenImageIO nanobind bindings.";
 
-#    if PY_VERSION_HEX < 0x030a0000 /* less then 3.10 */
+#    if PY_VERSION_HEX < 0x030a0000 /* less than 3.10 */
     // Python 3.9's interpreter shutdown/refcounting order triggers bogus
     // nanobind leak warnings that don't occur on 3.10+. Silence them only for
     // the affected old version.
