@@ -30,20 +30,63 @@ if (NOT @BUILD_SHARED_LIBS@)
             add_library (Deflate::Deflate ALIAS libdeflate::libdeflate_shared)
         endif ()
     endif ()
+    # Static libtiff configs may likewise reference CMath::CMath (libtiff's
+    # libm wrapper target) without importing it.
+    if (NOT WIN32 AND NOT TARGET CMath::CMath)
+        add_library (CMath::CMath INTERFACE IMPORTED)
+        set_target_properties (CMath::CMath PROPERTIES
+                               INTERFACE_LINK_LIBRARIES m)
+    endif ()
     find_dependency(TIFF)
+    find_dependency(OpenEXR)
     find_dependency(OpenColorIO)
+    if (@GIF_FOUND@)
+        find_dependency(GIF)
+    endif()
     if (@JPEG_FOUND@)
         find_dependency(JPEG)
     endif()
     if (@PNG_FOUND@)
-        find_dependency(PNG)
+        # Prefer libpng's own config, whose static/shared targets a static
+        # OIIO export may reference (e.g. PNG::png_static); fall back to
+        # the FindPNG module.
+        find_package (PNG CONFIG QUIET)
+        if (NOT TARGET PNG::PNG AND NOT TARGET PNG::png_static
+            AND NOT TARGET PNG::png_shared)
+            find_dependency(PNG)
+        endif ()
     endif()
+    if (@WebP_FOUND@)
+        find_dependency(WebP CONFIG)
+    endif()
+    find_dependency(ZLIB)
     if (@DCMTK_FOUND@)
         find_dependency(DCMTK)
     endif()
-    # The following have the same problem except that INTERFACE_LINK_LIBRARIES use
-    # TARGET_NAME_IF_EXISTS, so the error only happens on link time.
-    if (@OIIO_TBB@)
+    # Resolve targets referenced via $<TARGET_NAME_IF_EXISTS:...> too, so
+    # static consumer links are not silently missing libraries.
+    find_dependency(Threads)
+    if (@BZIP2_FOUND@)
+        find_dependency(BZip2)
+    endif()
+    if (@FREETYPE_FOUND@)
+        find_dependency(Freetype)
+    endif()
+    find_package (libjpeg-turbo CONFIG QUIET)
+    find_package (OpenJPEG CONFIG QUIET)
+    find_package (openjph CONFIG QUIET)
+    find_package (pugixml CONFIG QUIET)
+    # libuhdr ships no CMake config of its own, so reconstruct the imported
+    # target the OIIO export refers to.
+    if (@libuhdr_FOUND@ AND NOT TARGET libuhdr::libuhdr)
+        find_library (_OIIO_libuhdr_LIBRARY NAMES uhdr libuhdr)
+        if (_OIIO_libuhdr_LIBRARY)
+            add_library (libuhdr::libuhdr UNKNOWN IMPORTED)
+            set_target_properties (libuhdr::libuhdr PROPERTIES
+                IMPORTED_LOCATION "${_OIIO_libuhdr_LIBRARY}")
+        endif ()
+    endif ()
+    if ("@OIIO_TBB@")
         find_dependency(TBB)
     endif ()
 endif ()
