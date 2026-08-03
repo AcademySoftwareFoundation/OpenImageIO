@@ -144,6 +144,7 @@ FORMAT_SOURCES = {
         ("../oiio-images/targa",     ["tga", "TGA"]),
     ],
     "tiff": [
+        ("testsuite/tiff-misc/src",  ["tif", "tiff"]),
         ("../oiio-images",           ["tif", "tiff"]),
         ("../oiio-images/libtiffpic",["tif", "tiff"]),
         ("testsuite/tiff-suite/src", ["tif", "tiff"]),
