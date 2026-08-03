@@ -2391,7 +2391,7 @@ set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
 // echoing PNG's cHRM chunk), transfer_function=, encoding=, image_state=; the inclusion toggles include_inactive=,
 // include_context_sensitive=, include_complex=, and authored_encoding_only=
 // (no interop-identity twin inference on the encoding axis) mirror the
-// ColorSpaceSearchOptions fields of the C++/Python API.
+// internal ColorSpaceSearchOptions fields.
 static void
 colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
 {
@@ -6463,7 +6463,7 @@ action_colorreadplan(Oiiotool& ot, cspan<const char*> argv)
 // each named color space (a comma-separated list; an empty list means the
 // current top image's color space): one row per field with its
 // computed/available/derived marker. This is the command-line consumer of
-// the public ColorConfig::get_color_space_info API, and shares its cheap
+// the internal ColorConfig::get_color_space_info facade, and shares its cheap
 // contract -- nothing here probes transforms or derives missing fields;
 // underivable-so-far fields simply print as uncomputed.
 static void

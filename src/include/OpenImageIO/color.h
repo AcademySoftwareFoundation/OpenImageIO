@@ -384,13 +384,11 @@ public:
 
     ~ColorConfig();
 
-    /// Move construction/assignment: transfers ownership of the underlying
-    /// configuration state. The moved-from object may only be destroyed or
-    /// assigned to. (ColorConfig remains non-copyable.)
-    ///
-    /// @version 3.2
+#ifdef OIIO_INTERNAL
+    // Internal move support for the from-memory factories.
     ColorConfig(ColorConfig&& other) noexcept;
     ColorConfig& operator=(ColorConfig&& other) noexcept;
+#endif
 
     /// Reset the config to the named OCIO configuration file, or if
     /// filename is empty, to the current color configuration specified

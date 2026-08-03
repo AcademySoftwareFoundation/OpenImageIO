@@ -490,7 +490,7 @@ test_registry_round_trip()
 
 
 
-// The public ColorConfig::get_builtin_interop_ids() lookup must be an
+// The internal ColorConfig::get_builtin_interop_ids() lookup must be an
 // exact-set match for the canonical `interop_id:` set declared in the
 // embedded interop identities registry source (NOT the composite parsed
 // config, whose declared names diverge from the canonical id set under
@@ -3929,7 +3929,7 @@ display_colorspaces:
 
 
 
-// The public cheap characterization surface: ColorSpaceInfo +
+// The internal cheap characterization facade: ColorSpaceInfo +
 // ColorConfig::get_color_space_info (scalar and batch). Field semantics
 // (direct facts computed; derivable facts uncomputed with no cached data;
 // range never guessed), the error convention, batch order/duplicates, and
@@ -4214,7 +4214,7 @@ test_characterize_color_space()
 
 
 
-// The public derive verbs: ColorConfig::derive_color_space_info (scalar and
+// The internal derive facade: ColorConfig::derive_color_space_info (scalar and
 // batch). Complete-record semantics on an uncharacterizable space
 // (computed-but-unavailable, never an error), range never guessed even under
 // derive, batch order/duplicates and the indexed error, cache publication

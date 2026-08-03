@@ -552,7 +552,7 @@ ColorConfig::Impl::find_color_spaces(const spvt::FindColorSpacesOptions& options
     };
 
     // Per-candidate characterization routes through the one shared
-    // field-selective engine (the same records the public get/derive verbs
+    // field-selective engine (the same records the internal get/derive facade
     // read and publish): each axis requests only the field bits it needs,
     // partial cached records are merged in, and a prior complete derive
     // makes the whole walk cache-only. Derivation failures surface as

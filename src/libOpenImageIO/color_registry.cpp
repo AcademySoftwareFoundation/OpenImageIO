@@ -335,7 +335,7 @@ embedded_interop_identities_ids()
     // canonical CIID set, independent of the linked OCIO version (the
     // parsed composite config's declared names diverge from the canonical
     // id set with OCIO >= 2.5's studio-config overlay). This scan backs
-    // the public ColorConfig::get_builtin_interop_ids() lookup below.
+    // the internal ColorConfig::get_builtin_interop_ids() facade below.
     std::set<std::string> ids;
     string_view yaml(kInteropIdentitiesConfig);  // array is NUL-terminated
     for (string_view line : Strutil::splitsv(yaml, "\n")) {

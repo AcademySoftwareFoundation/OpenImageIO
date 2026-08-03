@@ -718,14 +718,14 @@ test_context_override()
 }
 
 
-// The public ColorConfig::find_color_spaces thin adapter: it must map
+// The internal ColorConfig::find_color_spaces thin adapter: it must map
 // ColorSpaceSearchOptions onto the internal option set and forward to the
 // pvt core, always searching active spaces (there is no include_active
-// toggle on the public shape), and it must convert the core's fail-fast
-// throw into the has_error()/geterror() convention (the public method never
+// toggle on the facade), and it must convert the core's fail-fast
+// throw into the has_error()/geterror() convention (the facade never
 // throws).
 void
-test_public_adapter()
+test_internal_adapter()
 {
     ScratchDir dir;
     ColorConfig config = config_from_text(dir, "search.ocio", kSearchConfig);
@@ -780,6 +780,6 @@ main(int /*argc*/, char* /*argv*/[])
     test_exhaustive_realize_clean_gate();
     test_transfer_axis();
     test_context_override();
-    test_public_adapter();
+    test_internal_adapter();
     return unit_test_failures;
 }

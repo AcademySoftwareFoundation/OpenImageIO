@@ -79,8 +79,8 @@ interop_identities_config_names();
 /// (with OCIO >= 2.5 that composite is the studio config plus OIIO's
 /// additions, whose declared names are not the canonical id set). This is
 /// the canonical CIID set, gathered by an `interop_id:` token scan of the
-/// source file; it backs the public ColorConfig::get_builtin_interop_ids()
-/// lookup, and a unit test asserts that accessor stays an exact-set match
+/// source file; it backs the internal ColorConfig::get_builtin_interop_ids()
+/// facade, and a unit test asserts that accessor stays an exact-set match
 /// for it. For internal/test use only.
 OIIO_API std::vector<std::string>
 embedded_interop_identities_ids();
@@ -771,7 +771,7 @@ find_color_spaces(const ColorConfig& config,
 
 // ---------------------------------------------------------------------------
 // Field-selective color-space characterization engine -- the one internal
-// entry the public get/derive characterization queries and (in a later
+// entry the internal get/derive characterization facade and (in a later
 // convergence) the search walk adapt to. characterize_color_space() always
 // performs the cheap direct-fact pass (canonical name, image state, cheap
 // interop-id subset, authored encoding, intrinsic range) and merges any
@@ -787,9 +787,9 @@ find_color_spaces(const ColorConfig& config,
 // ---------------------------------------------------------------------------
 
 /// Bitmask of characterization fields to attempt full derivation for.
-/// `None` is the cheap/direct-only pass (what the public
+/// `None` is the cheap/direct-only pass (what the internal
 /// ColorConfig::get_color_space_info() requests); `All` is the complete
-/// derivation the future public derive verb requests; the search walk
+/// derivation the internal derive facade requests; the search walk
 /// requests only the fields its non-empty axes need.
 enum class CharacterizationField : uint32_t {
     None             = 0,
