@@ -255,7 +255,7 @@ macro (setup_python_module_nanobind)
     if (TARGET nanobind-static AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"
                                     OR CMAKE_CXX_COMPILER_ID MATCHES "Apple"
                                     OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM"))
-        target_compile_options (nanobind-static PUBLIC -Wno-format-nonliteral)
+        target_compile_options (nanobind-static PRIVATE -Wno-format-nonliteral)
     endif ()
 
     target_include_directories (${target_name}
