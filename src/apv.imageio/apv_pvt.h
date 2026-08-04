@@ -67,7 +67,9 @@ channels_for_format(int color_format)
 // media).
 inline uint16_t
 scale_to_16bits(uint32_t v, int bits)
-{ return uint16_t((v << (16 - bits)) | (v >> (2 * bits - 16))); }
+{
+    return uint16_t((v << (16 - bits)) | (v >> (2 * bits - 16)));
+}
 
 
 
@@ -77,11 +79,15 @@ scale_to_16bits(uint32_t v, int bits)
 
 inline int
 imgb_addref(oapv_imgb_t* imgb)
-{ return ++imgb->refcnt; }
+{
+    return ++imgb->refcnt;
+}
 
 inline int
 imgb_getref(oapv_imgb_t* imgb)
-{ return imgb->refcnt; }
+{
+    return imgb->refcnt;
+}
 
 inline int
 imgb_release(oapv_imgb_t* imgb)

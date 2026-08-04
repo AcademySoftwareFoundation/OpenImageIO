@@ -33,7 +33,9 @@ public:
     ~ApvInput() override { close(); }
     const char* format_name(void) const override { return "apv"; }
     int supports(string_view feature) const override
-    { return feature == "ioproxy"; }
+    {
+        return feature == "ioproxy";
+    }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
@@ -85,7 +87,9 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageInput*
 apv_input_imageio_create()
-{ return new ApvInput; }
+{
+    return new ApvInput;
+}
 
 OIIO_EXPORT int apv_imageio_version = OIIO_PLUGIN_VERSION;
 

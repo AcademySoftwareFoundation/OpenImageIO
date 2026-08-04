@@ -71,7 +71,9 @@ OIIO_PLUGIN_EXPORTS_BEGIN
 
 OIIO_EXPORT ImageOutput*
 apv_output_imageio_create()
-{ return new ApvOutput; }
+{
+    return new ApvOutput;
+}
 
 OIIO_EXPORT const char* apv_output_extensions[] = { "apv", nullptr };
 
@@ -176,7 +178,9 @@ ApvOutput::open(const std::string& name, const ImageSpec& userspec,
 bool
 ApvOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
-{ return write_scanlines(y, y + 1, z, format, data, xstride, AutoStride); }
+{
+    return write_scanlines(y, y + 1, z, format, data, xstride, AutoStride);
+}
 
 
 
@@ -196,7 +200,7 @@ ApvOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
     for (int y = ybegin; y < yend; y++) {
         const char* src = (const char*)data + (y - ybegin) * ystride;
         float* dst      = m_staging.data()
-                          + size_t(y) * m_spec.width * m_spec.nchannels;
+                     + size_t(y) * m_spec.width * m_spec.nchannels;
         OIIO::convert_image(m_spec.nchannels, m_spec.width, 1, 1, src, format,
                             xstride, AutoStride, AutoStride, dst,
                             TypeDesc::FLOAT, AutoStride, AutoStride,
