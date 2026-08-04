@@ -197,7 +197,7 @@ ImageSpec::default_channel_names() noexcept
     channelnames.clear();
     alpha_channel = -1;
     z_channel     = -1;
-    if (nchannels < 1 || nchannels >= limit_channels)
+    if (nchannels < 1 || (limit_channels && nchannels > limit_channels))
         return;  // early out for invalid channel counts
     channelnames.reserve(nchannels);
     if (nchannels == 1) {  // Special case: 1-channel is named "Y"
