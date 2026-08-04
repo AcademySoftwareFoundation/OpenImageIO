@@ -59,3 +59,13 @@ src/mixed-bitdepth.pic :    2 x    1, 2 channel, uint16 softimage
     Stats FiniteCount: 2 2 
     Constant: No
     Monochrome: No
+mixed-bitdepth.exr   :    2 x    1, 2 channel, half openexr
+    Stats Min: 0.066956 0.333252 (float)
+    Stats Max: 0.200317 0.399902 (float)
+    Stats Avg: 0.133636 0.366577 (float)
+    Stats StdDev: 0.066681 0.033325 (float)
+    Stats NanCount: 0 0 
+    Stats InfCount: 0 0 
+    Stats FiniteCount: 2 2 
+    Constant: No
+    Monochrome: No
