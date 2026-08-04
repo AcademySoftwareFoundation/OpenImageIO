@@ -19,3 +19,11 @@ command += info_command ("--stats src/broken01.pic",
 # single bit depth was assumed for all channels.
 command += info_command ("--stats src/mixed-bitdepth.pic",
                          info_program="iinfo", failureok=True)
+# Converting that mixed-bit-depth file to a format that stores a single/other
+# channel type (OpenEXR promotes both channels to half) must rescale each
+# channel's values, not reinterpret its raw bytes. Convert and check the
+# resulting normalized values.
+command += (oiio_app("iconvert")
+           + "src/mixed-bitdepth.pic mixed-bitdepth.exr >> out.txt 2>&1 ;\n")
+command += info_command ("mixed-bitdepth.exr", extraargs="--stats",
+                         verbose=False, hash=False)
