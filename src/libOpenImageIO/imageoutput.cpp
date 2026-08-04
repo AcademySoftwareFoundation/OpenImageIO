@@ -1163,6 +1163,15 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
         return false;
     }
 
+    // Don't write thumbnail_* metadata to a format that can't embed a
+    // thumbnail, where they'd describe one that isn't there.
+    if (!supports("thumbnail")) {
+        m_spec.erase_attribute("thumbnail_width");
+        m_spec.erase_attribute("thumbnail_height");
+        m_spec.erase_attribute("thumbnail_nchannels");
+        m_spec.erase_attribute("thumbnail_image");
+    }
+
     return true;  // all is ok
 }
 

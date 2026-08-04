@@ -1203,8 +1203,11 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         if (m_spec["thumbnail_width"].get<int>()
             && m_spec["thumbnail_height"].get<int>()) {
             m_thumbnail.reset(new ImageBuf);
-            m_imagecache->get_thumbnail(m_name, *m_thumbnail, subimage);
-            m_has_thumbnail = true;
+            m_has_thumbnail = m_imagecache->get_thumbnail(m_name, *m_thumbnail,
+                                                          subimage);
+            // Don't keep a thumbnail buffer we failed to fill in.
+            if (!m_has_thumbnail)
+                m_thumbnail.reset();
         }
 
         // Subtlety: m_nativespec will have the true formats of the file, but
@@ -1290,6 +1293,9 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
             m_thumbnail.reset(new ImageBuf);
             m_has_thumbnail = input->get_thumbnail(*m_thumbnail.get(),
                                                    subimage);
+            // Don't keep a thumbnail buffer we failed to fill in.
+            if (!m_has_thumbnail)
+                m_thumbnail.reset();
         }
 
         m_current_subimage = subimage;

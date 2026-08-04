@@ -887,7 +887,6 @@ adjust_output_options(string_view filename, ImageSpec& spec,
                       const ImageSpec* nativespec, const Oiiotool& ot,
                       int subimage_index, int nsubimages,
                       bool format_supports_tiles,
-                      bool format_supports_thumbnail,
                       const ParamValueList& fileoptions,
                       bool was_direct_read = false)
 {
@@ -1060,16 +1059,6 @@ adjust_output_options(string_view filename, ImageSpec& spec,
     spec.erase_attribute("oiio:SHA-1");
     spec.erase_attribute("oiio:ConstantColor");
     spec.erase_attribute("oiio:AverageColor");
-
-    // If the output format can't embed a thumbnail, don't let the thumbnail
-    // bookkeeping attributes leak into the file as metadata describing a
-    // thumbnail that isn't actually there.
-    if (!format_supports_thumbnail) {
-        spec.erase_attribute("thumbnail_width");
-        spec.erase_attribute("thumbnail_height");
-        spec.erase_attribute("thumbnail_nchannels");
-        spec.erase_attribute("thumbnail_image");
-    }
 }
 
 
@@ -6075,9 +6064,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     }
     bool supports_displaywindow  = out->supports("displaywindow");
     bool supports_negativeorigin = out->supports("negativeorigin");
-    bool supports_tiles     = out->supports("tiles") || ot.output_force_tiles;
-    bool procedural         = out->supports("procedural");
-    bool supports_thumbnail = out->supports("thumbnail");
+    bool supports_tiles = out->supports("tiles") || ot.output_force_tiles;
+    bool procedural     = out->supports("procedural");
     if (!ot.read()) {
         return;
     }
@@ -6257,7 +6245,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     if (do_tex || do_latlong || do_bumpslopes) {
         ImageSpec configspec;
         adjust_output_options(filename, configspec, nullptr, ot, 0, 1,
-                              supports_tiles, supports_thumbnail, fileoptions);
+                              supports_tiles, fileoptions);
         prep_texture_config(ot, configspec, fileoptions);
         ImageBufAlgo::MakeTextureMode mode = ImageBufAlgo::MakeTxTexture;
         if (do_shad)
@@ -6287,8 +6275,8 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         for (int s = 0, send = ir->subimages(); s < send; ++s) {
             ImageSpec spec = *ir->spec(s, 0);
             adjust_output_options(filename, spec, ir->nativespec(s), ot, s,
-                                  send, supports_tiles, supports_thumbnail,
-                                  fileoptions, (*ir)[s].was_direct_read());
+                                  send, supports_tiles, fileoptions,
+                                  (*ir)[s].was_direct_read());
             // If it's not tiled and MIP-mapped, remove any "textureformat"
             if (!spec.tile_pixels() || ir->miplevels(s) <= 1)
                 spec.erase_attribute("textureformat");
@@ -6329,8 +6317,7 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
             for (int m = 0, mend = ir->miplevels(s); m < mend && ok; ++m) {
                 ImageSpec spec = *ir->spec(s, m);
                 adjust_output_options(filename, spec, ir->nativespec(s, m), ot,
-                                      s, send, supports_tiles,
-                                      supports_thumbnail, fileoptions,
+                                      s, send, supports_tiles, fileoptions,
                                       (*ir)[s].was_direct_read());
                 if (s > 0 || m > 0) {  // already opened first subimage/level
                     if (!out->open(tmpfilename, spec, mode)) {
