@@ -84,7 +84,7 @@
 #  define OIIO_NO_NEON 1
 #endif
 
-#if defined(_M_ARM64) || defined(__aarch64__) || defined(__aarch64)
+#if defined(_M_ARM64) || defined(_M_ARM64EC) || defined(__aarch64__) || defined(__aarch64)
 #  ifndef __ARM_NEON__
 #      define __ARM_NEON__
 #  endif
@@ -92,7 +92,7 @@
 
 // Disable Intel SIMD intrinsics on non-Intel architectures (including
 // building for Cuda on an Intel host).
-#if defined(_M_ARM64) || defined(__aarch64) || defined(__aarch64__) \
+#if defined(_M_ARM64) || defined(_M_ARM64EC) || defined(__aarch64) || defined(__aarch64__) \
     || defined(__CUDA_ARCH__)
 #  ifndef OIIO_NO_SSE
 #    define OIIO_NO_SSE 1
@@ -105,7 +105,7 @@
 #  endif
 #endif
 
-#if !(defined(_M_ARM64) || defined(__aarch64) || defined(__aarch64__)) || defined(__CUDA_ARCH__)
+#if !(defined(_M_ARM64) || defined(_M_ARM64EC) || defined(__aarch64) || defined(__aarch64__)) || defined(__CUDA_ARCH__)
 #  ifndef OIIO_NO_NEON
 #    define OIIO_NO_NEON 1
 #  endif
