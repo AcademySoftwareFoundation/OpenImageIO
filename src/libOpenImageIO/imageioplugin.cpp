@@ -273,6 +273,7 @@ catalog_plugin(const std::string& format_name,
         extern const char* name##_output_extensions[]; \
         extern const char* name##_imageio_library_version();
 
+PLUGENTRY(apv);
 PLUGENTRY(bmp);
 PLUGENTRY(cineon);
 PLUGENTRY(dds);
@@ -352,6 +353,9 @@ catalog_builtin_plugins()
 #endif
 
 // Now all the less common formats, in alphabetical order.
+#if defined(USE_APV) && !defined(DISABLE_APV)
+    DECLAREPLUG (apv);
+#endif
 #if !defined(DISABLE_BMP)
     DECLAREPLUG (bmp);
 #endif

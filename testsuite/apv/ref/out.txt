@@ -1,0 +1,60 @@
+Reading out422.apv
+out422.apv           :  128 x   96, 3 channel, uint10 apv
+    SHA-1: 71086C86BB2C37BD60A6ACEC71937A4EF266A3F5
+    channel list: R, G, B
+    apv:level: 30
+    apv:profile: 33
+    oiio:BitsPerSample: 10
+Computing diff of "pattern.tif" vs "out422.apv"
+PASS
+Computing diff of "pattern.tif" vs "out444.apv"
+PASS
+Reading out444-12.apv
+out444-12.apv        :  128 x   96, 3 channel, uint12 apv
+    SHA-1: 30A0FA5F39EFE7002C980B96924737E5F44AB7A7
+    channel list: R, G, B
+    apv:level: 30
+    apv:profile: 66
+    oiio:BitsPerSample: 12
+Computing diff of "pattern.tif" vs "out444-12.apv"
+PASS
+Reading out4444.apv
+out4444.apv          :   64 x   64, 4 channel, uint10 apv
+    SHA-1: A7AE8C53CED3000E82DCACD31C3A1625C07DA677
+    channel list: R, G, B, A
+    apv:level: 30
+    apv:profile: 77
+    oiio:BitsPerSample: 10
+Reading out400.apv
+out400.apv           :   64 x   64, 1 channel, uint10 apv
+    SHA-1: 0CFCAE621E0938136DD39CD856C73373CD6ADB17
+    channel list: Y
+    apv:level: 30
+    apv:profile: 99
+    oiio:BitsPerSample: 10
+Reading multi.apv
+multi.apv            :  128 x   96, 3 channel, uint10 apv
+    2 subimages: 128x96 [u10,u10,u10], 128x96 [u10,u10,u10]
+ subimage  0:  128 x   96, 3 channel, uint10 apv
+    SHA-1: 949B246E561511FF09A4376E437CEE9CFF13A87F
+    channel list: R, G, B
+    apv:level: 30
+    apv:profile: 33
+    oiio:BitsPerSample: 10
+ subimage  1:  128 x   96, 3 channel, uint10 apv
+    SHA-1: F1C646340D636ACBCF0EA333D54EB14DCA1EEBE6
+    channel list: R, G, B
+    apv:level: 30
+    apv:profile: 33
+    oiio:BitsPerSample: 10
+Reading cicp.apv
+cicp.apv             :  128 x   96, 3 channel, uint10 apv
+    SHA-1: 9DBB8C81C920E837B0D73007E376FD8C1A385FE1
+    channel list: R, G, B
+    CICP: 9, 16, 0, 1
+    apv:full_range_flag: 1
+    apv:level: 30
+    apv:matrix_coefficients: 1
+    apv:profile: 33
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "pq_rec2020_display"

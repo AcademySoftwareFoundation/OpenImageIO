@@ -100,6 +100,11 @@ checked_find_package (JXL
                       VERSION_MIN 0.10.1
                       DEFINITIONS USE_JXL=1)
 
+# APV (Advanced Professional Video) via the OpenAPV library
+checked_find_package (APV
+                      VERSION_MIN 1.0
+                      DEFINITIONS USE_APV=1)
+
 # Pugixml setup.  Normally we just use the version bundled with oiio, but
 # some linux distros are quite particular about having separate packages so we
 # allow this to be overridden to use the distro-provided package if desired.

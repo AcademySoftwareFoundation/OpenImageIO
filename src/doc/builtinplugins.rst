@@ -15,6 +15,75 @@ attributes, etc.  The plugins are listed alphabetically by format name.
 
 |
 
+.. _sec-bundledplugins-apv:
+
+APV
+===============================================
+
+APV (Advanced Professional Video) is a royalty-free, all-intra
+professional video codec.  Because every frame is coded independently,
+raw APV bitstreams (extension :file:`.apv`) are usable as sequences of
+individually addressable images: OpenImageIO exposes one *subimage* per
+access unit, decoding its primary frame, and writes one access unit per
+subimage.  This reader/writer uses the OpenAPV library
+(https://github.com/openapv/openapv).
+
+Pixel data in the file are 10--16 bit YCbCr (4:2:2, 4:4:4, 4:4:4:4 with
+alpha, or 4:0:0 grayscale); OpenImageIO presents them as full-range
+``uint16`` RGB(A) or grayscale, converting with the matrix coefficients
+signaled in the bitstream (BT.709 assumed if unspecified, BT.601 and
+BT.2020 also honored).  Writing converts RGB(A) input to YCbCr with
+BT.709 coefficients.  Auxiliary frames within an access unit (preview,
+depth, alpha, non-primary) are not currently exposed.
+
+If the bitstream carries a color description, the reader sets the
+``CICP`` attribute (with matrix and range reflecting the delivered RGB
+pixels) and, when possible, an ``oiio:ColorSpace`` color interop ID
+derived from it.  The writer, symmetrically, passes the primaries and
+transfer characteristics of a ``CICP`` attribute into the bitstream's
+color description.
+
+**Configuration settings for APV output**
+
+When writing, the following special metadata tokens control aspects of
+the encoding:
+
+.. list-table::
+   :widths: 30 10 65
+   :header-rows: 1
+
+   * - Output configuration Attribute
+     - Type
+     - Meaning
+   * - ``apv:profile``
+     - string
+     - Encoding profile, one of ``"422-10"`` (default for 3-channel
+       images), ``"422-12"``, ``"444-10"``, ``"444-12"``, ``"4444-10"``
+       (default for 4-channel images), ``"4444-12"``, ``"400-10"``
+       (default for 1-channel images).
+   * - ``apv:qp``
+     - int
+     - Constant quantization parameter (0--63 for 10-bit profiles).
+   * - ``apv:bitrate``
+     - int
+     - Target bitrate in kbps; if set, rate control is used instead of
+       constant QP.
+   * - ``apv:preset``
+     - string
+     - Encoder speed/quality trade-off: ``"fastest"``, ``"fast"``,
+       ``"medium"`` (default), ``"slow"``, or ``"placebo"``.
+   * - ``FramesPerSecond``
+     - rational
+     - Frame rate metadata signaled in the bitstream (default 30/1).
+
+**Custom I/O Overrides**
+
+APV input and output both support the "custom I/O" feature via the
+special ``"oiio:ioproxy"`` attributes (see Section
+:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+
+|
+
 .. _sec-bundledplugins-bmp:
 
 BMP
