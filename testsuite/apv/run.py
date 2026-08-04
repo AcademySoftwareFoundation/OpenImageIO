@@ -39,3 +39,8 @@ command += info_command ("multi.apv", safematch=True)
 # CICP carries through: tag as BT.2020/PQ, expect it back on read.
 command += oiiotool ("pattern.tif --attrib:type=int[4] CICP 9,16,0,1 --attrib apv:qp 5 -o cicp.apv")
 command += info_command ("cicp.apv", safematch=True)
+
+# CICP derived from a color interop ID (no explicit CICP attribute):
+# writing tags the bitstream, reading recovers both CICP and the ID.
+command += oiiotool ("pattern.tif --attrib oiio:ColorSpace srgb_rec709_display --attrib apv:qp 5 -o ciid.apv")
+command += info_command ("ciid.apv", safematch=True)

@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 
+#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -224,11 +225,12 @@ ApvOutput::finalize_subimage()
     const int bits     = m_bits;
     const int cs       = OAPV_CS_SET(m_color_format, bits, 0);
 
-    // Color handling: we always encode with BT.709 matrix coefficients.
-    // If the spec carries a CICP attribute, pass its primaries/transfer
-    // through to the bitstream's color description and honor its range
-    // flag; otherwise emit no color description and use limited range.
-    float kr = 0.2126f, kb = 0.0722f;
+    // Color handling, following Color Interop Forum conventions: an
+    // explicit CICP attribute wins; otherwise, if oiio:ColorSpace names
+    // a color space the default ColorConfig can map to CICP code points
+    // (e.g. a color interop ID), derive them from it. If neither yields
+    // anything, no color description is signaled ("don't guess") and
+    // BT.709 limited range is used for the YCbCr conversion.
     int color_present = 0, color_primaries = 2, color_transfer = 2;
     int full_range = 0;
     if (const ParamValue* p = m_spec.find_attribute("CICP")) {
@@ -239,7 +241,37 @@ ApvOutput::finalize_subimage()
             color_transfer  = cicp[1];
             full_range      = cicp[3] ? 1 : 0;
         }
+    } else {
+        string_view csname = m_spec.get_string_attribute("oiio:ColorSpace");
+        if (!csname.empty()) {
+            const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+            cspan<int> cicp = colorconfig.get_cicp(csname);
+            if (cicp.size() == 4) {
+                color_present   = 1;
+                color_primaries = cicp[0];
+                color_transfer  = cicp[1];
+                // The registry tuple describes full-range RGB pixels;
+                // our YCbCr carrier follows video convention instead:
+                // limited range.
+                full_range = 0;
+            }
+        }
     }
+    // Choose matrix coefficients to match the primaries, per common
+    // practice: BT.2020 primaries pair with the 2020 non-constant
+    // luminance matrix, the BT.601 families with their own matrices,
+    // and everything else (including P3, conventionally) with BT.709.
+    int matrix = 1;
+    if (color_present) {
+        if (color_primaries == 9)
+            matrix = 9;
+        else if (color_primaries == 5)
+            matrix = 5;
+        else if (color_primaries == 6)
+            matrix = 6;
+    }
+    float kr = 0.2126f, kb = 0.0722f;
+    matrix_luma_coefficients(matrix, kr, kb);
     const float kg     = 1.0f - kr - kb;
     const float maxval = float((1 << bits) - 1);
     const float lo     = full_range ? 0.0f : float(16 << (bits - 8));
@@ -343,7 +375,7 @@ ApvOutput::finalize_subimage()
     if (color_present) {
         param.color_primaries          = (unsigned char)color_primaries;
         param.transfer_characteristics = (unsigned char)color_transfer;
-        param.matrix_coefficients      = 1;  // BT.709, what we encoded with
+        param.matrix_coefficients      = (unsigned char)matrix;
         param.full_range_flag          = full_range;
     }
 

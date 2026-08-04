@@ -49,12 +49,23 @@ multi.apv            :  128 x   96, 3 channel, uint10 apv
     oiio:BitsPerSample: 10
 Reading cicp.apv
 cicp.apv             :  128 x   96, 3 channel, uint10 apv
-    SHA-1: 9DBB8C81C920E837B0D73007E376FD8C1A385FE1
+    SHA-1: 1561CF2F412992B44D793A9817CB6165728677AE
     channel list: R, G, B
     CICP: 9, 16, 0, 1
     apv:full_range_flag: 1
     apv:level: 30
-    apv:matrix_coefficients: 1
+    apv:matrix_coefficients: 9
     apv:profile: 33
     oiio:BitsPerSample: 10
     oiio:ColorSpace: "pq_rec2020_display"
+Reading ciid.apv
+ciid.apv             :  128 x   96, 3 channel, uint10 apv
+    SHA-1: 915AC0206C3C8C3AD46C595FB23CA9E581AE3D53
+    channel list: R, G, B
+    CICP: 1, 13, 0, 1
+    apv:full_range_flag: 0
+    apv:level: 30
+    apv:matrix_coefficients: 1
+    apv:profile: 33
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"

@@ -41,7 +41,13 @@ If the bitstream carries a color description, the reader sets the
 pixels) and, when possible, an ``oiio:ColorSpace`` color interop ID
 derived from it.  The writer, symmetrically, passes the primaries and
 transfer characteristics of a ``CICP`` attribute into the bitstream's
-color description.
+color description; lacking that attribute, an ``oiio:ColorSpace``
+naming a color space that OpenImageIO's default color configuration
+can map to CICP code points (such as a color interop ID) is used
+instead.  Matrix coefficients for the encode are chosen to match the
+primaries (BT.2020 primaries pair with the 2020 matrix, the BT.601
+families with theirs, everything else — including P3, conventionally —
+with BT.709).
 
 **Configuration settings for APV output**
 
