@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <atomic>
 #include <cmath>
 #include <iostream>
 
@@ -33,7 +34,7 @@ flip_(ImageBuf& dst, const ImageBuf& src, ROI dst_roi, int /*nthreads*/)
         for (int c = dst_roi.chbegin; c < dst_roi.chend; ++c)
             d[c] = s[c];
     }
-    return true;
+    return !s.has_error();
 }
 
 
@@ -82,7 +83,7 @@ flop_(ImageBuf& dst, const ImageBuf& src, ROI dst_roi, int /*nthreads*/)
         for (int c = dst_roi.chbegin; c < dst_roi.chend; ++c)
             d[c] = s[c];
     }
-    return true;
+    return !s.has_error();
 }
 
 
@@ -153,7 +154,7 @@ rotate90_(ImageBuf& dst, const ImageBuf& src, ROI dst_roi, int /*nthreads*/)
         for (int c = dst_roi.chbegin; c < dst_roi.chend; ++c)
             d[c] = s[c];
     }
-    return true;
+    return !s.has_error();
 }
 
 
@@ -216,7 +217,7 @@ rotate180_(ImageBuf& dst, const ImageBuf& src, ROI dst_roi, int /*nthreads*/)
         for (int c = dst_roi.chbegin; c < dst_roi.chend; ++c)
             d[c] = s[c];
     }
-    return true;
+    return !s.has_error();
 }
 
 
@@ -267,7 +268,7 @@ rotate270_(ImageBuf& dst, const ImageBuf& src, ROI dst_roi, int /*nthreads*/)
         for (int c = dst_roi.chbegin; c < dst_roi.chend; ++c)
             d[c] = s[c];
     }
-    return true;
+    return !s.has_error();
 }
 
 
@@ -400,6 +401,7 @@ template<typename DSTTYPE, typename SRCTYPE = DSTTYPE>
 static bool
 transpose_(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 {
+    std::atomic<bool> ok(true);
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         ImageBuf::ConstIterator<SRCTYPE, DSTTYPE> s(src, roi);
         ImageBuf::Iterator<DSTTYPE, DSTTYPE> d(dst);
@@ -410,8 +412,10 @@ transpose_(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
             for (int c = roi.chbegin; c < roi.chend; ++c)
                 d[c] = s[c];
         }
+        if (s.has_error())
+            ok = false;
     });
-    return true;
+    return ok;
 }
 
 
