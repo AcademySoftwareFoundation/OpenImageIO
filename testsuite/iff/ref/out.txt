@@ -19,3 +19,6 @@ oiiotool ERROR: read : "src/zbuffer_only.iff": IFF error ZBUFFER-only (Z-depth) 
 IFF error could not read header
 Full command line was:
 > oiiotool --info -v -a --hash src/zbuffer_only.iff
+oiiotool ERROR: read : "src/bomb-46341.iff": iff header claims a 8192 MB image from a 336 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v -a --hash src/bomb-46341.iff

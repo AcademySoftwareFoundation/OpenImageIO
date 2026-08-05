@@ -460,7 +460,8 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     m_spec.full_width  = m_spec.width;
     m_spec.full_depth  = m_spec.depth;
 
-    if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 })) {
+    if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, ioproxy()->size())) {
         return false;
     }
 

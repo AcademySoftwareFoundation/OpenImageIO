@@ -13,6 +13,10 @@ for f in files:
 # Regression testing of error handling and corrupt files
 command += info_command ("--stats src/broken01.pic",
                          info_program="iinfo", failureok=True)
+# A 118-byte header declaring a ~6 GB image (40000x40000): the
+# compression-ratio guard must reject it before the caller allocates.
+command += info_command ("--stats src/bomb-40000.pic",
+                         info_program="iinfo", failureok=True)
 # A file whose channel packets use different bit depths (here a 16-bit R
 # packet and an 8-bit G packet): narrower channels get promoted to the
 # widest depth present. This used to overrun the scanline buffer because a

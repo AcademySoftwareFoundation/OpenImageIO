@@ -72,6 +72,7 @@ FORMAT_SOURCES = {
         ("../bmpsuite",              ["bmp", "BMP"]),
     ],
     "cineon": [
+        ("testsuite/cineon/src",     ["cin"]),
         ("../oiio-images/cineon",    ["cin"]),
         ("../oiio-images",           ["cin"]),
     ],
@@ -84,25 +85,32 @@ FORMAT_SOURCES = {
         ("testsuite/dicom/src",      ["dcm"]),
     ],
     "dpx": [
+        ("testsuite/dpx/src",        ["dpx"]),
         ("../oiio-images/dpx",       ["dpx"]),
         ("../dpx-images-spi",        ["dpx"]),
     ],
     "openexr": [
+        ("testsuite/openexr-bomb/src", ["exr"]),
         ("../oiio-images",           ["exr"]),
         ("testsuite/oiio-images",    ["exr"]),
     ],
     "ffmpeg": [
         ("testsuite/ffmpeg/ref",     ["mkv", "mov", "mp4", "avi"]),
+        ("testsuite/ffmpeg/src",     ["mkv", "mov", "mp4", "avi"]),
     ],
     "fits": [
+        ("testsuite/fits/src",       ["fits", "fit"]),
         ("../fits-images/ftt4b",     ["fits", "fit"]),
         ("../fits-images/pg93",      ["fits", "fit"]),
     ],
     "gif": [
+        ("testsuite/gif/src",        ["gif"]),
         ("../oiio-images/gif",       ["gif"]),
     ],
     # hdr: synthetic seed committed; no further sources needed
-    "hdr": [],
+    "hdr": [
+        ("testsuite/hdr/src",        ["hdr", "rgbe"]),
+    ],
     "heif": [
         ("../oiio-images/heif",      ["heif", "heic", "avif"]),
         ("../heif-images",           ["heif", "heic", "avif"]),
@@ -112,22 +120,30 @@ FORMAT_SOURCES = {
         ("../oiio-images/ico",       ["ico"]),
     ],
     # iff: synthetic seed committed; no further sources needed
-    "iff": [],
+    "iff": [
+        ("testsuite/iff/src",        ["iff", "z"]),
+    ],
     "jpeg": [
+        ("testsuite/jpeg-corrupt/src", ["jpg", "jpeg"]),
         ("../oiio-images/jpeg",      ["jpg", "jpeg"]),
         ("testsuite/jpeg/src",       ["jpg", "jpeg"]),
         ("../oiio-images",           ["jpg", "jpeg"]),
     ],
     "jpeg2000": [
+        ("testsuite/htj2k/src",      ["j2c"]),
         ("../oiio-images/jpeg2000",  ["jp2", "j2k"]),
         ("../j2kp4files_v1_5/codestreams_profile0", ["j2k"]),
     ],
-    # jpegxl: synthetic seed committed; no further sources needed
-    "jpegxl": [],
+    "jpegxl": [
+        ("testsuite/jxl/src",        ["jxl"]),
+    ],
     "openvdb": [
         ("testsuite/openvdb/src",    ["vdb"]),
+        ("testsuite/openvdb-damaged/src", ["vdb"]),
     ],
     "png": [
+        ("testsuite/png-bomb/src",   ["png"]),
+        ("testsuite/png-damaged/src", ["png"]),
         ("../oiio-images/png",       ["png"]),
     ],
     "pnm": [
@@ -142,6 +158,7 @@ FORMAT_SOURCES = {
         ("testsuite/ptex/src",       ["ptx", "ptex"]),
     ],
     "raw": [
+        ("testsuite/raw/src",        ["dng"]),
         ("../oiio-images/raw",       ["cr2", "nef", "arw", "raf", "rw2", "orf",
                                       "CR2", "NEF", "ARW", "RAF", "RW2", "ORF"]),
     ],
@@ -149,8 +166,10 @@ FORMAT_SOURCES = {
         ("testsuite/rla/src",        ["rla"]),
         ("../oiio-images/rla",       ["rla"]),
     ],
-    # sgi: synthetic seed committed; no further sources needed
-    "sgi": [],
+    "sgi": [
+        ("testsuite/sgi/src",        ["sgi", "rgb", "rgba", "bw", "int", "inta"]),
+        ("../oiio-images",           ["sgi", "rgb"]),
+    ],
     "softimage": [
         ("testsuite/softimage/src",  ["pic"]),
         ("../oiio-images/softimage", ["pic"]),
@@ -166,10 +185,12 @@ FORMAT_SOURCES = {
         ("testsuite/tiff-suite/src", ["tif", "tiff"]),
     ],
     "webp": [
+        ("testsuite/webp/src",       ["webp"]),
         ("../oiio-images/webp",      ["webp"]),
     ],
     # zfile: use the reference output produced by the testsuite (a valid zfile)
     "zfile": [
+        ("testsuite/zfile/src",      ["zfile"]),
         ("testsuite/zfile/ref",      ["zfile"]),
     ],
 }

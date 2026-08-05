@@ -47,6 +47,11 @@ echo "Default timeout ${CTEST_TEST_TIMEOUT}"
 echo "Test exclusions '${CTEST_EXCLUSIONS}'"
 echo "CTEST_ARGS '${CTEST_ARGS}'"
 
+# Adjustments to OPENIMAGEIO_OPTIONS
+# - limits:imagesize_MB=32768 forces the same limit regardless of physical
+#   memory size of the CI runner, for the sake of uniform error messages.
+export OPENIMAGEIO_OPTIONS="limits:imagesize_MB=32768,${OPENIMAGEIO_OPTIONS}"
+
 pushd build
 time ctest -C ${CMAKE_BUILD_TYPE} --force-new-ctest-process --output-on-failure \
     -E "${CTEST_EXCLUSIONS}" --timeout ${CTEST_TEST_TIMEOUT} ${CTEST_ARGS}

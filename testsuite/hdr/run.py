@@ -14,3 +14,8 @@ command += oiiotool ("-stats " + OIIO_TESTSUITE_IMAGEDIR+"/ScanLines/MtTamWest.e
 
 # Regression test: invalid resolution
 command += oiiotool ("-nostderr -oiioattrib try_all_readers 0 src/crash-res.hdr -o test.exr", failureok = True)
+
+# Regression test: a 53-byte header declaring a ~18 GB image (40000x40000).
+# The compression-ratio guard must reject it before the caller allocates the
+# full pixel buffer.
+command += oiiotool ("-nostderr -oiioattrib try_all_readers 0 -info src/bomb-40000.hdr", failureok=True)

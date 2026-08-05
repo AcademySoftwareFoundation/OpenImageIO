@@ -49,3 +49,4 @@ src/broken_rle16_len1.sgi :    1 x    1, 1 channel, uint16 sgi
     channel list: Y
     compression: "rle"
 iinfo ERROR: "src/broken_rle16_len1.sgi" : Corrupt RLE data
+iinfo ERROR: "src/bomb-65535.sgi" : sgi header claims a 16383 MB image from a 512 byte file; probably a corrupt or malicious header

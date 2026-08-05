@@ -319,6 +319,14 @@ NullInput::open(const std::string& name, ImageSpec& newspec,
         }
     }
 
+    // The query arguments above are parsed input, even though no file is
+    // ever read. Without this, "foo.null?CHANNELS=-1" sign-extended its way
+    // into a std::length_error that nothing catches, "RES=-4x-4" handed the
+    // caller a negative-sized spec, and a large enough CHANNELS hung building
+    // channel names. check_open() also rejects a negative or oversized TILE.
+    if (!check_open(m_topspec, ROI(0, 1 << 20, 0, 1 << 20, 0, 1 << 20, 0, 1024)))
+        return false;
+
     m_value.resize(m_topspec.pixel_bytes());  // default fills with 0's
     if (fvalue.size()) {
         // Convert float to the native type

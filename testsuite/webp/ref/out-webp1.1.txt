@@ -29,3 +29,6 @@ short-exif-len4.webp-ok
 short-exif-len5.webp-ok
 short-exif-len6.webp-ok
 short-exif-len13.webp-ok
+oiiotool ERROR: read : "src/bomb-16383.webp": Couldn't decode
+Full command line was:
+> oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/bomb-16383.webp

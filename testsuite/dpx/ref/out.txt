@@ -219,3 +219,6 @@ src/crash-1chan-10bit-filled-methodA.dpx :   80 x   60, 3 channel, uint10 dpx
     oiio:BitsPerSample: 10
     oiio:subimages: 2
     smpte:TimeCode: 00:00:00:00
+oiiotool ERROR: read : "src/bomb-46341.dpx": dpx header claims a 12288 MB image from a 21248 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/bomb-46341.dpx

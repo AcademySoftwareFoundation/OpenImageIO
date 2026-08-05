@@ -256,7 +256,8 @@ HdrInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.full_width  = m_spec.width;
     m_spec.full_height = m_spec.height;
     // Validation of resolution
-    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
+    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, ioproxy()->size())) {
         close();
         return false;
     }

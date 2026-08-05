@@ -28,6 +28,8 @@ command += oiiotool("--oiioattrib limits:imagesize_MB 1024 "
                     "--oiioattrib try_all_readers 0 "
                     "src/crash3952.tga -o crash3952.exr", failureok = True)
 command += oiiotool("--oiioattrib try_all_readers 0 src/crash-20250423.tga -o out.null", failureok=True);
+# Tiny file declaring a huge image (decompression bomb) is rejected
+command += oiiotool("--oiioattrib try_all_readers 0 src/crash-bomb-65535.tga -o out.null", failureok=True);
 
 # Test odds and ends, unusual files
 command += rw_command("src", "1x1.tga")

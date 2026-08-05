@@ -183,6 +183,15 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    // check_open's size cap still admits dimensions that are absurd for a tiny
+    // compressed file, so also bound the declared-vs-compressed ratio.
+    imagesize_t filesize = ioproxy() ? ioproxy()->size()
+                                     : Filesystem::file_size(m_filename);
+    if (!check_compression_ratio(m_spec, filesize)) {
+        close();
+        return false;
+    }
+
     string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
                                                          "srgb_rec709_scene");
     const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
