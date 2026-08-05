@@ -331,6 +331,11 @@ RLAInput::seek_subimage(int subimage, int miplevel)
                               3 + 3 + 256 }))
         return false;
 
+    // Check for uncompressed size that is wildly out of proportion to
+    // file size.
+    if (!check_compression_ratio(m_spec, ioproxy()->size()))
+        return false;
+
     // set channel formats and stride
     int z_channel = -1;
     m_stride      = 0;

@@ -1708,6 +1708,25 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
         return false;
     }
 
+    // Check for sensible tile sizes. A tile dimension of 0 means "not
+    // tiled", which is always fine; only reject negative sizes and tile
+    // dimensions that exceed the same per-format ceiling already applied
+    // to the image resolution above.
+    if (spec.tile_width < 0 || spec.tile_height < 0 || spec.tile_depth < 0) {
+        errorfmt(
+            "{} tile size may not be negative, but was {}x{}x{}. Possible corrupt input?",
+            format_name(), spec.tile_width, spec.tile_height, spec.tile_depth);
+        return false;
+    }
+    if (spec.tile_width > range.width() || spec.tile_height > range.height()
+        || spec.tile_depth > range.depth()) {
+        errorfmt(
+            "{} tile size may not exceed {}x{}x{}, but was {}x{}x{}. Possible corrupt input?",
+            format_name(), range.width(), range.height(), range.depth(),
+            spec.tile_width, spec.tile_height, spec.tile_depth);
+        return false;
+    }
+
     // Check for invalid full_* values for sensibility
     if (spec.full_width == 0 && spec.full_height == 0 && spec.full_depth == 0
         && supports("noimage")) {

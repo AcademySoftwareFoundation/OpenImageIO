@@ -329,6 +329,9 @@ macro (oiio_add_all_tests)
     # Regression test (compiles its own helper and generates its own image)
     # for a partial edge-tile heap overflow in the OpenEXR readers.
     oiio_add_tests (openexr-partialtile)
+    # Self-contained decompression-bomb regression (ships its own tiny fixture);
+    # exercises both the C++ and C-API readers via the openexr:core attribute.
+    oiio_add_tests (openexr-bomb)
     # if (NOT DEFINED ENV{${PROJECT_NAME}_CI})
     #     oiio_add_tests (openexr-damaged
     #                     IMAGEDIR openexr-images
@@ -343,6 +346,8 @@ macro (oiio_add_all_tests)
     oiio_add_tests (png png-damaged
                     ENABLEVAR ENABLE_PNG
                     IMAGEDIR oiio-images/png)
+    # Self-contained decompression-bomb regression (ships its own tiny fixture).
+    oiio_add_tests (png-bomb ENABLEVAR ENABLE_PNG)
     oiio_add_tests (pnm
                     ENABLEVAR ENABLE_PNM
                     IMAGEDIR oiio-images)

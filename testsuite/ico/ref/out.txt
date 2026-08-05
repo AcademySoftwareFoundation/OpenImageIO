@@ -50,3 +50,4 @@ iconvert ERROR copying "src/crash-002c.ico" to "out.tif" :
 	Read error: hit end of file in ico reader
 iconvert ERROR copying "src/bad-palette.ico" to "out.tif" :
 	Possible corruption: index exceeds palette size
+iconvert ERROR: ico header claims a 6143 MB image from a 375 byte file; probably a corrupt or malicious header

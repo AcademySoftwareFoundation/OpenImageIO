@@ -1,0 +1,3 @@
+oiiotool ERROR: read : "src/bomb.png": png header claims a 6143 MB image from a 353 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb.png

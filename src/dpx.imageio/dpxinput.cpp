@@ -213,7 +213,8 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     m_spec = ImageSpec(m_dpx.header.Width(), m_dpx.header.Height(),
                        m_dpx.header.ImageElementComponentCount(subimage),
                        typedesc);
-    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 8 }))
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 8 })
+        || !check_compression_ratio(m_spec, m_filesize))
         return false;
 
     // xOffset/yOffset are defined as unsigned 32-bit integers, but m_spec.x/y are signed

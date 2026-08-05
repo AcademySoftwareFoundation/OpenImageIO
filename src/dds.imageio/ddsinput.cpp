@@ -939,6 +939,13 @@ DDSInput::seek_subimage(int subimage, int miplevel)
             return false;
     }
 
+    // Decompression-bomb guard: reject a tiny file that declares a huge
+    // decoded image before internal_readimg() commits to the m_buf allocation.
+    // For compressed formats the declared bytes are the decoded (RGBA/half)
+    // size; genuine BCn ratios are well under the default cap.
+    if (!check_compression_ratio(m_spec, ioproxy()->size()))
+        return false;
+
     m_subimage = subimage;
     m_miplevel = miplevel;
     return true;

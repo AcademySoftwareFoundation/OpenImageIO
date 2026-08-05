@@ -7,6 +7,7 @@
 #include "libcineon/Cineon.h"
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
@@ -130,7 +131,9 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(), nchannels,
                        typedesc);
 
-    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })) {
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })
+        || !check_compression_ratio(m_spec, Filesystem::file_size(name))) {
+        close();
         return false;
     }
 

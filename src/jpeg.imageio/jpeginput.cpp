@@ -274,7 +274,14 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height, nchannels,
                        TypeDesc::UINT8);
 
+    // Validity check resolutions.
     if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 }))
+        return false;
+
+    // check_open's size cap still admits dimensions that are absurd for a tiny
+    // file, so also bound the declared-vs-compressed ratio.
+    imagesize_t filesize = m_io ? m_io->size() : Filesystem::file_size(name);
+    if (!check_compression_ratio(m_spec, filesize))
         return false;
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.

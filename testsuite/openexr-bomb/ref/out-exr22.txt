@@ -1,0 +1,6 @@
+oiiotool ERROR: read : OpenEXR exception: Cannot read image file "src/bomb.exr". Unexpected end of file.
+Full command line was:
+> oiiotool -oiioattrib openexr:core 0 --info -v src/bomb.exr
+oiiotool ERROR: read : "src/bomb.exr": openexr header claims a 12287 MB image from a 464 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool -oiioattrib openexr:core 1 --info -v src/bomb.exr
