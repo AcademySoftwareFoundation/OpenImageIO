@@ -706,10 +706,16 @@ macro (build_dependency_with_cmake pkgname)
     # commits are the ones pinned by the verified superproject commit and
     # inherit its supply-chain guarantee.
     if (NOT "${_pkg_GIT_SUBMODULES}" STREQUAL "")
-        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update
-                                --init --depth 1 -- ${_pkg_GIT_SUBMODULES}
-                        WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
-                        ${_pkg_exec_quiet})
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} submodule update --init --depth 1 -- ${_pkg_GIT_SUBMODULES}
+            WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+            RESULT_VARIABLE _pkg_submodule_result
+            ERROR_VARIABLE  _pkg_submodule_errors
+            ERROR_STRIP_TRAILING_WHITESPACE
+            ${_pkg_exec_quiet})
+        if (NOT _pkg_submodule_result EQUAL 0)
+            message (FATAL_ERROR "${pkgname}: git submodule update failed: ${_pkg_submodule_errors}")
+        endif ()
     endif ()
 
     # Configure the package
