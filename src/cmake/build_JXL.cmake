@@ -16,7 +16,7 @@ set_cache (JXL_GIT_COMMIT "a7a9c787341cf703dede03c2009fa460cae5e5df"
 # and folded in, so the installed libraries are self-contained and match
 # what OIIO's FindJXL module expects to link (jxl + jxl_threads).
 set_cache (JXL_BUILD_SHARED_LIBS ON
-           DOC "Should a local JXL build, if necessary, build shared libraries" ADVANCED)
+           "Should a local JXL build, if necessary, build shared libraries" ADVANCED)
 
 build_dependency_with_cmake(JXL
     VERSION         ${JXL_BUILD_VERSION}
