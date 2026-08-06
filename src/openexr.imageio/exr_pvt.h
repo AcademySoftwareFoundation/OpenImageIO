@@ -128,7 +128,8 @@ public:
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "multiimage" || feature == "mipmap");
+                || feature == "multiimage" || feature == "mipmap"
+                || feature == "thumbnail");
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
     bool open(const std::string& name, ImageSpec& newspec,
@@ -165,6 +166,7 @@ public:
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, int chbegin, int chend,
                                 DeepData& deepdata) override;
+    bool get_thumbnail(ImageBuf& thumb, int subimage) override;
 
     bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
     {

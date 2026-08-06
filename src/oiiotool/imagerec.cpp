@@ -91,6 +91,12 @@ ImageRec::ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
                 ib = new ImageBuf(srcspec);
                 if (copy_pixels)
                     ib->copy_pixels(srcib);
+                // The spec copy brings the thumbnail_* attributes but not
+                // the thumbnail itself, so copy it over by hand.
+                if (srcib.has_thumbnail())
+                    ib->set_thumbnail(*srcib.get_thumbnail());
+                else
+                    ib->clear_thumbnail();
             } else {
                 // The other image is not modified, and we don't need to be
                 // writable, either.

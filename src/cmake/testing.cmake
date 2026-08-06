@@ -428,7 +428,7 @@ macro (oiio_add_all_tests)
                     FOUNDVAR OpenCV_FOUND)
     set (all_openexr_tests
          openexr-suite openexr-multires openexr-chroma openexr-decreasingy
-         openexr-v2 openexr-window perchannel oiiotool-deep)
+         openexr-v2 openexr-window perchannel oiiotool-deep openexr-thumbnail)
     if (USE_PYTHON AND NOT SANITIZE)
         list (APPEND all_openexr_tests openexr-copy)
     endif ()

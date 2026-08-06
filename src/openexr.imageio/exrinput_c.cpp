@@ -107,7 +107,8 @@ public:
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "multiimage" || feature == "mipmap");
+                || feature == "multiimage" || feature == "mipmap"
+                || feature == "thumbnail");
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec,
@@ -144,6 +145,7 @@ public:
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, int chbegin, int chend,
                                 DeepData& deepdata) override;
+    bool get_thumbnail(ImageBuf& thumb, int subimage) override;
 
     bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
     {
@@ -281,9 +283,9 @@ static std::map<std::string, std::string> cexr_tag_to_oiio_std {
     { "tiledesc", "" },
     { "tiles", "" },
     { "type", "" },
+    { "preview", "" },  // we have thumbnail_* trio instead
 
     // FIXME: Things to consider in the future:
-    // preview
     // screenWindowCenter
     // adoptedNeutral
     // renderingTransform, lookModTransform
@@ -791,6 +793,16 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 #endif
             break;
         }
+    }
+
+    // The header's "preview" is a small RGBA image. Extract dimensions only.
+    exr_attr_preview_t preview;
+    if (exr_attr_get_preview(ctxt, subimage, "preview", &preview)
+            == EXR_ERR_SUCCESS
+        && preview.width > 0 && preview.height > 0) {
+        spec.attribute("thumbnail_width", int(preview.width));
+        spec.attribute("thumbnail_height", int(preview.height));
+        spec.attribute("thumbnail_nchannels", 4);
     }
 
     float aspect   = spec.get_float_attribute("PixelAspectRatio", 0.0f);
@@ -2054,6 +2066,30 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
         return false;
     }
 
+    return true;
+}
+
+
+
+bool
+OpenEXRCoreInput::get_thumbnail(ImageBuf& thumb, int subimage)
+{
+    lock_guard lock(*this);
+    if (!m_exr_context || subimage < 0 || subimage >= m_nsubimages)
+        return false;
+
+    exr_attr_preview_t preview;
+    if (exr_attr_get_preview(m_exr_context, subimage, "preview", &preview)
+        != EXR_ERR_SUCCESS)
+        return false;
+    if (preview.width < 1 || preview.height < 1 || !preview.rgba)
+        return false;
+
+    // An EXR preview is always 4 channels of 8 bit RGBA, gamma 2.2 encoded
+    ImageSpec thumbspec(int(preview.width), int(preview.height), 4, TypeUInt8);
+    thumb.reset(thumbspec);
+    memcpy(thumb.localpixels(), preview.rgba,
+           size_t(preview.width) * size_t(preview.height) * 4);
     return true;
 }
 
