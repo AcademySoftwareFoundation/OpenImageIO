@@ -1,4 +1,4 @@
-Language:        Cpp
+---
 BasedOnStyle:  WebKit
 
 AccessModifierOffset: -4
@@ -121,7 +121,6 @@ SpacesInContainerLiterals: true
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard:        c++17
 StatementMacros: 
   - Q_UNUSED
   - QT_REQUIRE_VERSION
@@ -129,3 +128,10 @@ TabWidth:        8
 UseTab:          Never
 #...
 
+---
+Language:        Cpp
+Standard:        c++17
+
+---
+Language:        ObjC
+Standard:        c++17
