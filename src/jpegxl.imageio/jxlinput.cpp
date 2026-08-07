@@ -208,6 +208,10 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         jxl.reset(new uint8_t[size]);
         size_t result = m_io->read(jxl.get(), size);
         DBG std::cout << "result = " << result << "\n";
+        if (result != size) {
+            errorfmt("Failed to read {} bytes from \"{}\"", size, m_filename);
+            return false;
+        }
 
         status = JxlDecoderSetInput(m_decoder.get(), jxl.get(), size);
         if (status != JXL_DEC_SUCCESS) {
@@ -340,10 +344,11 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 errorfmt("JxlDecoderImageOutBufferSize failed\n");
                 return false;
             }
-            if (buffer_size
-                != info.xsize * info.ysize * m_channels * bits / 8) {
+            size_t expected_size = size_t(info.xsize) * info.ysize * m_channels
+                                   * bits / 8;
+            if (buffer_size != expected_size) {
                 errorfmt("Invalid out buffer size {} {}\n", buffer_size,
-                         info.xsize * info.ysize * m_channels * bits / 8);
+                         expected_size);
                 return false;
             }
 
@@ -378,6 +383,15 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
 
     if (!got_basic_info) {
         errorfmt("Possible corrupt file, no JPEG XL basic info found\n");
+        return false;
+    }
+
+    // A valid image always triggers JXL_DEC_NEED_IMAGE_OUT_BUFFER and allocates
+    // m_buffer during the decode loop above. If it didn't, the file provided
+    // basic info but no decodable pixels; fail rather than let a later
+    // read_native_scanline() dereference a null buffer.
+    if (!m_buffer) {
+        errorfmt("Possible corrupt file, no JPEG XL image data decoded\n");
         return false;
     }
 
