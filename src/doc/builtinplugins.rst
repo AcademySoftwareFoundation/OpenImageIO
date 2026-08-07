@@ -1591,6 +1591,11 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``captureRate``
      - int[2]
      - Frames per second capture rate (vecsemantics will be marked as RATIONAL)
+   * - ``thumbnail_width``, ``thumbnail_height``, ``thumbnail_nchannels``
+     - int
+     - Dimensions of the part's ``preview`` image, if it has one. The
+       preview attribute itself is not passed through under its own name;
+       the thumbnail pixels are retrieved with `ImageInput::get_thumbnail()`.
    * - ``oiio:subimages``
      - int
      - The number of "parts" (subimages) in the file.
