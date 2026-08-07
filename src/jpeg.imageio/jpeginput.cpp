@@ -263,15 +263,11 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         m_cmyk                  = true;
     }
 
-    if (m_raw)
-        m_coeffs = jpeg_read_coefficients(&m_cinfo);
-    else
-        jpeg_start_decompress(&m_cinfo);  // start working
-    if (m_fatalerr)
-        return false;
-    m_next_scanline = 0;  // next scanline we'll read
-
-    m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height, nchannels,
+    // Validate the declared resolution before jpeg_start_decompress or
+    // jpeg_read_coefficients, either of which may allocate buffers scaled to
+    // the full image size (a progressive JPEG allocates its whole-image
+    // coefficient array inside jpeg_start_decompress).
+    m_spec = ImageSpec(m_cinfo.image_width, m_cinfo.image_height, nchannels,
                        TypeDesc::UINT8);
 
     // Validity check resolutions.
@@ -283,6 +279,25 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     imagesize_t filesize = m_io ? m_io->size() : Filesystem::file_size(name);
     if (!check_compression_ratio(m_spec, filesize))
         return false;
+
+    if (m_raw)
+        m_coeffs = jpeg_read_coefficients(&m_cinfo);
+    else
+        jpeg_start_decompress(&m_cinfo);  // start working
+    if (m_fatalerr)
+        return false;
+    m_next_scanline = 0;  // next scanline we'll read
+
+    // The output dimensions ought to match the header's, but re-validate if
+    // libjpeg adjusted them.
+    if (int(m_cinfo.output_width) != m_spec.width
+        || int(m_cinfo.output_height) != m_spec.height) {
+        m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height,
+                           nchannels, TypeDesc::UINT8);
+        if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 })
+            || !check_compression_ratio(m_spec, filesize))
+            return false;
+    }
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
     m_spec.set_colorspace("srgb_rec709_scene");
