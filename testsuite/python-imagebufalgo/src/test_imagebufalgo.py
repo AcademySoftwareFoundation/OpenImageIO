@@ -178,13 +178,10 @@ try:
     write (b, "flop.tif")
 
     # reorient
-    image_small = ImageBuf()
-    ImageBufAlgo.resample (image_small, ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/image.tif"),  roi=oiio.ROI(0,160,0,120))
-    image_small = ImageBufAlgo.rotate90 (image_small)
-    image_small.specmod().attribute ("Orientation", 8)
-    b = test_iba (ImageBufAlgo.reorient, image_small)
-    write (b, "reorient1.tif")
-    image_small = ImageBuf()
+    orient1 = ImageBuf(OIIO_TESTSUITE_ROOT + "/oiiotool-xform/src/orientation1.tif")
+    orient1.specmod().attribute ("Orientation", 8)
+    b = test_iba (ImageBufAlgo.reorient, orient1)
+    write (b, "reorient8.tif")
 
     # transpose
     b = test_iba (ImageBufAlgo.transpose, ImageBuf(OIIO_TESTSUITE_ROOT+"/oiiotool/src/image.tif"))

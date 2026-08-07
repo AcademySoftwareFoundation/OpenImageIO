@@ -363,7 +363,7 @@ ImageBufAlgo::reorient(ImageBuf& dst, const ImageBuf& src, int nthreads)
     case 3: ok = ImageBufAlgo::rotate180(dst, src, ROI(), nthreads); break;
     case 4: ok = ImageBufAlgo::flip(dst, src, ROI(), nthreads); break;
     case 5:
-        ok = ImageBufAlgo::rotate270(tmp, src, ROI(), nthreads);
+        ok = ImageBufAlgo::rotate90(tmp, src, ROI(), nthreads);
         if (ok)
             ok = ImageBufAlgo::flop(dst, tmp, ROI(), nthreads);
         else
@@ -371,7 +371,7 @@ ImageBufAlgo::reorient(ImageBuf& dst, const ImageBuf& src, int nthreads)
         break;
     case 6: ok = ImageBufAlgo::rotate90(dst, src, ROI(), nthreads); break;
     case 7:
-        ok = ImageBufAlgo::flip(tmp, src, ROI(), nthreads);
+        ok = ImageBufAlgo::flop(tmp, src, ROI(), nthreads);
         if (ok)
             ok = ImageBufAlgo::rotate90(dst, tmp, ROI(), nthreads);
         else

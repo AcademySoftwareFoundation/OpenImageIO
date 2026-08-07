@@ -102,7 +102,7 @@ Comparing "flip.tif" and "../../../testsuite/oiiotool-xform/ref/flip.tif"
 PASS
 Comparing "flop.tif" and "../../../testsuite/oiiotool-xform/ref/flop.tif"
 PASS
-Comparing "reorient1.tif" and "../../../testsuite/oiiotool-xform/ref/reorient1.tif"
+Comparing "reorient8.tif" and "../../../testsuite/oiiotool-xform/ref/reorient8.tif"
 PASS
 Comparing "transpose.tif" and "../../../testsuite/oiiotool-xform/ref/transpose.tif"
 PASS
