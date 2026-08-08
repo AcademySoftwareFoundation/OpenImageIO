@@ -40,3 +40,5 @@ command += info_command ("src/decodecolormap-corrupt.bmp")
 command += info_command ("src/bad-y.bmp")
 command += info_command ("src/palette32bit-corrupt.bmp")
 command += info_command ("src/huge-width.bmp")
+# Tiny file declaring a huge image (decompression bomb) is rejected
+command += info_command ("src/bomb-65535.bmp")
