@@ -433,6 +433,13 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy, string_view channel_set)
     total_imagecache_readtime += post_ic_time - pre_ic_time;
     total_readtime.add_seconds(pre_ic_time - post_ic_time);
 
+    // A failed read leaves the ImageRec with no subimages, so bail out before
+    // anything below tries to examine its specs.
+    if (!ok || !img->subimages()) {
+        error("read", format_read_error(img->name(), img->geterror()));
+        return false;
+    }
+
     // If this is the first tiled image we have come across, use it to
     // set our tile size (unless the user explicitly set a tile size, or
     // explicitly instructed scanline output).
@@ -445,9 +452,7 @@ Oiiotool::read(ImageRecRef img, ReadPolicy readpolicy, string_view channel_set)
     // channel name that we encounter.
     remember_input_channelformats(img);
 
-    if (!ok)
-        error("read", format_read_error(img->name(), img->geterror()));
-    return ok;
+    return true;
 }
 
 
@@ -471,9 +476,13 @@ Oiiotool::read_nativespec(ImageRecRef img)
     imagecache->getattribute("stat:fileio_time", post_ic_time);
     total_imagecache_readtime += post_ic_time - pre_ic_time;
 
-    if (!ok)
+    // A failed read leaves the ImageRec with no subimages, so callers must
+    // not be handed back a "success" they will dereference.
+    if (!ok || !img->subimages()) {
         error("read", format_read_error(img->name(), img->geterror()));
-    return ok;
+        return false;
+    }
+    return true;
 }
 
 
@@ -5716,16 +5725,20 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
             if (ot.input_config_set)
                 ot.curimg->configspec(ot.input_config);
             ot.curimg->input_dataformat(input_dataformat);
+            bool ok;
             if (readnow) {
                 ReadPolicy policy = native ? ReadNativeNoCache : ReadNoCache;
-                ot.read(policy, channel_set);
-            } else
-                ot.read_nativespec();
+                ok                = ot.read(policy, channel_set);
+            } else {
+                ok = ot.read_nativespec();
+            }
+            if (!ok)
+                break;  // error already reported by the read
+            const ImageSpec* nspec = ot.curimg->nativespec();
             if (!ot.first_input_dimensions_is_set()) {
                 ImageSpec new_first_dims;
-                new_first_dims.copy_dimensions(*ot.curimg->nativespec());
-                new_first_dims.channelnames
-                    = ot.curimg->nativespec()->channelnames;
+                new_first_dims.copy_dimensions(*nspec);
+                new_first_dims.channelnames = nspec->channelnames;
                 ot.set_first_input_dimensions(new_first_dims);
                 if (ot.parent_oiiotool)
                     ot.parent_oiiotool->set_first_input_dimensions(
