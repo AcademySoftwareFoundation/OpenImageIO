@@ -148,7 +148,8 @@ class ImageViewer final : public QMainWindow {
 
 public:
     ImageViewer(bool use_ocio, const std::string& image_color_space,
-                const std::string& display, const std::string& view);
+                const std::string& display, const std::string& view,
+                bool dark = false);
     ~ImageViewer();
 
     enum COLOR_MODE {
