@@ -615,7 +615,7 @@ macro (build_dependency_with_cmake pkgname)
         # singleValueKeywords:
         "GIT_REPOSITORY;GIT_TAG;GIT_COMMIT;VERSION;SOURCE_SUBDIR;QUIET"
         # multiValueKeywords:
-        "CMAKE_ARGS"
+        "CMAKE_ARGS;GIT_SUBMODULES"
         # argsToParse:
         ${ARGN})
 
@@ -701,6 +701,23 @@ macro (build_dependency_with_cmake pkgname)
             "${pkgname}: Neither GIT_TAG nor GIT_COMMIT was specified.")
     endif ()
 
+    # Initialize any requested submodules (paths relative to the package
+    # source dir). This runs after the checkout above, so the submodule
+    # commits are the ones pinned by the verified superproject commit and
+    # inherit its supply-chain guarantee.
+    if (NOT "${_pkg_GIT_SUBMODULES}" STREQUAL "")
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} submodule update --init --depth 1 -- ${_pkg_GIT_SUBMODULES}
+            WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+            RESULT_VARIABLE _pkg_submodule_result
+            ERROR_VARIABLE  _pkg_submodule_errors
+            ERROR_STRIP_TRAILING_WHITESPACE
+            ${_pkg_exec_quiet})
+        if (NOT _pkg_submodule_result EQUAL 0)
+            message (FATAL_ERROR "${pkgname}: git submodule update failed: ${_pkg_submodule_errors}")
+        endif ()
+    endif ()
+
     # Configure the package
     if (${PROJECT_NAME}_DEPENDENCY_BUILD_VERBOSE)
         set (_pkg_cmake_verbose -DCMAKE_VERBOSE_MAKEFILE=ON
@@ -730,6 +747,10 @@ macro (build_dependency_with_cmake pkgname)
     if (CMAKE_IGNORE_PATH)
         string(REPLACE ";" "\\;" CMAKE_IGNORE_PATH_ESCAPED "${CMAKE_IGNORE_PATH}")
         list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH_ESCAPED}")
+    endif()
+    if (CMAKE_IGNORE_PREFIX_PATH)
+        string(REPLACE ";" "\\;" CMAKE_IGNORE_PREFIX_PATH_ESCAPED "${CMAKE_IGNORE_PREFIX_PATH}")
+        list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PREFIX_PATH=${CMAKE_IGNORE_PREFIX_PATH_ESCAPED}")
     endif()
 
     # Pass along any CMAKE_MSVC_RUNTIME_LIBRARY
