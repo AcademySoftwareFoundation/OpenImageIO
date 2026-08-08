@@ -36,18 +36,18 @@ bar.null?RES=128x128&CHANNELS=3&TILE=64x64&TEX=1&TYPE=uint16&PIXEL=0.25,0.5,1 : 
       Constant Color: 16384.00 32768.00 65535.00 (of 65535)
       Monochrome: No
 Writing outtile.null
-oiiotool ERROR: read : file not found: "bad.null?CHANNELS=-1"
+oiiotool ERROR: read : Invalid image file "bad.null?CHANNELS=-1": null image resolution must be at least 1x1, but the file specified 1024x1024x1, -1 chans. Possible corrupt input?
 Full command line was:
 > oiiotool --info bad.null?CHANNELS=-1
-oiiotool ERROR: read : file not found: "bad.null?CHANNELS=2000000000"
+oiiotool ERROR: read : Invalid image file "bad.null?CHANNELS=2000000000": null does not support 2000000000-channel images. Possible corrupt input?
 Full command line was:
 > oiiotool --info bad.null?CHANNELS=2000000000
-oiiotool ERROR: read : file not found: "bad.null?RES=-4x-4"
+oiiotool ERROR: read : Invalid image file "bad.null?RES=-4x-4": null image resolution must be at least 1x1, but the file specified -4x-4x1, 4 chans. Possible corrupt input?
 Full command line was:
 > oiiotool --info bad.null?RES=-4x-4
-oiiotool ERROR: read : file not found: "bad.null?RES=0x0"
+oiiotool ERROR: read : Invalid image file "bad.null?RES=0x0": null image resolution must be at least 1x1, but the file specified 0x0x1, 4 chans. Possible corrupt input?
 Full command line was:
 > oiiotool --info bad.null?RES=0x0
-oiiotool ERROR: read : file not found: "bad.null?RES=64x64&TILE=-4x-4"
+oiiotool ERROR: read : Invalid image file "bad.null?RES=64x64&TILE=-4x-4": null tile size may not be negative, but was -4x-4x1. Possible corrupt input?
 Full command line was:
 > oiiotool --info bad.null?RES=64x64&TILE=-4x-4
