@@ -6,10 +6,10 @@
 # libuhdr by hand!
 ######################################################################
 
-set_cache (libuhdr_BUILD_VERSION 1.4.0 "libultrahdr version for local builds")
+set_cache (libuhdr_BUILD_VERSION 1.5.1 "libultrahdr version for local builds")
 set (libuhdr_GIT_REPOSITORY "https://github.com/google/libultrahdr")
 set (libuhdr_GIT_TAG "v${libuhdr_BUILD_VERSION}")
-set (libuhdr_GIT_COMMIT "d52a0d13814ca399fc8a07e23de1d2c63f0e8404")
+set (libuhdr_GIT_COMMIT "a8166d65171aef43cb4bc211538ee6619a9af680")
 
 set_cache (libuhdr_BUILD_SHARED_LIBS OFF
            DOC "Should execute a local libuhdr build, if necessary, build shared libraries" ADVANCED)
@@ -49,6 +49,12 @@ build_dependency_with_cmake(libuhdr
         -D JPEG_LIBRARY=${JPEG_LIBRARY}
         -D CMAKE_C_COMPILER=${UHDR_CMAKE_C_COMPILER}
         -D CMAKE_CXX_COMPILER=${UHDR_CMAKE_CXX_COMPILER}
+        # On MSVC, libuhdr's own CMakeLists forces a static (/MT) CRT for a
+        # static-lib build unless BUILD_FOR_WINUI is set, which instead lets
+        # our CMAKE_MSVC_RUNTIME_LIBRARY (passed down by
+        # build_dependency_with_cmake) flow through -- needed so uhdr-static
+        # links against the same CRT as the rest of OIIO.
+        -D BUILD_FOR_WINUI=TRUE
     ${_libuhdr_noinstall}
     )
 unset (_libuhdr_noinstall)
