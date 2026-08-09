@@ -283,6 +283,13 @@ FitsInput::read_fits_header(void)
             }
             if (keyname == "NAXIS") {
                 m_naxes = Strutil::stoi(&card[10]);
+                // NAXIS is 0-999 per the FITS spec. Reject bogus values before
+                // sizing m_naxis, so a negative or huge count can't wrap/blow
+                // up the resize into an OOM or crash.
+                if (m_naxes < 0 || m_naxes > 999) {
+                    errorfmt("Invalid FITS NAXIS value {}", m_naxes);
+                    return false;
+                }
                 m_naxis.resize(m_naxes);
                 continue;
             }
