@@ -2971,16 +2971,18 @@ Color space conversion
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.jpg");
-          ImageBuf Dst = ImageBufAlgo::colorconvert (Src, "sRGB", "acescg", true);
+          ImageBuf Dst = ImageBufAlgo::colorconvert (Src, "srgb_rec709_scene",
+                                                     "lin_ap1_scene", true);
 
        .. code-tab:: py
 
           Src = ImageBuf("tahoe.jpg")
-          Dst = ImageBufAlgo.colorconvert (Src, "sRGB", "acescg", True)
+          Dst = ImageBufAlgo.colorconvert (Src, "srgb_rec709_scene",
+                                           "lin_ap1_scene", True)
 
        .. code-tab:: bash oiiotool
 
-          oiiotool tahoe.jpg --colorconvert sRGB acescg -o tahoe_acescg.exr
+          oiiotool tahoe.jpg --colorconvert srgb_rec709_scene lin_ap1_scene -o tahoe_acescg.exr
 
 |
 
@@ -3072,18 +3074,18 @@ Color space conversion
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
-          ImageBuf Dst = ImageBufAlgo::ociodisplay (Src, "sRGB", "Film", "lnf",
-                                                    "", true, "SHOT", "pe0012");
+          ImageBuf Dst = ImageBufAlgo::ociodisplay (Src, "sRGB", "ACES 2.0 - SDR 100 nits (Rec.709)",
+                                                    "lin_rec709_scene", "", true, "SHOT", "pe0012");
 
        .. code-tab:: py
 
           Src = ImageBuf("tahoe.jpg")
-          Dst = ImageBufAlgo.ociodisplay (Src, "sRGB", "Film", "lnf",
-                                          "", True, "SHOT", "pe0012")
+          Dst = ImageBufAlgo.ociodisplay (Src, "sRGB", "ACES 2.0 - SDR 100 nits (Rec.709)",
+                                          "lin_rec709_scene", "", True, "SHOT", "pe0012")
 
        .. code-tab:: bash oiiotool
 
-          oiiotool tahoe.jpg --ociodisplay:from=lnf:unpremult=1:key=SHOT:value=pe0012 sRGB Film -o out.exr
+          oiiotool tahoe.jpg --ociodisplay:from=lin_rec709_scene:unpremult=1:key=SHOT:value=pe0012 sRGB "ACES 2.0 - SDR 100 nits (Rec.709)" -o out.exr
 
 |
 
