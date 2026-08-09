@@ -21,7 +21,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        OIIO's public APIs only require C++17 features.
  * Compilers: gcc 9.3 - 16, clang 10 - 22, MSVS 2017 - 2026 (v19.14
    and up), Intel OneAPI C++ compiler 2022+.
- * CMake >= 3.18.2 (tested through 4.4)
+ * **CMake >= 3.22.0** (tested through 4.4)
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
  * libTIFF >= 4.0 (tested through 4.7 and master)
