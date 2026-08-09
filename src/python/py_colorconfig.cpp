@@ -134,6 +134,12 @@ declare_colorconfig(py_module& m)
             },
             "name"_a)
         .def(
+            "isColorSpaceActive",
+            [](const ColorConfig& self, const std::string& name) {
+                return self.isColorSpaceActive(name);
+            },
+            "name"_a)
+        .def(
             "getColorSpaceFromFilepath",
             [](const ColorConfig& self, const std::string& filepath) {
                 return std::string(self.getColorSpaceFromFilepath(filepath));
