@@ -715,3 +715,9 @@ PASS
 oiiotool ERROR: read : "src/broken_no_END.fits": Hit end of file unexpectedly (offset=5760)
 Full command line was:
 > oiiotool --info --hash src/broken_no_END.fits
+oiiotool ERROR: read : "src/bad-naxis.fits": Invalid FITS NAXIS value 999999999
+Full command line was:
+> oiiotool --info --hash src/bad-naxis.fits
+oiiotool ERROR: read : "src/bomb-40000.fits": fits header claims a 1525 MB image from a 2880 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info --hash src/bomb-40000.fits
