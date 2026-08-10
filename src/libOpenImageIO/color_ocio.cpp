@@ -1492,10 +1492,10 @@ ColorConfig::get_debug_info(const DebugInfoOptions& /*options*/) const
     } else
         info.interchange_state = ColorInterchangeState::NotFound;
     info.cache_entries["color processors"] = impl->processorCacheSize();
-    info.cache_entries["color processors requested"]
-        = std::size_t(std::max(0, impl->processorsRequested()));
-    info.cache_entries["color processors created"]
-        = std::size_t(std::max(0, impl->processorsCreated()));
+    info.cache_entries["color processors requested"] = std::size_t(
+        std::max(0, impl->processorsRequested()));
+    info.cache_entries["color processors created"] = std::size_t(
+        std::max(0, impl->processorsCreated()));
     info.cache_entries["fingerprints"]
         = OIIO::pvt::color_space_fingerprint_cache_size();
     info.cache_entries["characterizations"]
@@ -1513,9 +1513,8 @@ ColorConfigDebugInfo::to_string() const
     out += format("OpenImageIO {} / OpenColorIO {}\n", oiio_version,
                   ocio_version);
     out += format("config: \"{}\"\n", config_name);
-    out += format("  structural cache id: {}\n", structural_cache_id.size()
-                                                     ? structural_cache_id
-                                                     : "(none)");
+    out += format("  structural cache id: {}\n",
+                  structural_cache_id.size() ? structural_cache_id : "(none)");
     out += format("  cache id (context folded in): {}\n",
                   cache_id.size() ? cache_id : "(none)");
     switch (interchange_state) {
