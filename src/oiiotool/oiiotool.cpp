@@ -2416,7 +2416,7 @@ colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
     if (chrm_terms.empty())
         chrm_terms = options.get_string("chrm");
     std::vector<std::string> chromaticities = terms(chrm_terms);
-    std::vector<std::string> transfer = terms(
+    std::vector<std::string> transfer       = terms(
         options.get_string("transfer_function"));
     std::vector<std::string> encoding = terms(options.get_string("encoding"));
     std::vector<std::string> image_state = terms(

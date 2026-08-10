@@ -6,8 +6,8 @@
 
 #include <cstddef>
 #ifdef OIIO_INTERNAL
-#include <cstdint>
-#include <map>
+#    include <cstdint>
+#    include <map>
 #endif
 #include <memory>
 

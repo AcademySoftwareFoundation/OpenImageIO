@@ -474,8 +474,7 @@ test_registry_round_trip()
             // sweep lands srgbe_p3d65_display on its sibling. Accept exactly
             // that pair there; declared ids disambiguate at 2.5+.
             if (ColorConfig::OpenColorIO_version_hex() < 0x02050000
-                && id == "srgbe_p3d65_display"
-                && got == "srgb_p3d65_display")
+                && id == "srgbe_p3d65_display" && got == "srgb_p3d65_display")
                 continue;
             OIIO_CHECK_EQUAL(strip_leftmost_namespace(got),
                              strip_leftmost_namespace(id));
@@ -539,8 +538,7 @@ test_builtin_interop_ids_sync()
     // Process-lifetime storage: repeated calls return the same data.
     OIIO_CHECK_ASSERT(ColorConfig::get_builtin_interop_ids().data()
                       == all.data());
-    OIIO_CHECK_EQUAL(ColorConfig::get_builtin_interop_ids().size(),
-                     all.size());
+    OIIO_CHECK_EQUAL(ColorConfig::get_builtin_interop_ids().size(), all.size());
 }
 
 
