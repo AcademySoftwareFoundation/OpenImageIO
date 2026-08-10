@@ -27,7 +27,8 @@ def header(magic=b"Ptex", version=1, meshtype=1, datatype=3, alphachan=-1,
 
 
 def write(name, data):
-    open(name, "wb").write(data)
+    with open(name, "wb") as f:
+        f.write(data)
     print("wrote %s (%d bytes)" % (name, len(data)))
 
 
