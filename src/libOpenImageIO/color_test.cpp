@@ -471,10 +471,12 @@ test_registry_round_trip()
             // ocio://default declares "sRGB Encoded P3-D65 - Texture", the
             // same math as the registry's srgb_p3d65_display (they differ
             // only in referredness, which pixel probes cannot see), so the
-            // sweep lands srgbe_p3d65_display on its sibling. Accept exactly
-            // that pair there; declared ids disambiguate at 2.5+.
-            if (ColorConfig::OpenColorIO_version_hex() < 0x02050000
-                && id == "srgbe_p3d65_display" && got == "srgb_p3d65_display")
+            // sweep lands srgbe_p3d65_display on its sibling. Accept
+            // exactly that class there -- equivalent() proves the
+            // value-identity -- and nothing else: a non-equivalent
+            // mislanding still fails loudly. Declared ids disambiguate at
+            // 2.5+.
+            if (!have_studio && cc.equivalent(id, got))
                 continue;
             OIIO_CHECK_EQUAL(strip_leftmost_namespace(got),
                              strip_leftmost_namespace(id));

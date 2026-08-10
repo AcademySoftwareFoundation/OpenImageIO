@@ -4,13 +4,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-import os
-
-# Raw output capture: debug builds default OPENIMAGEIO_DEBUG=1 and leak
-# advisory DBG lines (e.g. "not color-interoperable") the references do not
-# expect. Pin the release default.
-os.environ["OPENIMAGEIO_DEBUG"] = "0"
-
 # Spec 09 Feature 3 -- composable +/- layer-3 profile selection. Active profiles
 # are selected from TWO entry points that compose: the env var
 # OPENIMAGEIO_COLORPOLICY (the base) and the global attribute

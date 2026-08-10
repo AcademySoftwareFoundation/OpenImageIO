@@ -96,6 +96,15 @@ if 'OCIO_LOGGING_LEVEL' not in os.environ :
     os.environ['OCIO_LOGGING_LEVEL'] = 'none'
     os.putenv('OCIO_LOGGING_LEVEL', 'none')
 
+# Likewise pin OIIO's own debug chatter: debug builds default
+# OPENIMAGEIO_DEBUG=1, leaking advisory DBG lines into tests that capture
+# raw output, whose references expect the release default. Guarded, so a
+# test that deliberately captures the narration (color-interop-convert) or a
+# developer export still overrides.
+if 'OPENIMAGEIO_DEBUG' not in os.environ :
+    os.environ['OPENIMAGEIO_DEBUG'] = '0'
+    os.putenv('OPENIMAGEIO_DEBUG', '0')
+
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]

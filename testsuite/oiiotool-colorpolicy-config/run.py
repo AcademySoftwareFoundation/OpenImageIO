@@ -16,14 +16,6 @@
 # resolution is display-referred; a config declaring read:cicp_state=scene
 # flips the SAME file to the scene-referred twin, purely from the config.
 
-import os
-
-# This test captures raw oiiotool output. Debug builds default
-# OPENIMAGEIO_DEBUG=1, which leaks advisory DBG lines (e.g. the
-# "not color-interoperable" notice) into the capture; the references expect
-# the release default, so pin it.
-os.environ["OPENIMAGEIO_DEBUG"] = "0"
-
 redirect = " >> out.txt 2>&1 "
 
 plaincfg = "src/plain.ocio"

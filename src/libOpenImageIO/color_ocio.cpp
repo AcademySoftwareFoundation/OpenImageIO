@@ -4054,8 +4054,7 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
         // space the input arrived in: tag that source space, not the space
         // the failed conversion was reaching for (the honest no-op rule),
         // and treat the operation as space-preserving (its still-true
-        // hints pass through). (getDisplayViewColorSpaceName's shared-view
-        // path returns interned storage, so holding the result is safe.)
+        // hints pass through).
         const bool disp_view_target = inverse == lenient_passthrough;
         std::string target;
         if (disp_view_target) {
