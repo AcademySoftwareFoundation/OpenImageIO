@@ -3074,13 +3074,13 @@ Color space conversion
        .. code-tab:: c++
 
           ImageBuf Src ("tahoe.exr");
-          ImageBuf Dst = ImageBufAlgo::ociodisplay (Src, "sRGB", "ACES 2.0 - SDR 100 nits (Rec.709)",
+          ImageBuf Dst = ImageBufAlgo::ociodisplay (Src, "sRGB - Display", "ACES 2.0 - SDR 100 nits (Rec.709)",
                                                     "lin_rec709_scene", "", true, "SHOT", "pe0012");
 
        .. code-tab:: py
 
           Src = ImageBuf("tahoe.jpg")
-          Dst = ImageBufAlgo.ociodisplay (Src, "sRGB", "ACES 2.0 - SDR 100 nits (Rec.709)",
+          Dst = ImageBufAlgo.ociodisplay (Src, "sRGB - Display", "ACES 2.0 - SDR 100 nits (Rec.709)",
                                           "lin_rec709_scene", "", True, "SHOT", "pe0012")
 
        .. code-tab:: bash oiiotool

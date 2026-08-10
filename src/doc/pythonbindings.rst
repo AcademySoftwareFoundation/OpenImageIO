@@ -3751,7 +3751,7 @@ Color manipulation
     .. code-block:: python
 
         Src = ImageBuf ("tahoe.exr")
-        Dst = ImageBufAlgo.ociodisplay (Src, "sRGB", "ACES 2.0 - SDR 100 nits (Rec.709)",
+        Dst = ImageBufAlgo.ociodisplay (Src, "sRGB - Display", "ACES 2.0 - SDR 100 nits (Rec.709)",
                                         "lin_rec709_scene",
                                         context_key="SHOT", context_value="pe0012")
 
