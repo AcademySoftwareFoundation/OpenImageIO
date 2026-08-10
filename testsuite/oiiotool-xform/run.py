@@ -40,6 +40,10 @@ shutil.copy (oiiotoolsrcdir + "/image.tif", "./image.tif")
 # test resample
 command += oiiotool ("../common/grid.tif --resample 128x128 -o resample.tif")
 
+# test resample with interpolation off (nearest). Separate from the case above
+# because the two use entirely different code paths.
+command += oiiotool ("../common/grid.tif --resample:interp=0 128x128 -o resample-nearest.tif")
+
 # test resize
 command += oiiotool ("../common/grid.tif --resize 256x256 -o resize.tif")
 command += oiiotool ("../common/grid.tif --resize 25% -o resize2.tif")
@@ -141,7 +145,7 @@ command += oiiotool ("image.tif --cshift +100+50 -o cshift.tif")
 
 # Outputs to check against references
 outputs = [
-            "resample.tif", "resize.tif", "resize2.tif",
+            "resample.tif", "resample-nearest.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
             "resized-offset.exr",
             "resizefrom.tif", "resizefromto.tif", "resizefromtooffset.tif",

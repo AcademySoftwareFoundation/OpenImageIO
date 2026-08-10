@@ -771,6 +771,123 @@ test_resample_hwy_nearest()
                      0);
 }
 
+// Same pixels as `src`, but with a gap between scanlines and, optionally,
+// a gap between pixels. `storage` owns the memory and must outlive the result.
+// Row padding is legal for a source the tables handle -- contiguous_scanline()
+// permits it -- so it has to be read through the real scanline stride. Pixel
+// padding is not, and selects the per-pixel fallback instead.
+static ImageBuf
+padded_copy(const ImageBuf& src, bool pad_pixels,
+            std::unique_ptr<char[]>& storage)
+{
+    const ImageSpec& spec(src.spec());
+    stride_t chansize = stride_t(spec.format.size());
+    stride_t xstride  = chansize * (spec.nchannels + (pad_pixels ? 1 : 0));
+    stride_t ystride  = xstride * (spec.width + 1);
+    storage.reset(new char[size_t(ystride) * spec.height]);
+    memset(storage.get(), 0, size_t(ystride) * spec.height);
+    ImageBuf padded(spec, storage.get(), xstride, ystride);
+    ImageBufAlgo::paste(padded, spec.x, spec.y, spec.z, 0, src);
+    return padded;
+}
+
+
+
+// The tables are a pure optimization: they must reproduce the per-pixel path
+// exactly, so this compares the two rather than checking against a tolerance,
+// which would hide the one-pixel shift a mistake in the mapping arithmetic
+// actually causes. Pixel padding is what selects the fallback -- there is no
+// runtime switch to flip, the dispatch is by capability.
+static void
+check_against_fallback(const ImageBuf& src, const ImageSpec& dstspec,
+                       bool interpolate)
+{
+    std::unique_ptr<char[]> fast_mem, slow_mem;
+    ImageBuf fast_src = padded_copy(src, false, fast_mem);
+    ImageBuf slow_src = padded_copy(src, true, slow_mem);
+    ImageBuf fast(dstspec), slow(dstspec);
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(fast, fast_src, interpolate));
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(slow, slow_src, interpolate));
+    if (memcmp(fast.localpixels(), slow.localpixels(), dstspec.image_bytes())
+        == 0)
+        return;
+    auto cr = ImageBufAlgo::compare(fast, slow, 0.0f, 0.0f);
+    Strutil::print("    interp={} {}x{} nch={} type={}: maxerror={:g} "
+                   "({} of {} values differ)\n",
+                   int(interpolate), dstspec.width, dstspec.height,
+                   dstspec.nchannels, dstspec.format, cr.maxerror, cr.nfail,
+                   size_t(dstspec.width) * dstspec.height * dstspec.nchannels);
+    OIIO_CHECK_ASSERT(false && "resample paths disagree");
+}
+
+
+
+// Nearest resampling must pick the same source pixel as the mapping in the
+// OIIO docs, and must be black wherever the destination maps outside the
+// source data window. The crop case is what distinguishes a data window from
+// a full window, and is not exercised by an ordinary resize.
+void
+test_resample_correctness()
+{
+    std::cout << "test resample correctness\n";
+
+    // Source pixel (x,y) holds the value x + 10*y, so a resampled pixel
+    // identifies exactly which source pixel it came from.
+    const int srcsize = 4;
+    ImageBuf src(ImageSpec(srcsize, srcsize, 1, TypeFloat));
+    for (ImageBuf::Iterator<float> it(src); !it.done(); ++it)
+        it[0] = float(it.x() + 10 * it.y());
+
+    // Both a magnification and a reduction, checked against the mapping
+    // evaluated independently here.
+    for (int dstsize : { 8, 2 }) {
+        ImageBuf dst(ImageSpec(dstsize, dstsize, 1, TypeFloat));
+        OIIO_CHECK_ASSERT(ImageBufAlgo::resample(dst, src, false));
+        for (ImageBuf::ConstIterator<float> it(dst); !it.done(); ++it) {
+            int sx = int((it.x() + 0.5f) / dstsize * srcsize);
+            int sy = int((it.y() + 0.5f) / dstsize * srcsize);
+            OIIO_CHECK_EQUAL(it[0], float(sx + 10 * sy));
+        }
+    }
+
+    // A source whose data window is a 2x2 crop of a 4x4 full window. The
+    // destination covers the whole full window, so its outer ring must come
+    // out black rather than clamped or out of bounds.
+    ImageSpec cropspec(2, 2, 1, TypeFloat);
+    cropspec.x = cropspec.y = 1;
+    cropspec.full_x = cropspec.full_y = 0;
+    cropspec.full_width = cropspec.full_height = 4;
+    ImageBuf crop(cropspec);
+    for (ImageBuf::Iterator<float> it(crop); !it.done(); ++it)
+        it[0] = float(it.x() + 10 * it.y());
+
+    ImageBuf dst(ImageSpec(4, 4, 1, TypeFloat));
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(dst, crop, false));
+    for (ImageBuf::ConstIterator<float> it(dst); !it.done(); ++it) {
+        bool inside = it.x() >= 1 && it.x() <= 2 && it.y() >= 1 && it.y() <= 2;
+        float expected = inside ? float(it.x() + 10 * it.y()) : 0.0f;
+        OIIO_CHECK_EQUAL(it[0], expected);
+    }
+
+    // Against the per-pixel path, for both sampling modes: uint8 because its
+    // rescaling to [0,1] is the conversion most easily got wrong, float
+    // because it is the one where a mapping error cannot hide in rounding.
+    // One reduction and one magnification is enough -- the mapping is the
+    // same arithmetic in both directions.
+    for (auto type : { TypeUInt8, TypeFloat }) {
+        float top[4]    = { 0.1f, 0.2f, 0.3f, 0.4f };
+        float bottom[4] = { 0.9f, 0.8f, 0.7f, 0.6f };
+        ImageBuf grad(ImageSpec(97, 61, 4, type));
+        ImageBufAlgo::fill(grad, cspan<float>(top), cspan<float>(bottom));
+        for (auto wh :
+             { std::pair<int, int>(53, 79), std::pair<int, int>(211, 43) })
+            for (bool interp : { false, true })
+                check_against_fallback(grad,
+                                       ImageSpec(wh.first, wh.second, 4, type),
+                                       interp);
+    }
+}
+
 
 
 void
@@ -782,7 +899,7 @@ test_resample()
     Benchmarker bench;
     bench.trials(ntrials);
     bench.iterations(iterations);
-    bench.units(Benchmarker::Unit::ms);
+    bench.units(Benchmarker::Unit::us);
 
     ImageSpec spec_hd_rgba_f(1920, 1080, 4, TypeFloat);
     ImageSpec spec_hd_rgba_u8(1920, 1080, 4, TypeUInt8);
@@ -805,6 +922,12 @@ test_resample()
           [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_f, false); });
     bench("  IBA::resample HD->1024x512 rgba u8->u8 no interp ",
           [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_u8, false); });
+
+    // A nearest magnification: the reductions above cannot show the case
+    // where consecutive destination pixels read the same source pixel.
+    ImageBuf bigu8(ImageSpec(3840, 2160, 4, TypeUInt8));
+    bench("  IBA::resample HD->4K      rgba u8->u8 no interp ",
+          [&]() { ImageBufAlgo::resample(bigu8, buf_hd_rgba_u8, false); });
 }
 
 
@@ -1846,6 +1969,7 @@ main(int argc, char** argv)
     test_over(TypeHalf);
     test_zover();
     test_resample_hwy_nearest();
+    test_resample_correctness();
     test_resample();
     test_compare();
     test_isConstantColor();
