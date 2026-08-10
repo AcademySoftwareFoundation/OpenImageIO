@@ -176,60 +176,53 @@ characterize_color_space_impl(const ColorConfig& config,
             cs = nullptr;
         }
     }
+    const bool is_data = cs && cs->isData();
     if (!cs) {
-        // The name lands on no space in the ACTIVE config. That must not end
-        // the interop-id question: a CIID is meaningful against any
-        // interoperable config through the registry and the legacy syntactic
-        // table (the whole point of the embedded registry -- e.g. the builtin
-        // configs bundled with OCIO < 2.4 lack the CIID aliases entirely), and
-        // the derive cascade already self-guards -- without a real space only
-        // its syntactic tiers can fire, and it never guesses. Every other
-        // field genuinely requires a config space and stays unavailable, and
-        // the record skips the shared cache (no config-space name to key it
-        // honestly).
-        if (requested_fields & uint32_t(Field::ColorInteropID)) {
-            rec.full_attempt_mask |= uint32_t(Field::ColorInteropID);
-            std::string id;
-            try {
-                id = std::string(
-                    derive_color_interop_id_impl(config, color_space));
-            } catch (...) {
-            }
-            rec.color_interop_id = id;
-            mark(rec, Field::ColorInteropID, !id.empty(), !id.empty());
-        }
-        return rec;
+        // The name lands on no space in the ACTIVE config, but a color
+        // interop ID is meaningful against ANY interoperable config through
+        // the registry and the legacy syntactic table (the point of the
+        // embedded registry -- the builtin configs bundled with OCIO < 2.4
+        // lack the CIID aliases entirely), and the derive cascade never
+        // guesses. Fall through under the raw query name so the shared
+        // cache and the ColorInteropID derive tier below run as usual; the
+        // config-space-dependent facts stay unattempted.
+        if (!(requested_fields & uint32_t(Field::ColorInteropID)))
+            return rec;  // nothing else is answerable without a config space
+        resolved = std::string(color_space);
+        rec.name = resolved;
+    } else {
+        rec.name = cs->getName() ? cs->getName() : resolved;
+
+        // ---- Cheap direct facts (no processors, no probes).
+
+        // Image state: the OCIO reference-space kind. A data space's
+        // reference kind is arbitrary, so its state is honestly
+        // undetermined.
+        if (!is_data)
+            rec.image_state = cs->getReferenceSpaceType()
+                                      == OCIO::REFERENCE_SPACE_DISPLAY
+                                  ? "display"
+                                  : "scene";
+        mark(rec, Field::ImageState, !rec.image_state.empty());
+
+        // Color Interop ID: the existing cheap declared/table subset.
+        rec.color_interop_id = std::string(
+            config.get_color_interop_id(resolved));
+        mark(rec, Field::ColorInteropID, !rec.color_interop_id.empty());
+
+        // Encoding: the authored attribute only (the interop-counterpart
+        // fallback is a derivation, below).
+        if (cs->getEncoding() && cs->getEncoding()[0])
+            rec.encoding = cs->getEncoding();
+        mark(rec, Field::Encoding, !rec.encoding.empty());
+
+        // Range: supplied only when intrinsic to a registered identity or
+        // otherwise explicitly known -- nothing registers one today, so the
+        // attempt is a stable negative. Never guessed from a name (the
+        // static CICP table's range flag is a fixed encode-time convention,
+        // not per-space knowledge).
+        mark(rec, Field::Range, false);
     }
-    rec.name = cs->getName() ? cs->getName() : resolved;
-
-    // ---- Cheap direct facts (always computed; no processors, no probes).
-    const bool is_data = cs->isData();
-
-    // Image state: the OCIO reference-space kind. A data space's reference
-    // kind is arbitrary, so its state is honestly undetermined.
-    if (!is_data)
-        rec.image_state = cs->getReferenceSpaceType()
-                                  == OCIO::REFERENCE_SPACE_DISPLAY
-                              ? "display"
-                              : "scene";
-    mark(rec, Field::ImageState, !rec.image_state.empty());
-
-    // Color Interop ID: the existing cheap declared/table subset.
-    rec.color_interop_id = std::string(config.get_color_interop_id(resolved));
-    mark(rec, Field::ColorInteropID, !rec.color_interop_id.empty());
-
-    // Encoding: the authored attribute only (the interop-counterpart
-    // fallback is a derivation, below).
-    if (cs->getEncoding() && cs->getEncoding()[0])
-        rec.encoding = cs->getEncoding();
-    mark(rec, Field::Encoding, !rec.encoding.empty());
-
-    // Range: supplied only when intrinsic to a registered identity or
-    // otherwise explicitly known -- nothing registers one today, so the
-    // attempt is a stable negative. Never guessed from a name (the static
-    // CICP table's range flag is a fixed encode-time convention, not
-    // per-space knowledge).
-    mark(rec, Field::Range, false);
 
     // ---- Cache scope. An unkeyable config skips the shared cache.
     const std::string cfgId = get_config_cache_id(impl->config_);
@@ -420,6 +413,13 @@ characterize_color_space_impl(const ColorConfig& config,
             it->second = std::move(merged);
         }
     }
+
+    // A name with no config space is only a valid subject if the interop-id
+    // cascade actually identified it; otherwise honor the original invalid
+    // contract (the negative attempt is still cached above, so repeats stay
+    // cheap).
+    if (!cs && rec.color_interop_id.empty())
+        return spvt::CharacterizationRecord();
 
     return rec;
 }

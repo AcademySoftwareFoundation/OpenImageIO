@@ -339,9 +339,13 @@ test_encoding_twin_inference_and_strict()
     // OCIO < 2.5 drops the authored `interop_id:` key at parse, so the twin
     // link (theatrical_output -> g26_p3d65_display -> sdr-cinema) never
     // forms there and the inferred-encoding expectations below do not hold.
-    // Probe the loaded config rather than the OCIO version.
+    // Probe the loaded config rather than the OCIO version -- but anchor the
+    // probe at 2.5+, where a false result would mean authored ids silently
+    // stopped surfacing (a regression, not a capability gap).
     const bool have_authored_id
         = !config.get_color_interop_id("theatrical_output").empty();
+    if (ColorConfig::OpenColorIO_version_hex() >= 0x02050000)
+        OIIO_CHECK_ASSERT(have_authored_id);
 
     // Inferred: authored sdr-video, but the g26_p3d65_display twin carries
     // sdr-cinema -- the candidate matches both values.
