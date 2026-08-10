@@ -168,16 +168,38 @@ characterize_color_space_impl(const ColorConfig& config,
     // empty on a genuine miss -- exactly the validity test the cheap
     // contract needs, and never wakes the fingerprint engine.
     std::string resolved(impl->resolve_syntactic(color_space));
-    if (resolved.empty())
-        return rec;  // invalid
     OCIO::ConstColorSpaceRcPtr cs;
-    try {
-        cs = impl->config_->getColorSpace(resolved.c_str());
-    } catch (...) {
-        cs = nullptr;
+    if (!resolved.empty()) {
+        try {
+            cs = impl->config_->getColorSpace(resolved.c_str());
+        } catch (...) {
+            cs = nullptr;
+        }
     }
-    if (!cs)
-        return rec;  // invalid
+    if (!cs) {
+        // The name lands on no space in the ACTIVE config. That must not end
+        // the interop-id question: a CIID is meaningful against any
+        // interoperable config through the registry and the legacy syntactic
+        // table (the whole point of the embedded registry -- e.g. the builtin
+        // configs bundled with OCIO < 2.4 lack the CIID aliases entirely), and
+        // the derive cascade already self-guards -- without a real space only
+        // its syntactic tiers can fire, and it never guesses. Every other
+        // field genuinely requires a config space and stays unavailable, and
+        // the record skips the shared cache (no config-space name to key it
+        // honestly).
+        if (requested_fields & uint32_t(Field::ColorInteropID)) {
+            rec.full_attempt_mask |= uint32_t(Field::ColorInteropID);
+            std::string id;
+            try {
+                id = std::string(
+                    derive_color_interop_id_impl(config, color_space));
+            } catch (...) {
+            }
+            rec.color_interop_id = id;
+            mark(rec, Field::ColorInteropID, !id.empty(), !id.empty());
+        }
+        return rec;
+    }
     rec.name = cs->getName() ? cs->getName() : resolved;
 
     // ---- Cheap direct facts (always computed; no processors, no probes).
