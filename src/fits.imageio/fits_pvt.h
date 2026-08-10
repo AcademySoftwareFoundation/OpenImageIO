@@ -114,6 +114,21 @@ private:
     // converts date in FITS format (YYYY-MM-DD or DD/MM/YY)
     // to DateTime format
     std::string convert_date(const std::string& date);
+
+    // Give m_spec.channelnames sensible values: generic defaults (R,G,B,...),
+    // improved with real per-plane names when the header tells us what the
+    // channel axis actually is (a STOKES polarization axis, or informal
+    // FILTERn/BANDn keywords).
+    void assign_channel_names();
+
+    // True if multi-channel pixel data is stored as separate per-channel
+    // blocks -- one full width x height (x depth, for NAXIS=4) block per
+    // channel -- rather than interleaved. This is the only multi-channel
+    // layout we recognize; see the comments in read_fits_header().
+    bool planar_channels() const
+    {
+        return (m_naxes == 3 || m_naxes == 4) && m_spec.nchannels > 1;
+    }
 };
 
 
