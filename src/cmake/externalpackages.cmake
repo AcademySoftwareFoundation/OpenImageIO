@@ -185,6 +185,8 @@ checked_find_package (Libheif VERSION_MIN 1.11
 
 checked_find_package (LibRaw
                       VERSION_MIN 0.20.0
+                      RECOMMEND_MIN 0.21.3
+                      RECOMMEND_MIN_REASON "0.21.3 for many security fixes"
                       PRINT LibRaw_r_LIBRARIES)
 
 checked_find_package (OpenJPEG VERSION_MIN 2.0
