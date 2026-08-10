@@ -4377,8 +4377,8 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
 
-/// Returns true if for the purpose of interop, the spec's metadata specifies
-/// a color space that should be encoded as sRGB.
+/// Returns true if for the purpose of interop, the metadata of the `spec`
+/// specifies a color space that should be encoded as sRGB.
 ///
 /// If `default_to_srgb` is true, the color space will be assumed to be sRGB
 /// if no color space was specified in the spec.
@@ -4387,13 +4387,14 @@ OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
 OIIO_API bool is_colorspace_srgb(const ImageSpec& spec,
                                  bool default_to_srgb = true);
 
-/// If the spec's metadata specifies a color space with Rec709 primaries and
-/// gamma transfer function, return the gamma value. If not, return zero.
+/// If the metadata of the `spec` specifies a color space with Rec709
+/// primaries and gamma transfer function, return the gamma value. If not,
+/// return zero.
 ///
 /// @version 3.1
 OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec);
 
-/// Returns the ICC profile from the spec's metadata, either from an
+/// Returns the ICC profile from the metadata of the `spec`, either from an
 /// "ICCProfile" attribute or from the color space if `from_colorspace` is
 /// true. Returns an empty vector if not found.
 ///
@@ -4401,9 +4402,9 @@ OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec);
 OIIO_API std::vector<uint8_t>
 get_colorspace_icc_profile(const ImageSpec& spec, bool from_colorspace = true);
 
-/// Returns the CICP code from the spec's metadata, either from a "CICP"
-/// attribute or from the color space if `from_colorspace` is true. Returns a
-/// cspan of 4 ints, or an empty span if not found.
+/// Returns the CICP code from the metadata of the `spec`, either from a
+/// "CICP" attribute or from the color space if `from_colorspace` is true.
+/// Returns a cspan of 4 ints, or an empty span if not found.
 ///
 /// @version 3.1
 OIIO_API cspan<int> get_colorspace_cicp(const ImageSpec& spec,

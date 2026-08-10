@@ -26,6 +26,16 @@ Testing set_colorspace module helpers:
   after set_colorspace(empty): 
   after set_colorspace_rec709_gamma(2.2): g22_rec709_scene
 
+Testing get_colorspace module helpers:
+  is_colorspace_srgb(unset): True
+  is_colorspace_srgb(unset, False): False
+  get_colorspace_rec709_gamma(g22): 2.2
+  is_colorspace_srgb(g22): False
+  get_colorspace_icc_profile(no profile): None
+  get_colorspace_icc_profile(dummy profile): b'\x00\x01\x02\xfd\xfe\xff'
+  get_colorspace_cicp(no attribute): None
+  get_colorspace_cicp(attribute): [9, 16, 9, 1]
+
 Testing global attribute() one-arg:
   plugin_searchpath str: path/A:path/B
   threads int: 6

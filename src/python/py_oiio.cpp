@@ -4,7 +4,9 @@
 
 #include "py_oiio.h"
 
+#include <array>
 #include <cstring>
+#include <optional>
 #include <type_traits>
 
 #if defined(OIIO_PY_BACKEND_NANOBIND)
@@ -545,6 +547,38 @@ declare_global_attribute_functions(py_module& m)
             set_colorspace_rec709_gamma(spec, gamma);
         },
         "spec"_a, "gamma"_a);
+    m.def(
+        "is_colorspace_srgb",
+        [](const ImageSpec& spec, bool default_to_srgb) {
+            return is_colorspace_srgb(spec, default_to_srgb);
+        },
+        "spec"_a, "default_to_srgb"_a = true);
+    m.def(
+        "get_colorspace_rec709_gamma",
+        [](const ImageSpec& spec) { return get_colorspace_rec709_gamma(spec); },
+        "spec"_a);
+    m.def(
+        "get_colorspace_icc_profile",
+        [](const ImageSpec& spec,
+           bool from_colorspace) -> std::optional<py::bytes> {
+            std::vector<uint8_t> icc_profile
+                = get_colorspace_icc_profile(spec, from_colorspace);
+            if (icc_profile.empty())
+                return std::nullopt;
+            return py::bytes(reinterpret_cast<const char*>(icc_profile.data()),
+                             icc_profile.size());
+        },
+        "spec"_a, "from_colorspace"_a = true);
+    m.def(
+        "get_colorspace_cicp",
+        [](const ImageSpec& spec,
+           bool from_colorspace) -> std::optional<std::array<int, 4>> {
+            cspan<int> cicp = get_colorspace_cicp(spec, from_colorspace);
+            if (cicp.empty())
+                return std::nullopt;
+            return std::array<int, 4>({ cicp[0], cicp[1], cicp[2], cicp[3] });
+        },
+        "spec"_a, "from_colorspace"_a = true);
     m.def(
         "equivalent_colorspace",
         [](const std::string& a, const std::string& b) {
