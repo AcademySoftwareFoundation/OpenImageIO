@@ -1,0 +1,12 @@
+plain: srgb_rec709_scene
+decl: srgb_rec709_scene
+override: srgb_rec709_scene
+matched: srgb_rec709_scene
+matched-vs-global: srgb_rec709_scene
+  cicp            write     explicit metadata   1/13/0/1
+  cicp            suppress  config declared     -
+w_plain CICP chunk:
+w_wdecl CICP chunk (suppressed by config):
+  interop_id      derive    builtin default     unknown
+w_unknown colorInteropID (marker collapsed to bare token):
+    colorInteropID: "unknown"
