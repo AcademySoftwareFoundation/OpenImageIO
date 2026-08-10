@@ -1236,9 +1236,12 @@ ColorConfig::getDisplayViewColorSpaceName(const std::string& display,
         try {
             string_view name = getImpl()->config_->getDisplayViewColorSpaceName(
                 c_str(display), c_str(view));
-            // Handle certain Shared View cases
+            // Handle certain Shared View cases. Return interned storage, not
+            // c_str(display): the argument may be a temporary (string_view
+            // callers convert implicitly), and a pointer into it dangles as
+            // soon as the caller's full-expression ends.
             if (strcmp(c_str(name), "<USE_DISPLAY_NAME>") == 0)
-                name = display;
+                return ustring(display).c_str();
             return c_str(name);
         } catch (OCIO::Exception& e) {
             DBG("OCIO exception in getDisplayViewColorSpaceName: {}", e.what());
@@ -4052,9 +4055,8 @@ ImageBufAlgo::ociodisplay(ImageBuf& dst, const ImageBuf& src,
         // space the input arrived in: tag that source space, not the space
         // the failed conversion was reaching for (the honest no-op rule),
         // and treat the operation as space-preserving (its still-true
-        // hints pass through). Materialized as a std::string because
-        // getDisplayViewColorSpaceName's shared-view path can return a
-        // pointer into its (temporary) argument storage.
+        // hints pass through). (getDisplayViewColorSpaceName's shared-view
+        // path returns interned storage, so holding the result is safe.)
         const bool disp_view_target = inverse == lenient_passthrough;
         std::string target;
         if (disp_view_target) {
