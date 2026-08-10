@@ -532,12 +532,13 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         auto p = config.find_attribute("raw:aber");
         if (p) {
             auto type = p->type();
-            if (type == TypeDesc(TypeDesc::FLOAT, 2)
-                || type == TypeDesc(TypeDesc::FLOAT, TypeDesc::VEC2)) {
+            if (type.equivalent(TypeDesc(TypeDesc::FLOAT, 2))
+                || type.equivalent(TypeFloat2)) {
                 m_processor->imgdata.params.aber[0] = p->get<float>(0);
                 m_processor->imgdata.params.aber[2] = p->get<float>(1);
-            } else if (type == TypeDesc(TypeDesc::DOUBLE, 2)
-                       || type == TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC2)) {
+            } else if (type.equivalent(TypeDesc(TypeDesc::DOUBLE, 2))
+                       || type.equivalent(
+                           TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC2))) {
                 m_processor->imgdata.params.aber[0] = p->get<double>(0);
                 m_processor->imgdata.params.aber[2] = p->get<double>(1);
             }
@@ -572,11 +573,9 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             auto p = config.find_attribute("raw:greybox");
             if (p) {
                 auto type = p->type();
-                if (type == TypeDesc(TypeDesc::INT, 4)
-                    || type == TypeDesc(TypeDesc::INT, TypeDesc::VEC4)
-                    || type
-                           == TypeDesc(TypeDesc::INT, TypeDesc::VEC2,
-                                       TypeDesc::BOX, 2)) {
+                if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
+                    || type.equivalent(TypeDesc(TypeDesc::INT, TypeDesc::VEC4))
+                    || type.is_box2(TypeDesc::INT)) {
                     m_processor->imgdata.params.greybox[0] = p->get<int>(0);
                     m_processor->imgdata.params.greybox[1] = p->get<int>(1);
                     m_processor->imgdata.params.greybox[2] = p->get<int>(2);
@@ -590,16 +589,15 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             auto p = config.find_attribute("raw:user_mul");
             if (p) {
                 auto type = p->type();
-                if (type == TypeDesc(TypeDesc::FLOAT, 4)
-                    || type == TypeDesc(TypeDesc::FLOAT, TypeDesc::VEC4)) {
+                if (type.equivalent(TypeDesc(TypeDesc::FLOAT, 4))
+                    || type.equivalent(TypeFloat4)) {
                     m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
                     m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
                     m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
                     m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
-                } else if (type == TypeDesc(TypeDesc::DOUBLE, 4)
-                           || type
-                                  == TypeDesc(TypeDesc::DOUBLE,
-                                              TypeDesc::VEC4)) {
+                } else if (type.equivalent(TypeDesc(TypeDesc::DOUBLE, 4))
+                           || type.equivalent(
+                               TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC4))) {
                     m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
                     m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
                     m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
@@ -815,12 +813,9 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         auto p = config.find_attribute("raw:cropbox");
         if (p) {
             auto type = p->type();
-
-            if (type == TypeDesc(TypeDesc::INT, 4)
-                || type == TypeDesc(TypeDesc::INT, TypeDesc::VEC4)
-                || type
-                       == TypeDesc(TypeDesc::INT, TypeDesc::VEC2, TypeDesc::BOX,
-                                   2)) {
+            if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
+                || type.equivalent(TypeDesc(TypeDesc::INT, TypeDesc::VEC4))
+                || type.is_box2(TypeDesc::INT)) {
                 crop_left   = p->get<int>(0);
                 crop_top    = p->get<int>(1);
                 crop_width  = p->get<int>(2);
