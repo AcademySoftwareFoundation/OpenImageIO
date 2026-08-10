@@ -464,6 +464,19 @@ test_registry_round_trip()
             // is correctly returning the config's own declared (authoritative)
             // form. Require it really is that case (identical bare tails) so a
             // genuinely new exception still fails loudly.
+
+            // Below OCIO 2.5 authored interop_id keys are dropped at parse,
+            // so only the value-based fingerprint tier can land an id -- and
+            // it cannot separate value-identical pairs. OCIO 2.4's
+            // ocio://default declares "sRGB Encoded P3-D65 - Texture", the
+            // same math as the registry's srgb_p3d65_display (they differ
+            // only in referredness, which pixel probes cannot see), so the
+            // sweep lands srgbe_p3d65_display on its sibling. Accept exactly
+            // that pair there; declared ids disambiguate at 2.5+.
+            if (ColorConfig::OpenColorIO_version_hex() < 0x02050000
+                && id == "srgbe_p3d65_display"
+                && got == "srgb_p3d65_display")
+                continue;
             OIIO_CHECK_EQUAL(strip_leftmost_namespace(got),
                              strip_leftmost_namespace(id));
         }

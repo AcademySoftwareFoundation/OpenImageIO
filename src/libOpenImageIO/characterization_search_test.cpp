@@ -336,12 +336,20 @@ test_encoding_twin_inference_and_strict()
     ColorConfig config = config_from_text(dir, "twin.ocio",
                                           kTwinEncodingConfig);
 
+    // OCIO < 2.5 drops the authored `interop_id:` key at parse, so the twin
+    // link (theatrical_output -> g26_p3d65_display -> sdr-cinema) never
+    // forms there and the inferred-encoding expectations below do not hold.
+    // Probe the loaded config rather than the OCIO version.
+    const bool have_authored_id
+        = !config.get_color_interop_id("theatrical_output").empty();
+
     // Inferred: authored sdr-video, but the g26_p3d65_display twin carries
     // sdr-cinema -- the candidate matches both values.
     pvt::FindColorSpacesOptions opt;
     opt.encodings = { "sdr-cinema" };
-    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
-                      == std::vector<std::string>({ "theatrical_output" }));
+    if (have_authored_id)
+        OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, opt)
+                          == std::vector<std::string>({ "theatrical_output" }));
 
     opt.encodings = { "sdr-video" };
     OIIO_CHECK_ASSERT(
@@ -356,15 +364,18 @@ test_encoding_twin_inference_and_strict()
         == std::vector<std::string>({ "plain_video", "theatrical_output" }));
 
     // Exclusion removes a proven (inferred) match; inverse requires a proven
-    // difference on every characterized value.
-    opt.encodings = { "-sdr-cinema" };
-    OIIO_CHECK_ASSERT(
-        pvt::find_color_spaces(config, opt)
-        == std::vector<std::string>({ "plain_video", "reference" }));
-    opt.encodings = { "~sdr-cinema" };
-    OIIO_CHECK_ASSERT(
-        pvt::find_color_spaces(config, opt)
-        == std::vector<std::string>({ "plain_video", "reference" }));
+    // difference on every characterized value. Both depend on the twin's
+    // sdr-cinema being provable, hence the same authored-id gate.
+    if (have_authored_id) {
+        opt.encodings = { "-sdr-cinema" };
+        OIIO_CHECK_ASSERT(
+            pvt::find_color_spaces(config, opt)
+            == std::vector<std::string>({ "plain_video", "reference" }));
+        opt.encodings = { "~sdr-cinema" };
+        OIIO_CHECK_ASSERT(
+            pvt::find_color_spaces(config, opt)
+            == std::vector<std::string>({ "plain_video", "reference" }));
+    }
 
     // strict: authored attributes only -- the twin's encoding never enters.
     opt.strict    = true;
