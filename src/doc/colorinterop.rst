@@ -459,6 +459,9 @@ resolve into one snapshot per call, weakest to strongest:
    * - 2
      - The active config's ``oiio:default`` profile
      - Config author.
+   * - 3
+     - Selected profiles (composable selection; see below)
+     - User / application, for the session.
    * - 4
      - Global individual keys (``OIIO::attribute``)
      - User / application, for the session.
@@ -473,8 +476,33 @@ The non-intuitive rung is that layer 5 beats layer 4: a rule that matches
 ``*.png`` overrides a user's "global" per-key attribute for PNG files.
 The rationale is CSS-specificity -- the more specific selector wins
 regardless of who authored it -- and the escape hatch is the per-call
-argument (layer 6), which always wins. (Layer 3, composable profile
-selection, is planned; see below.)
+argument (layer 6), which always wins.
+
+Composable profile selection
+----------------------------
+
+Layer 3 selects *active profiles* through two entry points that compose:
+the ``OPENIMAGEIO_COLORPOLICY`` environment variable is the base, and the
+global attribute ``oiio:colorpolicy:profile`` (set with `OIIO::attribute`)
+composes on top -- the more explicit, programmatic entry point wins, so an
+attribute entry can subtract what the environment variable added.
+
+A selection is a comma-separated list of entries, each optionally prefixed
+with ``+`` (add, the default) or ``-`` (remove). An entry beginning with
+``read:`` or ``write:`` addresses a single policy key, optionally with an
+``=value`` (for example ``+read:cicp_state=scene``); any other entry names
+a whole profile -- a config rule name, such as ``oiio:blender:textures``
+-- whose declared ``oiio:`` keys are merged (or, with ``-``, removed).
+Selecting a profile the config does not declare is a graceful no-op.
+
+.. code-block:: shell
+
+   # Select a config-declared profile, then drop one of its keys:
+   OPENIMAGEIO_COLORPOLICY="oiio:blender:textures,-read:cicp_state"
+
+Selected profiles compose over the config's ``oiio:default`` baseline
+(layer 2) and sit below the global individual keys (layer 4), so an
+absolute per-key `OIIO::attribute` still overrides a selected profile.
 
 Per-format round-trip
 ---------------------
@@ -505,16 +533,35 @@ yields:
        resolves every JPEG to ``srgb_rec709_scene`` regardless of the
        source tag.
 
-Planned
--------
+Verbose and forced write emission
+---------------------------------
 
-The following extend the same mechanism and are not yet available:
+Two integer policy keys expand what writers emit beyond the minimal
+default:
 
-- **Composable profile selection** (layer 3): an environment variable and
-  a global attribute that select active profiles as a ``+``/``-``
-  expression at profile and individual-key granularity.
-- **Verbose write emission** and **forcing** ``colorInteropID`` into
-  formats that have no native slot (``write:verbose``,
-  ``write:force_interop_id``).
-- The ``oiio:broadcast`` delivery profile, which changes write-time
-  gamut/container mapping for broadcast delivery.
+- ``oiio:colorpolicy:write:force_interop_id`` makes a format with no
+  native ``colorInteropID`` slot carry the derived interop ID anyway, as
+  an auxiliary attribute: an XMP packet for TIFF, JPEG, and JPEG XL, a
+  ``tEXt`` chunk for PNG, and a header keyword for FITS.
+- ``oiio:colorpolicy:write:verbose`` emits the redundant signal set
+  alongside the interop ID instead of minimizing it: an author-supplied
+  ``chromaticities`` attribute is kept rather than suppressed as
+  redundant, chromaticities are otherwise derived from the space's
+  reserved gamut, and a gamma value is derived when (and only when) the
+  space's transfer is a pure power law (a ``g18``/``g22``/``g24``/``g26``
+  token); a non-power-law transfer (sRGB piecewise, PQ, log) never gets a
+  guessed gamma, so the emitted signals stay consistent with the space.
+
+The ``oiio:broadcast`` delivery profile
+---------------------------------------
+
+The broadcast delivery mapping is keyed by
+``oiio:colorpolicy:write:broadcast`` and is conventionally carried on a
+config-declared profile named ``oiio:broadcast``, selected via the
+composable profile selection above. When active, P3-D65 display content
+is routed into the broadcast delivery container at write time: the CICP
+tuple signals Rec.2020 encoding primaries (code 9) with narrow (limited)
+range and RGB matrix coefficients, the transfer code is carried over from
+the source space's own CICP (falling back to BT.1886), and the true P3
+gamut volume is carried in mDCV mastering-display metadata. The pixels
+are *not* re-gamut'd to Rec.2020 -- only the container signaling changes.
