@@ -1272,6 +1272,9 @@ static bool
 resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
              int nthreads)
 {
+    // This routine has no nearest case -- it always interpolates -- so
+    // resample_() must not route nearest sampling here.
+    OIIO_ASSERT(interpolate);
     using SimdType
         = std::conditional_t<std::is_same_v<DSTTYPE, double>, double, float>;
     using D      = hn::ScalableTag<SimdType>;
@@ -1435,7 +1438,10 @@ resample_(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
           int nthreads)
 {
 #if OIIO_USE_HWY
-    if (OIIO::pvt::enable_hwy && HwySupports<DSTTYPE>(dst, roi)
+    // Interpolating only: resample_hwy() ignores its `interpolate` argument
+    // and always bilerps, so sending nearest here silently returns filtered
+    // pixels instead of the source pixel the caller asked for.
+    if (interpolate && OIIO::pvt::enable_hwy && HwySupports<DSTTYPE>(dst, roi)
         && HwySupports<SRCTYPE>(src, ROI()))
         return resample_hwy<DSTTYPE, SRCTYPE>(dst, src, interpolate, roi,
                                               nthreads);

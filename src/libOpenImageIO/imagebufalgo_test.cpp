@@ -739,6 +739,40 @@ test_zover()
 
 
 // Test ImageBuf::resample
+// resample_hwy() ignores its `interpolate` argument and always bilerps, so
+// nearest sampling has to stay off that path. Highway is off by default, so a
+// reference image would not exercise this; compare the two settings instead.
+void
+test_resample_hwy_nearest()
+{
+    std::cout << "test resample nearest is not routed to Highway\n";
+
+    int prev_hwy = 0;
+    OIIO::getattribute("enable_hwy", prev_hwy);
+
+    // Neighbouring pixels must differ, or bilerp and nearest would agree and
+    // the test would pass on broken code.
+    ImageSpec srcspec(64, 48, 4, TypeFloat);
+    ImageBuf src(srcspec);
+    for (ImageBuf::Iterator<float> it(src); !it.done(); ++it)
+        for (int c = 0; c < 4; ++c)
+            it[c] = float(((it.x() + it.y() + c) % 7) * 0.125f);
+
+    ImageSpec dstspec(37, 29, 4, TypeFloat);
+    ImageBuf without_hwy(dstspec), with_hwy(dstspec);
+    OIIO::attribute("enable_hwy", 0);
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(without_hwy, src, false));
+    OIIO::attribute("enable_hwy", 1);
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(with_hwy, src, false));
+    OIIO::attribute("enable_hwy", prev_hwy);
+
+    OIIO_CHECK_EQUAL(memcmp(with_hwy.localpixels(), without_hwy.localpixels(),
+                            dstspec.image_bytes()),
+                     0);
+}
+
+
+
 void
 test_resample()
 {
@@ -1811,6 +1845,7 @@ main(int argc, char** argv)
     test_over(TypeFloat);
     test_over(TypeHalf);
     test_zover();
+    test_resample_hwy_nearest();
     test_resample();
     test_compare();
     test_isConstantColor();
