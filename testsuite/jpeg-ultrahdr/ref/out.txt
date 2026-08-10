@@ -8,3 +8,4 @@
     Stats FiniteCount: 12533760 12533760 12533760 12533760 
     Constant: No
     Monochrome: No
+uhdr_write.jpg       :   64 x   64, 4 channel, half jpeg
