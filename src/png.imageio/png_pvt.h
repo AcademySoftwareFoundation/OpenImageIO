@@ -18,7 +18,6 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/typedesc.h>
 
-#include "imageio_pvt.h"
 
 #define OIIO_LIBPNG_VERSION                                    \
     (PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 \
@@ -637,7 +636,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 
     OIIO_MAYBE_UNUSED bool wrote_colorspace = false;
     srgb                                    = false;
-    if (pvt::is_colorspace_srgb(spec)) {
+    if (is_colorspace_srgb(spec)) {
         gamma = 1.0f;
         srgb  = true;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
@@ -645,7 +644,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         png_set_sRGB_gAMA_and_cHRM(sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
         wrote_colorspace = true;
     } else {
-        gamma = pvt::get_colorspace_rec709_gamma(spec);
+        gamma = get_colorspace_rec709_gamma(spec);
         if (gamma != 0.0f) {
             if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
                 return "Could not set PNG gAMA chunk";
@@ -658,7 +657,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     }
 
     // Write ICC profile, if we have anything
-    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(spec);
+    std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(spec);
     if (icc_profile.size()) {
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
             return "Could not set PNG iCCP chunk";
@@ -722,7 +721,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
 #ifdef PNG_cICP_SUPPORTED
     // Only automatically determine CICP from oiio::ColorSpace if we didn't
     // write colorspace metadata yet.
-    cspan<int> cicp = pvt::get_colorspace_cicp(spec, !wrote_colorspace);
+    cspan<int> cicp = get_colorspace_cicp(spec, !wrote_colorspace);
     if (!cicp.empty()) {
         png_byte vals[4];
         for (int i = 0; i < 4; ++i)

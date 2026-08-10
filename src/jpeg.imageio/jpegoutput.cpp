@@ -12,8 +12,6 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
-#include "imageio_pvt.h"
-
 #include "jpeg_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -267,7 +265,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
         }
     }
 
-    if (pvt::is_colorspace_srgb(m_spec, false))
+    if (is_colorspace_srgb(m_spec, false))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Write EXIF info
@@ -318,7 +316,7 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     m_spec.set_format(TypeDesc::UINT8);  // JPG is only 8 bit
 
     // Write ICC profile, if we have anything
-    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
     if (icc_profile.size()) {
         /* Calculate the number of markers we'll need, rounding up of course */
         size_t num_markers = icc_profile.size() / MAX_DATA_BYTES_IN_MARKER;

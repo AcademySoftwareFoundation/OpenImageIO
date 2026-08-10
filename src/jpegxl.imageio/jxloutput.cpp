@@ -11,8 +11,6 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
-#include "imageio_pvt.h"
-
 #include <jxl/decode.h>
 #include <jxl/encode.h>
 #include <jxl/encode_cxx.h>
@@ -543,7 +541,7 @@ JxlOutput::save_image(const void* data)
     bool wrote_colorspace = false;
 
     // Write the ICC profile, if available
-    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
     if (icc_profile.size()) {
         if (JXL_ENC_SUCCESS
             != JxlEncoderSetICCProfile(m_encoder.get(), icc_profile.data(),
@@ -555,7 +553,7 @@ JxlOutput::save_image(const void* data)
     }
 
     // Write CICP
-    cspan<int> cicp = pvt::get_colorspace_cicp(m_spec, !wrote_colorspace);
+    cspan<int> cicp = get_colorspace_cicp(m_spec, !wrote_colorspace);
     if (!cicp.empty()) {
         // JXL only has a subset of CICP, only write if supported. Custom
         // primaries and white point are not currently used but could help

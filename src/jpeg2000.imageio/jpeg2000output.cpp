@@ -489,7 +489,7 @@ Jpeg2000Output::create_jpeg2000_image()
     // problem.
     // NOTE: openjpeg does not copy the profile and m_image outlives this
     // function, so the bytes are kept in a member rather than a local.
-    m_icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    m_icc_profile = get_colorspace_icc_profile(m_spec);
     if (m_icc_profile.size()) {
         m_image->icc_profile_len
             = decltype(m_image->icc_profile_len)(m_icc_profile.size());

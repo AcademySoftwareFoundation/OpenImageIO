@@ -11,8 +11,6 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
 
-#include "imageio_pvt.h"
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace webp_pvt {
@@ -144,7 +142,7 @@ bool
 WebpOutput::write_complete_data()
 {
     // Check if we have an optional ICC Profile to write.
-    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
     const bool has_icc_data          = icc_profile.size() > 0;
 
     // If we have ICC data, encode to memory first. This is required in order

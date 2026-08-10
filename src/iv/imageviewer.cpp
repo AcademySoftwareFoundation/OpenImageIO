@@ -44,7 +44,6 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 
-#include "imageio_pvt.h"
 
 #include "ivutils.h"
 
@@ -1252,7 +1251,7 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
                 //std::cerr << "Loading HALF-FLOAT as FLOAT\n";
                 read_format = TypeDesc::FLOAT;
             }
-            if (pvt::is_colorspace_srgb(image_spec, false)
+            if (is_colorspace_srgb(image_spec, false)
                 && !glwin->is_srgb_capable()) {
                 // If the image is in sRGB, but OpenGL can't load sRGB textures then
                 // we'll need to do the transformation on the CPU after loading the
@@ -1268,7 +1267,7 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
             read_format      = TypeDesc::UINT8;
             allow_transforms = true;
 
-            if (pvt::is_colorspace_srgb(image_spec, false)
+            if (is_colorspace_srgb(image_spec, false)
                 && !glwin->is_srgb_capable())
                 srgb_transform = true;
         }
@@ -1455,7 +1454,7 @@ ImageViewer::exposureMinusOneTenthStop()
     img->exposure(img->exposure() - 0.1);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && pvt::is_colorspace_srgb(img->spec(), false));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1474,7 +1473,7 @@ ImageViewer::exposureMinusOneHalfStop()
     img->exposure(img->exposure() - 0.5);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && pvt::is_colorspace_srgb(img->spec(), false));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1493,7 +1492,7 @@ ImageViewer::exposurePlusOneTenthStop()
     img->exposure(img->exposure() + 0.1);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && pvt::is_colorspace_srgb(img->spec(), false));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1512,7 +1511,7 @@ ImageViewer::exposurePlusOneHalfStop()
     img->exposure(img->exposure() + 0.5);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && pvt::is_colorspace_srgb(img->spec(), false));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1532,7 +1531,7 @@ ImageViewer::gammaMinus()
     img->gamma(img->gamma() - 0.05);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && pvt::is_colorspace_srgb(img->spec(), false));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1551,7 +1550,7 @@ ImageViewer::gammaPlus()
     img->gamma(img->gamma() + 0.05);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && pvt::is_colorspace_srgb(img->spec(), false));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1585,7 +1584,7 @@ ImageViewer::viewChannel(int c, COLOR_MODE colormode)
             if (img) {
                 bool srgb_transform
                     = (!glwin->is_srgb_capable()
-                       && pvt::is_colorspace_srgb(img->spec(), false));
+                       && is_colorspace_srgb(img->spec(), false));
                 img->pixel_transform(srgb_transform, (int)colormode, c);
             }
         } else {

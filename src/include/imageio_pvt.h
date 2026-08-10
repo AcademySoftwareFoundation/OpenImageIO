@@ -133,31 +133,6 @@ parallel_convert_from_float(const float* src, void* dst, size_t nvals,
 OIIO_API bool
 check_texture_metadata_sanity(ImageSpec& spec);
 
-/// Returns true if for the purpose of interop, the spec's metadata
-/// specifies a color space that should be encoded as sRGB.
-///
-/// If default_to_srgb is true, the colorspace will be assumed to
-/// be sRGB if no colorspace was specified in the spec.
-OIIO_API bool
-is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb = true);
-
-/// If the spec's metadata specifies a color space with Rec709 primaries and
-/// gamma transfer function, return the gamma value. If not, return zero.
-OIIO_API float
-get_colorspace_rec709_gamma(const ImageSpec& spec);
-
-// Returns ICC profile from the spec's metadata, either from an ICCProfile
-// attribute or from the colorspace if from_colorspace is true.
-// Returns an empty vector if not found.
-OIIO_API std::vector<uint8_t>
-get_colorspace_icc_profile(const ImageSpec& spec, bool from_colorspace = true);
-
-// Returns CICP from the spec's metadata, either from a CICP attribute
-// or from the colorspace if from_colorspace is true.
-// Returns an empty span if not found.
-OIIO_API cspan<int>
-get_colorspace_cicp(const ImageSpec& spec, bool from_colorspace = true);
-
 /// Get the timing report from log_time entries.
 OIIO_API std::string
 timing_report();

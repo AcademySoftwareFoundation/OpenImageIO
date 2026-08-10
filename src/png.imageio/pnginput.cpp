@@ -192,12 +192,12 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    if (pvt::is_colorspace_srgb(m_spec)) {
+    if (is_colorspace_srgb(m_spec)) {
         m_srgb  = true;
         m_gamma = 1.0f;
     } else {
         m_srgb  = false;
-        m_gamma = pvt::get_colorspace_rec709_gamma(m_spec);
+        m_gamma = get_colorspace_rec709_gamma(m_spec);
         if (m_gamma == 0.0f) {
             m_gamma = 1.0f;
         }

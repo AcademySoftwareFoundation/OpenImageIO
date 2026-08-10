@@ -18,7 +18,6 @@
 #    include <QPen>
 #endif
 
-#include "imageio_pvt.h"
 #include "ivutils.h"
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
@@ -2199,7 +2198,7 @@ IvGL::typespec_to_opengl(const ImageSpec& spec, int nchannels, GLenum& gltype,
         break;
     }
 
-    bool issrgb = pvt::is_colorspace_srgb(spec, false);
+    bool issrgb = is_colorspace_srgb(spec, false);
 
     glinternalformat = nchannels;
     if (nchannels == 1) {

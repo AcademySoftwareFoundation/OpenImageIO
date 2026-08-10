@@ -3057,10 +3057,6 @@ set_colorspace_rec709_gamma(ImageSpec& spec, float gamma)
     ColorConfig::default_colorconfig().set_colorspace_rec709_gamma(spec, gamma);
 }
 
-OIIO_NAMESPACE_3_1_END
-
-OIIO_NAMESPACE_BEGIN
-
 // Parse a color space name of the form "g<NN>_rec709_(scene|display)".
 static float
 rec709_colorspace_gamma(string_view colorspace)
@@ -3076,7 +3072,7 @@ rec709_colorspace_gamma(string_view colorspace)
 }
 
 float
-pvt::get_colorspace_rec709_gamma(const ImageSpec& spec)
+get_colorspace_rec709_gamma(const ImageSpec& spec)
 {
     const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
@@ -3107,7 +3103,7 @@ pvt::get_colorspace_rec709_gamma(const ImageSpec& spec)
 }
 
 bool
-pvt::is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb)
+is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb)
 {
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
     if (default_to_srgb && colorspace.empty()) {
@@ -3122,7 +3118,7 @@ pvt::is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb)
 }
 
 std::vector<uint8_t>
-pvt::get_colorspace_icc_profile(const ImageSpec& spec, bool /*from_colorspace*/)
+get_colorspace_icc_profile(const ImageSpec& spec, bool /*from_colorspace*/)
 {
     std::vector<uint8_t> icc_profile;
     const ParamValue* p = spec.find_attribute("ICCProfile");
@@ -3134,7 +3130,7 @@ pvt::get_colorspace_icc_profile(const ImageSpec& spec, bool /*from_colorspace*/)
 }
 
 cspan<int>
-pvt::get_colorspace_cicp(const ImageSpec& spec, bool from_colorspace)
+get_colorspace_cicp(const ImageSpec& spec, bool from_colorspace)
 {
     const ParamValue* p = spec.find_attribute("CICP",
                                               TypeDesc(TypeDesc::INT, 4));
@@ -3146,4 +3142,4 @@ pvt::get_colorspace_cicp(const ImageSpec& spec, bool from_colorspace)
     return colorconfig.get_cicp(spec.get_string_attribute("oiio:ColorSpace"));
 }
 
-OIIO_NAMESPACE_END
+OIIO_NAMESPACE_3_1_END

@@ -880,14 +880,14 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     // Write ICC profile, if we have anything
-    std::vector<uint8_t> icc_profile = pvt::get_colorspace_icc_profile(m_spec);
+    std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
     if (icc_profile.size()) {
         uint32_t icc_profile_size = uint32_t(icc_profile.size());
         TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, icc_profile_size,
                      icc_profile.data());
     }
 
-    if (pvt::is_colorspace_srgb(m_spec, false))
+    if (is_colorspace_srgb(m_spec, false))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Deal with missing XResolution or YResolution, or a PixelAspectRatio

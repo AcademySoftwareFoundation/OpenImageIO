@@ -18,8 +18,6 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 
-#include "imageio_pvt.h"
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
@@ -429,8 +427,8 @@ DPXOutput::prep_subimage(int s, bool allocate)
     m_desc = get_image_descriptor();
 
     // transfer function
-    const float gamma = pvt::get_colorspace_rec709_gamma(spec_s);
-    if (pvt::is_colorspace_srgb(spec_s, false))
+    const float gamma = get_colorspace_rec709_gamma(spec_s);
+    if (is_colorspace_srgb(spec_s, false))
         m_transfer = dpx::kITUR709;
     else if (gamma == 1.0f)
         m_transfer = dpx::kLinear;
