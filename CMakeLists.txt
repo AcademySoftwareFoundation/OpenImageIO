@@ -223,7 +223,17 @@ if (IGNORE_HOMEBREWED_DEPS)
              )
     endforeach ()
 
+    # CMAKE_IGNORE_PATH only blocks exact directories; config packages
+    # (e.g. <prefix>/lib/cmake/Imath) are found by prefix search and slip
+    # through. CMAKE_IGNORE_PREFIX_PATH (CMake 3.23+) blocks the whole
+    # prefix, and dependency_utils forwards it to local dependency child
+    # builds so they cannot resolve a different Homebrew copy than the
+    # parent (e.g. Homebrew Imath 3.2 inside a local OpenEXR build while
+    # OIIO links the local-dist Imath -- a mangled-symbol link failure).
+    list (APPEND CMAKE_IGNORE_PREFIX_PATH ${HOMEBREW_PREFIXES})
+
     message (STATUS "CMAKE_IGNORE_PATH: ${CMAKE_IGNORE_PATH}")
+    message (STATUS "CMAKE_IGNORE_PREFIX_PATH: ${CMAKE_IGNORE_PREFIX_PATH}")
 endif ()
 
 

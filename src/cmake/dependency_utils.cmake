@@ -731,6 +731,13 @@ macro (build_dependency_with_cmake pkgname)
         string(REPLACE ";" "\\;" CMAKE_IGNORE_PATH_ESCAPED "${CMAKE_IGNORE_PATH}")
         list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH_ESCAPED}")
     endif()
+    # And CMAKE_IGNORE_PREFIX_PATH: unlike CMAKE_IGNORE_PATH it also blocks
+    # config-package prefix search, so child builds cannot resolve a system
+    # (e.g. Homebrew) copy of a dependency the parent build is ignoring.
+    if (CMAKE_IGNORE_PREFIX_PATH)
+        string(REPLACE ";" "\\;" CMAKE_IGNORE_PREFIX_PATH_ESCAPED "${CMAKE_IGNORE_PREFIX_PATH}")
+        list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PREFIX_PATH=${CMAKE_IGNORE_PREFIX_PATH_ESCAPED}")
+    endif()
 
     # Pass along any CMAKE_MSVC_RUNTIME_LIBRARY
     if (WIN32 AND CMAKE_MSVC_RUNTIME_LIBRARY)
