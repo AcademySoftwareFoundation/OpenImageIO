@@ -173,7 +173,6 @@ macro (oiio_add_all_tests)
                     iinfo igrep
                     nonwhole-tiles
                     oiiotool
-                    oiiotool-colorwriteplan
                     oiiotool-composite
                     oiiotool-control
                     oiiotool-copy
@@ -308,11 +307,20 @@ macro (oiio_add_all_tests)
 
     oiio_add_tests (oiiotool-color
                     color-interop-convert
-                    oiiotool-colorpolicy-config
-                    oiiotool-colorroundtrip
-                    oiiotool-colorverbose
-                    oiiotool-colorprofile
                     FOUNDVAR OpenColorIO_FOUND)
+
+    # These color tests drive oiiotool through POSIX-shell constructs
+    # (per-command `env VAR=` prefixes, single-quoted echo, grep pipelines)
+    # that cmd.exe cannot run; skip them on Windows until they are
+    # rewritten portably. The behavior they exercise is platform-neutral.
+    if (NOT WIN32)
+        oiio_add_tests (oiiotool-colorwriteplan)
+        oiio_add_tests (oiiotool-colorpolicy-config
+                        oiiotool-colorroundtrip
+                        oiiotool-colorverbose
+                        oiiotool-colorprofile
+                        FOUNDVAR OpenColorIO_FOUND)
+    endif ()
 
     # Tests to run with HWY enabled.
     # Remember to add tests here as hwy enabled IBA functions are added
