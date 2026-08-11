@@ -1566,8 +1566,9 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``compression``
      - string
      - one of: ``"none"``, ``"rle"``, ``"zip"``, ``"zips"``, ``"piz"``,
-       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``, ``"htj2k256"`` or ``"htj2k32"``.
+       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``, ``"htj2k256"``, ``"htj2k32"`` or ``"zstd"``.
        (``"htj2k256"`` and ``"htj2k32"`` are only supported with OpenEXR 3.4 or later.)
+       (``"zstd"`` are only supported with OpenEXR 3.5 or later.)
        If the writer receives a request for a compression type it does not
        recognize or is not supported by the version of OpenEXR on the
        system, it will use ``"zip"`` by default. For ``"dwaa"`` and
@@ -1577,6 +1578,9 @@ The official OpenEXR site is http://www.openexr.com/.
        compression, a level from 1 to 9 may be appended (the default is
        ``"zip:4"``), but note that this is only honored when building
        against OpenEXR 3.1.3 or later.
+       For ``"zstd"`` compression, a level from 1 to 22 may be appended (the default is
+       ``"zstd:5"``), but note that this is only honored when building
+       against OpenEXR 3.5.0 or later.
    * - ``textureformat``
      - string
      - ``"Plain Texture"`` for MIP-mapped OpenEXR files, ``"CubeFace
