@@ -190,8 +190,10 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     m_spec = ImageSpec(m_dib_header.width, int(height), nchannels,
                        TypeDesc::UINT8);
     if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 })
-        || !check_compression_ratio(m_spec, ioproxy()->size()))
+        || !check_compression_ratio(m_spec, ioproxy()->size())) {
+        close();
         return false;
+    }
 
     if (m_dib_header.hres > 0 && m_dib_header.vres > 0) {
         m_spec.attribute("XResolution", (int)m_dib_header.hres);
