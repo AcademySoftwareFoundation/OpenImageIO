@@ -390,7 +390,14 @@ PtexInput::seek_subimage(int subimage, int miplevel)
         m_spec.attribute("ptex:hasEdits", (int)1);
 
     PtexFaceData* facedata = m_ptex->getData(m_subimage, m_faceres);
-    m_isTiled              = facedata->isTiled();
+    if (!facedata) {
+        // getData() returns null if the Ptex reader hit an error while
+        // lazily reading this face's data -- e.g. a corrupt or truncated
+        // per-face block whose size the 64-byte header check can't catch.
+        errorfmt("Could not read Ptex face data for face {}", m_subimage);
+        return false;
+    }
+    m_isTiled = facedata->isTiled();
     if (m_isTiled) {
         m_tileres          = facedata->tileRes();
         m_spec.tile_width  = m_tileres.u();
@@ -522,11 +529,23 @@ PtexInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
         return false;
 
     PtexFaceData* facedata = m_ptex->getData(m_subimage, m_mipfaceres);
+    if (!facedata) {
+        // getData() returns null if the reader hit an error while lazily
+        // reading this face's data (corrupt/truncated per-face block).
+        errorfmt("Could not read Ptex face data for face {}", m_subimage);
+        return false;
+    }
 
     PtexFaceData* f = facedata;
     if (m_isTiled) {
         int tileno = y / m_spec.tile_height * m_ntilesu + x / m_spec.tile_width;
         f          = facedata->getTile(tileno);
+        if (!f) {
+            // getTile() returns null on a failed tile read.
+            errorfmt("Could not read Ptex tile for face {}", m_subimage);
+            facedata->release();
+            return false;
+        }
     }
 
     bool ok        = true;
