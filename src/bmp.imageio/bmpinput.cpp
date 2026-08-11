@@ -226,8 +226,10 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
         break;
     case 8:
         m_padded_scanline_size = (m_spec.width + 3) & ~3;
-        if (!read_color_table())
+        if (!read_color_table()) {
+            close();
             return false;
+        }
         m_allgray = monodetect && color_table_is_all_gray();
         if (m_allgray) {
             m_spec.nchannels = 1;  // make it look like a 1-channel image
@@ -237,17 +239,22 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     case 4:
         swidth                 = (m_spec.width + 1) / 2;
         m_padded_scanline_size = (swidth + 3) & ~3;
-        if (!read_color_table())
+        if (!read_color_table()) {
+            close();
             return false;
+        }
         break;
     case 1:
         swidth                 = (m_spec.width + 7) / 8;
         m_padded_scanline_size = (swidth + 3) & ~3;
-        if (!read_color_table())
+        if (!read_color_table()) {
+            close();
             return false;
+        }
         break;
     default:
         errorfmt("Unsupported BMP bit depth: {}", m_dib_header.bpp);
+        close();
         return false;
     }
     if (m_dib_header.bpp <= 16)
@@ -263,6 +270,7 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
         errorfmt(
             "BMP error: bad BPP ({}) for palette image -- presumed corrupt file",
             m_dib_header.bpp);
+        close();
         return false;
     }
 
