@@ -2227,16 +2227,16 @@ options are supported:
        precedence over ``raw:greybox``, ``raw:user_mul``.
        (Default: 0)
    * - ``raw:greybox``
-     - int[4]
-     - White balance by averaging over the given box. The four values are the 
+     - int[4] or int2[2]
+     - White balance by averaging over the given box. The four values are the
        X and Y coordinate of the top-left corner, the width and the height.
        Only applies if the size is non-zero, and ``raw:use_camera_wb`` is not 
        equal to 0, ``raw:use_auto_wb`` is not equal to 0. Takes 
        precedence over ``raw:user_mul``.
        (Default: 0, 0, 0, 0; meaning no correction.)
    * - ``raw:cropbox``
-     - int[4]
-     - If present, sets the box to crop the image to. The four values are the 
+     - int[4] or int2[2]
+     - If present, sets the box to crop the image to. The four values are the
        X and Y coordinate of the top-left corner, the width and the height.
        If not present, the image is cropped to match the in-camera JPEG,
        assuming the necessary information is present in the metadata. The
@@ -2268,7 +2268,7 @@ options are supported:
      - int
      - If nonzero, outputs the image in half size. (Default: 0)
    * - ``raw:user_mul``
-     - float[4]
+     - float[4] or float4
      - Sets user white balance coefficients. Only applies if ``raw:use_camera_wb``
        is not equal to 0, ``raw:use_auto_wb`` is not equal to 0, and the 
        ``raw:greybox`` box is zero size.
