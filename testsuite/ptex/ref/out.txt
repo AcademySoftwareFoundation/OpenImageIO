@@ -353,3 +353,21 @@ src/triangle.ptx     :    4 x    4, 3 channel, float ptex
       Constant: Yes
       Constant Color: 0.316691 0.450849 0.591512 (float)
       Monochrome: No
+oiiotool ERROR: read : "src/truncated-header.ptx": file is too small to contain a Ptex header
+Full command line was:
+> oiiotool --info --hash src/truncated-header.ptx
+oiiotool ERROR: read : "src/bad-magic.ptx": not a Ptex file (wrong magic number)
+Full command line was:
+> oiiotool --info --hash src/bad-magic.ptx
+oiiotool ERROR: read : "src/bad-levelinfo.ptx": inconsistent Ptex level info size (corrupt header?)
+Full command line was:
+> oiiotool --info --hash src/bad-levelinfo.ptx
+oiiotool ERROR: read : "src/bomb-metadata.ptx": Ptex header block sizes exceed the file size (corrupt header?)
+Full command line was:
+> oiiotool --info --hash src/bomb-metadata.ptx
+oiiotool ERROR: read : "src/bomb-leveldata.ptx": Ptex level data size exceeds the file size (corrupt header?)
+Full command line was:
+> oiiotool --info --hash src/bomb-leveldata.ptx
+oiiotool ERROR: read : "src/bad-nfaces.ptx": Ptex header block sizes exceed the file size (corrupt header?)
+Full command line was:
+> oiiotool --info --hash src/bad-nfaces.ptx
