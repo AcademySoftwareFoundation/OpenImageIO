@@ -23,5 +23,8 @@ command += oiiotool ("-nostderr -oiioattrib try_all_readers 0 src/crash_4163.gif
 command += info_command ("src/gif_idx_overflow_32768x16385_top16384_1x1.gif",
                          extraargs="-oiioattrib try_all_readers 0",
                          verbose=False, hash=False, failureok=True)
+# A malformed (too-short) graphics-control extension sub-block must be
+# dropped without an out-of-bounds read; the 1x1 image still decodes.
+command += info_command ("src/short-graphics-ext.gif", hash=False)
 
 outputs = [ "tahoe-tiny.gif", "out.txt" ]

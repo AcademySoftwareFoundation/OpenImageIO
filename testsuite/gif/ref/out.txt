@@ -112,3 +112,8 @@ Full command line was:
 oiiotool ERROR: read : "src/gif_idx_overflow_32768x16385_top16384_1x1.gif": gif header claims a 2048 MB image from a 35 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool --info -oiioattrib try_all_readers 0 src/gif_idx_overflow_32768x16385_top16384_1x1.gif
+Reading src/short-graphics-ext.gif
+src/short-graphics-ext.gif :    1 x    1, 4 channel, uint8 gif
+    channel list: R, G, B, A
+    gif:Interlacing: 0
+    oiio:ColorSpace: "srgb_rec709_scene"
