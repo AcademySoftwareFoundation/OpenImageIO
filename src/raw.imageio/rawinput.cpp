@@ -527,13 +527,18 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         = config.get_int_attribute("raw:user_sat", 0);
     {
         auto p = config.find_attribute("raw:aber");
-        if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 2)) {
-            m_processor->imgdata.params.aber[0] = p->get<float>(0);
-            m_processor->imgdata.params.aber[2] = p->get<float>(1);
-        }
-        if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 2)) {
-            m_processor->imgdata.params.aber[0] = p->get<double>(0);
-            m_processor->imgdata.params.aber[2] = p->get<double>(1);
+        if (p) {
+            auto type = p->type();
+            if (type.equivalent(TypeDesc(TypeDesc::FLOAT, 2))
+                || type.equivalent(TypeFloat2)) {
+                m_processor->imgdata.params.aber[0] = p->get<float>(0);
+                m_processor->imgdata.params.aber[2] = p->get<float>(1);
+            } else if (type.equivalent(TypeDesc(TypeDesc::DOUBLE, 2))
+                       || type.equivalent(
+                           TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC2))) {
+                m_processor->imgdata.params.aber[0] = p->get<double>(0);
+                m_processor->imgdata.params.aber[2] = p->get<double>(1);
+            }
         }
     }
 
@@ -563,29 +568,38 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             m_processor->imgdata.params.use_auto_wb = 1;
             // White balancing to a box requires use_auto_wb = 1
             auto p = config.find_attribute("raw:greybox");
-            if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
-                // p->get<int>() didn't work for me here
-                m_processor->imgdata.params.greybox[0] = p->get_int_indexed(0);
-                m_processor->imgdata.params.greybox[1] = p->get_int_indexed(1);
-                m_processor->imgdata.params.greybox[2] = p->get_int_indexed(2);
-                m_processor->imgdata.params.greybox[3] = p->get_int_indexed(3);
+            if (p) {
+                auto type = p->type();
+                if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
+                    || type.equivalent(TypeDesc(TypeDesc::INT, TypeDesc::VEC4))
+                    || type.is_box2(TypeDesc::INT)) {
+                    m_processor->imgdata.params.greybox[0] = p->get<int>(0);
+                    m_processor->imgdata.params.greybox[1] = p->get<int>(1);
+                    m_processor->imgdata.params.greybox[2] = p->get<int>(2);
+                    m_processor->imgdata.params.greybox[3] = p->get<int>(3);
+                }
             }
         } else {
             // Set user white balance coefficients.
             // Only has effect if "raw:use_camera_wb" is equal to 0,
             // i.e. we are not using the camera white balance
             auto p = config.find_attribute("raw:user_mul");
-            if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-                m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
-                m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
-                m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
-                m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
-            }
-            if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
-                m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
-                m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
-                m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
-                m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+            if (p) {
+                auto type = p->type();
+                if (type.equivalent(TypeDesc(TypeDesc::FLOAT, 4))
+                    || type.equivalent(TypeFloat4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+                } else if (type.equivalent(TypeDesc(TypeDesc::DOUBLE, 4))
+                           || type.equivalent(
+                               TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC4))) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+                }
             }
         }
     }
@@ -794,11 +808,16 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         ushort top_margin  = 0;
 
         auto p = config.find_attribute("raw:cropbox");
-        if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
-            crop_left   = p->get_int_indexed(0);
-            crop_top    = p->get_int_indexed(1);
-            crop_width  = p->get_int_indexed(2);
-            crop_height = p->get_int_indexed(3);
+        if (p) {
+            auto type = p->type();
+            if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
+                || type.equivalent(TypeDesc(TypeDesc::INT, TypeDesc::VEC4))
+                || type.is_box2(TypeDesc::INT)) {
+                crop_left   = p->get<int>(0);
+                crop_top    = p->get<int>(1);
+                crop_width  = p->get<int>(2);
+                crop_height = p->get<int>(3);
+            }
         }
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
         else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
