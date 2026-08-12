@@ -334,15 +334,19 @@ PtexInput::open(const std::string& name, ImageSpec& newspec)
             m_ptex = NULL;
         }
         errorfmt("{}", perr.c_str());
+        close();
         return false;
     }
 
     m_numFaces   = m_ptex->numFaces();
     m_hasMipMaps = m_ptex->hasMipMaps();
 
-    bool ok = seek_subimage(0, 0);
+    if (!seek_subimage(0, 0)) {
+        close();
+        return false;
+    }
     newspec = spec();
-    return ok;
+    return true;
 }
 
 

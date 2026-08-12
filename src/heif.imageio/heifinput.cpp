@@ -205,15 +205,19 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        close();
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        close();
         return false;
     }
 
     bool ok = seek_subimage(0, 0);
     newspec = spec();
+    if (!ok)
+        close();
     return ok;
 }
 

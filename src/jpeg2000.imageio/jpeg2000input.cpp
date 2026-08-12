@@ -703,6 +703,7 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
         if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
             errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
                      errormsg);
+            close();
             return false;
         }
     }

@@ -266,6 +266,7 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
         DBG("Failed to allocate {} bytes of memory for output image\n",
             static_cast<int>(memNeeded));
 
+        close();
         return false;
     }
 

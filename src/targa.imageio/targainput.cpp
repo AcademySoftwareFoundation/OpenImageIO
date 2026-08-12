@@ -175,32 +175,38 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
           && read(m_tga.y_origin) && read(m_tga.width) && read(m_tga.height)
           && read(m_tga.bpp) && read(m_tga.attr))) {
         errorfmt("Could not read full header");
+        close();
         return false;
     }
 
     if (m_tga.cmap_type != 0 && m_tga.cmap_type != 1) {
         errorfmt("Illegal cmap_type value {} in header", m_tga.cmap_type);
+        close();
         return false;
     }
     if (m_tga.type == TYPE_NODATA) {
         errorfmt("Image with no data");
+        close();
         return false;
     }
     if (m_tga.type != TYPE_PALETTED && m_tga.type != TYPE_RGB
         && m_tga.type != TYPE_GRAY && m_tga.type != TYPE_PALETTED_RLE
         && m_tga.type != TYPE_RGB_RLE && m_tga.type != TYPE_GRAY_RLE) {
         errorfmt("Illegal image type: {}", m_tga.type);
+        close();
         return false;
     }
     if (m_tga.bpp != 8 && m_tga.bpp != 15 && m_tga.bpp != 16 && m_tga.bpp != 24
         && m_tga.bpp != 32) {
         errorfmt("Illegal pixel size: {} bits per pixel", m_tga.bpp);
+        close();
         return false;
     }
 
     if ((m_tga.type == TYPE_PALETTED || m_tga.type == TYPE_PALETTED_RLE)
         && !is_palette()) {
         errorfmt("Palette image with no palette");
+        close();
         return false;
     }
     if (is_palette()) {
@@ -208,17 +214,20 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             // it should be an error for TYPE_RGB* as well, but apparently some
             // *very* old TGAs can be this way, so we'll hack around it
             errorfmt("Palette defined for grayscale image");
+            close();
             return false;
         }
         if (m_tga.cmap_size != 15 && m_tga.cmap_size != 16
             && m_tga.cmap_size != 24 && m_tga.cmap_size != 32) {
             errorfmt("Illegal palette entry size: {} bits", m_tga.cmap_size);
+            close();
             return false;
         }
         if (m_tga.cmap_first + m_tga.cmap_length > (uint64_t(1) << m_tga.bpp)) {
             errorfmt(
                 "Too big a color palette ({}) for {} bpp, assume corruption",
                 m_tga.cmap_first + m_tga.cmap_length, m_tga.bpp);
+            close();
             return false;
         }
     }
@@ -278,6 +287,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
             errorfmt(
                 "TGA header claims image size {} bytes, implausible for {} bytes of remaining file data",
                 raw_pixel_bytes, avail);
+            close();
             return false;
         }
     }
@@ -292,8 +302,10 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         // in case the comment lacks null termination
         char id[256];
         memset(id, 0, sizeof(id));
-        if (!ioread(id, m_tga.idlen, 1))
+        if (!ioread(id, m_tga.idlen, 1)) {
+            close();
             return false;
+        }
         m_spec.attribute("targa:ImageID", id);
     }
 
@@ -305,6 +317,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
     bool check_for_tga2 = (ioproxy()->size() > 26 + 18);
     if (check_for_tga2 && !ioseek(-26, SEEK_END)) {
         errorfmt("Could not seek to find the TGA 2.0 signature.");
+        close();
         return false;
     }
     if (check_for_tga2 && read(m_foot.ofs_ext) && read(m_foot.ofs_dev)
@@ -312,15 +325,19 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
         && !strncmp(m_foot.signature, "TRUEVISION-XFILE.", 17)) {
         //std::cerr << "[tga] this is a TGA 2.0 file\n";
         m_tga_version = 2;
-        if (!read_tga2_header())
+        if (!read_tga2_header()) {
+            close();
             return false;
+        }
     } else {
         m_tga_version = 1;
     }
     m_spec.attribute("targa:version", int(m_tga_version));
 
-    if (!check_open(m_spec))
+    if (!check_open(m_spec)) {
+        close();
         return false;
+    }
 
     if (m_spec.alpha_channel != -1 && m_alpha_type == TGA_ALPHA_USEFUL
         && m_keep_unassociated_alpha)
@@ -328,6 +345,7 @@ TGAInput::open(const std::string& name, ImageSpec& newspec)
 
     // Reposition back to where the palette starts
     if (!ioseek(ofs)) {
+        close();
         return false;
     }
 

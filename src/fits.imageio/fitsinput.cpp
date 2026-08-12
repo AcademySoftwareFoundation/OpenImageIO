@@ -85,8 +85,10 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
     if (!subimage_search())
         return false;
 
-    if (!set_spec_info())
+    if (!set_spec_info()) {
+        close();
         return false;
+    }
 
     spec = m_spec;
     return true;
