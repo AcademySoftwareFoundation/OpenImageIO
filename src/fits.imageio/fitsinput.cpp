@@ -9,6 +9,7 @@
 
 #include "fits_pvt.h"
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
 
@@ -76,9 +77,13 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
         return false;
     }
     // moving back to the start of the file
-    fseek(m_fd, 0, SEEK_SET);
+    if (Filesystem::fseek(m_fd, 0, SEEK_SET)) {
+        errorfmt("Seek error");
+        return false;
+    }
 
-    subimage_search();
+    if (!subimage_search())
+        return false;
 
     if (!set_spec_info())
         return false;
@@ -106,7 +111,10 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     if (!planar_channels()) {
         size_t scanline_off = (size_t(z) * m_spec.height + (m_spec.height - y))
                               * size_t(m_spec.scanline_bytes());
-        fseek(m_fd, scanline_off, SEEK_CUR);
+        if (Filesystem::fseek(m_fd, scanline_off, SEEK_CUR)) {
+            errorfmt("Seek error");
+            return false;
+        }
         size_t n = fread(&data_tmp[0], 1, m_spec.scanline_bytes(), m_fd);
         if (n != m_spec.scanline_bytes()) {
             if (feof(m_fd))
@@ -130,7 +138,11 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         std::vector<unsigned char> chan_row(row_bytes);
         for (int c = 0; c < m_spec.nchannels; ++c) {
             fsetpos(m_fd, &m_filepos);
-            fseek(m_fd, size_t(c * plane_bytes) + row_off, SEEK_CUR);
+            if (Filesystem::fseek(m_fd, size_t(c * plane_bytes) + row_off,
+                                  SEEK_CUR)) {
+                errorfmt("Seek error");
+                return false;
+            }
             size_t n = fread(&chan_row[0], 1, row_bytes, m_fd);
             if (n != row_bytes) {
                 if (feof(m_fd))
@@ -188,7 +200,10 @@ FitsInput::seek_subimage(int subimage, int miplevel)
 
     // setting file pointer to the beginning of IMAGE extension
     m_cur_subimage = subimage;
-    fseek(m_fd, m_subimages[m_cur_subimage].offset, SEEK_SET);
+    if (Filesystem::fseek(m_fd, m_subimages[m_cur_subimage].offset, SEEK_SET)) {
+        errorfmt("Seek error");
+        return false;
+    }
 
     if (!set_spec_info())
         return false;
@@ -541,7 +556,7 @@ FitsInput::assign_channel_names()
 
 
 
-void
+bool
 FitsInput::subimage_search()
 {
     // saving position of the file, just for safe)
@@ -549,7 +564,10 @@ FitsInput::subimage_search()
     fgetpos(m_fd, &fpos);
 
     // starting reading headers from the beginning of the file
-    fseek(m_fd, 0, SEEK_SET);
+    if (Filesystem::fseek(m_fd, 0, SEEK_SET)) {
+        errorfmt("Seek error");
+        return false;
+    }
 
     // we search for subimages by reading whole header and checking if it
     // starts by "SIMPLE" keyword (primary header is always image header)
@@ -567,6 +585,7 @@ FitsInput::subimage_search()
         offset += HEADER_SIZE;
     }
     fsetpos(m_fd, &fpos);
+    return true;
 }
 
 

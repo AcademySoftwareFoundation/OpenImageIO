@@ -103,8 +103,9 @@ private:
 
     // search for subimages: in FITS subimage is a header with SIMPLE keyword
     // or with XTENSION keyword with value 'IMAGE   '. Information about found
-    // subimages are stored in m_subimages
-    void subimage_search();
+    // subimages are stored in m_subimages. Return true for ok, false for
+    // error.
+    bool subimage_search();
 
     // set basic info (width, height) of subimage
     // add attributes to ImageSpec
