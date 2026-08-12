@@ -1114,7 +1114,8 @@ control aspects of the writing itself:
        blocks.
    * - ``jpeg:ultrahdr``
      - int
-     - If nonzero, the image will be written as an Ultra HDR image.
+     - If nonzero, the image will be written as an Ultra HDR image, if the
+       image spec allows it (see below), or as a regular JPEG image otherwise.
 
 
 **Custom I/O Overrides**
@@ -1162,6 +1163,11 @@ When writing Ultra HDR, the following requirements apply:
   the file is inferred from this.
 * The base image JPEG quality is taken from the ``compression`` attribute
   (e.g. ``compression="jpeg:90"``), defaulting to 95.
+
+If any of these requirements is not met, the write does *not* fail: the
+Ultra HDR request is silently ignored and the image is written as a regular
+JPEG (and therefore converted to UINT8 and at most 3 channels, as described
+in the limitations above).
 
 
 

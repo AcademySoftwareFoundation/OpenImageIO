@@ -9,3 +9,6 @@
     Constant: No
     Monochrome: No
 uhdr_write.jpg       :   64 x   64, 4 channel, half jpeg
+uhdr_fallback_type.jpg :   64 x   64, 3 channel, uint8 jpeg
+uhdr_fallback_channels.jpg :   64 x   64, 1 channel, uint8 jpeg
+uhdr_fallback_colorspace.jpg :   64 x   64, 3 channel, uint8 jpeg

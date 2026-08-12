@@ -17,10 +17,18 @@ command += oiiotool ("--create 64x64 3 "
                      + "-o uhdr_write.jpg")
 command += oiiotool ("--info uhdr_write.jpg")
 
-# Confirm the writer rejects unsuitable inputs.
+# Confirm that a spec unsuitable for Ultra HDR does not make the write fail:
+# in that case the file is written as a regular (SDR, uint8) JPEG instead.
+# Once for each of the three requirements: pixel data type, channel count,
+# and color space.
 command += oiiotool ("--create 64x64 3 --attrib oiio:ColorSpace lin_rec709_scene "
-                     + "-d uint8 --attrib jpeg:ultrahdr 1 -o uhdr_bad_uint8.jpg",
-                     failureok = True)
+                     + "-d uint8 --attrib jpeg:ultrahdr 1 -o uhdr_fallback_type.jpg")
+command += oiiotool ("--info uhdr_fallback_type.jpg")
+
+command += oiiotool ("--create 64x64 1 --attrib oiio:ColorSpace lin_rec709_scene "
+                     + "-d half --attrib jpeg:ultrahdr 1 -o uhdr_fallback_channels.jpg")
+command += oiiotool ("--info uhdr_fallback_channels.jpg")
+
 command += oiiotool ("--create 64x64 3 --attrib oiio:ColorSpace lin_ap1_scene "
-                     + "-d half --attrib jpeg:ultrahdr 1 -o uhdr_bad_colorspace.jpg",
-                     failureok = True)
+                     + "-d half --attrib jpeg:ultrahdr 1 -o uhdr_fallback_colorspace.jpg")
+command += oiiotool ("--info uhdr_fallback_colorspace.jpg")

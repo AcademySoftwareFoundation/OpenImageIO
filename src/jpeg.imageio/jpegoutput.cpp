@@ -119,9 +119,10 @@ private:
 #if defined(USE_UHDR)
     // Validate the spec for Ultra HDR output, infer the color gamut, and
     // allocate the full-frame pixel buffer. Called from open() when the
-    // "jpeg:ultrahdr" attribute is set. Returns false (with an error set) if
-    // the spec is not suitable for Ultra HDR encoding.
-    bool setup_uhdr_output();
+    // "jpeg:ultrahdr" attribute is set. Leaves m_write_uhdr false if the spec
+    // is not suitable for Ultra HDR encoding, in which case open() silently
+    // falls back to writing a regular JPEG.
+    void setup_uhdr_output();
 
     // Encode the accumulated m_uhdr_pixels buffer with libultrahdr and write
     // the resulting JPEG stream to the IOProxy. Called from close().
@@ -170,21 +171,18 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     // are handed.
 
     ioproxy_retrieve_from_config(m_spec);
-
-#if defined(USE_UHDR)
-    // Ultra HDR output. If requested, we take a completely different path that
-    // buffers the whole image and encodes it with libultrahdr in close(),
-    // rather than streaming scanlines through libjpeg. Validate the request
-    // before opening the output, so that a rejected spec neither leaves an
-    // empty file behind nor gives close() anything to clean up.
-    if (m_spec.get_int_attribute("jpeg:ultrahdr") && !setup_uhdr_output())
-        return false;
-#endif
-
     if (!ioproxy_use_or_open(name))
         return false;
 
 #if defined(USE_UHDR)
+    // Ultra HDR output. If requested, we take a completely different path that
+    // buffers the whole image and encodes it with libultrahdr in close(),
+    // rather than streaming scanlines through libjpeg. A spec that Ultra HDR
+    // can't represent is not an error: we just fall through to the regular
+    // JPEG path below, the same way this writer silently drops extra channels
+    // and converts to UINT8.
+    if (m_spec.get_int_attribute("jpeg:ultrahdr"))
+        setup_uhdr_output();
     if (m_write_uhdr) {
         m_next_scanline = 0;
         return true;
@@ -508,29 +506,21 @@ JpgOutput::resmeta_to_density()
 
 
 #if defined(USE_UHDR)
-bool
+void
 JpgOutput::setup_uhdr_output()
 {
     // libultrahdr's half-float HDR intent requires linear pixel data. Only
-    // float-based OIIO formats can carry HDR values, so reject integer specs.
-    if (m_spec.format != TypeDesc::HALF && m_spec.format != TypeDesc::FLOAT) {
-        errorfmt(
-            "JPEG Ultra HDR output requires a half or float pixel data type, "
-            "not \"{}\"",
-            m_spec.format);
-        return false;
-    }
-    if (m_spec.nchannels < 3) {
-        errorfmt("JPEG Ultra HDR output requires at least 3 (RGB) channels, "
-                 "not {}",
-                 m_spec.nchannels);
-        return false;
-    }
+    // float-based OIIO formats can carry HDR values, so decline integer specs.
+    if (m_spec.format != TypeDesc::HALF && m_spec.format != TypeDesc::FLOAT)
+        return;
+    if (m_spec.nchannels < 3)
+        return;
 
     // The encoder mandates a known color gamut (BT.709 / Display-P3 / BT.2100)
     // and linear transfer for the half-float HDR intent. Infer the gamut from
-    // the image's linear scene-referred color space; anything else (non-linear
-    // transfer, or primaries we can't map, e.g. ACEScg) is an error.
+    // the image's linear scene-referred color space; for anything else
+    // (non-linear transfer, or primaries we can't map, e.g. ACEScg) we decline
+    // Ultra HDR output.
     string_view cs = m_spec.get_string_attribute("oiio:ColorSpace");
     if (equivalent_colorspace(cs, "lin_rec709_scene"))
         m_uhdr_cg = UHDR_CG_BT_709;
@@ -538,12 +528,8 @@ JpgOutput::setup_uhdr_output()
         m_uhdr_cg = UHDR_CG_DISPLAY_P3;
     else if (equivalent_colorspace(cs, "lin_rec2020_scene"))
         m_uhdr_cg = UHDR_CG_BT_2100;
-    else {
-        errorfmt("JPEG Ultra HDR output requires a linear Rec.709, P3-D65, or "
-                 "Rec.2020 color space, but the image color space is \"{}\"",
-                 cs.size() ? cs : string_view("unknown"));
-        return false;
-    }
+    else
+        return;
 
     auto compqual = m_spec.decode_compression_metadata("jpeg", 95);
     if (Strutil::iequals(compqual.first, "jpeg"))
@@ -556,7 +542,6 @@ JpgOutput::setup_uhdr_output()
     m_uhdr_pixels.assign(size_t(m_spec.width) * size_t(m_spec.height) * 4,
                          half(0.0f));
     m_write_uhdr = true;
-    return true;
 }
 
 
