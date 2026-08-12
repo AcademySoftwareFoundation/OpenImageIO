@@ -532,11 +532,11 @@ length 1 are dropped first):
 * ``NAXIS`` = 1: a single row (width = NAXIS1, height = 1).
 * ``NAXIS`` = 2: an ordinary 2D grayscale image (width = NAXIS1, height = NAXIS2).
 * ``NAXIS`` = 3: if NAXIS3 <= 4, a color image, stored as one full-resolution
-  plane per channel (width = NAXIS1, height = NAXIS2, NAXIS3 = nchannels).
-  Otherwise, if NAXIS3 is more than 3, the file is interpreted as a grayscale
+  plane per channel (width = NAXIS1, height = NAXIS2, nchannels = NAXIS3).
+  Otherwise, if NAXIS3 is more than 4, the file is interpreted as a grayscale
   volume (width = NAXIS1, height = NAXIS2, depth = NAXIS3).
 * ``NAXIS`` = 4: a color volume (width = NAXIS1, height = NAXIS2, depth =
-  NAXIS3, NAXIS4 = nchannels, again one full-resolution volume per channel).
+  NAXIS3, nchannels = NAXIS4, again one full-resolution volume per channel).
 
 This is only a heuristic -- FITS has no way to formally declare an axis as
 "color" -- so a genuinely non-color NAXIS3 that happens to be <= 4 long can be
@@ -546,7 +546,7 @@ Channel names default to the usual OpenImageIO conventions (``R,G,B``,
 ``R,G,B,A``, ``Y``, etc.), improved when the header says more: if the
 channel axis is a FITS WCS ``STOKES`` axis, channels are named from the
 standard Stokes codes (``I``, ``Q``, ``U``, ``V``, ``RR``, ``LL``, ``RL``,
-``LR``, ``pp``, ``qq``, ``pq``, ``qp``); otherwise, if every plane has a
+``LR``, ``XX``, ``YY``, ``XY``, ``YX``); otherwise, if every plane has a
 ``FILTERn`` or ``BANDn`` keyword (an informal convention, not part of the
 FITS standard), those values are used instead.
 

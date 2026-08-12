@@ -116,9 +116,10 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             return false;  // Read failed
         }
     } else {
-        // Channels are stored as separate contiguous width x height (x depth,
-        // for NAXIS=4) blocks rather than interleaved, so we must gather one
-        // row from each block and interleave them into the scanline buffer.
+        // Channels are stored as separate contiguous width * height (or
+        // width * height * depth for NAXIS=4) blocks rather than interleaved,
+        // so we must gather one row from each block and interleave them into
+        // the scanline buffer.
         size_t comp_size   = m_spec.format.size();
         size_t row_bytes   = size_t(m_spec.width) * comp_size;
         size_t plane_bytes = row_bytes * size_t(m_spec.height)
@@ -474,10 +475,9 @@ FitsInput::assign_channel_names()
         return;
 
     // The FITS WCS standard defines a STOKES axis (polarization) with fixed
-    // integer codes per plane: 1=I, 2=Q, 3=U, 4=V, -1=RR, -2=LL, -3=RL,
-    // -4=LR, -5=pp, -6=qq, -7=pq, -8=qp. If that's what this axis is, decode
-    // the per-plane values via the standard linear WCS mapping and use the
-    // Stokes names as channel names.
+    // integer codes per plane. If that's what this axis is, decode the
+    // per-plane values via the standard linear WCS mapping and use the Stokes
+    // names as channel names.
     std::string ctype = m_spec.get_string_attribute(
         Strutil::format("Ctype{}", axis));
     if (Strutil::iequals(ctype, "STOKES")) {
@@ -486,7 +486,7 @@ FitsInput::assign_channel_names()
         static const std::map<int, const char*> stokes_names
             = { { 1, "I" },   { 2, "Q" },   { 3, "U" },   { 4, "V" },
                 { -1, "RR" }, { -2, "LL" }, { -3, "RL" }, { -4, "LR" },
-                { -5, "pp" }, { -6, "qq" }, { -7, "pq" }, { -8, "qp" } };
+                { -5, "XX" }, { -6, "YY" }, { -7, "XY" }, { -8, "YX" } };
         float crval
             = m_spec.get_float_attribute(Strutil::format("Crval{}", axis),
                                          1.0f);
