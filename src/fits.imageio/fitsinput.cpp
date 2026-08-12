@@ -90,7 +90,7 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
 
 
 bool
-FitsInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
+FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                                 void* data)
 {
     lock_guard lock(*this);
@@ -104,7 +104,8 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     std::vector<unsigned char> data_tmp(m_spec.scanline_bytes());
 
     if (!planar_channels()) {
-        long scanline_off = (m_spec.height - y) * m_spec.scanline_bytes();
+        size_t scanline_off = (size_t(z) * m_spec.height + (m_spec.height - y))
+                              * size_t(m_spec.scanline_bytes());
         fseek(m_fd, scanline_off, SEEK_CUR);
         size_t n = fread(&data_tmp[0], 1, m_spec.scanline_bytes(), m_fd);
         if (n != m_spec.scanline_bytes()) {
@@ -124,11 +125,12 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         size_t row_bytes   = size_t(m_spec.width) * comp_size;
         size_t plane_bytes = row_bytes * size_t(m_spec.height)
                              * size_t(m_spec.depth);
-        long row_off = (m_spec.height - y) * long(row_bytes);
+        size_t row_off = (size_t(z) * m_spec.height + (m_spec.height - y))
+                         * row_bytes;
         std::vector<unsigned char> chan_row(row_bytes);
         for (int c = 0; c < m_spec.nchannels; ++c) {
             fsetpos(m_fd, &m_filepos);
-            fseek(m_fd, long(c * plane_bytes) + row_off, SEEK_CUR);
+            fseek(m_fd, size_t(c * plane_bytes) + row_off, SEEK_CUR);
             size_t n = fread(&chan_row[0], 1, row_bytes, m_fd);
             if (n != row_bytes) {
                 if (feof(m_fd))
