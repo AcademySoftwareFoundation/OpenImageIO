@@ -1112,6 +1112,10 @@ control aspects of the writing itself:
      - int
      - If nonzero, extra attributes will be written into the file as comment
        blocks.
+   * - ``jpeg:ultrahdr``
+     - int
+     - If nonzero, the image will be written as an Ultra HDR image, if the
+       image spec allows it (see below), or as a regular JPEG image otherwise.
 
 
 **Custom I/O Overrides**
@@ -1135,7 +1139,7 @@ via the `ImageInput::set_ioproxy()` method and the special
 
 **Ultra HDR**
 
-JPEG input also supports Ultra HDR images.
+JPEG input and output support Ultra HDR images.
 Ultra HDR is an image format that encodes a high dynamic range image
 in a JPEG image file by including a gain map in addition to the
 primary image.
@@ -1143,6 +1147,27 @@ See https://developer.android.com/media/platform/hdr-image-format for
 a complete reference on the Ultra HDR image format.
 In the specific case of reading an Ultra HDR image, JPEG input will also
 support alpha channels and high dynamic range imagery (`half` pixels).
+
+Ultra HDR *output* is enabled by setting the ``jpeg:ultrahdr`` attribute to a
+nonzero value. This makes it possible, for example, to convert a linear HDR
+OpenEXR image into a widely shareable Ultra HDR JPEG.
+When writing Ultra HDR, the following requirements apply:
+
+* The pixel data type must be ``half`` or ``float`` (an HDR-capable, linear
+  data type).
+* The image must have at least 3 channels. If a 4th channel is present it is preserved;
+  RGB images are written with an opaque alpha.
+* The image's ``oiio:ColorSpace`` must be a linear scene-referred space whose
+  primaries are Rec.709, Display-P3, or Rec.2020 (i.e. ``lin_rec709_scene``,
+  ``lin_p3d65_scene``, or ``lin_rec2020_scene``). The color gamut written to
+  the file is inferred from this.
+* The base image JPEG quality is taken from the ``compression`` attribute
+  (e.g. ``compression="jpeg:90"``), defaulting to 95.
+
+If any of these requirements is not met, the write does *not* fail: the
+Ultra HDR request is silently ignored and the image is written as a regular
+JPEG (and therefore converted to UINT8 and at most 3 channels, as described
+in the limitations above).
 
 
 
