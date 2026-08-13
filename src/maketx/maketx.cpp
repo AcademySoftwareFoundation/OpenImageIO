@@ -94,10 +94,15 @@ colorconvert_help_string()
     if (colorconfig.has_error() || colorconfig.getNumColorSpaces() == 0) {
         s += "NONE";
     } else {
+        bool first = true;
         for (int i = 0; i < colorconfig.getNumColorSpaces(); ++i) {
-            if (i != 0)
+            const char* name = colorconfig.getColorSpaceNameByIndex(i);
+            if (!colorconfig.isColorSpaceActive(name))
+                continue;
+            if (!first)
                 s += ", ";
-            s += colorconfig.getColorSpaceNameByIndex(i);
+            s += name;
+            first = false;
         }
     }
     s += ")";

@@ -9,6 +9,7 @@
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/half.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
@@ -65,10 +66,28 @@ private:
     unsigned long m_outsize = 0;
 #endif
 
+#if defined(USE_UHDR)
+    // Ultra HDR output. When m_write_uhdr is true, we bypass the libjpeg
+    // compressor entirely: scanlines are accumulated into m_uhdr_pixels (a
+    // full-frame packed RGBA half-float buffer) during write_scanline(), and
+    // the actual encode via libultrahdr happens in close(). libultrahdr needs
+    // the whole raw image at once, so we cannot stream it.
+    bool m_write_uhdr = false;
+    std::vector<half> m_uhdr_pixels;  // Full-frame packed RGBA, 4 halfs/pixel
+    uhdr_color_gamut_t m_uhdr_cg = UHDR_CG_UNSPECIFIED;
+    int m_uhdr_quality           = 95;
+#endif
+
     void init(void)
     {
         m_copy_coeffs       = NULL;
         m_copy_decompressor = NULL;
+#if defined(USE_UHDR)
+        m_write_uhdr = false;
+        m_uhdr_pixels.clear();
+        m_uhdr_cg      = UHDR_CG_UNSPECIFIED;
+        m_uhdr_quality = 95;
+#endif
         ioproxy_clear();
         clear_outbuffer();
     }
@@ -96,6 +115,19 @@ private:
     // Read the XResolution/YResolution and PixelAspectRatio metadata, store
     // in density fields m_cinfo.X_density,Y_density.
     void resmeta_to_density();
+
+#if defined(USE_UHDR)
+    // Validate the spec for Ultra HDR output, infer the color gamut, and
+    // allocate the full-frame pixel buffer. Called from open() when the
+    // "jpeg:ultrahdr" attribute is set. Leaves m_write_uhdr false if the spec
+    // is not suitable for Ultra HDR encoding, in which case open() silently
+    // falls back to writing a regular JPEG.
+    void setup_uhdr_output();
+
+    // Encode the accumulated m_uhdr_pixels buffer with libultrahdr and write
+    // the resulting JPEG stream to the IOProxy. Called from close().
+    bool encode_uhdr();
+#endif
 };
 
 
@@ -141,6 +173,21 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     ioproxy_retrieve_from_config(m_spec);
     if (!ioproxy_use_or_open(name))
         return false;
+
+#if defined(USE_UHDR)
+    // Ultra HDR output. If requested, we take a completely different path that
+    // buffers the whole image and encodes it with libultrahdr in close(),
+    // rather than streaming scanlines through libjpeg. A spec that Ultra HDR
+    // can't represent is not an error: we just fall through to the regular
+    // JPEG path below, the same way this writer silently drops extra channels
+    // and converts to UINT8.
+    if (m_spec.get_int_attribute("jpeg:ultrahdr"))
+        setup_uhdr_output();
+    if (m_write_uhdr) {
+        m_next_scanline = 0;
+        return true;
+    }
+#endif
 
     m_cinfo.err = jpeg_std_error(&c_jerr);  // set error handler
     jpeg_create_compress(&m_cinfo);         // create compressor
@@ -458,6 +505,116 @@ JpgOutput::resmeta_to_density()
 
 
 
+#if defined(USE_UHDR)
+void
+JpgOutput::setup_uhdr_output()
+{
+    // libultrahdr's half-float HDR intent requires linear pixel data. Only
+    // float-based OIIO formats can carry HDR values, so decline integer specs.
+    if (m_spec.format != TypeDesc::HALF && m_spec.format != TypeDesc::FLOAT)
+        return;
+    if (m_spec.nchannels < 3)
+        return;
+
+    // The encoder mandates a known color gamut (BT.709 / Display-P3 / BT.2100)
+    // and linear transfer for the half-float HDR intent. Infer the gamut from
+    // the image's linear scene-referred color space; for anything else
+    // (non-linear transfer, or primaries we can't map, e.g. ACEScg) we decline
+    // Ultra HDR output.
+    string_view cs = m_spec.get_string_attribute("oiio:ColorSpace");
+    if (equivalent_colorspace(cs, "lin_rec709_scene"))
+        m_uhdr_cg = UHDR_CG_BT_709;
+    else if (equivalent_colorspace(cs, "lin_p3d65_scene"))
+        m_uhdr_cg = UHDR_CG_DISPLAY_P3;
+    else if (equivalent_colorspace(cs, "lin_rec2020_scene"))
+        m_uhdr_cg = UHDR_CG_BT_2100;
+    else
+        return;
+
+    auto compqual = m_spec.decode_compression_metadata("jpeg", 95);
+    if (Strutil::iequals(compqual.first, "jpeg"))
+        m_uhdr_quality = clamp(compqual.second, 1, 100);
+    else
+        m_uhdr_quality = 95;
+
+    // Allocate the full-frame packed RGBA half buffer. write_scanline() fills
+    // it row by row; encode_uhdr() consumes it in close().
+    m_uhdr_pixels.assign(size_t(m_spec.width) * size_t(m_spec.height) * 4,
+                         half(0.0f));
+    m_write_uhdr = true;
+}
+
+
+
+bool
+JpgOutput::encode_uhdr()
+{
+    uhdr_raw_image_t img {};
+    img.fmt                       = UHDR_IMG_FMT_64bppRGBAHalfFloat;
+    img.cg                        = m_uhdr_cg;
+    img.ct                        = UHDR_CT_LINEAR;
+    img.range                     = UHDR_CR_FULL_RANGE;
+    img.w                         = m_spec.width;
+    img.h                         = m_spec.height;
+    img.planes[UHDR_PLANE_PACKED] = m_uhdr_pixels.data();
+    img.planes[UHDR_PLANE_U]      = nullptr;
+    img.planes[UHDR_PLANE_V]      = nullptr;
+    img.stride[UHDR_PLANE_PACKED] = m_spec.width;  // in pixels
+    img.stride[UHDR_PLANE_U]      = 0;
+    img.stride[UHDR_PLANE_V]      = 0;
+
+    uhdr_codec_private_t* enc = uhdr_create_encoder();
+    if (!enc) {
+        errorfmt("Could not create Ultra HDR encoder");
+        return false;
+    }
+
+    // Helper to check a libultrahdr call result, emit a useful error, and
+    // release the encoder on failure.
+    auto check = [&](const uhdr_error_info_t& err, const char* what) -> bool {
+        if (err.error_code == UHDR_CODEC_OK)
+            return true;
+        if (err.has_detail)
+            errorfmt("Ultra HDR {} failed (code {}): {}", what,
+                     int(err.error_code), err.detail);
+        else
+            errorfmt("Ultra HDR {} failed (code {})", what,
+                     int(err.error_code));
+        uhdr_release_encoder(enc);
+        return false;
+    };
+
+    if (!check(uhdr_enc_set_raw_image(enc, &img, UHDR_HDR_IMG), "set_raw_image"))
+        return false;
+    if (!check(uhdr_enc_set_quality(enc, m_uhdr_quality, UHDR_BASE_IMG),
+               "set_quality"))
+        return false;
+    if (!check(uhdr_enc_set_output_format(enc, UHDR_CODEC_JPG),
+               "set_output_format"))
+        return false;
+    if (!check(uhdr_encode(enc), "encode"))
+        return false;
+
+    uhdr_compressed_image_t* stream = uhdr_get_encoded_stream(enc);
+    if (!stream || !stream->data) {
+        errorfmt("Ultra HDR encoder produced no output stream");
+        uhdr_release_encoder(enc);
+        return false;
+    }
+
+    if (ioproxy()->write(stream->data, stream->data_sz) != stream->data_sz) {
+        errorfmt("Error writing Ultra HDR data to \"{}\"", m_filename);
+        uhdr_release_encoder(enc);
+        return false;
+    }
+
+    uhdr_release_encoder(enc);
+    return true;
+}
+#endif
+
+
+
 bool
 JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                           stride_t xstride)
@@ -467,6 +624,30 @@ JpgOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
         errorfmt("Attempt to write scanlines out of order to {}", m_filename);
         return false;
     }
+
+#if defined(USE_UHDR)
+    if (m_write_uhdr) {
+        if (y >= m_spec.height) {
+            errorfmt("Attempt to write too many scanlines to {}", m_filename);
+            return false;
+        }
+        m_spec.auto_stride(xstride, format, m_spec.nchannels);
+        // Destination row: packed RGBA half. Pre-fill alpha to 1.0 so that
+        // RGB (3-channel) inputs get an opaque alpha; RGBA inputs overwrite it.
+        half* row = m_uhdr_pixels.data() + size_t(y) * m_spec.width * 4;
+        for (int x = 0; x < m_spec.width; ++x)
+            row[x * 4 + 3] = half(1.0f);
+        // Copy up to 4 channels (RGB, or RGBA) into the packed buffer,
+        // converting to half. Any channels beyond 4 are dropped.
+        int ncopy = std::min(m_spec.nchannels, 4);
+        convert_image(ncopy, m_spec.width, 1, 1, data, format, xstride,
+                      AutoStride, AutoStride, row, TypeDesc::HALF,
+                      4 * sizeof(half), AutoStride, AutoStride);
+        ++m_next_scanline;
+        return true;
+    }
+#endif
+
     if (y >= (int)m_cinfo.image_height) {
         errorfmt("Attempt to write too many scanlines to {}", m_filename);
         return false;
@@ -516,6 +697,17 @@ JpgOutput::close()
         init();
         return true;
     }
+
+#if defined(USE_UHDR)
+    if (m_write_uhdr) {
+        // If the caller wrote fewer scanlines than the full height, the tail of
+        // m_uhdr_pixels is left at its initialized value (0 with alpha 1.0),
+        // which is a reasonable fill. Encode whatever we have.
+        bool ok = encode_uhdr();
+        init();
+        return ok;
+    }
+#endif
 
     if (m_next_scanline < spec().height && m_copy_coeffs == NULL) {
         // But if we've only written some scanlines, write the rest to avoid

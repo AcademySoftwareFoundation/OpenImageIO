@@ -75,6 +75,21 @@ is_icc_profile_marker(jpeg_saved_marker_ptr marker)
                       sizeof(icc_marker_prefix));
 }
 
+// Ultra HDR files using the ISO 21496-1 gain map format (as written by
+// libultrahdr 1.x) signal the gain map metadata in an APP2 marker whose
+// payload begins with "urn:iso:std:". This is distinct from the legacy Adobe
+// gain map format, which is detected via the "hdrgm:Version" XMP attribute.
+static const char iso_gainmap_marker_prefix[] = "urn:iso:std:";
+
+static bool
+is_iso_gainmap_marker(jpeg_saved_marker_ptr marker)
+{
+    return marker->marker == (JPEG_APP0 + 2)
+           && marker->data_length >= sizeof(iso_gainmap_marker_prefix) - 1
+           && !memcmp(marker->data, iso_gainmap_marker_prefix,
+                      sizeof(iso_gainmap_marker_prefix) - 1);
+}
+
 
 // For explanations of the error handling, see the "example.c" in the
 // libjpeg distribution.
@@ -315,7 +330,10 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     if (!subsampling.empty())
         m_spec.attribute(JPEG_SUBSAMPLING_ATTR, subsampling);
 
+    bool iso_gainmap_signal = false;
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list; m; m = m->next) {
+        if (is_iso_gainmap_marker(m))
+            iso_gainmap_signal = true;
         if (is_exif_marker(m)) {
             // The block starts with "Exif\0\0", so skip 6 bytes to get
             // to the start of the actual Exif data TIFF directory
@@ -417,10 +435,13 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
     // Try to interpret as Ultra HDR image.
     // The libultrahdr API requires to load the whole file content in memory
-    // therefore we first check for the presence of the "hdrgm:Version" metadata
-    // to avoid this costly process when not necessary.
+    // therefore we first check for a cheap signal of the format to avoid this
+    // costly process when not necessary. Two gain map formats are recognized:
+    // the legacy Adobe format, signaled by the "hdrgm:Version" XMP attribute,
+    // and the ISO 21496-1 format (written by libultrahdr 1.x), signaled by an
+    // APP2 "urn:iso:std:" marker.
     // https://developer.android.com/media/platform/hdr-image-format#signal_of_the_format
-    if (m_spec.find_attribute("hdrgm:Version"))
+    if (m_spec.find_attribute("hdrgm:Version") || iso_gainmap_signal)
         m_is_uhdr = read_uhdr(m_io);
 
     newspec = m_spec;

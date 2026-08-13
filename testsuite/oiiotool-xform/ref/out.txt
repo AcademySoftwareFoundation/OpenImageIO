@@ -86,6 +86,16 @@ Comparing "reorient2.tif" and "ref/reorient2.tif"
 PASS
 Comparing "reorient3.tif" and "ref/reorient3.tif"
 PASS
+Comparing "reorient4.tif" and "ref/reorient4.tif"
+PASS
+Comparing "reorient5.tif" and "ref/reorient5.tif"
+PASS
+Comparing "reorient6.tif" and "ref/reorient6.tif"
+PASS
+Comparing "reorient7.tif" and "ref/reorient7.tif"
+PASS
+Comparing "reorient8.tif" and "ref/reorient8.tif"
+PASS
 Comparing "transpose.tif" and "ref/transpose.tif"
 PASS
 Comparing "transpose-crop.tif" and "ref/transpose-crop.tif"
