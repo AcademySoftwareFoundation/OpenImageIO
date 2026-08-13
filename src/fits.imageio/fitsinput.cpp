@@ -4,11 +4,14 @@
 
 
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 
 #include "fits_pvt.h"
 
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/strutil.h>
 
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -74,9 +77,13 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
         return false;
     }
     // moving back to the start of the file
-    fseek(m_fd, 0, SEEK_SET);
+    if (Filesystem::fseek(m_fd, 0, SEEK_SET)) {
+        errorfmt("Seek error");
+        return false;
+    }
 
-    subimage_search();
+    if (!subimage_search())
+        return false;
 
     if (!set_spec_info())
         return false;
@@ -88,7 +95,7 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
 
 
 bool
-FitsInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
+FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                                 void* data)
 {
     lock_guard lock(*this);
@@ -100,16 +107,56 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return true;
 
     std::vector<unsigned char> data_tmp(m_spec.scanline_bytes());
-    long scanline_off = (m_spec.height - y) * m_spec.scanline_bytes();
-    fseek(m_fd, scanline_off, SEEK_CUR);
-    size_t n = fread(&data_tmp[0], 1, m_spec.scanline_bytes(), m_fd);
-    if (n != m_spec.scanline_bytes()) {
-        if (feof(m_fd))
-            errorfmt("Hit end of file unexpectedly (offset={}, scanline {})",
-                     ftell(m_fd), y);
-        else
-            errorfmt("read error");
-        return false;  // Read failed
+
+    if (!planar_channels()) {
+        size_t scanline_off = (size_t(z) * m_spec.height + (m_spec.height - y))
+                              * size_t(m_spec.scanline_bytes());
+        if (Filesystem::fseek(m_fd, scanline_off, SEEK_CUR)) {
+            errorfmt("Seek error");
+            return false;
+        }
+        size_t n = fread(&data_tmp[0], 1, m_spec.scanline_bytes(), m_fd);
+        if (n != m_spec.scanline_bytes()) {
+            if (feof(m_fd))
+                errorfmt("Hit end of file unexpectedly (offset={}, scanline {})",
+                         ftell(m_fd), y);
+            else
+                errorfmt("read error");
+            return false;  // Read failed
+        }
+    } else {
+        // Channels are stored as separate contiguous width * height (or
+        // width * height * depth for NAXIS=4) blocks rather than interleaved,
+        // so we must gather one row from each block and interleave them into
+        // the scanline buffer.
+        size_t comp_size   = m_spec.format.size();
+        size_t row_bytes   = size_t(m_spec.width) * comp_size;
+        size_t plane_bytes = row_bytes * size_t(m_spec.height)
+                             * size_t(m_spec.depth);
+        size_t row_off = (size_t(z) * m_spec.height + (m_spec.height - y))
+                         * row_bytes;
+        std::vector<unsigned char> chan_row(row_bytes);
+        for (int c = 0; c < m_spec.nchannels; ++c) {
+            fsetpos(m_fd, &m_filepos);
+            if (Filesystem::fseek(m_fd, size_t(c * plane_bytes) + row_off,
+                                  SEEK_CUR)) {
+                errorfmt("Seek error");
+                return false;
+            }
+            size_t n = fread(&chan_row[0], 1, row_bytes, m_fd);
+            if (n != row_bytes) {
+                if (feof(m_fd))
+                    errorfmt(
+                        "Hit end of file unexpectedly (offset={}, scanline {})",
+                        ftell(m_fd), y);
+                else
+                    errorfmt("read error");
+                return false;  // Read failed
+            }
+            for (int x = 0; x < m_spec.width; ++x)
+                memcpy(&data_tmp[(size_t(x) * m_spec.nchannels + c) * comp_size],
+                       &chan_row[size_t(x) * comp_size], comp_size);
+        }
     }
 
     // in FITS image data is stored in big-endian so we have to switch to
@@ -153,7 +200,10 @@ FitsInput::seek_subimage(int subimage, int miplevel)
 
     // setting file pointer to the beginning of IMAGE extension
     m_cur_subimage = subimage;
-    fseek(m_fd, m_subimages[m_cur_subimage].offset, SEEK_SET);
+    if (Filesystem::fseek(m_fd, m_subimages[m_cur_subimage].offset, SEEK_SET)) {
+        errorfmt("Seek error");
+        return false;
+    }
 
     if (!set_spec_info())
         return false;
@@ -199,7 +249,7 @@ FitsInput::set_spec_info()
             errorfmt("Unsupported FITS BITPIX value {}", m_bitpix);
             return false;
         }
-        if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 4 }))
+        if (!check_open(m_spec, { 0, 1 << 20, 0, 1 << 20, 0, 1 << 16, 0, 12 }))
             return false;
         if (!check_compression_ratio(m_spec, Filesystem::file_size(m_filename)))
             return false;
@@ -344,22 +394,29 @@ FitsInput::read_fits_header(void)
         } else if (m_naxes == 2) {
             m_spec.width  = m_naxis[0];
             m_spec.height = m_naxis[1];
-        } else if (m_naxes == 3 && m_naxis[0] <= 4) {
-            // 3D, small number of most-rapidly changing dimension: color image?
-            m_spec.nchannels = m_naxis[0];
-            m_spec.width     = m_naxis[1];
-            m_spec.height    = m_naxis[2];
+        } else if (m_naxes == 3 && m_naxis[2] <= 4) {
+            // 3D, small number of most-slowly changing dimension: color
+            // image, one full width x height plane per channel (NAXIS3 =
+            // nchannels). This is the only real-world FITS color-cube
+            // convention -- see the git history for how we know that.
+            m_spec.width     = m_naxis[0];
+            m_spec.height    = m_naxis[1];
+            m_spec.nchannels = m_naxis[2];
         } else if (m_naxes == 3) {
-            // 3D, large number of most-rapidly changing dimension: volume?
+            // 3D, no small axis: volume
             m_spec.width  = m_naxis[0];
             m_spec.height = m_naxis[1];
             m_spec.depth  = m_naxis[2];
         } else if (m_naxes == 4) {
-            // 4D... volume + color?
-            m_spec.nchannels = m_naxis[0];
-            m_spec.width     = m_naxis[1];
-            m_spec.height    = m_naxis[2];
-            m_spec.depth     = m_naxis[3];
+            // 4D volume+color: NAXIS1-3 are x,y,z and NAXIS4 = nchannels,
+            // one full-resolution volume per channel. No real-world
+            // convention to confirm this against (unlike the 3D color case
+            // above), but it's the natural extension of the same pattern:
+            // the slowest-varying axis is the channel axis.
+            m_spec.width     = m_naxis[0];
+            m_spec.height    = m_naxis[1];
+            m_spec.depth     = m_naxis[2];
+            m_spec.nchannels = m_naxis[3];
         } else {
             errorfmt("Don't know now to read {}-channel FITS image", m_naxes);
             return false;
@@ -369,6 +426,7 @@ FitsInput::read_fits_header(void)
         m_spec.full_depth  = m_spec.depth;
 
         m_spec.attribute("oiio:subimages", (int)m_subimages.size());
+        assign_channel_names();
 
         // if (m_spec.width < 1 || m_spec.height < 1 || m_spec.depth < 1 ||
         //     m_spec.nchannels < 1) {
@@ -417,6 +475,88 @@ FitsInput::add_to_spec(const std::string& keyname, const std::string& value)
 
 
 void
+FitsInput::assign_channel_names()
+{
+    m_spec.default_channel_names();
+    if (m_spec.nchannels <= 1)
+        return;
+
+    // Which physical FITS axis (1-based) is the channel axis, so we know
+    // which CTYPEn/FILTERn-style keywords describe it?
+    int axis = 0;
+    if (m_naxes == 3)
+        axis = 3;
+    else if (m_naxes == 4)
+        axis = 4;  // volume+color: channel is the slowest-varying axis
+    if (!axis)
+        return;
+
+    // The FITS WCS standard defines a STOKES axis (polarization) with fixed
+    // integer codes per plane. If that's what this axis is, decode the
+    // per-plane values via the standard linear WCS mapping and use the Stokes
+    // names as channel names.
+    std::string ctype = m_spec.get_string_attribute(
+        Strutil::format("Ctype{}", axis));
+    if (Strutil::iequals(ctype, "STOKES")) {
+        // Standard FITS WCS linear axis mapping and Stokes codes, see:
+        // https://fits.gsfc.nasa.gov/standard40/fits_standard40aa.pdf
+        static const std::map<int, const char*> stokes_names
+            = { { 1, "I" },   { 2, "Q" },   { 3, "U" },   { 4, "V" },
+                { -1, "RR" }, { -2, "LL" }, { -3, "RL" }, { -4, "LR" },
+                { -5, "XX" }, { -6, "YY" }, { -7, "XY" }, { -8, "YX" } };
+        float crval
+            = m_spec.get_float_attribute(Strutil::format("Crval{}", axis),
+                                         1.0f);
+        float crpix
+            = m_spec.get_float_attribute(Strutil::format("Crpix{}", axis),
+                                         1.0f);
+        float cdelt
+            = m_spec.get_float_attribute(Strutil::format("Cdelt{}", axis),
+                                         1.0f);
+        bool all_found = true;
+        std::vector<std::string> names(m_spec.nchannels);
+        for (int c = 0; c < m_spec.nchannels && all_found; ++c) {
+            int code  = int(std::lround(crval + (c + 1 - crpix) * cdelt));
+            auto find = stokes_names.find(code);
+            if (find == stokes_names.end())
+                all_found = false;
+            else
+                names[c] = find->second;
+        }
+        if (all_found) {
+            for (int c = 0; c < m_spec.nchannels; ++c)
+                m_spec.channelnames[c] = names[c];
+            return;
+        }
+    }
+
+    // No standard WCS description of the axis. Some pipelines instead tag
+    // each plane with an informal FILTERn or BANDn keyword (e.g. FILTER1,
+    // FILTER2, FILTER3 giving the name of the filter used for that plane).
+    // This isn't part of the FITS standard, just a convention we've seen in
+    // the wild, so only trust it if every plane has one.
+    for (const char* prefix : { "Filter", "Band" }) {
+        std::vector<std::string> names(m_spec.nchannels);
+        bool all_found = true;
+        for (int c = 0; c < m_spec.nchannels && all_found; ++c) {
+            std::string key = Strutil::format("{}{}", prefix, c + 1);
+            auto* param     = m_spec.find_attribute(key, TypeDesc::STRING);
+            if (!param)
+                all_found = false;
+            else
+                names[c] = *(const char**)param->data();
+        }
+        if (all_found) {
+            for (int c = 0; c < m_spec.nchannels; ++c)
+                m_spec.channelnames[c] = names[c];
+            return;
+        }
+    }
+}
+
+
+
+bool
 FitsInput::subimage_search()
 {
     // saving position of the file, just for safe)
@@ -424,7 +564,10 @@ FitsInput::subimage_search()
     fgetpos(m_fd, &fpos);
 
     // starting reading headers from the beginning of the file
-    fseek(m_fd, 0, SEEK_SET);
+    if (Filesystem::fseek(m_fd, 0, SEEK_SET)) {
+        errorfmt("Seek error");
+        return false;
+    }
 
     // we search for subimages by reading whole header and checking if it
     // starts by "SIMPLE" keyword (primary header is always image header)
@@ -442,6 +585,7 @@ FitsInput::subimage_search()
         offset += HEADER_SIZE;
     }
     fsetpos(m_fd, &fpos);
+    return true;
 }
 
 

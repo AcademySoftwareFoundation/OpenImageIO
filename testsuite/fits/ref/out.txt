@@ -491,6 +491,37 @@ AIPS   CLEAN NITER= 12000 PRODUCT=1"
     oiio:subimages: 1
 Comparing "../fits-images/ftt4b/file003.fits" and "file003.fits"
 PASS
+Reading ../fits-images/ftt4b/file006.fits
+../fits-images/ftt4b/file006.fits :  512 x  512, 3 channel, uint8 fits
+    SHA-1: 9FF70B84DD1529A9404B0E80BDE7B334F691F90A
+    channel list: R, G, B
+    Blank: 0
+    Bscale: 1
+    Bzero: 0
+    Cdelt3: 1
+    Comment: "THIS IS A TEST OF THE 8-BIT PIXEL TYPE.
+THIS FULL COLOR IMAGE WAS TAKEN FROM A TAPE OF TEST IMAGES
+DISTRIBUTED BY THE IMAGE PROCESSING INSTITUTE AT THE UNIVERSITY OF
+SOUTHERN CALIFORNIA.
+I SUGGEST 'RGB' BE ADDED TO FITS COORDINATE TYPES. DON WELLS. 05SEP79.
+THIS IS INTENDED TO BE USED FOR SPECIFYING TRIPLETS OF IMAGES WHICH
+ARE INTENDED TO BE VIEWED WITH COLOR TELEVISION MONITORS OR RECORDED
+WITH COLOR HARDCOPY DEVICES (E.G., DICOMED D47)."
+    Crota3: 0
+    Crpix3: 1
+    Crval3: 1
+    Ctype3: "RGB"
+    DateTime: "1980:04:18 00:00:00"
+    Ipps-b/p: 12
+    Ipps-id: "RED MANDRILL ("BABOON")"
+    Ipps-max: 255
+    Ipps-min: 0
+    Ipps-rf: "D      /001"
+    Object: "MANDRILL"
+    Origin: "KPNO    -- WFITS OF 04/17/80."
+    oiio:subimages: 1
+Comparing "../fits-images/ftt4b/file006.fits" and "file006.fits"
+PASS
 Reading ../fits-images/ftt4b/file009.fits
 ../fits-images/ftt4b/file009.fits :    0 x    0, 1 channel, int16 fits
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
@@ -711,6 +742,206 @@ AIPS   CLEAN NITER= 12000 PRODUCT=1"
     Tables: 1
     oiio:subimages: 1
 Comparing "../fits-images/ftt4b/file012.fits" and "file012.fits"
+PASS
+Reading src/rgb.fits
+src/rgb.fits         :   32 x   32, 3 channel, float fits
+    SHA-1: F7E36E977DEA527FE023283D9A6E6941BA439AE1
+    channel list: R, G, B
+    A_0_0: 0
+    A_0_1: 0
+    A_0_2: 6.08313e-08
+    A_0_3: 3.51185e-11
+    A_1_0: 0
+    A_1_1: -7.16346e-09
+    A_1_2: -6.52948e-10
+    A_2_0: -8.57221e-08
+    A_2_1: 6.14197e-13
+    A_3_0: -6.39624e-10
+    A_order: 3
+    Ap_0_0: -0.000178267
+    Ap_0_1: 2.44714e-07
+    Ap_0_2: -6.08969e-08
+    Ap_0_3: -3.54786e-11
+    Ap_1_0: -8.42448e-06
+    Ap_1_1: 7.38336e-09
+    Ap_1_2: 6.61491e-10
+    Ap_2_0: 8.6651e-08
+    Ap_2_1: -7.33107e-13
+    Ap_3_0: 6.46638e-10
+    Ap_order: 3
+    B_0_0: 0
+    B_0_1: 0
+    B_0_2: -8.27428e-08
+    B_0_3: -6.11542e-10
+    B_1_0: 0
+    B_1_1: -9.90564e-08
+    B_1_2: -1.68675e-11
+    B_2_0: -1.88226e-08
+    B_2_1: -6.48505e-10
+    B_3_0: -2.02193e-12
+    B_order: 3
+    Bp_0_0: -0.000204257
+    Bp_0_1: -5.3092e-06
+    Bp_0_2: 8.32734e-08
+    Bp_0_3: 6.16666e-10
+    Bp_1_0: 1.05632e-08
+    Bp_1_1: 9.96989e-08
+    Bp_1_2: 1.68664e-11
+    Bp_2_0: 1.90495e-08
+    Bp_2_1: 6.55252e-10
+    Bp_3_0: 2.05389e-12
+    Bp_order: 3
+    Bscale: 1
+    Bzero: 0
+    Cdelt1: -0.000776386
+    Cdelt2: 0.000776814
+    Comment: "FITS (Flexible Image Transport System) format is defined in 'Astronomy
+and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H"
+    Crpix1: -74.5
+    Crpix2: -549.5
+    Crval1: 85.3218
+    Crval2: -2.49444
+    Ctype1: "RA---TAN-SIP"
+    Ctype2: "DEC--TAN-SIP"
+    Cunit1: "deg"
+    Cunit2: "deg"
+    Date-obs: 2025
+    DateTime: "2026:08:09 12:28:17"
+    Dec: -1.93685
+    Equinox: 2000
+    Expend: 2461030
+    Expstart: 2461030
+    Exptime: 15
+    Extend: "T"
+    Filter: "Duo-Band"
+    Focallen: 147.555
+    Gain: 60
+    History: "mean stacking without rejection, additive+scaling normalized input, norm
+alized output, no image weighting, equalized RGB, filter selected
+Rotation (0.0deg, cropped=TRUE, clamped=TRUE)"
+    Instrume: "DWARF 3"
+    Livetime: 2265
+    Lonpole: 180
+    Mips-flo: 0
+    Objctdec: -1
+    Objctra: 5
+    Object: "Horsehead Nebula"
+    Pc1_1: 0.996079
+    Pc1_2: -0.0884675
+    Pc2_1: 0.0885425
+    Pc2_2: 0.996072
+    Pltsolvd: "T"
+    Program: "Siril 1.4.3"
+    Ra: 85.1877
+    Software: "OpenImageIO 3.2.0.2dev : F437187DB9769DA2652357EC017687DCC21D6FCD"
+    Stackcnt: 151
+    Telescop: "DWARF 3"
+    Xbinning: 1
+    Xpixsz: 2
+    Ybinning: 1
+    Ypixsz: 2
+    Oiio:sub: 1
+    oiio:subimages: 1
+Reading src/rgb.fits
+src/rgb.fits         :   32 x   32, 3 channel, float fits
+    SHA-1: F7E36E977DEA527FE023283D9A6E6941BA439AE1
+    channel list: R, G, B
+    A_0_0: 0
+    A_0_1: 0
+    A_0_2: 6.08313e-08
+    A_0_3: 3.51185e-11
+    A_1_0: 0
+    A_1_1: -7.16346e-09
+    A_1_2: -6.52948e-10
+    A_2_0: -8.57221e-08
+    A_2_1: 6.14197e-13
+    A_3_0: -6.39624e-10
+    A_order: 3
+    Ap_0_0: -0.000178267
+    Ap_0_1: 2.44714e-07
+    Ap_0_2: -6.08969e-08
+    Ap_0_3: -3.54786e-11
+    Ap_1_0: -8.42448e-06
+    Ap_1_1: 7.38336e-09
+    Ap_1_2: 6.61491e-10
+    Ap_2_0: 8.6651e-08
+    Ap_2_1: -7.33107e-13
+    Ap_3_0: 6.46638e-10
+    Ap_order: 3
+    B_0_0: 0
+    B_0_1: 0
+    B_0_2: -8.27428e-08
+    B_0_3: -6.11542e-10
+    B_1_0: 0
+    B_1_1: -9.90564e-08
+    B_1_2: -1.68675e-11
+    B_2_0: -1.88226e-08
+    B_2_1: -6.48505e-10
+    B_3_0: -2.02193e-12
+    B_order: 3
+    Bp_0_0: -0.000204257
+    Bp_0_1: -5.3092e-06
+    Bp_0_2: 8.32734e-08
+    Bp_0_3: 6.16666e-10
+    Bp_1_0: 1.05632e-08
+    Bp_1_1: 9.96989e-08
+    Bp_1_2: 1.68664e-11
+    Bp_2_0: 1.90495e-08
+    Bp_2_1: 6.55252e-10
+    Bp_3_0: 2.05389e-12
+    Bp_order: 3
+    Bscale: 1
+    Bzero: 0
+    Cdelt1: -0.000776386
+    Cdelt2: 0.000776814
+    Comment: "FITS (Flexible Image Transport System) format is defined in 'Astronomy
+and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H"
+    Crpix1: -74.5
+    Crpix2: -549.5
+    Crval1: 85.3218
+    Crval2: -2.49444
+    Ctype1: "RA---TAN-SIP"
+    Ctype2: "DEC--TAN-SIP"
+    Cunit1: "deg"
+    Cunit2: "deg"
+    Date-obs: 2025
+    DateTime: "2026:08:09 12:28:17"
+    Dec: -1.93685
+    Equinox: 2000
+    Expend: 2461030
+    Expstart: 2461030
+    Exptime: 15
+    Extend: "T"
+    Filter: "Duo-Band"
+    Focallen: 147.555
+    Gain: 60
+    History: "mean stacking without rejection, additive+scaling normalized input, norm
+alized output, no image weighting, equalized RGB, filter selected
+Rotation (0.0deg, cropped=TRUE, clamped=TRUE)"
+    Instrume: "DWARF 3"
+    Livetime: 2265
+    Lonpole: 180
+    Mips-flo: 0
+    Objctdec: -1
+    Objctra: 5
+    Object: "Horsehead Nebula"
+    Pc1_1: 0.996079
+    Pc1_2: -0.0884675
+    Pc2_1: 0.0885425
+    Pc2_2: 0.996072
+    Pltsolvd: "T"
+    Program: "Siril 1.4.3"
+    Ra: 85.1877
+    Software: "OpenImageIO 3.2.0.2dev : F437187DB9769DA2652357EC017687DCC21D6FCD"
+    Stackcnt: 151
+    Telescop: "DWARF 3"
+    Xbinning: 1
+    Xpixsz: 2
+    Ybinning: 1
+    Ypixsz: 2
+    Oiio:sub: 1
+    oiio:subimages: 1
+Comparing "src/rgb.fits" and "rgb.fits"
 PASS
 oiiotool ERROR: read : "src/broken_no_END.fits": Hit end of file unexpectedly (offset=5760)
 Full command line was:

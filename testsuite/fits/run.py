@@ -21,10 +21,12 @@ for f in files :
 
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/ftt4b"
 files = [ "file001.fits", "file002.fits", "file003.fits",
-          "file009.fits", "file012.fits" ]
+          "file006.fits", "file009.fits", "file012.fits" ]
 for f in files :
     command += rw_command (imagedir, f)
 
+command += info_command ("src/rgb.fits")
+command += rw_command ("src", "rgb.fits")
 
 # Regression tests for broken files
 command += info_command ("src/broken_no_END.fits", verbose=False, failureok=True)
