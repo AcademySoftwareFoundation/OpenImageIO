@@ -170,6 +170,7 @@ struct CSInfo {
     };
     int m_flags   = 0;
     bool examined = false;
+    bool active   = true;
     std::string canonical;  // Canonical name for this color space
     OCIO::ConstColorSpaceRcPtr ocio_cs;
 
@@ -435,12 +436,35 @@ ColorConfig::Impl::inventory()
     if (config_ && !disable_ocio) {
         try {
             bool nonraw = false;
-            for (int i = 0, e = config_->getNumColorSpaces(); i < e; ++i)
-                nonraw |= !Strutil::iequals(config_->getColorSpaceNameByIndex(i),
+            // In older ACES configs the display color spaces are inactive but
+            // they are essential for interop IDs like srgb_rec709_display to
+            // work.
+            const int numcolorspaces
+                = config_->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                             OCIO::COLORSPACE_ALL);
+            for (int i = 0; i < numcolorspaces; ++i)
+                nonraw |= !Strutil::iequals(config_->getColorSpaceNameByIndex(
+                                                OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                                OCIO::COLORSPACE_ALL, i),
                                             "raw");
             if (nonraw) {
-                for (int i = 0, e = config_->getNumColorSpaces(); i < e; ++i)
-                    add(config_->getColorSpaceNameByIndex(i), i);
+                for (int i = 0; i < numcolorspaces; ++i) {
+                    add(config_->getColorSpaceNameByIndex(
+                            OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                            OCIO::COLORSPACE_ALL, i),
+                        i);
+                }
+                for (auto&& cs : colorspaces)
+                    cs.active = false;
+                const int numactive = config_->getNumColorSpaces(
+                    OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ACTIVE);
+                for (int i = 0; i < numactive; ++i) {
+                    if (CSInfo* cs = find(config_->getColorSpaceNameByIndex(
+                            OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                            OCIO::COLORSPACE_ACTIVE, i))) {
+                        cs->active = true;
+                    }
+                }
                 for (auto&& cs : colorspaces)
                     classify_by_name(cs);
                 OCIO::ConstColorSpaceRcPtr lin = config_->getColorSpace(
@@ -1117,6 +1141,15 @@ bool
 ColorConfig::isColorSpaceLinear(string_view name) const
 {
     return getImpl()->isColorSpaceLinear(name);
+}
+
+
+
+bool
+ColorConfig::isColorSpaceActive(string_view name) const
+{
+    const CSInfo* cs = getImpl()->find(getImpl()->resolve(name));
+    return cs ? cs->active : true;
 }
 
 
