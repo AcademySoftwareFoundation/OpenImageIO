@@ -21,12 +21,20 @@ for f in files :
 
 imagedir = OIIO_TESTSUITE_IMAGEDIR + "/ftt4b"
 files = [ "file001.fits", "file002.fits", "file003.fits",
-          "file009.fits", "file012.fits" ]
+          "file006.fits", "file009.fits", "file012.fits" ]
 for f in files :
     command += rw_command (imagedir, f)
 
+command += info_command ("src/rgb.fits")
+command += rw_command ("src", "rgb.fits")
 
 # Regression tests for broken files
 command += info_command ("src/broken_no_END.fits", verbose=False, failureok=True)
+# NAXIS declares 999999999 axes: must be rejected before sizing the axis
+# vector (previously an unvalidated resize -> OOM/crash).
+command += info_command ("src/bad-naxis.fits", verbose=False, failureok=True)
+# A 2880-byte header declaring a ~1.5 GB image (40000x40000): the
+# compression-ratio guard must reject it before the caller allocates.
+command += info_command ("src/bomb-40000.fits", verbose=False, failureok=True)
 
 outputs = [ "out.txt" ]

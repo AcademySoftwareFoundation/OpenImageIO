@@ -6695,6 +6695,8 @@ print_ocio_info(Oiiotool& ot, std::ostream& out)
                 && colorconfig.equivalent(n, linear))
             || colorconfig.isColorSpaceLinear(n))
             out << " (linear)";
+        if (!colorconfig.isColorSpaceActive(n))
+            out << " (inactive)";
         out << "\n";
         auto aliases = colorconfig.getAliases(n);
         if (aliases.size()) {

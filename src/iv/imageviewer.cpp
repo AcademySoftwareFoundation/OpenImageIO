@@ -556,9 +556,11 @@ ImageViewer::createOCIOMenus(QMenu* parent)
         for (int i = 0; i < config.getNumColorSpaces(); i++) {
             const char* colorSpaceName = config.getColorSpaceNameByIndex(i);
 
-            if (colorSpaceName && *colorSpaceName) {
-                // If no color space provided via command line parameters, select the top color space in the list.
-                if (m_ocioColourSpace == "" && i == 0) {
+            if (colorSpaceName && *colorSpaceName
+                && config.isColorSpaceActive(colorSpaceName)) {
+                // If no color space provided via command line parameters,
+                // select the top active color space in the list.
+                if (m_ocioColourSpace == "") {
                     m_ocioColourSpace = colorSpaceName;
                 }
 
