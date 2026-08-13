@@ -261,10 +261,12 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     if (colorconfig.equivalent(colorspace, "linear")
         || colorconfig.equivalent(colorspace, "scene_linear"))
         Strutil::safe_strcpy(m_rla.Gamma, "1.0", sizeof(m_rla.Gamma));
-    else if (colorconfig.equivalent(colorspace, "g22_rec709"))
+    else if (colorconfig.equivalent(colorspace, "g22_rec709_scene"))
         Strutil::safe_strcpy(m_rla.Gamma, "2.2", sizeof(m_rla.Gamma));
-    else if (colorconfig.equivalent(colorspace, "g18_rec709"))
+    else if (colorconfig.equivalent(colorspace, "g18_rec709_scene"))
         Strutil::safe_strcpy(m_rla.Gamma, "1.8", sizeof(m_rla.Gamma));
+    else if (colorconfig.equivalent(colorspace, "g24_rec709_scene"))
+        Strutil::safe_strcpy(m_rla.Gamma, "2.4", sizeof(m_rla.Gamma));
     else if (Strutil::istarts_with(colorspace, "Gamma")) {
         Strutil::parse_word(colorspace);
         float g = Strutil::from_string<float>(colorspace);

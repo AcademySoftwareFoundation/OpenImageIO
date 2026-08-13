@@ -44,7 +44,7 @@ template<class T> using auto_ptr = unique_ptr<T>;
 #include <libraw/libraw.h>
 #include <libraw/libraw_version.h>
 
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 20, 0)
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
 #    error "OpenImageIO does not support such an old LibRaw"
 #endif
 
@@ -446,14 +446,12 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         return false;
     }
 
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
     // Cap LibRaw's internal allocations. This must be set *before* unpack().
     // Default max is 2048 MB.
     int maxmem = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
     // In some versions of libraw, there is a known overflow if it's over
     // 16384, so cap it.
     m_processor->imgdata.rawparams.max_raw_memory_mb = std::min(maxmem, 16383);
-#endif
 
     // Guard against decompression bombs / corrupt headers before calling
     // unpack(). LibRaw's own caps (65535/dimension, max_raw_memory_mb) are
@@ -530,13 +528,18 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         = config.get_int_attribute("raw:user_sat", 0);
     {
         auto p = config.find_attribute("raw:aber");
-        if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 2)) {
-            m_processor->imgdata.params.aber[0] = p->get<float>(0);
-            m_processor->imgdata.params.aber[2] = p->get<float>(1);
-        }
-        if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 2)) {
-            m_processor->imgdata.params.aber[0] = p->get<double>(0);
-            m_processor->imgdata.params.aber[2] = p->get<double>(1);
+        if (p) {
+            auto type = p->type();
+            if (type.equivalent(TypeDesc(TypeDesc::FLOAT, 2))
+                || type.equivalent(TypeFloat2)) {
+                m_processor->imgdata.params.aber[0] = p->get<float>(0);
+                m_processor->imgdata.params.aber[2] = p->get<float>(1);
+            } else if (type.equivalent(TypeDesc(TypeDesc::DOUBLE, 2))
+                       || type.equivalent(
+                           TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC2))) {
+                m_processor->imgdata.params.aber[0] = p->get<double>(0);
+                m_processor->imgdata.params.aber[2] = p->get<double>(1);
+            }
         }
     }
 
@@ -566,29 +569,38 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             m_processor->imgdata.params.use_auto_wb = 1;
             // White balancing to a box requires use_auto_wb = 1
             auto p = config.find_attribute("raw:greybox");
-            if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
-                // p->get<int>() didn't work for me here
-                m_processor->imgdata.params.greybox[0] = p->get_int_indexed(0);
-                m_processor->imgdata.params.greybox[1] = p->get_int_indexed(1);
-                m_processor->imgdata.params.greybox[2] = p->get_int_indexed(2);
-                m_processor->imgdata.params.greybox[3] = p->get_int_indexed(3);
+            if (p) {
+                auto type = p->type();
+                if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
+                    || type.equivalent(TypeDesc(TypeDesc::INT, TypeDesc::VEC4))
+                    || type.is_box2(TypeDesc::INT)) {
+                    m_processor->imgdata.params.greybox[0] = p->get<int>(0);
+                    m_processor->imgdata.params.greybox[1] = p->get<int>(1);
+                    m_processor->imgdata.params.greybox[2] = p->get<int>(2);
+                    m_processor->imgdata.params.greybox[3] = p->get<int>(3);
+                }
             }
         } else {
             // Set user white balance coefficients.
             // Only has effect if "raw:use_camera_wb" is equal to 0,
             // i.e. we are not using the camera white balance
             auto p = config.find_attribute("raw:user_mul");
-            if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-                m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
-                m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
-                m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
-                m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
-            }
-            if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
-                m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
-                m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
-                m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
-                m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+            if (p) {
+                auto type = p->type();
+                if (type.equivalent(TypeDesc(TypeDesc::FLOAT, 4))
+                    || type.equivalent(TypeFloat4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+                } else if (type.equivalent(TypeDesc(TypeDesc::DOUBLE, 4))
+                           || type.equivalent(
+                               TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC4))) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+                }
             }
         }
     }
@@ -663,24 +675,16 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_processor->imgdata.params.output_color = 6;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
     } else if (Strutil::iequals(cs, "DCI-P3")) {
         // DCI-P3
         m_processor->imgdata.params.output_color = 7;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-#endif
     } else if (Strutil::iequals(cs, "Rec2020")) {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
         // Rec2020
         m_processor->imgdata.params.output_color = 8;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-#else
-        errorfmt("raw:ColorSpace value of \"{}\" is not supported by libRaw {}",
-                 cs, LIBRAW_VERSION_STR);
-        return false;
-#endif
     } else {
         errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
@@ -797,14 +801,17 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         ushort top_margin  = 0;
 
         auto p = config.find_attribute("raw:cropbox");
-        if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
-            crop_left   = p->get_int_indexed(0);
-            crop_top    = p->get_int_indexed(1);
-            crop_width  = p->get_int_indexed(2);
-            crop_height = p->get_int_indexed(3);
-        }
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
-        else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
+        if (p) {
+            auto type = p->type();
+            if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
+                || type.equivalent(TypeDesc(TypeDesc::INT, TypeDesc::VEC4))
+                || type.is_box2(TypeDesc::INT)) {
+                crop_left   = p->get<int>(0);
+                crop_top    = p->get<int>(1);
+                crop_width  = p->get<int>(2);
+                crop_height = p->get<int>(3);
+            }
+        } else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
             crop_left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
             crop_top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
             crop_width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
@@ -812,16 +819,6 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             left_margin = m_processor->imgdata.sizes.left_margin;
             top_margin  = m_processor->imgdata.sizes.top_margin;
         }
-#else
-        else if (m_processor->imgdata.sizes.raw_inset_crop.cwidth != 0) {
-            crop_left   = m_processor->imgdata.sizes.raw_inset_crop.cleft;
-            crop_top    = m_processor->imgdata.sizes.raw_inset_crop.ctop;
-            crop_width  = m_processor->imgdata.sizes.raw_inset_crop.cwidth;
-            crop_height = m_processor->imgdata.sizes.raw_inset_crop.cheight;
-            left_margin = m_processor->imgdata.sizes.left_margin;
-            top_margin  = m_processor->imgdata.sizes.top_margin;
-        }
-#endif
         if (crop_width > 0 && crop_height > 0) {
             ushort image_width  = m_processor->imgdata.sizes.width;
             ushort image_height = m_processor->imgdata.sizes.height;
@@ -1101,22 +1098,6 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_spec.attribute("Orientation", original_flip);
     }
 
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    if (m_processor->imgdata.thumbnail.tlength > 0) {
-        auto width  = m_processor->imgdata.thumbnail.twidth;
-        auto height = m_processor->imgdata.thumbnail.theight;
-
-        // see note below
-        if (width == 0)
-            width = -1;
-        if (height == 0)
-            height = -1;
-
-        m_spec.attribute("thumbnail_width", width);
-        m_spec.attribute("thumbnail_height", height);
-    }
-#else
-
     auto thumb_count = m_processor->imgdata.thumbs_list.thumbcount;
     if (thumb_count > 0) {
         m_thumb_index = config.get_int_attribute("raw:thumbnail_index", -1);
@@ -1192,8 +1173,6 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_spec.attribute("thumbnail_width", width);
         m_spec.attribute("thumbnail_height", height);
     }
-#endif
-
 
     get_lensinfo();
     get_shootinginfo();
@@ -1253,29 +1232,6 @@ RawInput::get_makernotes_canon()
     MAKERF(ExposureMode);
     MAKERF(AESetting);
     MAKERF(ImageStabilization);
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    MAKERF(HighlightTonePriority);
-    MAKERF(FocusMode);
-    MAKER(AFPoint, 0);
-    MAKERF(FocusContinuous);
-    //  short        AFPointsInFocus30D;
-    //  uchar        AFPointsInFocus1D[8];
-    //  ushort       AFPointsInFocus5D;        /* bytes in reverse*/
-    MAKERF(AFAreaMode);
-    if (mn.AFAreaMode) {
-        MAKERF(NumAFPoints);
-        MAKERF(ValidAFPoints);
-        MAKERF(AFImageWidth);
-        MAKERF(AFImageHeight);
-        //  short        AFAreaWidths[61];
-        //  short        AFAreaHeights[61];
-        //  short        AFAreaXPositions[61];
-        //  short        AFAreaYPositions[61];
-        //  short        AFPointsInFocus[4]
-        //  short        AFPointsSelected[4];
-        //  ushort       PrimaryAFPoint;
-    }
-#endif
     MAKERF(FlashMode);
     MAKERF(FlashActivity);
     MAKER(FlashBits, 0);
@@ -1322,27 +1278,6 @@ RawInput::get_makernotes_nikon()
     MAKERF(ImageStabilization);
     MAKER(VibrationReduction, 0);
     MAKERF(VRMode);
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    MAKER(FocusMode, 0);
-    MAKERF(AFPoint);
-    MAKER(AFPointsInFocus, 0);
-    MAKERF(ContrastDetectAF);
-    MAKERF(AFAreaMode);
-    MAKERF(PhaseDetectAF);
-    if (mn.PhaseDetectAF) {
-        MAKER(PrimaryAFPoint, 0);
-        // uchar AFPointsUsed[29];
-    }
-    if (mn.ContrastDetectAF) {
-        MAKER(AFImageWidth, 0);
-        MAKER(AFImageHeight, 0);
-        MAKER(AFAreaXPposition, 0);
-        MAKER(AFAreaYPosition, 0);
-        MAKER(AFAreaWidth, 0);
-        MAKER(AFAreaHeight, 0);
-        MAKER(ContrastDetectAFInFocus, 0);
-    }
-#endif
     MAKER(FlashSetting, 0);
     MAKER(FlashType, 0);
     MAKERF(FlashExposureCompensation);
@@ -1462,11 +1397,6 @@ RawInput::get_makernotes_fuji()
     MAKERF(ExrMode);
     MAKERF(Macro);
     MAKERF(Rating);
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    MAKERF(FrameRate);
-    MAKERF(FrameWidth);
-    MAKERF(FrameHeight);
-#endif
 }
 
 
@@ -1641,12 +1571,7 @@ RawInput::get_colorinfo()
         add("raw", "dng:version", m_processor->imgdata.idata.dng_version);
 
         auto const& c = m_processor->imgdata.rawdata.color;
-
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         add("raw", "dng:baseline_exposure", c.dng_levels.baseline_exposure);
-#else
-        add("raw", "dng:baseline_exposure", c.baseline_exposure);
-#endif
 
         for (int i = 0; i < 2; i++) {
             std::string index = std::to_string(i + 1);
@@ -1871,14 +1796,6 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         return false;
     }
 
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    int errcode = m_processor->unpack_thumb();
-    if (errcode != 0) {
-        if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_IMAGE)
-            _errorfmt(this, m_thumb_index, "unpack_thumb error");
-        return false;
-    }
-#else
     int errcode;
     if (m_thumb_index == -1)
         errcode = m_processor->unpack_thumb();
@@ -1890,7 +1807,6 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
             _errorfmt(this, m_thumb_index, "unpack_thumb_ex error");
         return false;
     }
-#endif
 
     if (!m_thumb) {
         m_thumb = m_processor->dcraw_make_mem_thumb(&errcode);

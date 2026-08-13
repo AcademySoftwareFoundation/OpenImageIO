@@ -103,9 +103,15 @@ macro (oiio_add_tests)
             set (_test_disabled TRUE)
         endif ()
     endforeach ()
-    # For OCIO 2.2+, have the testsuite use the default built-in config
+    # Things we add to the environment for tests:
+    # - For OCIO 2.2+, have the testsuite use the default built-in config.
+    # - Some tests (e.g. cmake-consumer) configure their own child cmake
+    #   project that does find_package(OpenImageIO). Point them at this
+    #   build's install location so that works out of the box, without users
+    #   needing to set OpenImageIO_ROOT in their environment themselves.
     list (APPEND _ats_ENVIRONMENT "OCIO=ocio://default"
-                                  "OIIO_TESTSUITE_OCIOCONFIG=ocio://default")
+                                  "OIIO_TESTSUITE_OCIOCONFIG=ocio://default"
+                                  "OpenImageIO_ROOT=${CMAKE_INSTALL_PREFIX}")
     if (_test_disabled)
         message (STATUS "Skipping test(s) ${_ats_UNPARSED_ARGUMENTS} because of disabled ${_ats_ENABLEVAR}")
     elseif (_test_notfound)

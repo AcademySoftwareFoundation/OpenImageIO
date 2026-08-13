@@ -3700,7 +3700,8 @@ Color manipulation
     .. code-block:: python
 
         Src = ImageBuf ("tahoe.jpg")
-        Dst = ImageBufAlgo.colorconvert (Src, "sRGB", "scene_linear")
+        Dst = ImageBufAlgo.colorconvert (Src, "srgb_rec709_scene",
+                                         "scene_linear")
 
 
 
@@ -3750,8 +3751,9 @@ Color manipulation
     .. code-block:: python
 
         Src = ImageBuf ("tahoe.exr")
-        Dst = ImageBufAlgo.ociodisplay (Src, "sRGB", "Film", "lnf",
-                                  context_key="SHOT", context_value="pe0012")
+        Dst = ImageBufAlgo.ociodisplay (Src, "sRGB - Display", "ACES 2.0 - SDR 100 nits (Rec.709)",
+                                        "lin_rec709_scene",
+                                        context_key="SHOT", context_value="pe0012")
 
 
 

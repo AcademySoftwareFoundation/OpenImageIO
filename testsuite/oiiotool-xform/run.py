@@ -116,12 +116,15 @@ command += oiiotool ("image.tif --crop 180x140+30+30 --rotate270 -o rotate270-cr
 command += oiiotool ("image.tif --rotate180 -o flipflop.tif")
 command += oiiotool ("image.tif --crop 160x120+30+30 --rotate180 -o flipflop-crop.tif")
 
-# Tricky: make image, rotate, set Orientation, and then re-orient.
-# Make it half size so it can't accidentally match to another test image
-# for the rotation tests.
-command += oiiotool ("image.tif --resample 160x120 --rotate90  --orientccw --reorient -o reorient1.tif")
-command += oiiotool ("image.tif --resample 160x120 --rotate180 --orient180 --reorient -o reorient2.tif")
-command += oiiotool ("image.tif --resample 160x120 --rotate270 --orientcw  --reorient -o reorient3.tif")
+# test reorient
+command += oiiotool ("src/orientation1.tif --reorient -o reorient1.tif")
+command += oiiotool ("src/orientation1.tif --orientation 2 --reorient -o reorient2.tif")
+command += oiiotool ("src/orientation1.tif --orientation 3 --reorient -o reorient3.tif")
+command += oiiotool ("src/orientation1.tif --orientation 4 --reorient -o reorient4.tif")
+command += oiiotool ("src/orientation1.tif --orientation 5 --reorient -o reorient5.tif")
+command += oiiotool ("src/orientation1.tif --orientation 6 --reorient -o reorient6.tif")
+command += oiiotool ("src/orientation1.tif --orientation 7 --reorient -o reorient7.tif")
+command += oiiotool ("src/orientation1.tif --orientation 8 --reorient -o reorient8.tif")
 
 # test transpose
 command += oiiotool ("image.tif --transpose -o transpose.tif")
@@ -164,7 +167,8 @@ outputs = [
             "flipflop.tif", "flipflop-crop.tif",
             "rotate90.tif", "rotate90-crop.tif",
             "rotate270.tif", "rotate270-crop.tif",
-            "reorient1.tif", "reorient2.tif", "reorient3.tif",
+            "reorient1.tif", "reorient2.tif", "reorient3.tif", "reorient4.tif",
+            "reorient5.tif", "reorient6.tif", "reorient7.tif", "reorient8.tif",
             "transpose.tif", "transpose-crop.tif",
             "cshift.tif",
             "out.txt" ]
