@@ -2282,6 +2282,7 @@ constexpr ColorInteropID color_interop_ids[] = {
       CICPMatrix::Unspecified },
     { "srgb_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::sRGB,
       CICPMatrix::BT709 },
+    { "g24_rec709_scene" },
     { "g22_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Gamma22,
       CICPMatrix::BT709 },
     { "g18_rec709_scene" },
@@ -2296,6 +2297,9 @@ constexpr ColorInteropID color_interop_ids[] = {
     // Display referred interop IDs.
     { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
       CICPMatrix::BT709 },
+    // Not all software interprets this CICP the same, see the
+    // "QuickTime Gamma Shift" issue. We follow the CIF recommendation and
+    // interpret it as BT.1886.
     { "g24_rec709_display", CICPPrimaries::Rec709, CICPTransfer::BT709,
       CICPMatrix::BT709 },
     { "srgb_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,

@@ -679,6 +679,13 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         png_set_gAMA(sp, ip, 1.0f / gamma);
         srgb             = false;
         wrote_colorspace = true;
+    } else if (colorconfig.equivalent(colorspace, "g24_rec709_scene")) {
+        gamma = 2.4f;
+        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+            return "Could not set PNG gAMA chunk";
+        png_set_gAMA(sp, ip, 1.0f / gamma);
+        srgb             = false;
+        wrote_colorspace = true;
     } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
         gamma = 1.8f;
         if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
