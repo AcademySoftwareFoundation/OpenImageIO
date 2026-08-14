@@ -5666,7 +5666,7 @@ input_file(Oiiotool& ot, cspan<const char*> argv)
                 // Try to get a more precise error message to report.
                 auto in         = ImageInput::open(filename);
                 std::string err = in ? in->geterror() : OIIO::geterror();
-                errmsg = Strutil::format(ot.format_read_error(filename, err));
+                errmsg          = ot.format_read_error(filename, err);
             }
             // Second chances: do we have a substitute image policy?
             ImageSpec substitute_spec;
