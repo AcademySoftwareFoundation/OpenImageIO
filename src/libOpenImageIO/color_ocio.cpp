@@ -2339,10 +2339,10 @@ constexpr ColorInteropID color_interop_ids[] = {
     // interpret it as BT.1886.
     { "g24_rec709_display", "rec1886_rec709_display", CICPPrimaries::Rec709,
       CICPTransfer::BT709, CICPMatrix::BT709 },
-    { "srgb_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
+    { "srgb_p3d65_display", "displayp3_display", CICPPrimaries::P3D65,
       CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { "srgbe_p3d65_display", nullptr, CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
+    { "srgbe_p3d65_display", "displayp3_hdr_display", CICPPrimaries::P3D65,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
     { "pq_p3d65_display", "st2084_p3d65_display", CICPPrimaries::P3D65,
       CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
     { "pq_rec2020_display", "rec2100_pq_display", CICPPrimaries::Rec2020,
@@ -2356,7 +2356,7 @@ constexpr ColorInteropID color_interop_ids[] = {
       /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
     // No CICP code for Adobe RGB primaries.
     { "g22_adobergb_display", nullptr },
-    { "g26_p3d65_display", "p3_dci_display", CICPPrimaries::P3D65,
+    { "g26_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
       CICPTransfer::Gamma26, CICPMatrix::BT709 },
     { "g26_xyzd65_display", nullptr, CICPPrimaries::XYZD65,
       CICPTransfer::Gamma26, CICPMatrix::Unspecified },
