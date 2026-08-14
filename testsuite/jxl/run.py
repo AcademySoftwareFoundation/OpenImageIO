@@ -24,6 +24,10 @@ command += info_command ("tahoe-cicp-displayp3.jxl", safematch=True)
 # Corrupt input that previously triggered an oversized allocation path in JXL decode
 command += oiiotool ("-info -oiioattrib limits:imagesize_MB 16384 src/crash-bfd2220.jxl", failureok=True)
 
+# Truncated codestream: the decoder must report a clean error, not read
+# uninitialized input or leave a null decode buffer for a later scanline read.
+command += info_command ("src/truncated.jxl", failureok=True, safematch=True)
+
 outputs = [
             "test-jxl.icc",
             "out.txt"
