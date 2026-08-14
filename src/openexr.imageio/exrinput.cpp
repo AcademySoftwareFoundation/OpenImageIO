@@ -312,13 +312,10 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     try {
         m_input_multipart = new Imf::MultiPartInputFile(*m_input_stream);
     } catch (const std::exception& e) {
-        delete m_input_stream;
-        m_input_stream = NULL;
         errorfmt("OpenEXR exception: {}", e.what());
         close();
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
-        m_input_stream = NULL;
         errorfmt("OpenEXR exception: unknown");
         close();
         return false;

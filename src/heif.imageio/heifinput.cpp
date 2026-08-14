@@ -230,6 +230,7 @@ HeifInput::close()
     m_ihandle = heif::ImageHandle();
     m_ctx.reset();
     m_reader.reset();
+    m_item_ids.clear();
     m_subimage                = -1;
     m_num_subimages           = 0;
     m_associated_alpha        = true;

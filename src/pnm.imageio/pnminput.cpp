@@ -66,6 +66,7 @@ private:
 
     void init()
     {
+        m_file_contents.clear();
         m_file_contents.shrink_to_fit();
         ioproxy_clear();
         m_y_next = 0;
@@ -487,7 +488,7 @@ PNMInput::open(const std::string& name, ImageSpec& newspec,
     ioproxy_retrieve_from_config(config);
 
     if (!open(name, newspec)) {
-        errorfmt("Could not parse spec for file \"%s\"", name);
+        errorfmt("Could not parse spec for file \"{}\"", name);
         close();
         return false;
     }

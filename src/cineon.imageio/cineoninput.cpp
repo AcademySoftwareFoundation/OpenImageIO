@@ -82,6 +82,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     m_stream = new InStream();
     if (!m_stream->Open(name.c_str())) {
         errorfmt("Could not open file \"{}\"", name);
+        close();
         return false;
     }
 

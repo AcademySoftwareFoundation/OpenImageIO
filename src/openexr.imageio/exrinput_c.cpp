@@ -404,6 +404,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
         std::string e = m_userdata.m_io->error();
         errorfmt("Could not open \"{}\" ({})", name,
                  e.size() ? e : std::string("unknown error"));
+        close();
         return false;
     }
     m_userdata.m_io->seek(0);
@@ -421,8 +422,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     exr_result_t rv = exr_start_read(&m_exr_context, name.c_str(), &cinit);
     if (rv != EXR_ERR_SUCCESS) {
         // the error handler would have already reported the error into us
-        m_local_io.reset();
-        m_userdata.m_io = nullptr;
+        close();
         return false;
     }
 #if ENABLE_EXR_DEBUG_PRINTS || !defined(NDEBUG) /* allow debugging */
@@ -431,8 +431,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
 #endif
     rv = exr_get_count(m_exr_context, &m_nsubimages);
     if (rv != EXR_ERR_SUCCESS) {
-        m_local_io.reset();
-        m_userdata.m_io = nullptr;
+        close();
         return false;
     }
 

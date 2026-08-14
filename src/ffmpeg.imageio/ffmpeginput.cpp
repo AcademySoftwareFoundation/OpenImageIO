@@ -242,6 +242,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     if (avformat_open_input(&m_format_context, file_name, NULL, NULL) != 0) {
         // avformat_open_input allocs format_context
         errorfmt("\"{}\" could not open input", file_name);
+        close();
         return false;
     }
     if (avformat_find_stream_info(m_format_context, NULL) < 0) {
