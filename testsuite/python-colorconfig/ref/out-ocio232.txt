@@ -32,6 +32,9 @@ get_color_interop_id('ACES2065-1') =  lin_ap0_scene
 get_color_interop_id('ACEScg') =  lin_ap1_scene
 get_color_interop_id('lin_srgb') =  lin_rec709_scene
 get_color_interop_id([1, 13, 1, 1]) =  srgb_rec709_scene
+resolve('srgb_rec709_display'): sRGB - Display
+equivalent('srgb_rec709_display', 'srgb_rec709_scene'): False
+get_color_interop_id('sRGB - Display') = 'srgb_rec709_display'
 get_color_interop_id('g24_rec709_scene') =  g24_rec709_scene
 get_color_interop_id('g24_rec709_display') =  g24_rec709_display
 get_cicp('pq_rec2020_display') =  [9, 16, 9, 1]
