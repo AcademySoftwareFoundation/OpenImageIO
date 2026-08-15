@@ -37,3 +37,5 @@ gastest.o
 .github/copilot-instructions.md
 
 
+/build_*
+/bld
