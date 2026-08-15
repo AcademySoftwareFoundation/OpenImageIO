@@ -161,6 +161,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     std::string proxytype     = m_io->proxytype();
     if (proxytype != "file" && proxytype != "memreader") {
         errorfmt("JPEG XL reader can't handle proxy type {}", proxytype);
+        close();
         return false;
     }
 
@@ -168,18 +169,21 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         DBG std::cout << "JxlInput::valid_file() return false\n";
         errorfmt("Possible corrupt file, "
                  "JPEG XL signature verification failed\n");
+        close();
         return false;
     }
 
     m_decoder = JxlDecoderMake(nullptr);
     if (m_decoder == nullptr) {
         DBG std::cout << "JxlDecoderMake failed\n";
+        close();
         return false;
     }
 
     m_runner = JxlResizableParallelRunnerMake(nullptr);
     if (m_runner == nullptr) {
         DBG std::cout << "JxlThreadParallelRunnerMake failed\n";
+        close();
         return false;
     }
 
@@ -187,6 +191,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         m_decoder.get(), JxlResizableParallelRunner, m_runner.get());
     if (status != JXL_DEC_SUCCESS) {
         DBG std::cout << "JxlDecoderSetParallelRunner failed\n";
+        close();
         return false;
     }
 
@@ -196,6 +201,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                                         | JXL_DEC_FRAME | JXL_DEC_FULL_IMAGE);
     if (status != JXL_DEC_SUCCESS) {
         DBG std::cout << "JxlDecoderSubscribeEvents failed\n";
+        close();
         return false;
     }
 
@@ -216,6 +222,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         status = JxlDecoderSetInput(m_decoder.get(), jxl.get(), size);
         if (status != JXL_DEC_SUCCESS) {
             DBG std::cout << "JxlDecoderSetInput() returned " << status << "\n";
+            close();
             return false;
         }
         JxlDecoderCloseInput(m_decoder.get());
@@ -226,6 +233,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                                     const_cast<unsigned char*>(buffer.data()),
                                     buffer.size());
         if (status != JXL_DEC_SUCCESS) {
+            close();
             return false;
         }
     }
@@ -247,11 +255,13 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             DBG std::cout << "JXL_DEC_ERROR\n";
 
             errorfmt("JPEG XL decoder error");
+            close();
             return false;
         } else if (status == JXL_DEC_NEED_MORE_INPUT) {
             DBG std::cout << "JXL_DEC_NEED_MORE_INPUT\n";
 
             errorfmt("JPEG XL decoder error, already provided all input\n");
+            close();
             return false;
         } else if (status == JXL_DEC_BASIC_INFO) {
             DBG std::cout << "JXL_DEC_BASIC_INFO\n";
@@ -260,6 +270,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             if (JXL_DEC_SUCCESS
                 != JxlDecoderGetBasicInfo(m_decoder.get(), &info)) {
                 errorfmt("JxlDecoderGetBasicInfo failed\n");
+                close();
                 return false;
             }
 
@@ -280,6 +291,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 bits          = 32;
             } else {
                 errorfmt("Unsupported bits per sample\n");
+                close();
                 return false;
             }
 
@@ -294,6 +306,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             m_spec = ImageSpec(info.xsize, info.ysize, m_channels, m_data_type);
             if (!check_open(m_spec, { 0, (1 << 30) - 1, 0, (1 << 30) - 1, 0, 1,
                                       0, 4099 })) {
+                close();
                 return false;
             }
             got_basic_info = true;
@@ -313,6 +326,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                                                JXL_COLOR_PROFILE_TARGET_DATA,
                                                &icc_size)) {
                 errorfmt("JxlDecoderGetICCProfileSize failed\n");
+                close();
                 return false;
             }
             m_icc_profile.resize(icc_size);
@@ -322,6 +336,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                                                   m_icc_profile.data(),
                                                   m_icc_profile.size())) {
                 errorfmt("JxlDecoderGetColorAsICCProfile failed\n");
+                close();
                 return false;
             }
 
@@ -342,6 +357,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 != JxlDecoderImageOutBufferSize(m_decoder.get(), &format,
                                                 &buffer_size)) {
                 errorfmt("JxlDecoderImageOutBufferSize failed\n");
+                close();
                 return false;
             }
             size_t expected_size = size_t(info.xsize) * info.ysize * m_channels
@@ -349,6 +365,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             if (buffer_size != expected_size) {
                 errorfmt("Invalid out buffer size {} {}\n", buffer_size,
                          expected_size);
+                close();
                 return false;
             }
 
@@ -358,6 +375,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 != JxlDecoderSetImageOutBuffer(m_decoder.get(), &format,
                                                m_buffer.get(), buffer_size)) {
                 errorfmt("JxlDecoderSetImageOutBuffer failed\n");
+                close();
                 return false;
             }
         } else if (status == JXL_DEC_FULL_IMAGE) {
@@ -377,12 +395,14 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             break;
         } else {
             errorfmt("Unknown decoder status\n");
+            close();
             return false;
         }
     }
 
     if (!got_basic_info) {
         errorfmt("Possible corrupt file, no JPEG XL basic info found\n");
+        close();
         return false;
     }
 
@@ -409,6 +429,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
             errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
                      errormsg);
+            close();
             return false;
         }
     }

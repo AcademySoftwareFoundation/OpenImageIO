@@ -160,6 +160,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         || png_sig_cmp(sig, 0, 8)) {
         if (!has_error())
             errorfmt("Not a PNG file");
+        close();
         return false;  // Read failed
     }
 

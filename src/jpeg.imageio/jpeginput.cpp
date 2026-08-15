@@ -213,6 +213,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     std::string proxytype     = m_io->proxytype();
     if (proxytype != "file" && proxytype != "memreader") {
         errorfmt("JPEG reader can't handle proxy type {}", proxytype);
+        close();
         return false;
     }
 
@@ -266,6 +267,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     // read the file parameters
     if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
         errorfmt("Bad JPEG header for \"{}\"", filename());
+        close();
         return false;
     }
 
@@ -287,21 +289,27 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
                        TypeDesc::UINT8);
 
     // Validity check resolutions.
-    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 }))
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 })) {
+        close();
         return false;
+    }
 
     // check_open's size cap still admits dimensions that are absurd for a tiny
     // file, so also bound the declared-vs-compressed ratio.
     imagesize_t filesize = m_io ? m_io->size() : Filesystem::file_size(name);
-    if (!check_compression_ratio(m_spec, filesize))
+    if (!check_compression_ratio(m_spec, filesize)) {
+        close();
         return false;
+    }
 
     if (m_raw)
         m_coeffs = jpeg_read_coefficients(&m_cinfo);
     else
         jpeg_start_decompress(&m_cinfo);  // start working
-    if (m_fatalerr)
+    if (m_fatalerr) {
+        close();
         return false;
+    }
     m_next_scanline = 0;  // next scanline we'll read
 
     // The output dimensions ought to match the header's, but re-validate if
@@ -311,8 +319,10 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height,
                            nchannels, TypeDesc::UINT8);
         if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 })
-            || !check_compression_ratio(m_spec, filesize))
+            || !check_compression_ratio(m_spec, filesize)) {
+            close();
             return false;
+        }
     }
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
@@ -342,6 +352,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
             bool ok   = decode_exif(exif, m_spec);
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
                 errorfmt("Could not decode Exif");
+                close();
                 return false;
             }
             scan_for_thumbnail(exif);
@@ -356,6 +367,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
                 string_view((const char*)m->data, m->data_length));
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
                 errorfmt("Corrupted IPTC data");
+                close();
                 return false;
             }
         } else if (m->marker == JPEG_COM) {

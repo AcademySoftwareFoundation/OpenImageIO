@@ -66,6 +66,7 @@ private:
 
     void init()
     {
+        m_file_contents.clear();
         m_file_contents.shrink_to_fit();
         ioproxy_clear();
         m_y_next = 0;
@@ -487,7 +488,8 @@ PNMInput::open(const std::string& name, ImageSpec& newspec,
     ioproxy_retrieve_from_config(config);
 
     if (!open(name, newspec)) {
-        errorfmt("Could not parse spec for file \"%s\"", name);
+        errorfmt("Could not parse spec for file \"{}\"", name);
+        close();
         return false;
     }
 
@@ -509,18 +511,24 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     m_remaining               = read_header_to_buffer(m_file_contents, m_io);
     m_pfm_flip                = false;
 
-    if (!read_file_header())
+    if (!read_file_header()) {
+        close();
         return false;
+    }
 
-    if (!check_open(m_spec))  // check for apparently invalid values
+    if (!check_open(m_spec)) {  // check for apparently invalid values
+        close();
         return false;
+    }
 
     // Reject a tiny file that declares a huge image before the caller
     // allocates the full (declared) pixel buffer. Binary PNM data must be
     // present in the file and ASCII values cost >=2 bytes each, so a
     // legitimate file never has an extreme ratio.
-    if (!check_compression_ratio(m_spec, m_io->size()))
+    if (!check_compression_ratio(m_spec, m_io->size())) {
+        close();
         return false;
+    }
 
     m_remaining    = append_remainder_to_buffer(m_file_contents, m_io,
                                                 m_remaining);

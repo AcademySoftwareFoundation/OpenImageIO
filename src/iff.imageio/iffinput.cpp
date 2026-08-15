@@ -285,8 +285,10 @@ IffInput::open(const std::string& name, ImageSpec& spec)
 
     // Validity check resolutions and check for decompression bombs.
     if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 5 })
-        || !check_compression_ratio(m_spec, ioproxy()->size()))
+        || !check_compression_ratio(m_spec, ioproxy()->size())) {
+        close();
         return false;
+    }
 
     spec = m_spec;
     return true;

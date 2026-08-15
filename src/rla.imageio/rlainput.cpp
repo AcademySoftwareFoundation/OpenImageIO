@@ -169,8 +169,12 @@ RLAInput::open(const std::string& name, ImageSpec& newspec)
     m_subimage = 1;
 
     bool ok = seek_subimage(0, 0);
+    if (!ok) {
+        close();
+        return false;
+    }
     newspec = spec();
-    return ok;
+    return true;
 }
 
 

@@ -79,14 +79,19 @@ FitsInput::open(const std::string& name, ImageSpec& spec)
     // moving back to the start of the file
     if (Filesystem::fseek(m_fd, 0, SEEK_SET)) {
         errorfmt("Seek error");
+        close();
         return false;
     }
 
-    if (!subimage_search())
+    if (!subimage_search()) {
+        close();
         return false;
+    }
 
-    if (!set_spec_info())
+    if (!set_spec_info()) {
+        close();
         return false;
+    }
 
     spec = m_spec;
     return true;

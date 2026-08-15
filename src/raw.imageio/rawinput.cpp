@@ -393,9 +393,12 @@ RawInput::open(const std::string& name, ImageSpec& newspec,
     // will need to close and re-open with unpack=true if and when we need
     // the actual pixel values.
     bool ok = open_raw(force_load, force_load, m_filename, m_config);
-    if (ok)
-        newspec = m_spec;
-    return ok;
+    if (!ok) {
+        close();
+        return false;
+    }
+    newspec = m_spec;
+    return true;
 }
 
 

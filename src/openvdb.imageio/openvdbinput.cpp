@@ -522,8 +522,8 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
             readMetaData(*layer.grid, layer, layerspec);
         }
     } catch (const std::exception& e) {
-        init();  // Reset to initial state
         errorfmt("Could not open '{}': {}", filename, e.what());
+        close();  // Reset to initial state
         return false;
     }
     m_name       = filename;
@@ -534,6 +534,8 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
 
     bool ok = seek_subimage(0, 0);
     newspec = ImageInput::spec();
+    if (!ok)
+        close();
     return ok;
 }
 

@@ -1180,6 +1180,11 @@ public:
     ///
     /// @returns
     ///         `true` if the file was found and opened successfully.
+    ///
+    /// If `open()` returns `false`, the ImageInput will be left in the same
+    /// state as a newly constructed, unopened ImageInput (as if `close()` had
+    /// been called). Callers may assume this and are not responsible for
+    /// calling `close()` after a failed `open()`.
     OIIO_NODISCARD_ERROR virtual bool open (const std::string& name,
                                             ImageSpec &newspec) = 0;
 
@@ -1208,6 +1213,9 @@ public:
     ///
     /// @returns
     ///         `true` if the file was found and opened successfully.
+    ///
+    /// Same close-on-failure contract as `open(name,newspec)`: a `false`
+    /// return must leave the ImageInput as if `close()` had been called.
     OIIO_NODISCARD_ERROR virtual bool open (const std::string& name,
                                             ImageSpec &newspec,
                                             const ImageSpec& config OIIO_MAYBE_UNUSED) {

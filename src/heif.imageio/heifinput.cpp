@@ -205,15 +205,19 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        close();
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        close();
         return false;
     }
 
     bool ok = seek_subimage(0, 0);
     newspec = spec();
+    if (!ok)
+        close();
     return ok;
 }
 
@@ -226,6 +230,7 @@ HeifInput::close()
     m_ihandle = heif::ImageHandle();
     m_ctx.reset();
     m_reader.reset();
+    m_item_ids.clear();
     m_subimage                = -1;
     m_num_subimages           = 0;
     m_associated_alpha        = true;

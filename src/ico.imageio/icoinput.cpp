@@ -137,8 +137,10 @@ ICOInput::open(const std::string& name, ImageSpec& newspec,
 
     ioseek(0);
 
-    if (!ioread(&m_ico, 1, sizeof(m_ico)))
+    if (!ioread(&m_ico, 1, sizeof(m_ico))) {
+        close();
         return false;
+    }
 
     if (bigendian()) {
         // ICOs are little endian
@@ -148,6 +150,7 @@ ICOInput::open(const std::string& name, ImageSpec& newspec,
     }
     if (m_ico.reserved != 0 || m_ico.type != 1) {
         errorfmt("File failed ICO header check");
+        close();
         return false;
     }
 
