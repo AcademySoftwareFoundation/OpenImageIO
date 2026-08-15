@@ -218,6 +218,8 @@ tiff_datatype_to_typedesc(TIFFDataType tifftype, size_t tiffcount)
 #endif
     default: break;
     }
+    if (static_cast<TIFFDataType_Exif3_Extensions>(tifftype) == EXIF_UTF8_TYPE)
+        return TypeString;
     return TypeUnknown;
 }
 
