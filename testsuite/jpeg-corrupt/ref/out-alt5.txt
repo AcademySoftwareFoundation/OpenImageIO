@@ -21,6 +21,23 @@ src/corrupt-exif-1626.jpg :  256 x  256, 3 channel, uint8 jpeg
     YResolution: 300
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/corrupt-exif-recursive-ifd.jpg
+src/corrupt-exif-recursive-ifd.jpg :    1 x    1, 3 channel, uint8 jpeg
+    SHA-1: 29E2DCFBB16F63BB0254DF7585A15BB6FB5E927D
+    channel list: R, G, B
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/corrupt-exif-utf8-type.jpg
+src/corrupt-exif-utf8-type.jpg :    1 x    1, 1 channel, uint8 jpeg
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    ImageDescription: ""
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/corrupt-exif-deep-ifds.jpg
+src/corrupt-exif-deep-ifds.jpg :    1 x    1, 1 channel, uint8 jpeg
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    oiio:ColorSpace: "srgb_rec709_scene"
 corrupt-icc-4551.jpg
 iconvert ERROR copying "src/corrupt-icc-4551.jpg" to "out-4551.jpg" :
 	JPEG error: Corrupt JPEG data: bad Huffman code ("src/corrupt-icc-4551.jpg")
