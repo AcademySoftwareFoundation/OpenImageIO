@@ -6701,18 +6701,25 @@ OIIO_FORCEINLINE void vfloat4::load (const float *values, int n) {
         break;
     }
 #elif OIIO_SIMD_NEON
-    //switch (n) {
-    //case 1: m_simd = vdupq_n_f32(0); m_simd[0] = values[0]; break;
-    //case 2: load (values[0], values[1], 0.0f, 0.0f);      break;
-    //case 3: load (values[0], values[1], values[2], 0.0f); break;
-    //case 4: m_simd = vld1q_f32 (values);                   break;
-    //default: break;
-    m_simd = vld1q_f32(values);
+    // Note: must not read past values[n-1], so switch before loading rather
+    // than loading all 4 lanes and masking afterwards.
     switch (n) {
-    case 1: m_simd = vsetq_lane_f32(0.0f, m_simd, 1);
-    case 2: m_simd = vsetq_lane_f32(0.0f, m_simd, 2);
-    case 3: m_simd = vsetq_lane_f32(0.0f, m_simd, 3);
-    default: break;
+    case 1:
+        m_simd = vld1q_lane_f32 (values, vdupq_n_f32(0.0f), 0);
+        break;
+    case 2:
+        m_simd = vcombine_f32 (vld1_f32(values), vdup_n_f32(0.0f));
+        break;
+    case 3:
+        m_simd = vld1q_lane_f32 (values+2,
+                     vcombine_f32 (vld1_f32(values), vdup_n_f32(0.0f)), 2);
+        break;
+    case 4:
+        m_simd = vld1q_f32 (values);
+        break;
+    default:
+        clear();
+        break;
     }
 #else
     for (int i = 0; i < n; ++i)
