@@ -4158,21 +4158,6 @@ details.
     This function was added in OpenImageIO 3.1.
 
 
-.. py:method:: get_colorspace_rec709_gamma (spec)
-
-    If the metadata of the `spec` specifies a color space with Rec709
-    primaries and gamma transfer function, return the gamma value. If not,
-    return zero.
-
-    Example:
-
-    .. code-block:: python
-
-        gamma = oiio.get_colorspace_rec709_gamma (spec)
-
-    This function was added in OpenImageIO 3.1.
-
-
 .. py:method:: get_colorspace_icc_profile (spec, from_colorspace = True)
 
     Returns the ICC profile from the metadata of the `spec` as a `bytes`

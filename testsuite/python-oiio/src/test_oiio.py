@@ -79,8 +79,6 @@ try:
     print ("  is_colorspace_srgb(unset, False):",
            oiio.is_colorspace_srgb (spec, False))
     oiio.set_colorspace_rec709_gamma (spec, 2.2)
-    print ("  get_colorspace_rec709_gamma(g22):",
-           round (oiio.get_colorspace_rec709_gamma (spec), 4))
     print ("  is_colorspace_srgb(g22):", oiio.is_colorspace_srgb (spec))
     print ("  get_colorspace_icc_profile(no profile):",
            oiio.get_colorspace_icc_profile (spec))

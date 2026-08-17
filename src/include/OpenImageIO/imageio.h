@@ -4387,13 +4387,6 @@ OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
 OIIO_API bool is_colorspace_srgb(const ImageSpec& spec,
                                  bool default_to_srgb = true);
 
-/// If the metadata of the `spec` specifies a color space with Rec709
-/// primaries and gamma transfer function, return the gamma value. If not,
-/// return zero.
-///
-/// @version 3.1
-OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec);
-
 /// Returns the ICC profile from the metadata of the `spec`, either from an
 /// "ICCProfile" attribute or from the color space if `from_colorspace` is
 /// true. Returns an empty vector if not found.
@@ -4799,7 +4792,6 @@ using v3_1::equivalent_colorspace;
 using v3_1::errorfmt;
 using v3_1::get_colorspace_cicp;
 using v3_1::get_colorspace_icc_profile;
-using v3_1::get_colorspace_rec709_gamma;
 using v3_1::get_extension_map;
 using v3_1::get_float_attribute;
 using v3_1::get_int_attribute;

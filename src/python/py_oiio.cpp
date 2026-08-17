@@ -554,10 +554,6 @@ declare_global_attribute_functions(py_module& m)
         },
         "spec"_a, "default_to_srgb"_a = true);
     m.def(
-        "get_colorspace_rec709_gamma",
-        [](const ImageSpec& spec) { return get_colorspace_rec709_gamma(spec); },
-        "spec"_a);
-    m.def(
         "get_colorspace_icc_profile",
         [](const ImageSpec& spec,
            bool from_colorspace) -> std::optional<py::bytes> {

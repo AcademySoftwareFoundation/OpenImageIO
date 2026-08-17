@@ -15,6 +15,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
+
 #include "targa_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -181,7 +183,7 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
     m_convert_alpha = m_spec.alpha_channel != -1
                       && !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 
-    m_gamma = get_colorspace_rec709_gamma(m_spec);
+    m_gamma = pvt::get_colorspace_rec709_gamma(m_spec);
     if (m_gamma == 0.0f)
         m_gamma = 1.0f;
 
@@ -362,7 +364,7 @@ TGAOutput::write_tga20_data_fields()
         }
 
         // gamma -- two shorts, giving a ratio
-        const float gamma = get_colorspace_rec709_gamma(m_spec);
+        const float gamma = pvt::get_colorspace_rec709_gamma(m_spec);
         if (gamma != 0.0f) {
             // FIXME: invent a smarter way to convert to a vulgar fraction?
             // NOTE: the spec states that only 1 decimal place of precision

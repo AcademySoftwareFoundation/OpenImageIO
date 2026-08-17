@@ -15,6 +15,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
+
 #include "rla_pvt.h"
 
 
@@ -256,7 +258,7 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     //           << m_rla.NumOfMatteChannels << " z " << m_rla.NumOfAuxChannels << "\n";
     m_rla.Revision = 0xFFFE;
 
-    const float gamma = get_colorspace_rec709_gamma(m_spec);
+    const float gamma = pvt::get_colorspace_rec709_gamma(m_spec);
     if (gamma != 0.0f) {
         safe_format_to(m_rla.Gamma, "{:.5g}", gamma);
     }

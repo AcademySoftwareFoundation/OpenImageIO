@@ -266,8 +266,6 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: OIIO::is_colorspace_srgb
 
-.. doxygenfunction:: OIIO::get_colorspace_rec709_gamma
-
 .. doxygenfunction:: OIIO::get_colorspace_icc_profile
 
 .. doxygenfunction:: OIIO::get_colorspace_cicp

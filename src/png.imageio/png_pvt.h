@@ -18,6 +18,7 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
 
 #define OIIO_LIBPNG_VERSION                                    \
     (PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 \
@@ -644,7 +645,7 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         png_set_sRGB_gAMA_and_cHRM(sp, ip, PNG_sRGB_INTENT_ABSOLUTE);
         wrote_colorspace = true;
     } else {
-        gamma = get_colorspace_rec709_gamma(spec);
+        gamma = pvt::get_colorspace_rec709_gamma(spec);
         if (gamma != 0.0f) {
             if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
                 return "Could not set PNG gAMA chunk";
