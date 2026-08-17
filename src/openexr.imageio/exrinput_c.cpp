@@ -108,7 +108,8 @@ public:
                 || feature == "exif"  // Because of arbitrary_metadata
                 || feature == "ioproxy"
                 || feature == "iptc"  // Because of arbitrary_metadata
-                || feature == "multiimage" || feature == "mipmap");
+                || feature == "multiimage" || feature == "mipmap"
+                || feature == "thumbnail");
     }
     bool valid_file(const std::string& filename) const override;
     bool open(const std::string& name, ImageSpec& newspec,
@@ -145,6 +146,7 @@ public:
                                 int xend, int ybegin, int yend, int zbegin,
                                 int zend, int chbegin, int chend,
                                 DeepData& deepdata) override;
+    bool get_thumbnail(ImageBuf& thumb, int subimage) override;
 
     bool set_ioproxy(Filesystem::IOProxy* ioproxy) override
     {
@@ -284,9 +286,9 @@ static std::map<std::string, std::string> cexr_tag_to_oiio_std {
     { "tiledesc", "" },
     { "tiles", "" },
     { "type", "" },
+    { "preview", "" },  // we have thumbnail_* trio instead
 
     // FIXME: Things to consider in the future:
-    // preview
     // screenWindowCenter
     // adoptedNeutral
     // renderingTransform, lookModTransform
@@ -406,6 +408,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
         std::string e = m_userdata.m_io->error();
         errorfmt("Could not open \"{}\" ({})", name,
                  e.size() ? e : std::string("unknown error"));
+        close();
         return false;
     }
     m_userdata.m_io->seek(0);
@@ -423,8 +426,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     exr_result_t rv = exr_start_read(&m_exr_context, name.c_str(), &cinit);
     if (rv != EXR_ERR_SUCCESS) {
         // the error handler would have already reported the error into us
-        m_local_io.reset();
-        m_userdata.m_io = nullptr;
+        close();
         return false;
     }
 #if ENABLE_EXR_DEBUG_PRINTS || !defined(NDEBUG) /* allow debugging */
@@ -433,8 +435,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
 #endif
     rv = exr_get_count(m_exr_context, &m_nsubimages);
     if (rv != EXR_ERR_SUCCESS) {
-        m_local_io.reset();
-        m_userdata.m_io = nullptr;
+        close();
         return false;
     }
 
@@ -797,6 +798,16 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
         }
     }
 
+    // The header's "preview" is a small RGBA image. Extract dimensions only.
+    exr_attr_preview_t preview;
+    if (exr_attr_get_preview(ctxt, subimage, "preview", &preview)
+            == EXR_ERR_SUCCESS
+        && preview.width > 0 && preview.height > 0) {
+        spec.attribute("thumbnail_width", int(preview.width));
+        spec.attribute("thumbnail_height", int(preview.height));
+        spec.attribute("thumbnail_nchannels", 4);
+    }
+
     float aspect   = spec.get_float_attribute("PixelAspectRatio", 0.0f);
     float xdensity = spec.get_float_attribute("XResolution", 0.0f);
     if (xdensity) {
@@ -1129,6 +1140,13 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 }))
+        return false;
+
+    // check_open's size cap still admits a dataWindow that is absurd for a tiny
+    // compressed file, so also bound the declared-vs-compressed ratio.
+    imagesize_t filesize = m_userdata.m_io ? m_userdata.m_io->size()
+                                           : Filesystem::file_size(m_filename);
+    if (!check_compression_ratio(m_spec, filesize))
         return false;
 
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
@@ -2064,6 +2082,30 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
         return false;
     }
 
+    return true;
+}
+
+
+
+bool
+OpenEXRCoreInput::get_thumbnail(ImageBuf& thumb, int subimage)
+{
+    lock_guard lock(*this);
+    if (!m_exr_context || subimage < 0 || subimage >= m_nsubimages)
+        return false;
+
+    exr_attr_preview_t preview;
+    if (exr_attr_get_preview(m_exr_context, subimage, "preview", &preview)
+        != EXR_ERR_SUCCESS)
+        return false;
+    if (preview.width < 1 || preview.height < 1 || !preview.rgba)
+        return false;
+
+    // An EXR preview is always 4 channels of 8 bit RGBA, gamma 2.2 encoded
+    ImageSpec thumbspec(int(preview.width), int(preview.height), 4, TypeUInt8);
+    thumb.reset(thumbspec);
+    memcpy(thumb.localpixels(), preview.rgba,
+           size_t(preview.width) * size_t(preview.height) * 4);
     return true;
 }
 

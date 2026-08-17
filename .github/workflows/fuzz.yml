@@ -1,0 +1,127 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+name: Fuzz
+
+on:
+  schedule:
+    # Nightly at 10:00 UTC — main fork only (filtered via job condition below)
+    - cron: "0 10 * * *"
+  push:
+    # Run on any branch whose name contains "fuzz"
+    branches:
+      - '*fuzz*'
+    paths:
+      - 'src/**'
+      - '.github/workflows/fuzz.yml'
+      - '.github/workflows/build-steps.yml'
+  pull_request:
+    # Run on PRs only if the branch name contains "fuzz"
+    branches:
+      - '*fuzz*'
+  workflow_dispatch:
+    inputs:
+      format:
+        description: "Format name to fuzz (leave empty for all)"
+        required: false
+        default: ""
+
+permissions: read-all
+
+# Allow subsequent pushes to the same PR or REF to cancel any previous jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  fuzz:
+    name: "Fuzz ${{ matrix.format }} (tier ${{ matrix.tier }})"
+    # Scheduled runs only on the canonical fork; push runs anywhere (branch filter above ensures "fuzz" substring)
+    if: github.event_name != 'schedule' || github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Tier 1: complex/high-risk formats — 60 min fuzz window each
+          - { format: openexr,   tier: 1, max_total_time: 3600 }
+          - { format: tiff,      tier: 1, max_total_time: 3600 }
+          - { format: jpeg,      tier: 1, max_total_time: 3600 }
+          - { format: png,       tier: 1, max_total_time: 3600 }
+          - { format: dpx,       tier: 1, max_total_time: 3600 }
+          - { format: psd,       tier: 1, max_total_time: 3600 }
+          - { format: heif,      tier: 1, max_total_time: 3600 }
+          - { format: jpegxl,    tier: 1, max_total_time: 3600 }
+          - { format: jpeg2000,  tier: 1, max_total_time: 3600 }
+          - { format: raw,       tier: 1, max_total_time: 3600 }
+          # Tier 2: simpler formats — 30 min fuzz window each
+          - { format: bmp,       tier: 2, max_total_time: 1800 }
+          - { format: cineon,    tier: 2, max_total_time: 1800 }
+          - { format: dds,       tier: 2, max_total_time: 1800 }
+          - { format: dicom,     tier: 2, max_total_time: 1800 }
+          - { format: fits,      tier: 2, max_total_time: 1800 }
+          - { format: gif,       tier: 2, max_total_time: 1800 }
+          - { format: hdr,       tier: 2, max_total_time: 1800 }
+          - { format: ico,       tier: 2, max_total_time: 1800 }
+          - { format: iff,       tier: 2, max_total_time: 1800 }
+          - { format: pnm,       tier: 2, max_total_time: 1800 }
+          - { format: rla,       tier: 2, max_total_time: 1800 }
+          - { format: sgi,       tier: 2, max_total_time: 1800 }
+          - { format: softimage, tier: 2, max_total_time: 1800 }
+          - { format: targa,     tier: 2, max_total_time: 1800 }
+          - { format: ffmpeg,    tier: 2, max_total_time: 1800 }
+          - { format: webp,      tier: 2, max_total_time: 1800 }
+          - { format: zfile,     tier: 2, max_total_time: 1800 }
+          - { format: openvdb,   tier: 2, max_total_time: 1800 }
+          - { format: ptex,      tier: 2, max_total_time: 1800 }
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      runner: ubuntu-latest
+      nametag: fuzz-linux-clang
+      container: aswf/ci-oiio:2027
+      cc_compiler: clang
+      cxx_compiler: clang++
+      build_type: Release
+      cxx_std: 20
+      python_ver: "3.13"
+      simd: "avx2,f16c"
+      pybind11_ver: v3.0.0
+      skip_tests: '1'
+      fuzz_format: ${{ matrix.format }}
+      fuzz_max_time: ${{ matrix.max_total_time }}
+      setenvs: export SANITIZE=address,undefined
+                      USE_PYTHON=0
+                      OIIO_BUILD_FUZZ_TARGETS=ON
+                      INSTALL_DOCS=OFF
+                      OIIO_BUILD_TOOLS=OFF
+                      OIIO_BUILD_TESTS=OFF
+                      OpenImageIO_BUILD_LOCAL_DEPS="TIFF,libdeflate"
+
+  #
+  # Verify every format reported by oiio_fuzz_image --list-formats has a corpus
+  # directory in src/fuzz/corpora/. Fails with a clear message when a new
+  # format plugin is added without a corresponding corpus directory.
+  #
+  fuzz-corpus-lint:
+    name: "Fuzz corpus coverage lint"
+    if: github.event_name != 'schedule' || github.repository == 'AcademySoftwareFoundation/OpenImageIO'
+    uses: ./.github/workflows/build-steps.yml
+    with:
+      runner: ubuntu-latest
+      nametag: fuzz-corpus-lint
+      container: aswf/ci-oiio:2027
+      cc_compiler: clang
+      cxx_compiler: clang++
+      build_type: Release
+      cxx_std: 20
+      python_ver: "3.13"
+      simd: "avx2,f16c"
+      pybind11_ver: v3.0.0
+      skip_tests: '1'
+      fuzz_corpus_lint: true
+      setenvs: export USE_PYTHON=0
+                      OIIO_BUILD_FUZZ_TARGETS=ON
+                      INSTALL_DOCS=OFF
+                      OIIO_BUILD_TOOLS=OFF
+                      OIIO_BUILD_TESTS=OFF

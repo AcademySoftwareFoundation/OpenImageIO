@@ -14,6 +14,15 @@ import numpy as np
 TEST_CONFIG_PATH: Path = Path(__file__).parent/"oiio_test_v0.9.2.ocio"
 
 try:
+    # Regression test: default_colorconfig() returns a non-copyable singleton
+    # reference and must use a reference return-value policy (without it,
+    # callers can get a copy/wrapper that is not the shared instance, or the
+    # binding can fail for non-copyable ColorConfig).
+    default_a = oiio.ColorConfig.default_colorconfig()
+    default_b = oiio.ColorConfig.default_colorconfig()
+    print ("default_colorconfig same instance =", default_a is default_b)
+    print ("default_colorconfig usable =", default_a.getNumColorSpaces() > 0)
+
     config = oiio.ColorConfig()
     print ("getNumColorSpaces =", config.getNumColorSpaces())
     print ("getColorSpaceNames =", config.getColorSpaceNames())
@@ -51,7 +60,14 @@ try:
     print ("get_color_interop_id('ACEScg') = ", config.get_color_interop_id("ACEScg"))
     print ("get_color_interop_id('lin_srgb') = ", config.get_color_interop_id("lin_srgb"))
     print ("get_color_interop_id([1, 13, 1, 1]) = ", config.get_color_interop_id([1, 13, 1, 1]))
+    print ("resolve('srgb_rec709_display'):", config.resolve("srgb_rec709_display"))
+    print ("equivalent('srgb_rec709_display', 'srgb_rec709_scene'):", config.equivalent("srgb_rec709_display", "srgb_rec709_scene"))
+    print (f"get_color_interop_id('sRGB - Display') = '{config.get_color_interop_id('sRGB - Display')}'")
+    print ("get_color_interop_id('g24_rec709_scene') = ", config.get_color_interop_id("g24_rec709_scene"))
+    print ("get_color_interop_id('g24_rec709_display') = ", config.get_color_interop_id("g24_rec709_display"))
     print ("get_cicp('pq_rec2020_display') = ", config.get_cicp("pq_rec2020_display"))
+    print ("get_cicp('g24_rec709_display') = ", config.get_cicp("g24_rec709_display"))
+    print ("get_cicp('g24_rec709_scene') = ", config.get_cicp("g24_rec709_scene"))
     print ("get_cicp('unknown_interop_id') = ", config.get_cicp("unknown_interop_id"))
     print ("isColorSpaceLinear('scene_linear') = ", config.isColorSpaceLinear('scene_linear'))
     print ("isColorSpaceLinear('srgb') = ", config.isColorSpaceLinear('srgb'))

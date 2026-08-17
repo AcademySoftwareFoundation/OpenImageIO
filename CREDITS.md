@@ -47,6 +47,7 @@ lg@openimageio.org
 * Brecht Van Lommel
 * Brent Davis
 * Brian Hall
+* Brian R Hanke
 * Brice Gros
 * Campbell Barton
 * Carine Touraille
@@ -85,6 +86,7 @@ lg@openimageio.org
 * Dominik Bartkiewicz
 * Dominik Wójt
 * Don Olmstead
+* Dongju Lee
 * Duncan Chan
 * Dustin Rodrigues
 * Edgar Velazquez-Armendariz
@@ -123,6 +125,7 @@ lg@openimageio.org
 * Jeremy Selan
 * Jesse Yurkovich
 * Jim Hourihan
+* Jinnie Kim
 * Joachim Reichel
 * Johannes Unterguggenberger
 * John Burnett
@@ -183,6 +186,7 @@ lg@openimageio.org
 * Nathan Rusch
 * Nicholas Yue
 * Nick Black
+* Nick D'Ademo
 * Nicolas Burtnyk
 * Nixon Kwok
 * Noah Rahm (designer of our logo!)

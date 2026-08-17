@@ -1286,6 +1286,99 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
 
 
 
+// Read all pixels of one subimage/miplevel in small chunks, exercising the
+// decode path without ever allocating a buffer proportional to the whole
+// image. No pixels are returned; this is just meant to fully read the image
+// from the file. Tiled images are read one row of tiles at a time; scanline
+// images are read 16 rows at a time. This keeps the resident buffer tiny so a
+// corrupt-but-large image does not trip the fuzzer's RSS limit with a false
+// positive. A read error stops the scan immediately (matching how
+// iconvert/oiiotool bail out on the first read failure).
+bool
+pvt::test_read_image(ImageInput& inp, int subimage, int miplevel,
+                     TypeDesc format)
+{
+    const ImageSpec spec = inp.spec_dimensions(subimage, miplevel);
+    if (spec.image_pixels() <= 0 || spec.nchannels <= 0)
+        return false;
+    const int nch = spec.nchannels;
+
+    bool native = (format == TypeUnknown);
+    OIIO_CONTRACT_ASSERT(!native);  // for now
+    stride_t channel_bytes = native ? stride_t(spec.format.size())
+                                    : stride_t(format.size());
+    stride_t pixel_bytes   = native ? stride_t(spec.pixel_bytes(0, nch, true))
+                                    : stride_t(format.size() * nch);
+
+    if (spec.tile_width > 0) {
+        // Tiled: read a full-width row of tiles (one tile high, one tile
+        // deep) per iteration. Tile extents are clamped to the image so a
+        // corrupt header claiming a giant tile cannot force a giant buffer;
+        // read_tiles accepts the image edge in place of a tile boundary.
+        const int th = std::min(spec.tile_height > 0 ? spec.tile_height : 1,
+                                spec.height);
+        const int td = std::min(spec.tile_depth > 0 ? spec.tile_depth : 1,
+                                spec.depth);
+        const int xbegin = spec.x;
+        const int xend   = spec.x + spec.width;
+        std::vector<std::byte> buf(size_t(spec.width) * th * td * pixel_bytes);
+        for (int z = spec.z; z < spec.z + spec.depth; z += td) {
+            const int zend = std::min(z + td, spec.z + spec.depth);
+            for (int y = spec.y; y < spec.y + spec.height; y += th) {
+                const int yend = std::min(y + th, spec.y + spec.height);
+                image_span<std::byte> ispan(buf.data(), nch, xend - xbegin,
+                                            yend - y, zend - z, AutoStride,
+                                            AutoStride, AutoStride, AutoStride,
+                                            channel_bytes);
+                if (!inp.read_tiles(subimage, miplevel, xbegin, xend, y, yend,
+                                    z, zend, 0, nch, format, ispan))
+                    return false;
+            }
+        }
+    } else {
+        // Scanline: read 16 rows at a time. read_scanlines is 2D-oriented, so
+        // depth is treated as 1 (volumetric data is tiled).
+        const int chunk = 16;
+        std::vector<std::byte> buf(size_t(spec.width) * chunk * pixel_bytes);
+        for (int y = spec.y; y < spec.y + spec.height; y += chunk) {
+            const int yend = std::min(y + chunk, spec.y + spec.height);
+            image_span<std::byte> ispan(buf.data(), nch, spec.width, yend - y,
+                                        1, AutoStride, AutoStride, AutoStride,
+                                        AutoStride, channel_bytes);
+            if (!inp.read_scanlines(subimage, miplevel, y, yend, 0, nch, format,
+                                    ispan))
+                return false;
+        }
+    }
+    return true;
+}
+
+
+
+bool
+pvt::test_read_all_images(ImageInput& inp, TypeDesc format)
+{
+    bool supports_mipmap    = inp.supports("mipmap");
+    bool supports_subimages = inp.supports("multiimage");
+    bool ok                 = true;
+    for (int s = 0; ok; ++s) {
+        for (int m = 0; ok; ++m) {
+            ok &= test_read_image(inp, s, m, format);
+            if (ok) {
+                if (!supports_mipmap || !inp.seek_subimage(s, m + 1))
+                    break;
+            }
+        }
+        if (ok) {
+            if (!supports_subimages || !inp.seek_subimage(s + 1, 0))
+                break;
+        }
+    }
+    return ok && !inp.has_error();
+}
+
+
+
 bool
 ImageInput::read_native_deep_scanlines(int /*subimage*/, int /*miplevel*/,
                                        int /*ybegin*/, int /*yend*/, int /*z*/,
@@ -1632,6 +1725,25 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
         return false;
     }
 
+    // Check for sensible tile sizes. A tile dimension of 0 means "not
+    // tiled", which is always fine; only reject negative sizes and tile
+    // dimensions that exceed the same per-format ceiling already applied
+    // to the image resolution above.
+    if (spec.tile_width < 0 || spec.tile_height < 0 || spec.tile_depth < 0) {
+        errorfmt(
+            "{} tile size may not be negative, but was {}x{}x{}. Possible corrupt input?",
+            format_name(), spec.tile_width, spec.tile_height, spec.tile_depth);
+        return false;
+    }
+    if (spec.tile_width > range.width() || spec.tile_height > range.height()
+        || spec.tile_depth > range.depth()) {
+        errorfmt(
+            "{} tile size may not exceed {}x{}x{}, but was {}x{}x{}. Possible corrupt input?",
+            format_name(), range.width(), range.height(), range.depth(),
+            spec.tile_width, spec.tile_height, spec.tile_depth);
+        return false;
+    }
+
     // Check for invalid full_* values for sensibility
     if (spec.full_width == 0 && spec.full_height == 0 && spec.full_depth == 0
         && supports("noimage")) {
@@ -1658,6 +1770,35 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
         return false;
     }
     return true;  // all is ok
+}
+
+
+
+bool
+ImageInput::check_compression_ratio(imagesize_t declared_bytes,
+                                    imagesize_t filesize, imagesize_t max_ratio,
+                                    imagesize_t min_declared_bytes)
+{
+    if (filesize == 0 || declared_bytes < min_declared_bytes)
+        return true;
+    if (declared_bytes > filesize * max_ratio) {
+        errorfmt(
+            "{} header claims a {} MB image from a {} byte file; probably a corrupt or malicious header",
+            format_name(), declared_bytes >> 20, filesize);
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+ImageInput::check_compression_ratio(const ImageSpec& spec, imagesize_t filesize,
+                                    imagesize_t max_ratio,
+                                    imagesize_t min_declared_bytes)
+{
+    return check_compression_ratio(spec.image_bytes(true), filesize, max_ratio,
+                                   min_declared_bytes);
 }
 
 

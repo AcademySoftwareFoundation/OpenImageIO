@@ -109,7 +109,11 @@ DICOMInput::open(const std::string& name, ImageSpec& newspec,
 
     bool ok = seek_subimage(0, 0);
     newspec = spec();
-    return ok;
+    if (!ok) {
+        close();
+        return false;
+    }
+    return true;
 }
 
 
@@ -147,8 +151,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
 
     if (subimage < m_subimage) {
         // Want an earlier subimage, Easier to close and start again
-        close();
-        m_subimage = -1;
+        close();  // note: resets m_subimge to -1
     }
 
     // Open if it's not already opened
@@ -183,8 +186,12 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
         ++m_subimage;
     }
 
-    m_dipixel             = m_img->getInterData();
-    m_internal_data       = (const char*)m_dipixel->getData();
+    m_dipixel = m_img->getInterData();
+    if (!m_dipixel) {
+        errorfmt("Unable to read pixel data from DICOM file {}", m_filename);
+        m_img.reset();
+        return false;
+    }
     EP_Representation rep = m_dipixel->getRepresentation();
     TypeDesc format;
     switch (rep) {
@@ -197,6 +204,11 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
     default: break;
     }
     m_internal_data = (const char*)m_img->getOutputData(0, m_subimage, 0);
+    if (!m_internal_data) {
+        errorfmt("Unable to decode pixel data from DICOM file {}", m_filename);
+        m_img.reset();
+        return false;
+    }
 
     EP_Interpretation photo = m_img->getPhotometricInterpretation();
     struct PhotoTable {

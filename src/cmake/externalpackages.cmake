@@ -90,6 +90,18 @@ endif ()
 checked_find_package (libuhdr
                       VERSION_MIN 1.3)
 
+# Static libtiff configs may reference Deflate::Deflate without importing it
+# (https://gitlab.com/libtiff/libtiff/-/work_items/871), so libdeflate must be
+# located before TIFF discovery. In particular, a previously auto-built static
+# TIFF rediscovered from the local deps cache needs this; the libdeflate found
+# during build_TIFF.cmake does not carry over to later reconfigures.
+if (NOT TARGET Deflate::Deflate)
+    checked_find_package (libdeflate
+                          VERSION_MIN 1.18)
+    alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_static)
+    alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_shared)
+endif ()
+
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.0
                       RECOMMEND_MIN 4.5
@@ -115,6 +127,7 @@ else ()
 endif()
 
 # From pythonutils.cmake
+set_option (USE_PYTHON "Enable support of Python bindings" ON)
 if (USE_PYTHON)
     find_python()
 endif ()
@@ -123,7 +136,9 @@ if (USE_PYTHON AND OIIO_BUILD_PYTHON_PYBIND11)
 endif ()
 if (USE_PYTHON AND OIIO_BUILD_PYTHON_NANOBIND)
     discover_nanobind_cmake_dir()
-    checked_find_package (nanobind CONFIG REQUIRED)
+    checked_find_package (nanobind CONFIG REQUIRED
+                          VERSION_MIN 2.8.0
+                          BUILD_LOCAL missing)
 endif ()
 
 
@@ -175,7 +190,9 @@ checked_find_package (Libheif VERSION_MIN 1.11
                       RECOMMEND_MIN_REASON "1.16 for orientation support, 1.17 for monochrome support")
 
 checked_find_package (LibRaw
-                      VERSION_MIN 0.20.0
+                      VERSION_MIN 0.21.0
+                      RECOMMEND_MIN 0.21.3
+                      RECOMMEND_MIN_REASON "0.21.3 for many security fixes"
                       PRINT LibRaw_r_LIBRARIES)
 
 checked_find_package (OpenJPEG VERSION_MIN 2.0
@@ -236,9 +253,15 @@ if (OIIO_USE_HWY)
     checked_find_package (hwy)
 endif ()
 
-# Tessil/robin-map
-checked_find_package (Robinmap REQUIRED
-                      VERSION_MIN 1.2.0
+# Tessil/robin-map. Use its own exported CMake config (target tsl::robin_map)
+# rather than a bespoke Find module. This also means that when the nanobind
+# Python backend is enabled, nanobind's own CMake code will detect and reuse
+# this exact target/version instead of compiling against its private vendored
+# copy (see nanobind_build_library()'s `NOT TARGET tsl::robin_map` check).
+checked_find_package (Robinmap CONFIG REQUIRED
+                      NAMES tsl-robin-map
+                      VERSION_MIN 1.3.0
+                      NO_FP_RANGE_CHECK
                       BUILD_LOCAL missing
                      )
 

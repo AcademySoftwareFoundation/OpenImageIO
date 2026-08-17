@@ -551,8 +551,8 @@ Filesystem::fopen(string_view path, string_view mode)
 int
 Filesystem::fseek(FILE* file, int64_t offset, int whence)
 {
-#ifdef _MSC_VER
-    return _fseeki64(file, __int64(offset), whence);
+#ifdef _WIN32
+    return _fseeki64(file, static_cast<__int64>(offset), whence);
 #else
     return fseeko(file, offset, whence);
 #endif
@@ -563,7 +563,7 @@ Filesystem::fseek(FILE* file, int64_t offset, int whence)
 int64_t
 Filesystem::ftell(FILE* file)
 {
-#ifdef _MSC_VER
+#ifdef _WIN32
     return _ftelli64(file);
 #else
     return ftello(file);

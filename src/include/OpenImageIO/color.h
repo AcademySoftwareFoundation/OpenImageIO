@@ -483,6 +483,13 @@ public:
     /// Is the color space non-color-managed "data"?
     OIIO_NODISCARD bool isData(string_view name) const;
 
+    /// Is the color space "active", i.e. not listed in the OCIO config's
+    /// `inactive_colorspaces`?  Applications presenting a list of color
+    /// spaces to choose from should hide the inactive ones.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD bool isColorSpaceActive(string_view name) const;
+
     /// Retrieve the full list of aliases for the named color space.
     OIIO_NODISCARD std::vector<std::string>
     getAliases(string_view color_space) const;

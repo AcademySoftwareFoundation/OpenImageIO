@@ -139,7 +139,7 @@ General options
 
 .. describe:: -q
 
-    Quiet mode -- output nothing for successful match), output only minimal
+    Quiet mode -- output nothing for successful match, output only minimal
     error messages to stderr for failure / no match.  The shell return code
     also indicates success or failure (successful match returns 0, failure
     returns nonzero).

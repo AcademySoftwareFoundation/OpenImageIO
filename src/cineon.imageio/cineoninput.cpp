@@ -7,6 +7,7 @@
 #include "libcineon/Cineon.h"
 
 #include <OpenImageIO/dassert.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
@@ -81,12 +82,14 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     m_stream = new InStream();
     if (!m_stream->Open(name.c_str())) {
         errorfmt("Could not open file \"{}\"", name);
+        close();
         return false;
     }
 
     m_cin.SetInStream(m_stream);
     if (!m_cin.ReadHeader()) {
         errorfmt("Could not read header");
+        close();
         return false;
     }
 
@@ -125,12 +128,17 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     case 2: typedesc = TypeDesc::UINT16; break;
     case 3:
     case 4: typedesc = TypeDesc::UINT32; break;
-    default: errorfmt("Unsupported bit depth {}", maxbits); return false;
+    default:
+        errorfmt("Unsupported bit depth {}", maxbits);
+        close();
+        return false;
     }
     m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(), nchannels,
                        typedesc);
 
-    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })) {
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })
+        || !check_compression_ratio(m_spec, Filesystem::file_size(name))) {
+        close();
         return false;
     }
 

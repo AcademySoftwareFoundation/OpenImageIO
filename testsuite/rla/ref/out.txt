@@ -328,5 +328,37 @@ Full command line was:
 oiiotool ERROR: read : "src/crash-5159.rla": Read error: couldn't read RLE data span
 Full command line was:
 > oiiotool src/crash-5159.rla -o crash7.exr
+oiiotool ERROR: read : "src/crash-badrle.rla": Read error: malformed RLE record
+Full command line was:
+> oiiotool src/crash-badrle.rla -o crash8.exr
+oiiotool ERROR: read : "src/bomb.rla": rla header claims a 6549 MB image from a 1204 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -a -v src/bomb.rla
+Reading src/subimage-loop.rla
+src/subimage-loop.rla :    8 x    8, 1 channel, uint8 rla
+    2 subimages: 8x8 [u8], 8x8 [u8]
+ subimage  0:    8 x    8, 1 channel, uint8 rla
+    SHA-1: CE332FD2CCAECF316970B3C1AF6BADB409257222
+    channel list: Y
+    compression: "rle"
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "lin_rec709_scene"
+ subimage  1:    8 x    8, 1 channel, uint8 rla
+    SHA-1: CE332FD2CCAECF316970B3C1AF6BADB409257222
+    channel list: Y
+    compression: "rle"
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "lin_rec709_scene"
+Reading src/field-rendered.rla
+src/field-rendered.rla :    8 x    4, 1 channel, uint8 rla
+    SHA-1: E8F26115CED9DD22BAD3704E3073E56528CCE721
+    channel list: Y
+    pixel data origin: x=0, y=-4
+    full/display size: 8 x 8
+    full/display origin: 0, 0
+    compression: "rle"
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "lin_rec709_scene"
+    rla:FieldRendered: 1
 Comparing "rlacrop.rla" and "ref/rlacrop.rla"
 PASS

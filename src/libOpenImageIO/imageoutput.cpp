@@ -791,6 +791,19 @@ ImageOutput::copy_image(ImageInput* in)
     // FIXME -- a smarter implementation would read scanlines or tiles at
     // a time, to minimize mem footprint.
     bool native = supports("channelformats") && inspec.channelformats.size();
+    // The native (per-channel, no-conversion) copy is only valid if this
+    // output actually stores each channel in the same format the input
+    // supplies. If the output remaps any channel (e.g. OpenEXR promoting
+    // uint16 to half), a raw native copy would reinterpret the bytes rather
+    // than convert them, so fall back to the converting path in that case.
+    if (native) {
+        const ImageSpec& outspec(spec());
+        for (int c = 0; c < inspec.nchannels; ++c)
+            if (inspec.channelformat(c) != outspec.channelformat(c)) {
+                native = false;
+                break;
+            }
+    }
     TypeDesc format = native ? TypeDesc::UNKNOWN : inspec.format;
     std::unique_ptr<char[]> pixels(new char[inspec.image_bytes(native)]);
     bool ok = in->read_image(in->current_subimage(), in->current_miplevel(), 0,
@@ -1186,6 +1199,15 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
     if (m_spec.extra_attribs.contains("ioproxy") && !supports("ioproxy")) {
         errorfmt("{} does not support the IOProxy", format_name());
         return false;
+    }
+
+    // Don't write thumbnail_* metadata to a format that can't embed a
+    // thumbnail, where they'd describe one that isn't there.
+    if (!supports("thumbnail")) {
+        m_spec.erase_attribute("thumbnail_width");
+        m_spec.erase_attribute("thumbnail_height");
+        m_spec.erase_attribute("thumbnail_nchannels");
+        m_spec.erase_attribute("thumbnail_image");
     }
 
     return true;  // all is ok

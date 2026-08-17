@@ -39,3 +39,6 @@ Full command line was:
 oiiotool ERROR: read : "src/broken_bitdepth2.cin": Invalid bitdepth in channel 0: 26 bits
 Full command line was:
 > oiiotool --info --hash src/broken_bitdepth2.cin
+oiiotool ERROR: read : "src/bomb-46341.cin": cineon header claims a 12288 MB image from a 2048 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info --hash src/bomb-46341.cin

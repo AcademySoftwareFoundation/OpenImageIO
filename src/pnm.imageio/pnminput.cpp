@@ -66,6 +66,7 @@ private:
 
     void init()
     {
+        m_file_contents.clear();
         m_file_contents.shrink_to_fit();
         ioproxy_clear();
         m_y_next = 0;
@@ -278,8 +279,16 @@ PNMInput::read_file_scanline(void* data, int y)
     }
 
     std::vector<unsigned char> buf;
-    int nsamples = m_spec.width * m_spec.nchannels;
-    bool good    = true;
+    imagesize_t width(m_spec.width);  // 64 bit to avoid overflow
+    imagesize_t nsamples = width * m_spec.nchannels;
+    imagesize_t numbytes;
+    if (m_pnm_type == P4)
+        numbytes = (width + 7) / 8;
+    else if (m_pnm_type == PF || m_pnm_type == Pf)
+        numbytes = nsamples * 4;
+    else
+        numbytes = m_spec.scanline_bytes();
+    bool good = true;
     // If y is farther ahead, skip scanlines to get to it
     for (; good && m_y_next <= y; ++m_y_next) {
         // PFM files are bottom-to-top, so we need to seek to the right spot
@@ -293,19 +302,11 @@ PNMInput::read_file_scanline(void* data, int y)
 
         if ((m_pnm_type >= P4 && m_pnm_type <= P6) || m_pnm_type == PF
             || m_pnm_type == Pf) {
-            int numbytes;
-            if (m_pnm_type == P4)
-                numbytes = (m_spec.width + 7) / 8;
-            else if (m_pnm_type == PF || m_pnm_type == Pf)
-                numbytes = m_spec.nchannels * 4 * m_spec.width;
-            else
-                numbytes = m_spec.scanline_bytes();
             if (size_t(numbytes) > m_remaining.size()) {
                 errorfmt("Premature end of file");
                 return false;
             }
             buf.assign(m_remaining.begin(), m_remaining.begin() + numbytes);
-
             m_remaining.remove_prefix(numbytes);
         }
 
@@ -487,7 +488,8 @@ PNMInput::open(const std::string& name, ImageSpec& newspec,
     ioproxy_retrieve_from_config(config);
 
     if (!open(name, newspec)) {
-        errorfmt("Could not parse spec for file \"%s\"", name);
+        errorfmt("Could not parse spec for file \"{}\"", name);
+        close();
         return false;
     }
 
@@ -509,11 +511,24 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     m_remaining               = read_header_to_buffer(m_file_contents, m_io);
     m_pfm_flip                = false;
 
-    if (!read_file_header())
+    if (!read_file_header()) {
+        close();
         return false;
+    }
 
-    if (!check_open(m_spec))  // check for apparently invalid values
+    if (!check_open(m_spec)) {  // check for apparently invalid values
+        close();
         return false;
+    }
+
+    // Reject a tiny file that declares a huge image before the caller
+    // allocates the full (declared) pixel buffer. Binary PNM data must be
+    // present in the file and ASCII values cost >=2 bytes each, so a
+    // legitimate file never has an extreme ratio.
+    if (!check_compression_ratio(m_spec, m_io->size())) {
+        close();
+        return false;
+    }
 
     m_remaining    = append_remainder_to_buffer(m_file_contents, m_io,
                                                 m_remaining);

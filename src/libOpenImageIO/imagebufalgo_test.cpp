@@ -1336,7 +1336,7 @@ test_FLIP()
     ImageSpec spec(32, 32, 3, TypeDesc::FLOAT);
     ImageBuf img(spec);
     ImageBufAlgo::fill(img, { 0.3f, 0.5f, 0.7f });
-    ImageBuf result = ImageBufAlgo::experimental::FLIP_diff(img, img);
+    ImageBuf result = ImageBufAlgo::FLIP_diff(img, img);
     OIIO_CHECK_ASSERT(!result.has_error());
     OIIO_CHECK_EQUAL(result.nchannels(), 1);
     OIIO_CHECK_EQUAL_THRESH(result.spec().get_float_attribute("FLIP:maxerror"),
@@ -1346,7 +1346,7 @@ test_FLIP()
     ImageBuf black(spec), white(spec);
     ImageBufAlgo::fill(black, { 0.0f, 0.0f, 0.0f });
     ImageBufAlgo::fill(white, { 1.0f, 1.0f, 1.0f });
-    ImageBuf bw = ImageBufAlgo::experimental::FLIP_diff(black, white);
+    ImageBuf bw = ImageBufAlgo::FLIP_diff(black, white);
     OIIO_CHECK_ASSERT(!bw.has_error());
     OIIO_CHECK_EQUAL(bw.nchannels(), 1);
     // Max error should be positive and in range [0,1].
@@ -1358,7 +1358,7 @@ test_FLIP()
     OIIO_CHECK_ASSERT(maxerror <= 1.0);
 
     // Test FLIP_ppd helper.
-    float ppd = ImageBufAlgo::experimental::FLIP_ppd(0.7f, 3840.0f, 0.7f);
+    float ppd = ImageBufAlgo::FLIP_ppd(0.7f, 3840.0f, 0.7f);
     OIIO_CHECK_ASSERT(ppd > 60.0f && ppd < 80.0f);
 
     // Benchmarking
@@ -1381,14 +1381,14 @@ test_FLIP()
     ImageBufAlgo::noise(noisy, "gaussian", 0.0, 0.001f);
     ImageBuf flipresult(ImageSpec(xres, yres, 1, TypeFloat));
     bench(Strutil::format("FLIP_diff() LDR {}", xres), [&]() {
-        auto buf OIIO_MAYBE_UNUSED
-            = ImageBufAlgo::experimental::FLIP_diff(flipresult, noisy, ramp,
-                                                    { { "hdr", 0 } });
+        auto buf OIIO_MAYBE_UNUSED = ImageBufAlgo::FLIP_diff(flipresult, noisy,
+                                                             ramp,
+                                                             { { "hdr", 0 } });
     });
     bench(Strutil::format("FLIP_diff() HDR {}", xres), [&]() {
-        auto buf OIIO_MAYBE_UNUSED
-            = ImageBufAlgo::experimental::FLIP_diff(flipresult, noisy, ramp,
-                                                    { { "hdr", 1 } });
+        auto buf OIIO_MAYBE_UNUSED = ImageBufAlgo::FLIP_diff(flipresult, noisy,
+                                                             ramp,
+                                                             { { "hdr", 1 } });
     });
 }
 

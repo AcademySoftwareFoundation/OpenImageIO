@@ -347,6 +347,11 @@ if (NUKE_FOUND)
     add_subdirectory (src/nuke/txWriter)
 endif ()
 
+set_option (OIIO_BUILD_FUZZ_TARGETS "Build libFuzzer fuzz targets (requires clang)" OFF)
+if (OIIO_BUILD_FUZZ_TARGETS)
+    add_subdirectory (src/fuzz)
+endif ()
+
 # install pkgconfig file
 if (NOT MSVC)
    configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY)
@@ -396,6 +401,9 @@ install (EXPORT OIIO_EXPORTED_TARGETS
 
 
 if (PROJECT_IS_TOP_LEVEL AND BUILD_TESTING AND ${PROJ_NAME}_BUILD_TESTS)
+    if (NOT BUILD_OIIOUTIL_ONLY)
+        add_subdirectory (testsuite/texture-device)
+    endif ()
     oiio_setup_test_data()
     oiio_add_all_tests()
 endif ()

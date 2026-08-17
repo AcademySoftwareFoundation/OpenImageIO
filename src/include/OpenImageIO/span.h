@@ -47,7 +47,7 @@ inline constexpr span_size_t dynamic_extent
 
 
 /// `span<T>` is a non-owning, non-copying, non-allocating reference to a
-/// contiguous array of T objects of known length. A 'span` encapsulates both
+/// contiguous array of T objects of known length. A `span` encapsulates both
 /// a pointer and a length, and thus is a safer way of passing pointers around
 /// (because the function called knows how long the array is). A function
 /// that might ordinarily take a `T*` and a length could instead just take a

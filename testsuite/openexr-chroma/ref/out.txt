@@ -35,6 +35,9 @@ Reading ../openexr-images/LuminanceChroma/Garden.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    thumbnail_height: 56
+    thumbnail_nchannels: 4
+    thumbnail_width: 100
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/LuminanceChroma/Garden.exr" and "Garden.exr"

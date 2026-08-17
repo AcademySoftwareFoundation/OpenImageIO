@@ -28,3 +28,8 @@ command += info_command ("--stats src/broken04.sgi",
 # broken_rle16_len1.sgi tests a 16 bit RLE file that has an odd byte count.
 command += info_command ("--stats src/broken_rle16_len1.sgi",
                          info_program="iinfo", failureok=True)
+# bomb-65535.sgi declares a ~16 GB image (65535x65535x4) from a 512-byte
+# header: a decompression bomb the compression-ratio guard must reject before
+# any large allocation.
+command += info_command ("--stats src/bomb-65535.sgi",
+                         info_program="iinfo", failureok=True)

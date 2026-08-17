@@ -44,6 +44,7 @@ src/broken01.pic :   16 x    4, 1 channel, uint8 softimage
     Stats FiniteCount: 64 
     Constant: No
     Monochrome: Yes
+iinfo ERROR: "src/bomb-40000.pic" : softimage header claims a 6103 MB image from a 118 byte file; probably a corrupt or malicious header
 src/mixed-bitdepth.pic :    2 x    1, 2 channel, uint16 softimage
     SHA-1: 52D6B72AAD7084E2ECF1550D500A66C42F408ED1
     channel list: R, G
@@ -54,6 +55,16 @@ src/mixed-bitdepth.pic :    2 x    1, 2 channel, uint16 softimage
     Stats Max: 13124 26214 (of 65535)
     Stats Avg: 8755.00 24029.50 (of 65535)
     Stats StdDev: 4369.00 2184.50 (of 65535)
+    Stats NanCount: 0 0 
+    Stats InfCount: 0 0 
+    Stats FiniteCount: 2 2 
+    Constant: No
+    Monochrome: No
+mixed-bitdepth.exr   :    2 x    1, 2 channel, half openexr
+    Stats Min: 0.066956 0.333252 (float)
+    Stats Max: 0.200317 0.399902 (float)
+    Stats Avg: 0.133636 0.366577 (float)
+    Stats StdDev: 0.066681 0.033325 (float)
     Stats NanCount: 0 0 
     Stats InfCount: 0 0 
     Stats FiniteCount: 2 2 

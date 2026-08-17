@@ -31,15 +31,32 @@ namespace pvt {
 
 
 
+// Byte length of a directory entry's data, or 0 if we can't know it.
+// tiff_data_size() reports an unrecognized type as size_t(-1), which must
+// never reach the bounds arithmetic below: multiplied by the count it wraps,
+// and a wrapped length passes any `offset + len > size` test.
+inline size_t
+dirdata_size(const TIFFDirEntry& td)
+{
+    size_t elemsize = tiff_data_size(TIFFDataType(td.tdir_type));
+    if (elemsize == 0 || elemsize == size_t(-1))
+        return 0;
+    return elemsize * size_t(td.tdir_count);
+}
+
+
+
 inline const void*
 dataptr(const TIFFDirEntry& td, cspan<uint8_t> data, int offset_adjustment)
 {
-    size_t len = tiff_data_size(td);
+    size_t len = dirdata_size(td);
+    if (len == 0)
+        return nullptr;  // unknown type or no data
     if (len <= 4)
         return (const char*)&td.tdir_offset;
     else {
-        int offset = td.tdir_offset + offset_adjustment;
-        if (offset < 0 || size_t(offset) + len > std::size(data))
+        int64_t offset = int64_t(td.tdir_offset) + offset_adjustment;
+        if (offset < 0 || uint64_t(offset) + len > uint64_t(std::size(data)))
             return nullptr;  // out of bounds!
         return (const char*)data.data() + offset;
     }
@@ -57,13 +74,15 @@ inline cspan<uint8_t>
 dataspan(const TIFFDirEntry& td, cspan<uint8_t> data, int offset_adjustment,
          size_t count)
 {
-    size_t len = tiff_data_size(td);
+    size_t len = dirdata_size(td);
     OIIO_DASSERT(len == sizeof(T) * count);
+    if (len == 0)
+        return {};  // unknown type or no data
     if (len <= 4)
         return { (const uint8_t*)&td.tdir_offset, span_size_t(len) };
     else {
-        int offset = td.tdir_offset + offset_adjustment;
-        if (offset < 0 || size_t(offset) + len > std::size(data))
+        int64_t offset = int64_t(td.tdir_offset) + offset_adjustment;
+        if (offset < 0 || uint64_t(offset) + len > uint64_t(std::size(data)))
             return {};  // out of bounds! return empty span
         return { data.data() + offset, span_size_t(len) };
     }
@@ -140,10 +159,12 @@ void append_tiff_dir_entry (std::vector<TIFFDirEntry> &dirs,
                             size_t offset_override = 0,
                             OIIO::endian endianreq = OIIO::endian::native);
 
+// Decode one IFD and everything it points at. `depth` is the IFD nesting
+// level, incremented on each recursive step and used to bound the recursion.
 bool decode_ifd (cspan<uint8_t> buf, size_t ifd_offset,
                  ImageSpec &spec, const TagMap& tag_map,
                  std::set<size_t>& ifd_offsets_seen, bool swab=false,
-                 int offset_adjustment=0);
+                 int offset_adjustment=0, int depth=0);
 
 void encode_canon_makernote (std::vector<char>& exifblob,
                              std::vector<TIFFDirEntry> &exifdirs,

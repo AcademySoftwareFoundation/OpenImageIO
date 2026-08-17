@@ -136,23 +136,25 @@ struct CSInfo {
     int index;         // More than one can have the same index -- aliases
     enum Flags {
         none               = 0,
-        is_linear_response = 1,   // any cs with linear transfer function
-        is_scene_linear    = 2,   // equivalent to scene_linear
-        is_srgb            = 4,   // sRGB (primaries, and transfer function)
-        is_lin_srgb        = 8,   // sRGB/Rec709 primaries, linear response
-        is_ACEScg          = 16,  // ACEScg
-        is_Rec709          = 32,  // Rec709 primaries and transfer function
-        is_data            = 64,  // Non-color-managed data
-        is_known           = is_srgb | is_lin_srgb | is_ACEScg | is_Rec709,
+        is_linear_response = 1,  // any cs with linear transfer function
+        is_scene_linear    = 2,  // equivalent to scene_linear
+        is_srgb_display = 4,  // sRGB (primaries, and transfer function) display
+        is_srgb_scene   = 8,  // sRGB (primaries, and transfer function) scene
+        is_lin_srgb     = 16,   // sRGB/Rec709 primaries, linear response
+        is_ACEScg       = 32,   // ACEScg
+        is_Rec709       = 64,   // Rec709 primaries and transfer function
+        is_data         = 128,  // Non-color-managed data
+        is_known = is_srgb_display | is_srgb_scene | is_lin_srgb | is_ACEScg
+                   | is_Rec709,
         // Color-space classification bits, computed lazily by Impl::analyze()
         // (a second pass, separate from the classify_* heuristics that set
         // the bits above). Used to decide which spaces are stable candidates
         // for interop matching.
-        is_unique             = 128,   // has OCIO category "is-unique"
-        should_skip_matching  = 256,   // never a matching candidate
-        has_complex_transform = 512,   // rejected by the simple allowlist
-        is_simple             = 1024,  // member of the simple set
-        is_context_invariant  = 2048,  // no context vars affect this space
+        is_unique             = 256,   // has OCIO category "is-unique"
+        should_skip_matching  = 512,   // never a matching candidate
+        has_complex_transform = 1024,  // rejected by the simple allowlist
+        is_simple             = 2048,  // member of the simple set
+        is_context_invariant  = 4096,  // no context vars affect this space
     };
     // The lazily-computed classification state is written under the Impl's
     // m_mutex but deliberately READ without it on hot paths (the examine()/
@@ -303,7 +305,8 @@ private:
     std::vector<CSInfo> colorspaces;
     std::string scene_linear_alias;  // Alias for a scene-linear color space
     std::string lin_srgb_alias;
-    std::string srgb_alias;
+    std::string srgb_display_alias;
+    std::string srgb_scene_alias;
     std::string ACEScg_alias;
     std::string Rec709_alias;
     mutable spin_rw_mutex m_mutex;
@@ -835,9 +838,9 @@ private:
 
     void debug_print_aliases()
     {
-        DBG("Aliases: scene_linear={}   lin_srgb={}   srgb={}   ACEScg={}   Rec709={}\n",
-            scene_linear_alias, lin_srgb_alias, srgb_alias, ACEScg_alias,
-            Rec709_alias);
+        DBG("Aliases: scene_linear={}   lin_srgb={}   srgb_display={}   srgb_scene={}   ACEScg={}   Rec709={}\n",
+            scene_linear_alias, lin_srgb_alias, srgb_display_alias,
+            srgb_scene_alias, ACEScg_alias, Rec709_alias);
     }
 
     // For OCIO 2.3+, we can ask for the equivalent of some built-in

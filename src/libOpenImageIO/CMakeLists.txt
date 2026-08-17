@@ -162,8 +162,6 @@ target_include_directories (OpenImageIO
                                 $<INSTALL_INTERFACE:include>
                             ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
                                 ${OPENEXR_INCLUDES}
-                            PRIVATE
-                                ${ROBINMAP_INCLUDES}
                             )
 
 if (NOT BUILD_SHARED_LIBS)
@@ -182,6 +180,7 @@ target_link_libraries (OpenImageIO
             ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
             ${OPENIMAGEIO_IMATH_TARGETS}
         PRIVATE
+            tsl::robin_map
             ${OPENIMAGEIO_OPENEXR_TARGETS}
             ${format_plugin_libs} # Add all the target link libraries from the plugins
             OpenColorIO::OpenColorIO
@@ -345,9 +344,9 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
 
     fancy_add_executable (NAME imagebufalgo_test SRC imagebufalgo_test.cpp
                           SYSTEM_INCLUDE_DIRS
-                                ${ROBINMAP_INCLUDES}
-                                ${OpenCV_INCLUDES}            
+                                ${OpenCV_INCLUDES}
                           LINK_LIBRARIES OpenImageIO
+                                         tsl::robin_map
                                          ${OpenCV_LIBRARIES}
                                          ${OPENIMAGEIO_IMATH_TARGETS}
                           FOLDER "Unit Tests" NO_INSTALL)

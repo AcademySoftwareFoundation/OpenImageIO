@@ -96,6 +96,18 @@ on:
       oiio_python_bindings_backend:
         type: string
         default: ''
+      fuzz_format:
+        type: string
+        default: ''
+        description: "If non-empty, run fuzz tests for this format after the build"
+      fuzz_max_time:
+        type: string
+        default: '3600'
+        description: "Max seconds for the fuzz run (-max_total_time)"
+      fuzz_corpus_lint:
+        type: boolean
+        default: false
+        description: "If true, verify every compiled-in format has a corpus directory"
     secrets:
         PASSED_GITHUB_TOKEN:
           required: false
@@ -153,7 +165,7 @@ jobs:
           curl --silent https://unofficial-builds.nodejs.org/download/release/v20.18.1/node-v20.18.1-linux-x64-glibc-217.tar.xz | tar -xJ --strip-components 1 -C /node20217 -f -
       - name: Checkout repo
         if: inputs.old_node != '1'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Checkout repo-OLD
         if: inputs.old_node == '1'
         # Must use an old checkout action for old containers
@@ -170,7 +182,7 @@ jobs:
       - name: ccache-restore
         if: inputs.old_node != '1'
         id: ccache-restore
-        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{inputs.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -193,7 +205,7 @@ jobs:
             sudo apt-get install -y g++-${{inputs.gcc_action_ver}}
       - name: Install python
         if: inputs.python_action_ver != ''
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: ${{ inputs.python_action_ver }}
       - name: Install LLVM and Clang
@@ -214,14 +226,14 @@ jobs:
             fi
       - name:  Install sonar-scanner and build-wrapper
         if: inputs.sonar == '1'
-        uses: sonarsource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9 # v7.0.0
+        uses: sonarsource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
       - name: Build
         if: inputs.skip_build != '1'
         shell: bash
         run: src/build-scripts/ci-build.bash
       - name: Check out ABI standard
         if: inputs.abi_check != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{inputs.abi_check}}
           path: abi_standard
@@ -236,7 +248,7 @@ jobs:
       - name: ccache-save
         if: inputs.old_node != '1'
         id: ccache-save
-        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{inputs.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -260,6 +272,52 @@ jobs:
         if: inputs.clang_format == '1'
         shell: bash
         run: src/build-scripts/run-clang-format.bash
+      - name: Check ABI
+        if: inputs.abi_check != ''
+        shell: bash
+        run: |
+            src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
+
+      - name: Checkout oiio-images for fuzz seeding
+        if: inputs.fuzz_format != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: AcademySoftwareFoundation/OpenImageIO-images
+          path: oiio-images
+          fetch-depth: 1
+      - name: Restore fuzz corpus cache
+        if: inputs.fuzz_format != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-
+            fuzz-corpus-${{ inputs.fuzz_format }}-
+          path: corpus/${{ inputs.fuzz_format }}
+      - name: Fuzz
+        id: fuzz
+        if: inputs.fuzz_format != '' || inputs.fuzz_corpus_lint
+        shell: bash
+        env:
+          OIIO_FUZZ_FORMAT: ${{ inputs.fuzz_format }}
+          OIIO_FUZZ_MAX_TIME: ${{ inputs.fuzz_max_time }}
+          OIIO_FUZZ_CORPUS_LINT: ${{ inputs.fuzz_corpus_lint }}
+        run: src/build-scripts/ci-fuzztest.bash
+      - name: Save fuzz corpus cache
+        if: always() && inputs.fuzz_format != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: fuzz-corpus-${{ inputs.fuzz_format }}-${{ github.ref_name }}-${{ github.run_id }}
+          path: corpus/${{ inputs.fuzz_format }}
+      - name: Upload fuzz crash artifacts
+        if: always() && inputs.fuzz_format != '' && steps.fuzz.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-crashes-${{ inputs.fuzz_format }}-${{ github.run_id }}
+          path: crash_${{ inputs.fuzz_format }}_*
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Code coverage
         if: inputs.coverage == '1'
         run: src/build-scripts/ci-coverage.bash
@@ -276,11 +334,6 @@ jobs:
             # sonar-scanner --define sonar.cfamily.compile-commands="${BUILD_WRAPPER_OUT_DIR}/compile_commands.json"
             time sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.compile-commands="$BUILD_WRAPPER_OUT_DIR/compile_commands.json" --define sonar.cfamily.gcov.reportsPath="_coverage" --define sonar.cfamily.threads="$PARALLEL"
         # Consult https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/ for more information and options
-      - name: Check ABI
-        if: inputs.abi_check != ''
-        shell: bash
-        run: |
-            src/build-scripts/ci-abicheck.bash ./build abi_standard/build libOpenImageIO libOpenImageIO_Util
       - name: Build Docs
         if: inputs.build_docs == '1'
         shell: bash
@@ -289,7 +342,7 @@ jobs:
             time make doxygen
             time make sphinx
       - name: Upload testsuite debugging artifacts
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ inputs.old_node != '1' && (failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '') }}
         with:
           name: oiio-${{github.job}}-${{inputs.nametag}}

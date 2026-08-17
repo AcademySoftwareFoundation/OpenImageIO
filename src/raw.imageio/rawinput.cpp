@@ -44,7 +44,7 @@ template<class T> using auto_ptr = unique_ptr<T>;
 #include <libraw/libraw.h>
 #include <libraw/libraw_version.h>
 
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 20, 0)
+#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
 #    error "OpenImageIO does not support such an old LibRaw"
 #endif
 
@@ -79,7 +79,10 @@ private:
     bool m_unpacked = false;
     std::unique_ptr<LibRaw> m_processor;
     libraw_processed_image_t* m_image = nullptr;
-    bool m_do_scene_linear_scale      = false;
+    libraw_processed_image_t* m_thumb = nullptr;
+    int m_thumb_index                 = -1;
+
+    bool m_do_scene_linear_scale = false;
     float m_camera_to_scene_linear_scale
         = (1.0f / 0.45f);  // see open_raw for details
     bool m_do_balance_clamped = false;
@@ -238,12 +241,17 @@ raw_input_imageio_create()
     return new RawInput;
 }
 
+// Note: intentionally NOT including "hdr" here. Although some Hasselblad raw
+// files use the .hdr extension, that collides with the far more common
+// Radiance HDR format handled by the hdr plugin. Let the Radiance hdr reader
+// get first crack at it. Genuine Hasselblad .hdr files are still detected via
+// the try_all_readers fallback (on by default).
 OIIO_EXPORT const char* raw_input_extensions[]
-    = { "bay", "bmq", "cr2", "cr3", "crw", "cs1", "dc2",  "dcr", "dng", "erf",
-        "fff", "hdr", "k25", "kdc", "mdc", "mos", "mrw",  "nef", "orf", "pef",
-        "pxn", "raf", "raw", "rdc", "sr2", "srf", "x3f",  "arw", "3fr", "cine",
-        "ia",  "kc2", "mef", "nrw", "qtk", "rw2", "sti",  "rwl", "srw", "drf",
-        "dsc", "ptx", "cap", "iiq", "rwz", "cr3", nullptr };
+    = { "bay", "bmq", "cr2", "cr3", "crw", "cs1",  "dc2", "dcr", "dng",  "erf",
+        "fff", "k25", "kdc", "mdc", "mos", "mrw",  "nef", "orf", "pef",  "pxn",
+        "raf", "raw", "rdc", "sr2", "srf", "x3f",  "arw", "3fr", "cine", "ia",
+        "kc2", "mef", "nrw", "qtk", "rw2", "sti",  "rwl", "srw", "drf",  "dsc",
+        "ptx", "cap", "iiq", "rwz", "cr3", nullptr };
 
 OIIO_PLUGIN_EXPORTS_END
 
@@ -385,9 +393,12 @@ RawInput::open(const std::string& name, ImageSpec& newspec,
     // will need to close and re-open with unpack=true if and when we need
     // the actual pixel values.
     bool ok = open_raw(force_load, force_load, m_filename, m_config);
-    if (ok)
-        newspec = m_spec;
-    return ok;
+    if (!ok) {
+        close();
+        return false;
+    }
+    newspec = m_spec;
+    return true;
 }
 
 
@@ -438,12 +449,28 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         return false;
     }
 
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
     // Cap LibRaw's internal allocations. This must be set *before* unpack().
     // Default max is 2048 MB.
-    m_processor->imgdata.rawparams.max_raw_memory_mb
-        = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
-#endif
+    int maxmem = config.get_int_attribute("raw:max_raw_memory_mb", 2048);
+    // In some versions of libraw, there is a known overflow if it's over
+    // 16384, so cap it.
+    m_processor->imgdata.rawparams.max_raw_memory_mb = std::min(maxmem, 16383);
+
+    // Guard against decompression bombs / corrupt headers before calling
+    // unpack(). LibRaw's own caps (65535/dimension, max_raw_memory_mb) are
+    // far larger than this and miss a bogus-but-plausible resolution from
+    // a truncated/fuzzed file; unpack() would then spend a long time
+    // decoding garbage instead of erroring out.
+    {
+        int64_t raw_width          = m_processor->imgdata.sizes.raw_width;
+        int64_t raw_height         = m_processor->imgdata.sizes.raw_height;
+        int64_t raw_bps            = m_processor->imgdata.rawdata.color.raw_bps;
+        imagesize_t declared_bytes = imagesize_t(raw_width) * raw_height
+                                     * raw_bps / 8;
+        imagesize_t filesize = Filesystem::file_size(name);
+        if (!check_compression_ratio(declared_bytes, filesize))
+            return false;
+    }
 
     OIIO_ASSERT(!m_unpacked);
     if (unpack) {
@@ -481,6 +508,12 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     // Move the exif attribs we already read into the spec we care about
     m_spec.extra_attribs.swap(exifspec.extra_attribs);
 
+    // Enforce OIIO's global decode-bomb limits (limits:resolution,
+    // limits:imagesize_MB) and LibRaw's own 65535-per-dimension cap.
+    // idata.colors maxes out at 4 (some 4-color CFA patterns).
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 }))
+        return false;
+
     // Output 16 bit images
     m_processor->imgdata.params.output_bps = 16;
 
@@ -498,13 +531,18 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         = config.get_int_attribute("raw:user_sat", 0);
     {
         auto p = config.find_attribute("raw:aber");
-        if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 2)) {
-            m_processor->imgdata.params.aber[0] = p->get<float>(0);
-            m_processor->imgdata.params.aber[2] = p->get<float>(1);
-        }
-        if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 2)) {
-            m_processor->imgdata.params.aber[0] = p->get<double>(0);
-            m_processor->imgdata.params.aber[2] = p->get<double>(1);
+        if (p) {
+            auto type = p->type();
+            if (type.equivalent(TypeDesc(TypeDesc::FLOAT, 2))
+                || type.equivalent(TypeFloat2)) {
+                m_processor->imgdata.params.aber[0] = p->get<float>(0);
+                m_processor->imgdata.params.aber[2] = p->get<float>(1);
+            } else if (type.equivalent(TypeDesc(TypeDesc::DOUBLE, 2))
+                       || type.equivalent(
+                           TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC2))) {
+                m_processor->imgdata.params.aber[0] = p->get<double>(0);
+                m_processor->imgdata.params.aber[2] = p->get<double>(1);
+            }
         }
     }
 
@@ -534,29 +572,38 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             m_processor->imgdata.params.use_auto_wb = 1;
             // White balancing to a box requires use_auto_wb = 1
             auto p = config.find_attribute("raw:greybox");
-            if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
-                // p->get<int>() didn't work for me here
-                m_processor->imgdata.params.greybox[0] = p->get_int_indexed(0);
-                m_processor->imgdata.params.greybox[1] = p->get_int_indexed(1);
-                m_processor->imgdata.params.greybox[2] = p->get_int_indexed(2);
-                m_processor->imgdata.params.greybox[3] = p->get_int_indexed(3);
+            if (p) {
+                auto type = p->type();
+                if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
+                    || type.equivalent(TypeDesc(TypeDesc::INT, TypeDesc::VEC4))
+                    || type.is_box2(TypeDesc::INT)) {
+                    m_processor->imgdata.params.greybox[0] = p->get<int>(0);
+                    m_processor->imgdata.params.greybox[1] = p->get<int>(1);
+                    m_processor->imgdata.params.greybox[2] = p->get<int>(2);
+                    m_processor->imgdata.params.greybox[3] = p->get<int>(3);
+                }
             }
         } else {
             // Set user white balance coefficients.
             // Only has effect if "raw:use_camera_wb" is equal to 0,
             // i.e. we are not using the camera white balance
             auto p = config.find_attribute("raw:user_mul");
-            if (p && p->type() == TypeDesc(TypeDesc::FLOAT, 4)) {
-                m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
-                m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
-                m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
-                m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
-            }
-            if (p && p->type() == TypeDesc(TypeDesc::DOUBLE, 4)) {
-                m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
-                m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
-                m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
-                m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+            if (p) {
+                auto type = p->type();
+                if (type.equivalent(TypeDesc(TypeDesc::FLOAT, 4))
+                    || type.equivalent(TypeFloat4)) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<float>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<float>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<float>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<float>(3);
+                } else if (type.equivalent(TypeDesc(TypeDesc::DOUBLE, 4))
+                           || type.equivalent(
+                               TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC4))) {
+                    m_processor->imgdata.params.user_mul[0] = p->get<double>(0);
+                    m_processor->imgdata.params.user_mul[1] = p->get<double>(1);
+                    m_processor->imgdata.params.user_mul[2] = p->get<double>(2);
+                    m_processor->imgdata.params.user_mul[3] = p->get<double>(3);
+                }
             }
         }
     }
@@ -631,24 +678,16 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_processor->imgdata.params.output_color = 6;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
     } else if (Strutil::iequals(cs, "DCI-P3")) {
         // DCI-P3
         m_processor->imgdata.params.output_color = 7;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-#endif
     } else if (Strutil::iequals(cs, "Rec2020")) {
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
         // Rec2020
         m_processor->imgdata.params.output_color = 8;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-#else
-        errorfmt("raw:ColorSpace value of \"{}\" is not supported by libRaw {}",
-                 cs, LIBRAW_VERSION_STR);
-        return false;
-#endif
     } else {
         errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
@@ -765,14 +804,17 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         ushort top_margin  = 0;
 
         auto p = config.find_attribute("raw:cropbox");
-        if (p && p->type() == TypeDesc(TypeDesc::INT, 4)) {
-            crop_left   = p->get_int_indexed(0);
-            crop_top    = p->get_int_indexed(1);
-            crop_width  = p->get_int_indexed(2);
-            crop_height = p->get_int_indexed(3);
-        }
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 21, 0)
-        else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
+        if (p) {
+            auto type = p->type();
+            if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
+                || type.equivalent(TypeDesc(TypeDesc::INT, TypeDesc::VEC4))
+                || type.is_box2(TypeDesc::INT)) {
+                crop_left   = p->get<int>(0);
+                crop_top    = p->get<int>(1);
+                crop_width  = p->get<int>(2);
+                crop_height = p->get<int>(3);
+            }
+        } else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
             crop_left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
             crop_top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
             crop_width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
@@ -780,16 +822,6 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             left_margin = m_processor->imgdata.sizes.left_margin;
             top_margin  = m_processor->imgdata.sizes.top_margin;
         }
-#else
-        else if (m_processor->imgdata.sizes.raw_inset_crop.cwidth != 0) {
-            crop_left   = m_processor->imgdata.sizes.raw_inset_crop.cleft;
-            crop_top    = m_processor->imgdata.sizes.raw_inset_crop.ctop;
-            crop_width  = m_processor->imgdata.sizes.raw_inset_crop.cwidth;
-            crop_height = m_processor->imgdata.sizes.raw_inset_crop.cheight;
-            left_margin = m_processor->imgdata.sizes.left_margin;
-            top_margin  = m_processor->imgdata.sizes.top_margin;
-        }
-#endif
         if (crop_width > 0 && crop_height > 0) {
             ushort image_width  = m_processor->imgdata.sizes.width;
             ushort image_height = m_processor->imgdata.sizes.height;
@@ -1069,7 +1101,81 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_spec.attribute("Orientation", original_flip);
     }
 
-    // FIXME -- thumbnail possibly in m_processor->imgdata.thumbnail
+    auto thumb_count = m_processor->imgdata.thumbs_list.thumbcount;
+    if (thumb_count > 0) {
+        m_thumb_index = config.get_int_attribute("raw:thumbnail_index", -1);
+
+        int width  = 0;
+        int height = 0;
+
+        if (m_thumb_index < -1) {
+            errorfmt("Invalid thumbnail index ({})", m_thumb_index);
+            return false;
+        }
+        if (m_thumb_index == -1) {
+            // Use the default from LibRaw, which will always be the largest one
+            width  = m_processor->imgdata.thumbnail.twidth;
+            height = m_processor->imgdata.thumbnail.theight;
+        } else {
+            m_thumb_index = std::min(m_thumb_index, thumb_count - 1);
+
+            // sort the thumbnails by their size if requested
+            int sort_order = config.get_int_attribute("raw:thumbnail_sort", 0);
+
+            if (sort_order < -1 || sort_order > 1) {
+                errorfmt("Invalid thumbnail sort order ({})", sort_order);
+                return false;
+            }
+
+            if (sort_order != 0) {
+                auto index_map = std::vector<size_t>(thumb_count);
+                for (auto i = 0; i < thumb_count; ++i)
+                    index_map[i] = i;
+
+                if (sort_order == -1) {
+                    std::sort(index_map.begin(), index_map.end(),
+                              [&](size_t a, size_t b) {
+                                  return m_processor->imgdata.thumbs_list
+                                             .thumblist[a]
+                                             .tlength
+                                         < m_processor->imgdata.thumbs_list
+                                               .thumblist[b]
+                                               .tlength;
+                              });
+                } else {
+                    std::sort(index_map.begin(), index_map.end(),
+                              [&](size_t a, size_t b) {
+                                  return m_processor->imgdata.thumbs_list
+                                             .thumblist[a]
+                                             .tlength
+                                         > m_processor->imgdata.thumbs_list
+                                               .thumblist[b]
+                                               .tlength;
+                              });
+                }
+
+                m_thumb_index = index_map[m_thumb_index];
+            }
+
+            width = m_processor->imgdata.thumbs_list.thumblist[m_thumb_index]
+                        .twidth;
+            height = m_processor->imgdata.thumbs_list.thumblist[m_thumb_index]
+                         .theight;
+        }
+
+        // LibRaw sometimes won't set the twidth/theight if the type is JPEG,
+        // however the OIIO::ImageBuf interface checks for non-zero
+        // "thumbnail_width" and "thumbnail_height" to determine if a thumbnail
+        // is present. In that case we set them to -1 which emables the ImageBuf
+        // interface but is clear that the dimensions have not been set.
+        if (width == 0)
+            width = -1;
+        if (height == 0)
+            height = -1;
+
+        m_spec.attribute("thumbnail_width", width);
+        m_spec.attribute("thumbnail_height", height);
+    }
 
     get_lensinfo();
     get_shootinginfo();
@@ -1129,29 +1235,6 @@ RawInput::get_makernotes_canon()
     MAKERF(ExposureMode);
     MAKERF(AESetting);
     MAKERF(ImageStabilization);
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    MAKERF(HighlightTonePriority);
-    MAKERF(FocusMode);
-    MAKER(AFPoint, 0);
-    MAKERF(FocusContinuous);
-    //  short        AFPointsInFocus30D;
-    //  uchar        AFPointsInFocus1D[8];
-    //  ushort       AFPointsInFocus5D;        /* bytes in reverse*/
-    MAKERF(AFAreaMode);
-    if (mn.AFAreaMode) {
-        MAKERF(NumAFPoints);
-        MAKERF(ValidAFPoints);
-        MAKERF(AFImageWidth);
-        MAKERF(AFImageHeight);
-        //  short        AFAreaWidths[61];
-        //  short        AFAreaHeights[61];
-        //  short        AFAreaXPositions[61];
-        //  short        AFAreaYPositions[61];
-        //  short        AFPointsInFocus[4]
-        //  short        AFPointsSelected[4];
-        //  ushort       PrimaryAFPoint;
-    }
-#endif
     MAKERF(FlashMode);
     MAKERF(FlashActivity);
     MAKER(FlashBits, 0);
@@ -1198,27 +1281,6 @@ RawInput::get_makernotes_nikon()
     MAKERF(ImageStabilization);
     MAKER(VibrationReduction, 0);
     MAKERF(VRMode);
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    MAKER(FocusMode, 0);
-    MAKERF(AFPoint);
-    MAKER(AFPointsInFocus, 0);
-    MAKERF(ContrastDetectAF);
-    MAKERF(AFAreaMode);
-    MAKERF(PhaseDetectAF);
-    if (mn.PhaseDetectAF) {
-        MAKER(PrimaryAFPoint, 0);
-        // uchar AFPointsUsed[29];
-    }
-    if (mn.ContrastDetectAF) {
-        MAKER(AFImageWidth, 0);
-        MAKER(AFImageHeight, 0);
-        MAKER(AFAreaXPposition, 0);
-        MAKER(AFAreaYPosition, 0);
-        MAKER(AFAreaWidth, 0);
-        MAKER(AFAreaHeight, 0);
-        MAKER(ContrastDetectAFInFocus, 0);
-    }
-#endif
     MAKER(FlashSetting, 0);
     MAKER(FlashType, 0);
     MAKERF(FlashExposureCompensation);
@@ -1338,11 +1400,6 @@ RawInput::get_makernotes_fuji()
     MAKERF(ExrMode);
     MAKERF(Macro);
     MAKERF(Rating);
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    MAKERF(FrameRate);
-    MAKERF(FrameWidth);
-    MAKERF(FrameHeight);
-#endif
 }
 
 
@@ -1517,12 +1574,7 @@ RawInput::get_colorinfo()
         add("raw", "dng:version", m_processor->imgdata.idata.dng_version);
 
         auto const& c = m_processor->imgdata.rawdata.color;
-
-#if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 20, 0)
         add("raw", "dng:baseline_exposure", c.dng_levels.baseline_exposure);
-#else
-        add("raw", "dng:baseline_exposure", c.baseline_exposure);
-#endif
 
         for (int i = 0; i < 2; i++) {
             std::string index = std::to_string(i + 1);
@@ -1551,6 +1603,12 @@ RawInput::close()
         LibRaw::dcraw_clear_mem(m_image);
         m_image = nullptr;
     }
+
+    if (m_thumb) {
+        LibRaw::dcraw_clear_mem(m_thumb);
+        m_thumb = nullptr;
+    }
+
     m_processor.reset();
     m_unpacked = false;
     m_process  = true;
@@ -1736,84 +1794,75 @@ bool
 RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
 {
     if (m_processor == nullptr) {
-        _errorfmt(this, subimage,
+        _errorfmt(this, m_thumb_index,
                   "ImageInput hasn't been initialised properly");
         return false;
     }
 
-#if LIBRAW_VERSION < LIBRAW_MAKE_VERSION(0, 21, 0)
-    if (subimage > 0) {
-        // Older versions of Libraw supported a single thumbnail per image.
-        // No error here.
-        return false;
-    }
-    int errcode = m_processor->unpack_thumb();
-    if (errcode != 0) {
-        if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_IMAGE)
-            _errorfmt(this, subimage, "unpack_thumb error");
-        return false;
-    }
-#else
-    int errcode = m_processor->unpack_thumb_ex(subimage);
+    int errcode;
+    if (m_thumb_index == -1)
+        errcode = m_processor->unpack_thumb();
+    else
+        errcode = m_processor->unpack_thumb_ex(m_thumb_index);
+
     if (errcode != 0) {
         if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_THUMBNAIL)
-            _errorfmt(this, subimage, "unpack_thumb_ex error");
+            _errorfmt(this, m_thumb_index, "unpack_thumb_ex error");
         return false;
     }
-#endif
 
-    libraw_processed_image_t* mem_thumb = m_processor->dcraw_make_mem_thumb(
-        &errcode);
-    if (mem_thumb == nullptr) {
-        _errorfmt(this, subimage, "dcraw_make_mem_thumb error");
-        return false;
+    if (!m_thumb) {
+        m_thumb = m_processor->dcraw_make_mem_thumb(&errcode);
+        if (m_thumb == nullptr) {
+            _errorfmt(this, m_thumb_index, "dcraw_make_mem_thumb error");
+            return false;
+        }
     }
 
     std::string image_type;
-    if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEG)
+    if (m_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEG)
         image_type = "jpeg";
-    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_BITMAP)
+    else if (m_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_BITMAP)
         image_type = "bmp";
 #if LIBRAW_VERSION >= LIBRAW_MAKE_VERSION(0, 22, 0)
-    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEGXL)
+    else if (m_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_JPEGXL)
         image_type = "jpegxl";
-    else if (mem_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_H265)
+    else if (m_thumb->type == LibRaw_image_formats::LIBRAW_IMAGE_H265)
         image_type = "h265";
 #endif
 
     if (image_type == "h265") {
-        _errorfmt(this, subimage, "h265 thumbnails are not supported yet");
+        _errorfmt(this, m_thumb_index, "h265 thumbnails are not supported yet");
         return false;
     }
 
     if (image_type.empty()) {
-        _errorfmt(this, subimage, "unknown image type {}",
-                  static_cast<int>(mem_thumb->type));
+        _errorfmt(this, m_thumb_index, "unknown image type {}",
+                  static_cast<int>(m_thumb->type));
         return false;
     }
 
     if (image_type == "bmp") {
-        size_t data_size = mem_thumb->width * mem_thumb->height
-                           * mem_thumb->colors;
-        if (data_size != mem_thumb->data_size)
+        size_t data_size = m_thumb->width * m_thumb->height * m_thumb->colors;
+        if (data_size != m_thumb->data_size)
             return false;
 
-        ImageSpec image_spec(mem_thumb->width, mem_thumb->height,
-                             mem_thumb->colors, TypeDesc::UCHAR);
+        ImageSpec image_spec(m_thumb->width, m_thumb->height, m_thumb->colors,
+                             TypeDesc::UCHAR);
         thumb.reset(image_spec);
-        thumb.set_pixels(thumb.roi_full(), TypeDesc::UCHAR, mem_thumb->data);
+        thumb.set_pixels(thumb.roi_full(), TypeDesc::UCHAR, m_thumb->data);
     } else {
         auto image_input = OIIO::ImageInput::create(image_type, false);
         if (image_input == nullptr) {
-            _errorfmt(this, subimage, "OIIO::ImageInput::create(\{}\") error",
-                      image_type);
+            _errorfmt(this, m_thumb_index,
+                      "OIIO::ImageInput::create(\{}\") error", image_type);
             return false;
         }
 
-        Filesystem::IOMemReader proxy(mem_thumb->data, mem_thumb->data_size);
+        Filesystem::IOMemReader proxy(m_thumb->data, m_thumb->data_size);
         bool result = image_input->valid_file(&proxy);
         if (!result) {
-            _errorfmt(this, subimage,
+            _errorfmt(this, m_thumb_index,
                       "the thumbnail is not a valid image of type \"{}\"",
                       image_type);
             return false;
@@ -1826,8 +1875,9 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         result = image_input->open("", image_spec, temp_spec);
         if (!result) {
             _errorfmt(
-                this, subimage,
-                "failed to initialise an ImageInput object with the thumbnail data");
+                this, m_thumb_index,
+                "failed to initialise an ImageInput object with the thumbnail"
+                " data");
             return false;
         }
 
@@ -1837,11 +1887,14 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
                                          thumb.localpixels());
         if (!result) {
             _errorfmt(
-                this, subimage,
-                "failed to initialise an ImageInput object of type \"{}\" with the thumbnail data",
+                this, m_thumb_index,
+                "failed to initialise an ImageInput object of type \"{}\" with"
+                " the thumbnail data",
                 image_type);
+            image_input->close();
             return false;
         }
+        image_input->close();
     }
 
     return true;

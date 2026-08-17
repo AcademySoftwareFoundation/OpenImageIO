@@ -9,5 +9,4 @@
 set (ENABLE_INSTALL_testtex OFF PARENT_SCOPE)
 
 fancy_add_executable (NAME testtex
-                      INCLUDE_DIRS ${ROBINMAP_INCLUDES}
-                      LINK_LIBRARIES OpenImageIO )
+                      LINK_LIBRARIES OpenImageIO tsl::robin_map )

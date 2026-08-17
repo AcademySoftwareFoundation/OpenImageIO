@@ -491,6 +491,11 @@ def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
             print ("#### Error: this command failed: ", sub_command)
             print ("FAIL")
             err = 1
+            if os.path.isfile("build.txt") :
+                print ("---   BUILD LOG   ---\n")
+                with open("build.txt", "r") as fbuild :
+                    print (fbuild.read())
+                print ("--- END BUILD LOG ---\n")
 
     for out in outputs :
         (prefix, extension) = os.path.splitext(out)

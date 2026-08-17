@@ -160,6 +160,7 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         || png_sig_cmp(sig, 0, 8)) {
         if (!has_error())
             errorfmt("Not a PNG file");
+        close();
         return false;  // Read failed
     }
 
@@ -180,6 +181,15 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
                                  m_filename);
     if (!ok || m_err
         || !check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 4 })) {
+        close();
+        return false;
+    }
+
+    // check_open's size cap still admits dimensions that are absurd for a tiny
+    // compressed file, so also bound the declared-vs-compressed ratio.
+    imagesize_t filesize = ioproxy() ? ioproxy()->size()
+                                     : Filesystem::file_size(m_filename);
+    if (!check_compression_ratio(m_spec, filesize)) {
         close();
         return false;
     }

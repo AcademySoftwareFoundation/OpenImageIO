@@ -767,8 +767,8 @@ ImageCacheFile::open(ImageCachePerThreadInfo* thread_info)
         // an unnecessary file open.
         std::string fmt;
         if (m_imagecache.trust_file_extensions()
-            && m_filename.find('?') != m_filename.npos)
-            fmt = OIIO::Filesystem::extension(fmt, false);
+            && m_filename.find('?') == m_filename.npos)
+            fmt = OIIO::Filesystem::extension(m_filename.string(), false);
         else
             fmt = m_filename.string();
         inp = ImageInput::create(fmt, false, &configspec, nullptr,

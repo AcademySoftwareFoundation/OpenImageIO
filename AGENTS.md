@@ -33,9 +33,13 @@ http://github.com/AcademySoftwareFoundation/OpenImageIO
 - `src/<FORMAT>.imageio/` : Per-format ImageInput/ImageOutput plugins.
 - `src/python/` : Python bindings using pybind11
 - `src/<TOOL>` : CLI tools (oiiotool, iinfo, iconvert, maketx, iv)
+- `src/fuzz/` : libFuzzer harness (`oiio_fuzz_image`, gated by
+  `OIIO_BUILD_FUZZ_TARGETS`) and per-format seed corpora; see
+  `docs/dev/fuzzing.md`
 - `testsuite/` : End-to-end/regression tests + reference outputs
 - `src/cmake/`,  `CMakeLists.txt` : Build system
 - `.github/workflows/ci.yml` : GitHub Actions CI
+- `.github/workflows/fuzz.yml` : Nightly/on-demand fuzz CI (per-format matrix)
 - `src/build-scripts`  Helper scripts used for build & CI
 - `src/doc/` : User manual source (+ Doxygen comments in the public headers)
 - `docs/dev/` : Developer documentation

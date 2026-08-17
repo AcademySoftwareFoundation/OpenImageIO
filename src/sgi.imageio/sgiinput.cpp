@@ -117,8 +117,10 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
         return false;
     ioseek(0);
 
-    if (!read_header())
+    if (!read_header()) {
+        close();
         return false;
+    }
 
     if (m_sgi_header.magic != sgi_pvt::SGI_MAGIC) {
         errorfmt("\"{}\" is not a SGI file, magic number doesn't match",
@@ -159,7 +161,8 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
                        m_sgi_header.bpc == 1 ? TypeDesc::UINT8
                                              : TypeDesc::UINT16);
 
-    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })) {
+    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, ioproxy()->size())) {
         close();
         return false;
     }
@@ -170,8 +173,10 @@ SgiInput::open(const std::string& name, ImageSpec& spec)
 
     if (m_sgi_header.storage == sgi_pvt::RLE) {
         m_spec.attribute("compression", "rle");
-        if (!read_offset_tables())
+        if (!read_offset_tables()) {
+            close();
             return false;
+        }
     }
 
     spec = m_spec;

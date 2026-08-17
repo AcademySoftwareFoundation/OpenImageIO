@@ -931,7 +931,7 @@ public:
 
 
 
-/// Working implementation of the abstract ImageCache class.
+/// Working implementation of the ImageCache class.
 ///
 /// Some of the methods require a pointer to the thread-specific IC data
 /// including microcache and statistics.

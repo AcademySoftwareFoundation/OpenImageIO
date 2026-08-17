@@ -889,6 +889,8 @@ TIFFInput::open(const std::string& name, ImageSpec& newspec)
 
     bool ok = seek_subimage(0, 0);
     newspec = spec();
+    if (!ok)
+        close();
     return ok;
 }
 
@@ -1024,27 +1026,14 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
                         { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
             return false;
 
-        // Guard against decompression bombs / corrupt headers. check_open's
-        // absolute size limit (limits:imagesize_MB) does not catch a bogus
-        // resolution that happens to land under the limit -- a tiny file
+        // Guard against decompression bombs / corrupt headers: a tiny file
         // claiming a multi-gigabyte image, which would then make the strip/
         // scanline readers below allocate and attempt to fill gigabytes of
-        // pixel data. A real TIFF that decodes to a large image is itself
-        // large (even with compression), so this does not reject genuine
-        // files; it only trips on tiny files claiming enormous resolutions.
-        {
-            const imagesize_t bomb_ratio = 10000;
-            imagesize_t uncompressed     = m_spec.image_bytes(true);
-            int64_t filesize             = ioproxy() ? ioproxy()->size()
-                                                     : Filesystem::file_size(m_filename);
-            if (uncompressed > (imagesize_t(1) << 30) && filesize > 0
-                && uncompressed > imagesize_t(filesize) * bomb_ratio) {
-                errorfmt("TIFF header claims a {} MB image from a {} byte file; "
-                         "probably a corrupt or malicious header",
-                         uncompressed >> 20, filesize);
-                return false;
-            }
-        }
+        // pixel data.
+        imagesize_t filesize = ioproxy() ? ioproxy()->size()
+                                         : Filesystem::file_size(m_filename);
+        if (!check_compression_ratio(m_spec, filesize))
+            return false;
         m_subimage = orig_subimage;
         m_miplevel = miplevel;
         return true;
@@ -1975,7 +1964,7 @@ TIFFInput::read_native_scanline_locked(int subimage, int miplevel, int y,
     }
 
     // Make sure there's enough scratch space
-    int nvals = m_spec.width * m_inputchannels;
+    imagesize_t nvals = imagesize_t(m_spec.width) * m_inputchannels;
     if (m_photometric == PHOTOMETRIC_PALETTE && m_bitspersample > 8)
         m_scratch.resize(nvals * 2);  // special case for 16 bit palette
     else
@@ -2292,6 +2281,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                          read_raw_strips ? "Raw" : "Encoded", y,
                          err.size() ? err.c_str() : "unknown error");
                 ok = false;
+                break;  // failed strip read -- bail, don't decompress
             }
             auto out            = this;
             auto uncompress_etc = [=, &ok](int /*id*/) {
@@ -2358,7 +2348,7 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
     // If we have left over scanlines, read them serially
     m_next_scanline = y - m_spec.y;
-    for (; y < yend; ++y) {
+    for (; ok && y < yend; ++y) {
         if (!read_native_scanline_locked(subimage, miplevel, y, data)) {
             ok = false;
             break;

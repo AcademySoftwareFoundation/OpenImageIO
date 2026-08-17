@@ -8,6 +8,7 @@
 
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/tiffutils.h>
@@ -72,6 +73,21 @@ is_icc_profile_marker(jpeg_saved_marker_ptr marker)
            && marker->data_length >= ICC_HEADER_SIZE
            && !memcmp(marker->data, icc_marker_prefix,
                       sizeof(icc_marker_prefix));
+}
+
+// Ultra HDR files using the ISO 21496-1 gain map format (as written by
+// libultrahdr 1.x) signal the gain map metadata in an APP2 marker whose
+// payload begins with "urn:iso:std:". This is distinct from the legacy Adobe
+// gain map format, which is detected via the "hdrgm:Version" XMP attribute.
+static const char iso_gainmap_marker_prefix[] = "urn:iso:std:";
+
+static bool
+is_iso_gainmap_marker(jpeg_saved_marker_ptr marker)
+{
+    return marker->marker == (JPEG_APP0 + 2)
+           && marker->data_length >= sizeof(iso_gainmap_marker_prefix) - 1
+           && !memcmp(marker->data, iso_gainmap_marker_prefix,
+                      sizeof(iso_gainmap_marker_prefix) - 1);
 }
 
 
@@ -197,6 +213,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     std::string proxytype     = m_io->proxytype();
     if (proxytype != "file" && proxytype != "memreader") {
         errorfmt("JPEG reader can't handle proxy type {}", proxytype);
+        close();
         return false;
     }
 
@@ -250,6 +267,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     // read the file parameters
     if (jpeg_read_header(&m_cinfo, FALSE) != JPEG_HEADER_OK || m_fatalerr) {
         errorfmt("Bad JPEG header for \"{}\"", filename());
+        close();
         return false;
     }
 
@@ -263,19 +281,49 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         m_cmyk                  = true;
     }
 
+    // Validate the declared resolution before jpeg_start_decompress or
+    // jpeg_read_coefficients, either of which may allocate buffers scaled to
+    // the full image size (a progressive JPEG allocates its whole-image
+    // coefficient array inside jpeg_start_decompress).
+    m_spec = ImageSpec(m_cinfo.image_width, m_cinfo.image_height, nchannels,
+                       TypeDesc::UINT8);
+
+    // Validity check resolutions.
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 })) {
+        close();
+        return false;
+    }
+
+    // check_open's size cap still admits dimensions that are absurd for a tiny
+    // file, so also bound the declared-vs-compressed ratio.
+    imagesize_t filesize = m_io ? m_io->size() : Filesystem::file_size(name);
+    if (!check_compression_ratio(m_spec, filesize)) {
+        close();
+        return false;
+    }
+
     if (m_raw)
         m_coeffs = jpeg_read_coefficients(&m_cinfo);
     else
         jpeg_start_decompress(&m_cinfo);  // start working
-    if (m_fatalerr)
+    if (m_fatalerr) {
+        close();
         return false;
+    }
     m_next_scanline = 0;  // next scanline we'll read
 
-    m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height, nchannels,
-                       TypeDesc::UINT8);
-
-    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 }))
-        return false;
+    // The output dimensions ought to match the header's, but re-validate if
+    // libjpeg adjusted them.
+    if (int(m_cinfo.output_width) != m_spec.width
+        || int(m_cinfo.output_height) != m_spec.height) {
+        m_spec = ImageSpec(m_cinfo.output_width, m_cinfo.output_height,
+                           nchannels, TypeDesc::UINT8);
+        if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 3 })
+            || !check_compression_ratio(m_spec, filesize)) {
+            close();
+            return false;
+        }
+    }
 
     // Assume JPEG is in sRGB unless the Exif or XMP tags say otherwise.
     m_spec.set_colorspace("srgb_rec709_scene");
@@ -292,17 +340,22 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
     if (!subsampling.empty())
         m_spec.attribute(JPEG_SUBSAMPLING_ATTR, subsampling);
 
+    bool iso_gainmap_signal = false;
     for (jpeg_saved_marker_ptr m = m_cinfo.marker_list; m; m = m->next) {
+        if (is_iso_gainmap_marker(m))
+            iso_gainmap_signal = true;
         if (is_exif_marker(m)) {
             // The block starts with "Exif\0\0", so skip 6 bytes to get
             // to the start of the actual Exif data TIFF directory
-            bool ok = decode_exif(string_view((char*)m->data + 6,
-                                              m->data_length - 6),
-                                  m_spec);
+            auto exif = cspan<uint8_t>((uint8_t*)m->data + 6,
+                                       m->data_length - 6);
+            bool ok   = decode_exif(exif, m_spec);
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
                 errorfmt("Could not decode Exif");
+                close();
                 return false;
             }
+            scan_for_thumbnail(exif);
         } else if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 28
                    && !strncmp((const char*)m->data,
                                "http://ns.adobe.com/xap/1.0/", 28)) {  //NOSONAR
@@ -314,6 +367,7 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
                 string_view((const char*)m->data, m->data_length));
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
                 errorfmt("Corrupted IPTC data");
+                close();
                 return false;
             }
         } else if (m->marker == JPEG_COM) {
@@ -393,10 +447,13 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
     // Try to interpret as Ultra HDR image.
     // The libultrahdr API requires to load the whole file content in memory
-    // therefore we first check for the presence of the "hdrgm:Version" metadata
-    // to avoid this costly process when not necessary.
+    // therefore we first check for a cheap signal of the format to avoid this
+    // costly process when not necessary. Two gain map formats are recognized:
+    // the legacy Adobe format, signaled by the "hdrgm:Version" XMP attribute,
+    // and the ISO 21496-1 format (written by libultrahdr 1.x), signaled by an
+    // APP2 "urn:iso:std:" marker.
     // https://developer.android.com/media/platform/hdr-image-format#signal_of_the_format
-    if (m_spec.find_attribute("hdrgm:Version"))
+    if (m_spec.find_attribute("hdrgm:Version") || iso_gainmap_signal)
         m_is_uhdr = read_uhdr(m_io);
 
     newspec = m_spec;
@@ -790,5 +847,134 @@ JpgInput::jpeg_decode_iptc(string_view buf)
 
     return decode_iptc_iim(buf, m_spec);
 }
+
+void
+JpgInput::scan_for_thumbnail(cspan<uint8_t> exif)
+{
+    bool host_little = littleendian();
+    bool file_little = (exif[0] == 0x49 && exif[1] == 0x49);
+    bool swab        = (host_little != file_little);
+
+    const uint8_t* soi_ptr = nullptr;
+    const uint8_t* eoi_ptr = nullptr;
+
+    size_t i = 0;
+    while (i < exif.size() - 1) {
+        if (exif[i] == 0xFF && exif[i + 1] == 0xD8) {
+            soi_ptr = &exif[i];
+            break;
+        }
+        i++;
+    }
+
+    if (!soi_ptr)
+        return;
+
+    // extract image properties along the way
+    uint16_t width  = 0;
+    uint16_t height = 0;
+    int numchan     = 0;
+
+    while (i < exif.size() - 1) {
+        if (exif[i++] == 0xFF) {
+            const auto marker = exif[i];
+            if (marker == 0xD9) {
+                eoi_ptr = &exif[i] + 1;  // one past (exclusive)
+                break;
+            } else if (marker == 0xC0 || marker == 0xC2) {
+                uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
+                height          = (exif.at(i + 5) << 8) + exif.at(i + 4);
+                width           = (exif.at(i + 7) << 8) + exif.at(i + 6);
+                numchan         = exif[i + 8];
+
+                if (swab) {
+                    swap_endian(&length);
+                    swap_endian(&height);
+                    swap_endian(&width);
+                }
+
+                length -= 2;
+
+                if (i + length < exif.size() - 1) {
+                    i += length;
+                }
+            } else if ((marker >= 0xC0 && marker < 0xD0)
+                       || (marker > 0xD9 && marker <= 0xFE)) {
+                // Skip ahead for markers that have an associated length
+                uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
+
+                if (swab) {
+                    swap_endian(&length);
+                }
+
+                length -= 2;
+
+                if (i + length < exif.size() - 1) {
+                    i += length;
+                }
+            }
+        }
+    }
+
+    if (eoi_ptr) {
+        m_thumbnail_data = cspan<uint8_t>(soi_ptr, eoi_ptr);
+        m_spec.attribute("thumbnail_width", width);
+        m_spec.attribute("thumbnail_height", height);
+        m_spec.attribute("thumbnail_nchannels", numchan);
+    }
+}
+
+bool
+JpgInput::get_thumbnail(ImageBuf& thumb, int subimage)
+{
+    if (!m_decomp_create) {
+        errorfmt("ImageInput hasn't been initialized properly");
+        return false;
+    }
+
+    if (m_thumbnail_data.empty()) {
+        errorfmt("No thumbnail found");
+        return false;
+    }
+
+    auto image_input = OIIO::ImageInput::create("jpeg", false);
+    if (image_input == nullptr) {
+        errorfmt("OIIO::ImageInput::create(\"jpeg\") error");
+        return false;
+    }
+
+    Filesystem::IOMemReader proxy(m_thumbnail_data.data(),
+                                  m_thumbnail_data.size());
+    bool result = image_input->valid_file(&proxy);
+    if (!result) {
+        errorfmt("the thumbnail is not a valid image of type \"jpeg\"");
+        return false;
+    }
+
+    ImageSpec temp_spec, image_spec;
+    Filesystem::IOProxy* pp = &proxy;
+    temp_spec.attribute("oiio:ioproxy", TypeDesc::PTR, &pp);
+
+    result = image_input->open("", image_spec, temp_spec);
+    if (!result) {
+        errorfmt("{}", image_input->geterror());
+        return false;
+    }
+
+    thumb.reset(image_spec);
+
+    result = image_input->read_image(0, 0, 0, image_spec.nchannels,
+                                     image_spec.format, thumb.localpixels());
+
+    if (!result) {
+        errorfmt("{}", image_input->geterror());
+        image_input->close();
+        return false;
+    }
+
+    image_input->close();
+    return true;
+}
+
 
 OIIO_PLUGIN_NAMESPACE_END
