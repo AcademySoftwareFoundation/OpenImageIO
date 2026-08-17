@@ -1,0 +1,3 @@
+ok   written EXR: CICP is stripped (no native slot)
+ok   written PNG: cICP chunk still emitted
+done.

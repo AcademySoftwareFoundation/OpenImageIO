@@ -1,0 +1,35 @@
+ocio_profile_version: 2.1
+
+name: infocfg
+search_path: ""
+roles:
+  default: ref
+  scene_linear: ref
+
+displays:
+  disp:
+    - !<View> {name: main, colorspace: screen}
+
+display_colorspaces:
+  - !<ColorSpace>
+    name: screen
+    encoding: sdr-video
+    from_display_reference: !<ExponentTransform> {value: [2.4, 2.4, 2.4, 1]}
+
+colorspaces:
+  - !<ColorSpace>
+    name: ref
+
+  - !<ColorSpace>
+    name: srgb_rec709_scene
+    aliases: [my_srgb]
+    encoding: sdr-video
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}
+
+  - !<ColorSpace>
+    name: rawdata
+    isdata: true
+
+  - !<ColorSpace>
+    name: plain_space
+    from_scene_reference: !<ExponentTransform> {value: [1.8, 1.8, 1.8, 1]}

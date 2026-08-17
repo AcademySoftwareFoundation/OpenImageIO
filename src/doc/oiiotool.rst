@@ -1861,6 +1861,60 @@ Writing images
         image. (The default is given by whether or not the `-a` option was
         used.)
 
+.. option:: --colorwriteplan <format>
+
+    Prints, without writing any file, the color metadata OIIO would write
+    for the current (top) image if it were output to a file of the named
+    format (e.g. ``png``, ``openexr``) -- and why. The report has one row
+    per color signal (CICP, chromaticities, gamma, ICC profile, color
+    interop ID, mastering display volume) giving the verdict (``write`` an
+    author-supplied value verbatim, ``derive`` a value from the color
+    space, ``suppress`` by policy, or ``omit``), the value that would be
+    written, and which layer decided it: the builtin default behavior, a
+    global ``oiio:colorpolicy:write:*`` attribute, a per-spec attribute on
+    the image, explicit metadata present on the image, or the format being
+    incapable of carrying the signal.
+
+    Example::
+
+        oiiotool input.exr --colorwriteplan png
+
+.. option:: --colorreadplan
+
+    Prints how the current (top) image's color metadata *was* resolved on
+    read -- the read-side twin of ``--colorwriteplan``. The report lists each
+    reconciliation rule the resolver tried, in precedence order (explicit
+    assignment, ACES container, file rules, color interop ID, CICP, ICC
+    profile, chromaticities, gamma, ...), its outcome (``matched``,
+    ``missed``, ``inapplicable``, or ``invalid``), and the candidate or reason
+    it recorded, followed by the final resolved color space and the rule that
+    decided it. No file is written.
+
+    Example::
+
+        oiiotool input.png --colorreadplan
+
+.. option:: --colorinfo <colorspaces>
+
+    Prints the characterization information the color config can supply
+    *cheaply* for each color space in the comma-separated list (each entry
+    may be a color space name, role, alias, or color interop ID). If the
+    list is empty (``""``), the current (top) image's color space is
+    reported instead. The report has one row per field -- image state,
+    color interop ID, encoding, range, equality ID, chromaticities,
+    transfer function -- giving a marker (``available``, ``derived``,
+    ``unavailable``, or ``uncomputed``) and the value. This command never
+    probes transforms or derives missing information: a field no prior
+    query has derived simply prints as ``uncomputed``, and a field that was
+    attempted but has no usable value prints as ``unavailable`` (for
+    example, ``range`` is never guessed). An unknown name in the list is
+    reported as an error through the usual error convention.
+
+    Example::
+
+        oiiotool --colorinfo "srgb_tx,ACEScg"
+        oiiotool input.exr --colorinfo ""
+
 .. option:: --colorcount r1,g1,b1,...:r2,g2,b2,...:...
 
     Given a list of colors separated by colons or semicolons, where each
@@ -4585,6 +4639,56 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
     This command was added in OIIO 2.4.6.
 
+.. option:: --colorspacesearch
+
+    Print to the console the names of the color spaces in the active
+    configuration whose derivable characteristics match a partial
+    description, one per line. This lets you ask "which color spaces in this
+    config have the Rec.709 gamut but are not scene-linear?" without knowing
+    the config's naming conventions. Each of the four hint axes is given as a
+    comma-separated list of terms through an appended modifier:
+
+    - `chromaticities=` *terms*, `transfer_function=` *terms*,
+      `encoding=` *terms*, `image_state=` *terms* :
+
+      The chromaticities (gamut), transfer-function, encoding, and
+      image-state axes. `chrm=` is an accepted shorthand for
+      `chromaticities=`, echoing PNG's `cHRM` chunk. A term
+      is matched by default; a leading `-` excludes proven matches; a leading
+      `~` keeps only spaces proven to have the opposite property; a backslash
+      escapes a leading operator. A returned space passes every axis that was
+      given. A term may be a color space name or alias, a known color interop
+      ID, or an axis-specific form (a gamut component such as `rec709`, a
+      transfer/curve name, an encoding name, or the image state `scene`,
+      `display`, or `all`).
+
+    - `include_inactive=` *val*, `include_context_sensitive=` *val*,
+      `include_complex=` *val* :
+
+      When nonzero, also consider (respectively) the config's inactive color
+      spaces, its context-sensitive spaces, and complex (non-simple) spaces
+      whose transforms are inspected exhaustively. `include_inactive`
+      defaults to 1 (inactive spaces are only hidden from user-facing
+      lists, so identification finds them); the others default to 0.
+
+    - `authored_encoding_only=` *val* :
+
+      When nonzero, the encoding axis matches only encodings authored in the
+      config. By default a candidate also matches through the encoding of
+      its interop-identity twin — both alongside an authored encoding and in
+      place of a missing one — so a LUT space tagged with a theatrical
+      interop ID but authored `sdr-video` matches searches for both
+      `sdr-video` and `sdr-cinema`. Defaults to 0.
+
+    A term may not contain a comma. A term containing a colon (for example
+    the color interop ID namespaces `custom:*`, `icc:*`, or
+    `<config>:local:*`) must be given as a quoted modifier value, since an
+    unquoted `:` is :program:`oiiotool`'s own option delimiter (remember
+    that the quotes themselves must survive your shell). Examples::
+
+        oiiotool --colorspacesearch:chromaticities=rec709:encoding=-scene-linear
+        oiiotool '--colorspacesearch:transfer_function="custom:acme:supercurve"'
+
 .. option:: --colorconfig <filename>
 
     Instruct :program:`oiiotool` to read an OCIO configuration from a custom
@@ -4628,6 +4732,36 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+Cross-config color space names
+-------------------------------
+
+If `--colorconvert` (or `--ociodisplay`) names a color space that your
+current OCIO configuration does not define, but the name is one of a small
+set of common, well-known color space identities that OpenImageIO
+recognizes, the conversion is not necessarily a hard error. As long as your
+configuration declares an `aces_interchange` role (directly, or via a scene
+color space OIIO can identify as one of those well-known identities),
+OpenImageIO can relate your configuration to the missing name through that
+shared identity and complete the conversion. The same applies when the
+*source* of an `--ociodisplay` transform is one of those well-known
+identities but your display/view are local. In both cases, nothing about a
+purely local conversion (both endpoints already defined by your
+configuration) is affected.
+
+OCIO's own `strictparsing` configuration setting governs what happens when
+this cannot be done: with strict parsing on, an unresolvable name is a hard
+error exactly as before. With strict parsing off, OpenImageIO instead warns
+and passes the image through unchanged, so a batch job does not stop over
+one unresolved name.
+
+None of this prints anything to the console by default. If a conversion had
+to be routed this way, or fell back to a pass-through, the reason is
+recorded as an error string on the color configuration (surfaced through the
+normal `oiiotool` error path on failure) and narrated on OpenImageIO's debug
+channel (`OPENIMAGEIO_DEBUG=1`). A configuration that cannot be related to
+any well-known identity at all is noted once per configuration on the debug
+channel the first time a cross-config conversion is attempted against it.
 
 .. option:: --tocolorspace <tospace>
 

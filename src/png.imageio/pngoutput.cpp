@@ -221,7 +221,7 @@ PNGOutput::open(const std::string& name, const ImageSpec& userspec,
 #endif
 
     s = PNG_pvt::write_info(m_png, m_info, m_color_type, m_spec, m_pngtext,
-                            m_convert_alpha, m_srgb, m_gamma);
+                            m_convert_alpha, m_srgb, m_gamma, m_filename);
 
     if (s.length()) {
         close();

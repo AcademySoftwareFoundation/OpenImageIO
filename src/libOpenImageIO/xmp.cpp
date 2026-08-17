@@ -144,6 +144,7 @@ static XMPtag xmptag[] = {
     { "Iptc4xmpExt:PersonInImage", "IPTC:PersonInImage", TypeDesc::STRING, IsList },
 
     { "aux:Firmware", "aux:Firmware", TypeDesc::STRING, 0},
+    { "aux:ColorInteropID", "colorInteropID", TypeDesc::STRING, 0},
 
     { "crs:AutoBrightness", "crs:AutoBrightness"  , TypeDesc::INT, IsBool },
     { "crs:AutoContrast", "crs:AutoContrast"    , TypeDesc::INT, IsBool },
@@ -831,6 +832,11 @@ encode_xmp(const ImageSpec& spec, bool minimal)
 
     xmp += encode_xmp_category(list, "tiff", "tiff:", NULL, NULL,
                                "http://ns.adobe.com/tiff/1.0/", minimal,
+                               XMP_attribs);  //NOSONAR
+    // aux: namespace -- carries the forced colorInteropID (spec 09 Feature 1)
+    // as an aux string attribute for formats with no native slot.
+    xmp += encode_xmp_category(list, "aux", "aux:", NULL, NULL,
+                               "http://ns.adobe.com/exif/1.0/aux/", minimal,
                                XMP_attribs);  //NOSONAR
 #if 0
     // Doesn't work yet

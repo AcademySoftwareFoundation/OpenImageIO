@@ -1,0 +1,46 @@
+consumer: named spaces =
+Color space info for "srgb_rec709_scene":
+  image_state       available    scene
+  color_interop_id  available    srgb_rec709_scene
+  encoding          available    sdr-video
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+Color space info for "rawdata":
+  image_state       unavailable  -
+  color_interop_id  available    data
+  encoding          unavailable  -
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+Color space info for "screen":
+  image_state       available    display
+  color_interop_id  unavailable  -
+  encoding          available    sdr-video
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+Color space info for "plain_space":
+  image_state       available    scene
+  color_interop_id  unavailable  -
+  encoding          unavailable  -
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+consumer: current image =
+Color space info for "srgb_rec709_scene":
+  image_state       available    scene
+  color_interop_id  available    srgb_rec709_scene
+  encoding          available    sdr-video
+  range             unavailable  -
+  equality_id       uncomputed   -
+  chromaticities    uncomputed   -
+  transfer_function uncomputed   -
+consumer: invalid name =
+oiiotool ERROR: --colorinfo : get_color_space_infos[1]: unknown color space "nope_xyzzy"
+Full command line was:
+> oiiotool -echo "consumer: invalid name =" --colorconfig src/colorinfo.ocio --colorinfo plain_space,nope_xyzzy

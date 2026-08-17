@@ -130,6 +130,10 @@ CXXFLAGS = "-Wno-error=stringop-overflow -Wno-pragmas"
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 # FIXME: Getting build problems when using WebP 1.6.0, so hold it back
 WebP_BUILD_VERSION = "1.5.0"
+# The commit hash pin in src/cmake/build_WebP.cmake is for v1.6.0; override
+# it to the v1.5.0 commit to match the held-back version above, else the
+# tag-verification check fails the wheel build.
+WebP_GIT_COMMIT = "a4d7a715337ded4451fec90ff8ce79728e04126c"
 
 [tool.cibuildwheel.windows.environment]
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"

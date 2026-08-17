@@ -1,0 +1,19 @@
+ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: raw_data
+  scene_linear: lin_ap1_scene
+file_rules:
+  - !<Rule> {name: oiio:default, colorspace: raw_data, regex: "$^", custom: {oiio:colorpolicy:read:cicp_state: scene}}
+  - !<Rule> {name: Default, colorspace: raw_data}
+displays:
+  disp:
+    - !<View> {name: view, colorspace: srgb_rec709_display}
+active_displays: [disp]
+active_views: [view]
+colorspaces:
+  - !<ColorSpace> {name: raw_data, isdata: true, aliases: [data]}
+  - !<ColorSpace> {name: lin_ap1_scene}
+  - !<ColorSpace> {name: srgb_rec709_scene}
+  - !<ColorSpace> {name: srgb_rec709_display}

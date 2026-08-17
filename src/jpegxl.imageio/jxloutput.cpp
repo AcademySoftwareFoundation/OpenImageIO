@@ -12,6 +12,8 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "color_pvt.h"
+
 #include <jxl/decode.h>
 #include <jxl/encode.h>
 #include <jxl/encode_cxx.h>
@@ -30,7 +32,12 @@ public:
     {
         return (feature == "alpha" || feature == "nchannels"
                 || feature == "exif" || feature == "ioproxy"
-                || feature == "tiles");
+                || feature == "tiles"
+                // JPEG XL carries CICP in its native colour-encoding field
+                // (JxlColorEncoding), which this writer builds from the CICP
+                // attribute below. It must be declared, or ImageOutput's
+                // check_open() strips the attribute before we ever see it.
+                || feature == "cicp");
     }
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode = Create) override;
@@ -376,6 +383,13 @@ JxlOutput::save_metadata(ImageSpec& m_spec, JxlEncoderPtr& encoder)
     // Write EXIF info
     std::vector<char> exif = { 0, 0, 0, 0 };
     encode_exif(m_spec, exif);
+
+    // Feature 1 (spec 09): JPEG XL has no native colorInteropID slot. Under the
+    // force_interop_id policy, stamp the derived id so the XMP packet below
+    // carries it; otherwise strip it so the file stays untagged. Must run
+    // BEFORE encode_xmp -- xmp.cpp maps colorInteropID to aux:ColorInteropID,
+    // so an authored id would otherwise leak past write:interop_id=never.
+    pvt::apply_forced_interop_id(m_spec, "jpegxl", m_filename);
 
     // Write XMP packet, if we have anything
     std::string xmp = encode_xmp(m_spec, true);

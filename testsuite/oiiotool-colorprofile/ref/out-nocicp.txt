@@ -1,0 +1,1 @@
+=== SKIPPED: libpng lacks cICP support (needs 1.6.46) -- this test observes profile selection through a cICP-tagged PNG ===

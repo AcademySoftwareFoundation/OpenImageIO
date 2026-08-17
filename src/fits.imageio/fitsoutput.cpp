@@ -5,6 +5,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/strutil.h>
 
+#include "color_pvt.h"
 #include "fits_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -187,6 +188,13 @@ FitsOutput::create_fits_header(void)
 {
     std::string header;
     create_basic_header(header);
+
+    // Feature 1 (spec 09): FITS has no native colorInteropID slot. Under the
+    // force_interop_id policy, stamp the derived id so the keyword loop below
+    // carries it; otherwise strip it so the file stays untagged. Must run
+    // BEFORE the loop -- every STRING attribute becomes a header card, so an
+    // authored id would otherwise leak past write:interop_id=never.
+    pvt::apply_forced_interop_id(m_spec, "fits", m_filename);
 
     //we add all keywords stored in ImageSpec to the FITS file
     for (size_t i = 0; i < m_spec.extra_attribs.size(); ++i) {

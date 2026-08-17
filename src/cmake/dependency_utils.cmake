@@ -727,10 +727,15 @@ macro (build_dependency_with_cmake pkgname)
 
     # Make sure to inherit CMAKE_IGNORE_PATH
     set(_pkg_CMAKE_ARGS ${_pkg_CMAKE_ARGS} ${_pkg_CMAKE_ARGS})
-    if (CMAKE_IGNORE_PATH)
-        string(REPLACE ";" "\\;" CMAKE_IGNORE_PATH_ESCAPED "${CMAKE_IGNORE_PATH}")
-        list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH_ESCAPED}")
-    endif()
+    # CMAKE_IGNORE_PREFIX_PATH too: unlike CMAKE_IGNORE_PATH it also blocks
+    # config-package prefix search, so child builds cannot resolve a system
+    # (e.g. Homebrew) copy of a dependency the parent build is ignoring.
+    foreach (_ignore_var IN ITEMS CMAKE_IGNORE_PATH CMAKE_IGNORE_PREFIX_PATH)
+        if (${_ignore_var})
+            string(REPLACE ";" "\\;" _ignore_escaped "${${_ignore_var}}")
+            list(APPEND _pkg_CMAKE_ARGS "-D${_ignore_var}=${_ignore_escaped}")
+        endif()
+    endforeach()
 
     # Pass along any CMAKE_MSVC_RUNTIME_LIBRARY
     if (WIN32 AND CMAKE_MSVC_RUNTIME_LIBRARY)

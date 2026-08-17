@@ -3,13 +3,20 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <algorithm>
+#include <cstring>
 #include <string>
 #include <unordered_map>
 
 #include <OpenImageIO/fmath.h>
+#include <OpenImageIO/hash.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
+#include <OpenImageIO/strutil.h>
 #include <OpenImageIO/tiffutils.h>
+
+#include "color_pvt.h"
+#include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -231,6 +238,84 @@ extract(cspan<uint8_t> iccdata, size_t& offset, ICCTag& result,
 }
 
 }  // namespace
+
+
+
+namespace pvt {
+
+namespace {
+    // Big-endian 32-bit read (all ICC integers are big-endian).
+    inline uint32_t icc_be32(const uint8_t* p)
+    {
+        return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16)
+               | (uint32_t(p[2]) << 8) | uint32_t(p[3]);
+    }
+}  // namespace
+
+
+bool
+is_icc_profile(cspan<uint8_t> iccdata)
+{
+    return std::size(iccdata) >= 132 && !memcmp(iccdata.data() + 36, "acsp", 4);
+}
+
+
+
+std::string
+icc_profile_identifier(cspan<uint8_t> iccdata)
+{
+    if (!is_icc_profile(iccdata))
+        return {};
+    // Always hash the exact bytes. ICC.1 v4 defines bytes 84-99 as a
+    // precomputed Profile ID, but that embedded field is written by the
+    // profile's creator and is routinely stale or forged: two different
+    // blobs carrying the same Profile ID would collide as cache /
+    // virtual-filename identity and hand one profile the other's cached
+    // processor. The embedded field may be *reported* wherever it is
+    // surfaced as metadata, but it is never a safe cache key.
+    return Strutil::fmt::format("{:016x}",
+                                xxhash::XXH64(iccdata.data(),
+                                              std::size(iccdata), 0));
+}
+
+
+
+bool
+icc_embedded_cicp(cspan<uint8_t> iccdata, int cicp[4])
+{
+    if (!is_icc_profile(iccdata) || iccdata[8] != 4)
+        return false;
+    const uint8_t* data  = iccdata.data();
+    const size_t size    = std::size(iccdata);
+    const uint32_t count = icc_be32(data + 128);
+    if (count > (size - 132) / 12)
+        return false;
+    for (uint32_t i = 0; i < count; ++i) {
+        const uint8_t* entry = data + 132 + size_t(i) * 12;
+        if (memcmp(entry, "cicp", 4) != 0)
+            continue;
+        const uint32_t tagoffset = icc_be32(entry + 4);
+        const uint32_t tagsize   = icc_be32(entry + 8);
+        // The cicpType tag is exactly 12 bytes: 'cicp', 4 reserved zero
+        // bytes, then the four H.273 code points.
+        if (tagsize != 12 || size_t(tagoffset) > size
+            || size_t(tagsize) > size - size_t(tagoffset))
+            return false;
+        const uint8_t* tag = data + tagoffset;
+        if (memcmp(tag, "cicp", 4) != 0
+            || std::any_of(tag + 4, tag + 8, [](uint8_t b) { return b != 0; })
+            || tag[11] > 1)
+            return false;
+        cicp[0] = tag[8];
+        cicp[1] = tag[9];
+        cicp[2] = tag[10];
+        cicp[3] = tag[11];
+        return true;
+    }
+    return false;
+}
+
+}  // namespace pvt
 
 OIIO_NAMESPACE_END
 

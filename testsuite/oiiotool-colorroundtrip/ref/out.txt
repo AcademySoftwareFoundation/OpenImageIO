@@ -1,0 +1,41 @@
+=== EXR: colorInteropID preserved -- CICP stripped ===
+    colorInteropID: "srgb_rec709_display"
+    oiio:ColorSpace: "srgb_rec709_display"
+=== PNG: round-trips as cICP chunk -- not colorInteropID ===
+    CICP: 1, 13, 0, 1
+    oiio:ColorSpace: "srgb_rec709_display"
+=== TIF: color identity dropped -- reads back untagged ===
+=== JPG: reader fixed sRGB assumption -- srgb_rec709_scene ===
+    oiio:ColorSpace: "srgb_rec709_scene"
+=== TIF forced: config-declared force -- colorInteropID carried ===
+    colorInteropID: "srgb_rec709_display"
+=== JPG forced: config-declared force -- colorInteropID carried ===
+    colorInteropID: "srgb_rec709_display"
+=== authored id at the writer boundary (default policy) ===
+leak.png: colorInteropID in file bytes = False
+leak.fits: colorInteropID in file bytes = False
+leak.tif: colorInteropID in file bytes = False
+leak.jpg: colorInteropID in file bytes = False
+leak.exr: colorInteropID in file bytes = True
+=== g26 default: canonicalized to g26_xyzd65_display on write ===
+    colorInteropID: "g26_xyzd65_display"
+=== g26 default: pixels CONVERTED not relabeled (differ from baseline) ===
+FAILURE
+=== broadcast: P3 -> Rec.2020 signal + narrow range (PNG cICP readback) ===
+    CICP: 9, 17, 0, 0
+=== broadcast: write plan for png -- Rec.2020 cICP + P3 MDCV volume ===
+  cicp            derive    builtin default     9/17/0/0
+  mdcv            derive    builtin default     0.68,0.32,0.265,0.69,0.15,0.06,0.3127,0.329
+=== broadcast: PNG mDCV chunk round-trip (ST 2086 P3-D65 volume, xy x50000 / luminance x10000) ===
+    mdcv_blue_x: 7500
+    mdcv_blue_y: 3000
+    mdcv_green_x: 13250
+    mdcv_green_y: 34500
+    mdcv_max_luminance: 10000000
+    mdcv_min_luminance: 1
+    mdcv_red_x: 34000
+    mdcv_red_y: 16000
+    mdcv_white_x: 15635
+    mdcv_white_y: 16450
+=== read-only: space declaring dcdm_p3d65 must NOT emit it on write ===
+  (no dcdm_p3d65 emitted)

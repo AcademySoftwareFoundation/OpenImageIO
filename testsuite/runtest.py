@@ -10,6 +10,7 @@ import sys
 import platform
 import subprocess
 import difflib
+import re
 import filecmp
 import shutil
 
@@ -74,6 +75,36 @@ OIIO_TESTSUITE_IMAGEDIR = make_relpath(OIIO_TESTSUITE_IMAGEDIR)
 # Set it back so tests can use it (python-imagebufalgo)
 os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
 
+# Silence OpenColorIO's own log output for the whole testsuite, unless the
+# caller deliberately asked for a level.
+#
+# OCIO writes warnings to stderr, and which warnings it writes depends on the
+# OCIO version -- e.g. a config carrying the `interop_id` ColorSpace key (legal
+# since config version 2.0 and understood by OCIO 2.5+) makes every OCIO older
+# than 2.5 emit "unknown key 'interop_id'" once per occurrence. That noise
+# lands in captured output and fails the reference comparison on the noise
+# alone, for tests whose behavior is identical. It made ~15 tests fail on the
+# 2.4 containers while passing on 2.5.
+#
+# No test in this suite consumes OCIO log output: no reference file contains
+# "OpenColorIO Warning" and no run.py asserts on it. So the log is pure noise
+# here, and the version-dependence of that noise is a portability hazard.
+# OCIO_LOGGING_LEVEL is read by OCIO itself (Logging.cpp) and overrides any
+# programmatic SetLoggingLevel. This suppresses logging only -- OCIO reports
+# real failures by throwing, not by logging.
+if 'OCIO_LOGGING_LEVEL' not in os.environ :
+    os.environ['OCIO_LOGGING_LEVEL'] = 'none'
+    os.putenv('OCIO_LOGGING_LEVEL', 'none')
+
+# Likewise pin OIIO's own debug chatter: debug builds default
+# OPENIMAGEIO_DEBUG=1, leaking advisory DBG lines into tests that capture
+# raw output, whose references expect the release default. Guarded, so a
+# test that deliberately captures the narration (color-interop-convert) or a
+# developer export still overrides.
+if 'OPENIMAGEIO_DEBUG' not in os.environ :
+    os.environ['OPENIMAGEIO_DEBUG'] = '0'
+    os.putenv('OPENIMAGEIO_DEBUG', '0')
+
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
@@ -98,6 +129,40 @@ ociover = subprocess.check_output([oiio_app('oiiotool').strip(),
 ociover = ociover.strip().decode('utf-8')[0:3]
 ociover = os.getenv('OCIO_VERSION_OVERRIDE', ociover)
 #print(f"OpenColorIO version = '{ociover}'")
+
+# libpng chunk capabilities, computed once for every test that needs them.
+#
+# PNG is the reference carrier for a couple of color signals, but the libpng
+# APIs for them are recent: png_set_cICP arrived in 1.6.46 and png_set_mDCV in
+# 1.6.50. Below those the writer/reader compile out (PNG_cICP_SUPPORTED /
+# PNG_mDCV_SUPPORTED) and silently no-op, so a test that asserts on the chunk
+# is asserting on something the build cannot do. The CI containers ship
+# PNG 1.6.34, which is exactly this case.
+#
+# Tests gate on these rather than parsing the version themselves, and a test
+# whose SUBJECT is one of these chunks should skip (loudly, with a marker in
+# its output) rather than assert a reduced result -- see the note in
+# oiiotool-colorprofile/run.py for why a "passing" reduced result is worse
+# than a skip. Override with PNG_VERSION_OVERRIDE for testing both paths.
+_pngver = os.getenv('PNG_VERSION_OVERRIDE', '')
+if not _pngver :
+    try :
+        _libdeps = subprocess.check_output(
+            [oiio_app('oiiotool').strip(), '--echo',
+             '{getattribute(build:dependencies)}']).decode('utf-8')
+        _m = re.search(r'[Pp][Nn][Gg][^0-9]*([0-9]+\.[0-9]+\.[0-9]+)', _libdeps)
+        _pngver = _m.group(1) if _m else ''
+    except Exception :
+        _pngver = ''
+def _pngtuple(s) :
+    try :
+        return tuple(int(x) for x in s.split('.')[:3])
+    except Exception :
+        return (0, 0, 0)
+png_version      = _pngver
+png_has_cicp     = _pngtuple(_pngver) >= (1, 6, 46)
+png_has_mdcv     = _pngtuple(_pngver) >= (1, 6, 50)
+#print(f"libpng {png_version} cicp={png_has_cicp} mdcv={png_has_mdcv}")
 
 command = ""
 outputs = [ "out.txt" ]    # default

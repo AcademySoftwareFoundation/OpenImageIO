@@ -22,7 +22,9 @@
 #include <OpenEXR/ImfOutputFile.h>
 #include <OpenEXR/ImfTiledOutputFile.h>
 
+#include "color_pvt.h"
 #include "exr_pvt.h"
+#include "imageio_pvt.h"
 
 // The way that OpenEXR uses dynamic casting for attributes requires
 // temporarily suspending "hidden" symbol visibility mode.
@@ -1040,13 +1042,68 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         }
     }
 
-    // Set color interop ID from colorspace
-    if (spec.get_string_attribute("colorInteropID").empty()) {
-        const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-        string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
-        string_view interop_id = colorconfig.get_color_interop_id(colorspace);
-        if (!interop_id.empty())
-            spec.attribute("colorInteropID", interop_id);
+    // Color metadata: consume the central write plan instead of deriving
+    // inline. EXR carries the color-interop-id string slot; the plan decides
+    // whether to emit an author-supplied id (already on the spec) or one
+    // derived from the color space. Chromaticities/CICP/etc. stay with EXR's
+    // existing (ACES-container) machinery -- generalizing those into the plan
+    // is a follow-on.
+    {
+        pvt::ColorWriteCaps caps = pvt::color_write_caps_for_format("openexr");
+        // Ambient config drives write policy (spec 09 layers 2/3). Layer-5
+        // (matched output-rule) is skipped here -- OpenEXROutput does not keep
+        // the output path handy, and EXR write caps are interop_id only; wiring
+        // the path through for EXR-write layer 5 is a small follow-up.
+        pvt::ColorMetadataPlan plan = pvt::plan_color_metadata(
+            nullptr, spec, caps,
+            pvt::ColorWritePolicy::snapshot(&spec, pvt::ambient_color_config()));
+        // B7 (spec 07): color identity is scoped to the whole file and
+        // belongs in the FIRST part's header only. Later parts are additional
+        // layers of one image, not independently-tagged images; the only
+        // colorInteropID a later part may carry is the "data" utility token
+        // (non-color layers forced onto R/G/B channels). Drop anything else so
+        // multi-part files are not over-tagged.
+        if (subimage != 0) {
+            if (spec.get_string_attribute("colorInteropID") != "data")
+                spec.erase_attribute("colorInteropID");
+        } else {
+            if (plan.interop_id.action == pvt::ColorPlanAction::Derive) {
+                spec.attribute("colorInteropID", plan.interop_id.str);
+            } else if (plan.interop_id.action == pvt::ColorPlanAction::Write) {
+                // B9.1 (spec 07): an author-supplied id (emitted verbatim by
+                // the generic metadata loop below) must be grammar-valid per
+                // spec 01 or be omitted -- never write a malformed id. The
+                // writer does not sanitize on the author's behalf.
+                if (!pvt::is_valid_interop_id(plan.interop_id.str))
+                    spec.erase_attribute("colorInteropID");
+            } else if (plan.interop_id.action
+                       == pvt::ColorPlanAction::Suppress) {
+                // Enforce the Suppress verdict at the writer boundary: an
+                // author-supplied id still sits in extra_attribs, and the
+                // generic metadata loop below would emit it anyway.
+                spec.erase_attribute("colorInteropID");
+            }
+
+            // B5 (spec 07): writing a colorInteropID makes chromaticities
+            // redundant derivable metadata that drifts -- suppress it. The one
+            // exception (B4) is an ST 2065-4 / ACES container, which REQUIRES
+            // AP0 chromaticities (stamped just above by set_aces_container_
+            // attributes and marked by acesImageContainerFlag); keep them
+            // there so this does not fight the container machinery.
+            if (plan.chromaticities.action == pvt::ColorPlanAction::Suppress
+                && spec.get_int_attribute("acesImageContainerFlag", 0) != 1)
+                spec.erase_attribute("chromaticities");
+
+            // Feature 2 (spec 09): verbose keeps the redundant chromaticities
+            // alongside the id. When the plan derived them (no authored value),
+            // stamp them so EXR's native chromaticities attribute carries them.
+            if (plan.chromaticities.action == pvt::ColorPlanAction::Derive
+                && plan.chromaticities.floats.size() == 8
+                && !spec.find_attribute("chromaticities"))
+                spec.attribute("chromaticities",
+                               OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
+                               plan.chromaticities.floats.data());
+        }
     }
 
     // Deal with all other params

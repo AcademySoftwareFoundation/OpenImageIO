@@ -5,6 +5,7 @@
 #include "py_oiio.h"
 #include <OpenImageIO/color.h>
 #include <optional>
+#include <string>
 #include <utility>
 
 namespace PyOpenImageIO {

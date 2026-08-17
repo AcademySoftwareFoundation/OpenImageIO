@@ -83,6 +83,16 @@ try:
 
     config = oiio.ColorConfig(str(TEST_CONFIG_PATH))
     print (f"Loaded test OCIO config: {TEST_CONFIG_PATH.name}")
+    # Bindings parity: the enriched resolve() stripped-namespace tier reaches
+    # a real alias through a namespace prefix it has never seen, where it
+    # used to only echo the input back unchanged.
+    print (f"resolve('myapp:g24_rec709'): {config.resolve('myapp:g24_rec709')}")
+    # get_color_interop_id is a CHEAP lookup (declared interop_id attribute
+    # or table name/alias match only): a space with no declared id and no
+    # table-name match returns empty here. The full derivation cascade
+    # (fingerprint match, config-local id generation) runs internally at
+    # write-planning time, not through this getter.
+    print (f"get_color_interop_id('Gamma 2.6 Encoded Rec.709 (sRGB)'): {config.get_color_interop_id('Gamma 2.6 Encoded Rec.709 (sRGB)')}")
     display = config.getDefaultDisplayName()
     default_cs = config.getColorSpaceFromFilepath("foo.exr")
     filepath_cs = config.getColorSpaceFromFilepath("foo_lin_ap1.exr")

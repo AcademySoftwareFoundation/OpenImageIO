@@ -1,0 +1,3 @@
+ok   written EXR: CICP is stripped (no native slot)
+skip written PNG: cICP chunk still emitted (libpng lacks cICP support, needs 1.6.46)
+done.

@@ -721,7 +721,12 @@ Section :ref:`sec-ImageSpec`, is replicated for Python.
 .. py:method:: bool ImageSpec.set_colorspace (name)
 
     Set metadata to indicate the presumed color space `name`, or clear all
-    such metadata if `name` is the empty string.
+    such metadata if `name` is the empty string. Asserting a different
+    space than the spec already claims also scrubs now-contradicting color
+    metadata (`colorInteropID`, `CICP`, `chromaticities`, `ICCProfile`,
+    gamma) and updates or erases any `oiio:ColorSpace:*` current-state
+    descriptors present, matching the hygiene the color-aware ImageBufAlgo
+    operations perform.
 
     This function was added in version 2.5.
 
@@ -4000,6 +4005,23 @@ is provided for minimal color support.
 ..
   TODO: The documentation for this class is incomplete.
 
+.. py:method:: resolve (name)
+
+    Turn `name` -- a color space name, alias, role, OIIO-understood universal
+    name (like `"sRGB"`), or a recognized Color Interop ID form -- into a
+    canonical color space name of this config.
+
+    If no syntactic tier recognizes the name, return `name` unchanged
+    (OpenImageIO's longstanding behavior).
+
+    Example:
+
+    .. code-block:: python
+
+        colorconfig = oiio.ColorConfig()
+        canonical = colorconfig.resolve("acescg")
+
+
 .. py:method:: get_cicp (colorspace)
 
     Find CICP code corresponding to the colorspace.
@@ -4113,7 +4135,11 @@ details.
 .. py:method:: set_colorspace (spec, name)
 
     Set the metadata of the `spec` to presume that color space is `name` (or
-    to assume nothing about the color space if `name` is empty).
+    to assume nothing about the color space if `name` is empty), applying
+    the same two-bucket metadata hygiene as `ImageSpec.set_colorspace`:
+    changing an existing claim scrubs now-contradicting color metadata and
+    updates or erases any `oiio:ColorSpace:*` current-state descriptors
+    present.
 
     Example:
 
@@ -4460,5 +4486,3 @@ Alternatively, if you prefer using `uv <https://github.com/astral-sh/uv>`_, you 
 .. code-block:: bash
 
     uv run --with jupyter jupyter lab
-
-

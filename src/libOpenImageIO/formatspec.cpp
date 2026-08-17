@@ -1277,8 +1277,13 @@ ImageSpec::decode_compression_metadata(string_view defaultcomp,
 void
 ImageSpec::set_colorspace(string_view colorspace)
 {
+    // Routes through the default config's set_colorspace, which carries
+    // the two-bucket hygiene contract (see ColorConfig::set_colorspace).
     ColorConfig::default_colorconfig().set_colorspace(*this, colorspace);
-    // Invalidate potentially contradictory metadata
+    // This convenience method additionally invalidates a CICP tuple even
+    // on the paths the hygiene leaves facts alone (first tagging, or
+    // re-asserting the current space) -- longstanding behavior the
+    // read-time metadata reconciler relies on.
     erase_attribute("CICP");
 }
 

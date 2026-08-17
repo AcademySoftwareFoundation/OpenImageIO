@@ -300,6 +300,8 @@ macro (oiio_add_all_tests)
         set (nanobind_python_test_suffix ".nanobind")
         if (OIIO_BUILD_PYTHON_PYBIND11)
             oiio_add_tests (
+                colorinfo
+                colorspacesearch
                 docs-examples-python
                 python-colorconfig
                 python-deep
@@ -312,6 +314,8 @@ macro (oiio_add_all_tests)
                 python-roi
                 python-texturesys
                 python-typedesc
+                sourceprovenance
+                cicp-write-strip
                 filters
                 ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
@@ -341,7 +345,21 @@ macro (oiio_add_all_tests)
     endif ()
 
     oiio_add_tests (oiiotool-color
+                    color-interop-convert
                     FOUNDVAR OpenColorIO_FOUND)
+
+    # These color tests drive oiiotool through POSIX-shell constructs
+    # (per-command `env VAR=` prefixes, single-quoted echo, grep pipelines)
+    # that cmd.exe cannot run; skip them on Windows until they are
+    # rewritten portably. The behavior they exercise is platform-neutral.
+    if (NOT WIN32)
+        oiio_add_tests (oiiotool-colorwriteplan)
+        oiio_add_tests (oiiotool-colorpolicy-config
+                        oiiotool-colorroundtrip
+                        oiiotool-colorverbose
+                        oiiotool-colorprofile
+                        FOUNDVAR OpenColorIO_FOUND)
+    endif ()
 
     # Tests to run with HWY enabled.
     # Remember to add tests here as hwy enabled IBA functions are added

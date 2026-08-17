@@ -1,0 +1,14 @@
+ocio_profile_version: 2
+environment: {}
+search_path: ""
+roles:
+  default: raw_data
+  scene_linear: lin_ap1_scene
+file_rules:
+  - !<Rule> {name: Default, colorspace: raw_data}
+colorspaces:
+  - !<ColorSpace> {name: raw_data, isdata: true, aliases: [data]}
+  - !<ColorSpace> {name: lin_ap1_scene}
+  # The config's own declaration that this data's color space is unknown.
+  # OIIO derives the internal "ocio:unknown" marker from it (ADR-0020).
+  - !<ColorSpace> {name: unknown}

@@ -13,6 +13,7 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
+#include "color_pvt.h"
 #include "jpeg_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -315,6 +316,11 @@ JpgOutput::open(const std::string& name, const ImageSpec& newspec,
     if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
                               "srgb_rec709_scene"))
         m_spec.attribute("Exif:ColorSpace", 1);
+
+    // Feature 1 (spec 09): JPEG has no native colorInteropID slot. Under the
+    // force_interop_id policy, stamp the derived id so the XMP emission below
+    // carries it; otherwise strip it so the file stays untagged.
+    pvt::apply_forced_interop_id(m_spec, "jpeg", name);
 
     // Write EXIF info
     std::vector<char> exif;

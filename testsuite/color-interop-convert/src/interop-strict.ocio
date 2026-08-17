@@ -1,0 +1,17 @@
+ocio_profile_version: 2.1
+strictparsing: true
+search_path: ""
+roles:
+  default: ap0
+  scene_linear: ap0
+  aces_interchange: ap0
+displays:
+  disp:
+    - !<View> {name: view1, colorspace: g22}
+colorspaces:
+  - !<ColorSpace>
+    name: ap0
+
+  - !<ColorSpace>
+    name: g22
+    from_scene_reference: !<ExponentTransform> {value: [2.2, 2.2, 2.2, 1]}

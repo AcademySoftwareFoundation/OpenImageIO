@@ -10,6 +10,12 @@
 #ifndef OPENIMAGEIO_IMAGEIO_PVT_H
 #define OPENIMAGEIO_IMAGEIO_PVT_H
 
+#include <array>
+#include <map>
+#include <mutex>
+#include <optional>
+#include <utility>
+
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/timer.h>
@@ -17,6 +23,7 @@
 
 
 OIIO_NAMESPACE_BEGIN
+
 // Note: Everything in pvt namespace is expected to be local to the library
 // and does not appear in exported headers that client software will see.
 // Therefore, it should all stay in the current namespace except where
@@ -132,6 +139,20 @@ parallel_convert_from_float(const float* src, void* dst, size_t nvals,
 /// incorrect files and it was fixed.
 OIIO_API bool
 check_texture_metadata_sanity(ImageSpec& spec);
+
+/// Deposit source-provenance attributes ("oiio:SourceFormat",
+/// "oiio:SourcePath") onto a freshly-read ImageSpec. ImageBuf::name() and
+/// ImageBuf::file_format_name() already answer this live for a directly
+/// held ImageBuf, but that instance state doesn't survive IBA ops,
+/// ImageCache round-trips, or serialization -- these spec attributes fill
+/// exactly that gap. See stdmetadata.rst.
+inline void
+set_source_provenance(ImageSpec& spec, string_view format_name,
+                      string_view filename)
+{
+    spec.attribute("oiio:SourceFormat", format_name);
+    spec.attribute("oiio:SourcePath", filename);
+}
 
 /// Get the timing report from log_time entries.
 OIIO_API std::string
@@ -282,6 +303,7 @@ device_unified_malloc(size_t size);
 /// Free compute device memory
 OIIO_API void
 device_free(void* mem);
+
 
 }  // namespace pvt
 

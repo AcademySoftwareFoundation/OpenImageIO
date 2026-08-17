@@ -18,6 +18,7 @@
 
 #include <OpenEXR/openexr.h>
 
+#include "color_pvt.h"
 #include "imageio_pvt.h"
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
@@ -212,6 +213,7 @@ private:
     int m_nsubimages;                   ///< How many subimages are there?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
     std::string m_filename;             // filename, if known
+    ImageSpec m_config;                 ///< Saved copy of configuration spec
 
     void init()
     {
@@ -221,6 +223,7 @@ private:
         m_local_io.reset();
         m_missingcolor.clear();
         m_filename.clear();
+        m_config = ImageSpec();
     }
 
     bool valid_file_or_proxy(const std::string& filename,
@@ -366,6 +369,7 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     // Check any other configuration hints
 
     m_filename = name;
+    m_config   = config;  // save config spec (per-open policy hints etc.)
 
     // "missingcolor" gives fill color for missing scanlines or tiles.
     if (const ParamValue* m = config.find_attribute("oiio:missingcolor")) {
@@ -822,12 +826,18 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 
     spec.attribute("oiio:subimages", in->m_nsubimages);
 
-    // Try to figure out the color space for some unambiguous cases
-    if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
-        spec.set_colorspace("lin_ap0_scene");
-    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
-        spec.set_colorspace(c->get_ustring());
-    }
+    // Hand the raw color attributes the header deposited to the one central
+    // color-metadata reconciler, which applies the audited precedence
+    // cascade (replacing this reader's former inline ACES-flag/colorInteropID
+    // special-casing, and matching the non-core OpenEXRInput reader).
+    // Per-open config hints override the global policy tier. With policy at
+    // its defaults the result is identical.
+    pvt::reconcile_color_metadata(
+        spec,
+        pvt::ColorReadPolicy::snapshot(&in->m_config,
+                                       pvt::ambient_color_config(),
+                                       in->m_filename),
+        "openexr");
 
     // Squash some problematic texture metadata if we suspect it's wrong
     pvt::check_texture_metadata_sanity(spec);

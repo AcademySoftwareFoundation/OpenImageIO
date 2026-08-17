@@ -7,6 +7,28 @@ if (VERBOSE)
 endif ()
 configure_file (buildopts.h.in "${CMAKE_BINARY_DIR}/include/buildopts.h" @ONLY)
 
+# Compile the built-in interop identities config (an OCIO config OIIO
+# ships with, similar in spirit to OCIO's own builtin configs) into a
+# header as a hex byte array, so it can be parsed at runtime with no
+# external file dependency.
+set (INTEROP_IDENTITIES_CONFIG_PATH
+     "${CMAKE_CURRENT_SOURCE_DIR}/interop-identities-config.ocio")
+# file(READ) does not create a configure-time dependency on its own, so an edit
+# to the .ocio would otherwise leave the embedded hex (and the parsed registry)
+# stale until the next manual reconfigure. Register it so CMake re-runs configure
+# when the config changes.
+set_property (DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+              "${INTEROP_IDENTITIES_CONFIG_PATH}")
+file (READ "${INTEROP_IDENTITIES_CONFIG_PATH}" INTEROP_HEX_CONTENTS HEX)
+string (REGEX MATCHALL "([A-Za-z0-9][A-Za-z0-9])" INTEROP_SEPARATED_HEX
+        "${INTEROP_HEX_CONTENTS}")
+list (JOIN INTEROP_SEPARATED_HEX ",0x" INTEROP_FORMATTED_HEX)
+string (PREPEND INTEROP_FORMATTED_HEX "0x")
+string (APPEND INTEROP_FORMATTED_HEX ",0x00")
+set (INTEROP_IDENTITIES_CONFIG_HEX ${INTEROP_FORMATTED_HEX})
+configure_file (interop_identities_config.h.in
+                 "${CMAKE_BINARY_DIR}/include/interop_identities_config.h" @ONLY)
+
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 
 if (NOT USE_EXTERNAL_PUGIXML)
@@ -50,6 +72,19 @@ set (libOpenImageIO_srcs
                           imageoutput.cpp
                           iptc.cpp xmp.cpp
                           color_ocio.cpp
+                          color_registry.cpp
+                          color_fingerprint.cpp
+                          color_crossconfig.cpp
+                          color_icc_probe.cpp
+                          color_search.cpp
+                          color_characterization.cpp
+                          interop_id.cpp
+                          curve_family.cpp
+                          chromaticity_match.cpp
+                          transfer_signature.cpp
+                          characterization_search.cpp
+                          color_metadata_resolver.cpp
+                          color_metadata_plan.cpp
                           maketexture.cpp
                           bluenoise.cpp
                           printinfo.cpp
@@ -200,7 +235,7 @@ if (CMAKE_UNITY_BUILD)
         # ${libOpenImageIO_srcs}
             deepdata.cpp exif.cpp exif-canon.cpp formatspec.cpp imagebuf.cpp
             imageinput.cpp imageio.cpp imageioplugin.cpp imageoutput.cpp
-            iptc.cpp xmp.cpp color_ocio.cpp maketexture.cpp bluenoise.cpp
+            iptc.cpp xmp.cpp color_ocio.cpp color_metadata_resolver.cpp color_metadata_plan.cpp maketexture.cpp bluenoise.cpp
         PROPERTIES
             UNITY_GROUP oiiolib)
     foreach (plugin_dir ${all_format_plugin_dirs} ../libtexture)
@@ -249,11 +284,52 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_color ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_test)
 
+    fancy_add_executable (NAME curve_family_test SRC curve_family_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_curve_family ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/curve_family_test)
+
+    fancy_add_executable (NAME chromaticity_match_test SRC chromaticity_match_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_chromaticity_match ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/chromaticity_match_test)
+
+    fancy_add_executable (NAME transfer_signature_test SRC transfer_signature_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_transfer_signature ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/transfer_signature_test)
+
+    fancy_add_executable (NAME characterization_search_test SRC characterization_search_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_characterization_search ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/characterization_search_test)
+
     fancy_add_executable (NAME image_span_test SRC image_span_test.cpp
                           LINK_LIBRARIES OpenImageIO Imath::Imath
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_image_span ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/image_span_test)
     set_tests_properties (unit_image_span PROPERTIES COST 10)
+
+    fancy_add_executable (NAME color_metadata_resolver_test
+                          SRC color_metadata_resolver_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_color_metadata_resolver
+              ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_metadata_resolver_test)
+
+    fancy_add_executable (NAME color_metadata_plan_test
+                          SRC color_metadata_plan_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_color_metadata_plan
+              ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_metadata_plan_test)
+
+    fancy_add_executable (NAME color_spec_resolve_test
+                          SRC color_spec_resolve_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    add_test (unit_color_spec_resolve
+              ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/color_spec_resolve_test)
 
     fancy_add_executable (NAME imagebuf_test SRC imagebuf_test.cpp
                           LINK_LIBRARIES OpenImageIO

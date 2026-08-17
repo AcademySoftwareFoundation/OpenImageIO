@@ -1,0 +1,10 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+// https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+// Generated at configure time from interop-identities-config.ocio; do not
+// edit. Re-run cmake to pick up changes to that file.
+
+#pragma once
+
+static const char kInteropIdentitiesConfig[] = { @INTEROP_IDENTITIES_CONFIG_HEX@ };

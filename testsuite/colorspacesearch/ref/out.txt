@@ -1,0 +1,38 @@
+consumer: rec709 gamut, nonlinear transfer =
+Gamma 1.8 Encoded Rec.709 (sRGB)
+Gamma 2.2 Encoded Rec.709 (sRGB)
+Gamma 2.2 Rec.709 - Display
+Gamma 2.4 Encoded Rec.709 (sRGB)
+Gamma 2.6 Encoded Rec.709 (sRGB)
+Rec.1886 Rec.709 - Display
+sRGB (~2.22) - Display
+sRGB Encoded Rec.709 (sRGB)
+Rec.709 (~1.95) Encoded Rec.709 (sRGB)
+consumer: srgb display-referred =
+sRGB (~2.22) - Display
+consumer: default universe =
+acme:special
+active_simple
+display_simple
+unknown_encoding
+inactive_simple
+consumer: active only =
+acme:special
+active_simple
+display_simple
+unknown_encoding
+consumer: encoding=scene-linear =
+acme:special
+active_simple
+inactive_simple
+consumer: encoding=~scene-linear =
+display_simple
+consumer: encoding=-scene-linear =
+display_simple
+unknown_encoding
+consumer: state=display =
+display_simple
+consumer: quoted colon-bearing term =
+acme:special
+active_simple
+inactive_simple

@@ -178,6 +178,39 @@ Color information
     pixel values are known to be scene-linear and using facility-default color
     primaries as defined by the OpenColorIO configuration.
 
+.. option:: "oiio:ColorSpace:state" : string
+            "oiio:ColorSpace:encoding" : string
+            "oiio:ColorSpace:range" : string
+            "oiio:ColorSpace:equality_id" : string
+
+    Current-state descriptors of the color channels, maintained
+    automatically (best-effort) by the color-aware `ImageBufAlgo`
+    operations to describe the pixels as they now are:
+
+    - `"oiio:ColorSpace:state"` : `"scene"` or `"display"` referred.
+    - `"oiio:ColorSpace:encoding"` : the color space's encoding, as
+      authored in (or derived for) the OpenColorIO config (e.g.
+      `"scene-linear"`, `"sdr-video"`).
+    - `"oiio:ColorSpace:range"` : `"full"` or `"narrow"` pixel value range.
+      Range describes pixel state: an operation that explicitly expands or
+      compresses range sets it, a range-preserving operation retains it,
+      and an ordinary color-space conversion never invents it.
+    - `"oiio:ColorSpace:equality_id"` : the mathematical-identity id
+      computed by a prior characterization of the color space, if one is
+      cached. A disparity between this and `"oiio:ColorSpace"` indicates
+      the metadata was changed by hand or resolution has not yet run.
+
+    Each descriptor is present only when its value is actually known:
+    color-aware operations update a descriptor when the destination
+    space supplies a value and erase it otherwise -- values are never
+    guessed. These attributes describe current state and therefore
+    survive color operations (updated, not scrubbed), unlike
+    file-provenance attributes (`"colorInteropID"`, `"CICP"`,
+    `"ICCProfile"`, `"chromaticities"`, `"oiio:Gamma"`,
+    `"acesImageContainerFlag"`), which describe what a source file
+    claimed and are removed by any operation that changes the color
+    space. Set metadata overrides after the last color operation.
+
 .. option:: "oiio:BorderColor" : float[nchannels]
 
     The color presumed to be filling any parts of the display/full image
@@ -194,6 +227,9 @@ Color information
     - `[1]` : transfer characteristics
     - `[2]` : matrix coefficients
     - `[3]` : full range flag
+
+    See :ref:`chap-colorinterop` for how CICP relates to color interop IDs
+    and how individual format plugins read and write it.
 
 .. option:: "ICCProfile" : uint8[]
             "ICCProfile:...various..." : ...various types...
@@ -230,6 +266,28 @@ Disk file format info/hints
     Whether the data in the file stored alpha channels (if any) that were
     unassociated with the color (i.e., color not "premultiplied" by the
     alpha coverage value).
+
+.. option:: "oiio:SourceFormat" : string
+
+    The name of the file format plugin (as returned by
+    `ImageInput::format_name()`) that read the pixels, e.g. `"openexr"` or
+    `"png"`. Deposited by the reader so that this information survives
+    `ImageBufAlgo` operations and `ImageCache` round-trips -- unlike
+    `ImageBuf::file_format_name()`, which only answers for the `ImageBuf`
+    instance that did the reading. Contains no private information, but
+    like other internal `"oiio:*"` metadata it is (currently) suppressed
+    by output plugins by default, so it does not yet round-trip through a
+    write; a future write-policy attribute may offer to preserve it.
+
+.. option:: "oiio:SourcePath" : string
+
+    The filename or path that was opened to read the pixels. Deposited by
+    the reader for the same reason as `"oiio:SourceFormat"`, but unlike that
+    attribute, this one can reveal an absolute local filesystem path. It is
+    **not** written to output files by default (suppressed the same way
+    other internal `"oiio:*"` metadata is), so that writing an image never
+    silently leaks the path of a file that contributed to it. A future
+    write-policy attribute may offer an opt-in to preserve it.
 
 .. option:: "planarconfig" : string
 

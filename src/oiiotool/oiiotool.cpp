@@ -39,6 +39,8 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/timer.h>
 
+#include "color_pvt.h"
+
 #ifndef NDEBUG
 #    define OIIO_UNIT_TEST_QUIET_SUCCESS
 #    include <OpenImageIO/unittest.h>
@@ -2387,6 +2389,71 @@ set_colorconfig(Oiiotool& ot, cspan<const char*> argv)
     if (!ot.colorconfig().reset(argv[1])) {
         ot.errorfmt("--colorconfig", "{}", ot.colorconfig().geterror());
     }
+}
+
+
+
+// --colorspacesearch
+// Query the color config for color spaces matching a partial characterization
+// and print their names, one per line. Each axis is given as a comma-separated
+// list of terms via the modifier options chromaticities= (shorthand chrm=,
+// echoing PNG's cHRM chunk), transfer_function=, encoding=, image_state=; the inclusion toggles include_inactive=,
+// include_context_sensitive=, include_complex=, and authored_encoding_only=
+// (no interop-identity twin inference on the encoding axis) mirror the
+// internal ColorSpaceSearchOptions fields.
+static void
+colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    string_view command = ot.express(argv[0]);
+    auto options        = ot.extract_options(command);
+
+    // Comma-splits each axis into terms. A term containing a colon (e.g. a
+    // custom:*, icc:*, or <config>:local:* interop ID) can be given by
+    // quoting the modifier value -- extract_options() takes a single- or
+    // double-quoted value whole, colons included, as in
+    //   --colorspacesearch:chromaticities="custom:acme:widegamut"
+    auto terms = [](string_view s) {
+        std::vector<std::string> out;
+        for (auto& t : Strutil::splitsv(s, ","))
+            if (t.size())
+                out.emplace_back(t);
+        return out;
+    };
+    // "chromaticities" is canonical; "chrm" is an accepted shorthand.
+    std::string chrm_terms = options.get_string("chromaticities");
+    if (chrm_terms.empty())
+        chrm_terms = options.get_string("chrm");
+    std::vector<std::string> chromaticities = terms(chrm_terms);
+    std::vector<std::string> transfer       = terms(
+        options.get_string("transfer_function"));
+    std::vector<std::string> encoding = terms(options.get_string("encoding"));
+    std::vector<std::string> image_state = terms(
+        options.get_string("image_state"));
+
+    // Absent modifiers keep the ColorSpaceSearchOptions defaults.
+    OIIO::ColorSpaceSearchOptions searchopts;
+    searchopts.include_inactive = options.get_int("include_inactive",
+                                                  searchopts.include_inactive);
+    searchopts.include_context_sensitive
+        = options.get_int("include_context_sensitive",
+                          searchopts.include_context_sensitive);
+    searchopts.include_complex = options.get_int("include_complex",
+                                                 searchopts.include_complex);
+    searchopts.authored_encoding_only
+        = options.get_int("authored_encoding_only",
+                          searchopts.authored_encoding_only);
+
+    std::vector<std::string> results
+        = ot.colorconfig().find_color_spaces(chromaticities, transfer, encoding,
+                                             image_state, searchopts);
+    if (ot.colorconfig().has_error()) {
+        ot.errorfmt("--colorspacesearch", "{}", ot.colorconfig().geterror());
+    } else {
+        for (auto& name : results)
+            Strutil::print("{}\n", name);
+    }
+    ot.printed_info = true;
 }
 
 
@@ -6207,6 +6274,31 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         }
     }
 
+    // Spec 09 Feature B (reconciler write-shape): apply the ambient config's
+    // write-canonical PIXEL conversion. When the policy maps this space to a
+    // canonical target that is a real colorimetric change (the DCDM
+    // g26_p3d65_display -> g26_xyzd65_display P3->XYZ + DCI-headroom mapping),
+    // the pixels are CONVERTED (through the embedded interop registry) and the
+    // buffer retagged, so the written identity matches the pixels rather than
+    // just relabeling them. No-op when no mapping applies.
+    {
+        bool converted = false;
+        for (int s = 0, send = ir->subimages(); s < send; ++s)
+            for (int m = 0, mend = ir->miplevels(s); m < mend; ++m)
+                if (pvt::apply_write_canonical_conversion((*ir)(s, m),
+                                                          &ot.colorconfig(),
+                                                          filename)) {
+                    // The pvt call retagged the ImageBuf's own spec in place;
+                    // sync the ImageRec's outer spec copy so the write and the
+                    // format writer's metadata plan see the canonical space.
+                    ir->update_spec_from_imagebuf(s, m);
+                    converted = true;
+                }
+        if (converted && ot.debug)
+            std::cout << "  Applied write-canonical color conversion for output "
+                      << "to " << filename << "\n";
+    }
+
     // Automatically crop out the negative areas if outputting to a format
     // that doesn't support negative origins.
     if (!supports_negativeorigin && autocrop
@@ -6496,6 +6588,132 @@ action_printinfo(Oiiotool& ot, cspan<const char*> argv)
     std::string errstring;
     print_info(std::cout, ot, top.get(), opt, errstring);
 
+    ot.printed_info = true;
+}
+
+
+
+// --colorwriteplan
+static void
+action_colorwriteplan(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 2);
+    if (ot.postpone_callback(1, action_colorwriteplan, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+    std::string format = ot.express(argv[1]);
+
+    if (!ot.read())
+        return;
+    ImageRecRef top = ot.top();
+    std::cout << pvt::render_color_write_plan(*top->spec(0, 0), format);
+    std::cout.flush();
+    ot.printed_info = true;
+}
+
+
+
+// --colorreadplan
+static void
+action_colorreadplan(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 1);
+    if (ot.postpone_callback(1, action_colorreadplan, argv))
+        return;
+    string_view command = ot.express(argv[0]);
+    OTScopedTimer timer(ot, command);
+
+    if (!ot.read())
+        return;
+    ImageRecRef top = ot.top();
+    std::cout << pvt::render_color_read_plan(*top->spec(0, 0));
+    std::cout.flush();
+    ot.printed_info = true;
+}
+
+
+
+// --colorinfo
+// Print the characterization info the color config can supply cheaply for
+// each named color space (a comma-separated list; an empty list means the
+// current top image's color space): one row per field with its
+// computed/available/derived marker. This is the command-line consumer of
+// the internal ColorConfig::get_color_space_info facade, and shares its cheap
+// contract -- nothing here probes transforms or derives missing fields;
+// underivable-so-far fields simply print as uncomputed.
+static void
+action_colorinfo(Oiiotool& ot, cspan<const char*> argv)
+{
+    OIIO_DASSERT(argv.size() == 2);
+    string_view command  = ot.express(argv[0]);
+    std::string namelist = ot.express(argv[1]);
+
+    std::vector<std::string> names;
+    for (auto& n : Strutil::splitsv(namelist, ","))
+        if (n.size())
+            names.emplace_back(n);
+    if (names.empty()) {
+        // No names given: report on the current top image's color space
+        // (only this form needs an image on the stack).
+        if (ot.postpone_callback(1, action_colorinfo, argv))
+            return;
+        if (!ot.read())
+            return;
+        std::string cs = ot.top()->spec(0, 0)->get_string_attribute(
+            "oiio:ColorSpace");
+        if (cs.empty()) {
+            ot.errorfmt(command,
+                        "the current image has no color space designation");
+            return;
+        }
+        names.push_back(cs);
+    }
+    OTScopedTimer timer(ot, command);
+
+    ColorConfig& cc  = ot.colorconfig();
+    const auto infos = cc.get_color_space_infos(names);
+    if (cc.has_error()) {
+        ot.errorfmt(command, "{}", cc.geterror());
+        return;
+    }
+
+    auto status = [](const ColorSpaceInfo& info, ColorSpaceInfoField field) {
+        if (!info.computed(field))
+            return "uncomputed";
+        if (!info.available(field))
+            return "unavailable";
+        return info.derived(field) ? "derived" : "available";
+    };
+    auto row = [&](const ColorSpaceInfo& info, const char* label,
+                   ColorSpaceInfoField field, const std::string& value) {
+        Strutil::print("  {:<17} {:<12} {}\n", label, status(info, field),
+                       value.empty() ? std::string("-") : value);
+    };
+    for (const ColorSpaceInfo& info : infos) {
+        using F = ColorSpaceInfoField;
+        Strutil::print("Color space info for \"{}\":\n", info.name());
+        row(info, "image_state", F::ImageState,
+            std::string(info.image_state()));
+        row(info, "color_interop_id", F::ColorInteropID,
+            std::string(info.color_interop_id()));
+        row(info, "encoding", F::Encoding, std::string(info.encoding()));
+        row(info, "range", F::Range, std::string(info.range()));
+        row(info, "equality_id", F::EqualityID,
+            std::string(info.equality_id()));
+        row(info, "chromaticities", F::Chromaticities,
+            Strutil::join(info.chromaticities(), ","));
+        std::string transfer;
+        switch (info.transfer_function_kind()) {
+        case ColorTransferFunctionKind::Linear: transfer = "linear"; break;
+        case ColorTransferFunctionKind::Named:
+            transfer = info.transfer_function();
+            break;
+        case ColorTransferFunctionKind::Sampled: transfer = "sampled"; break;
+        default: break;
+        }
+        row(info, "transfer_function", F::TransferFunction, transfer);
+    }
     ot.printed_info = true;
 }
 
@@ -7182,6 +7400,15 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--printstats")
       .help("Print pixel statistics of the current top image (options: allsubimages=, window=<geom>)")
       .OTACTION(action_printstats);
+    ap.arg("--colorwriteplan %s:FORMAT")
+      .help("Print the color metadata that would be written for the current top image if it were output to a file of the given format, and why (no file is written)")
+      .OTACTION(action_colorwriteplan);
+    ap.arg("--colorreadplan")
+      .help("Print how the current top image's color metadata was resolved: each read-side rule tried in order, its outcome, and the final color space")
+      .OTACTION(action_colorreadplan);
+    ap.arg("--colorinfo %s:COLORSPACES")
+      .help("Print the cheaply available characterization info (image state, color interop ID, encoding, range, and any cached derived facts) for each color space in the comma-separated list, or for the current top image's color space if the list is empty (\"\")")
+      .OTACTION(action_colorinfo);
     ap.arg("--colorcount %s:COLORLIST")
        .help("Count of how many pixels have the given color (argument: color;color;...) (options: eps=color)")
        .OTACTION(action_colorcount);
@@ -7613,6 +7840,13 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--colorconfig %s:FILENAME")
       .help("Explicitly specify an OCIO configuration file")
       .OTACTION(set_colorconfig);
+    ap.arg("--colorspacesearch")
+      .help("Print the color spaces matching a partial characterization "
+            "(options: chromaticities= (or chrm=), transfer_function=, "
+            "encoding=, image_state=, "
+            "include_inactive=, include_context_sensitive=, "
+            "include_complex=, authored_encoding_only=)")
+      .OTACTION(colorspacesearch);
     ap.arg("--iscolorspace %s:COLORSPACE")
       .help("Set the assumed color space (without altering pixels)")
       .OTACTION(action_iscolorspace);

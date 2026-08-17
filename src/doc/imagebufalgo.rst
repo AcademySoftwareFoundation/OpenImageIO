@@ -2961,6 +2961,16 @@ are often constructed from them:
 Color space conversion
 ======================
 
+The color-aware operations below automatically maintain the output's color
+metadata as a best-effort convenience (not a guarantee): the resulting
+`"oiio:ColorSpace"` and its current-state descriptors are updated when the
+resulting space is known, erased when it cannot be known, and left alone by
+space-preserving operations -- while stale file-provenance attributes
+(`"colorInteropID"`, `"CICP"`, `"ICCProfile"`, `"chromaticities"`,
+`"oiio:Gamma"`) are removed by any operation that changes the color space,
+whether the source was named explicitly or inferred. Set metadata overrides
+after the last color operation.
+
 .. doxygengroup:: colorconvert
 ..
 

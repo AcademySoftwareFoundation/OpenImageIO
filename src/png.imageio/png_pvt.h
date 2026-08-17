@@ -18,6 +18,9 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "color_pvt.h"
+#include "imageio_pvt.h"
+
 
 #define OIIO_LIBPNG_VERSION                                    \
     (PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 \
@@ -183,7 +186,8 @@ decode_png_text_exif(string_view raw, ImageSpec& spec)
 inline bool
 read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
           int& interlace_type, Imath::Color3f& bg, ImageSpec& spec,
-          bool keep_unassociated_alpha)
+          bool keep_unassociated_alpha, const ImageSpec* config_hints,
+          string_view filename = {})
 {
     // Must call this setjmp in every function that does PNG reads
     if (setjmp(png_jmpbuf(sp))) {  // NOLINT(cert-err52-cpp)
@@ -334,10 +338,31 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
             const int cicp[4] = { pri, trc, mtx, vfr };
             spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
-            const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-            string_view interop_id = colorconfig.get_color_interop_id(cicp);
-            if (!interop_id.empty())
-                spec.attribute("oiio:ColorSpace", interop_id);
+            // The CICP -> color-space override is applied centrally below.
+        }
+    }
+#endif
+
+#ifdef PNG_mDCV_SUPPORTED
+    // mDCV (SMPTE ST 2086) -> oicio's ST 2086 integer wire keys (spec 34):
+    // chromaticity xy x50000, luminance x10000, min floored at 1. libpng
+    // hands back WHITE-FIRST doubles; we reorder to the R,G,B,W attribute set.
+    {
+        double wx, wy, rx, ry, gx, gy, bx, by, maxl, minl;
+        if (png_get_mDCV(sp, ip, &wx, &wy, &rx, &ry, &gx, &gy, &bx, &by, &maxl,
+                         &minl)) {
+            spec.attribute("mdcv_red_x", (int)std::lround(rx * 50000.0));
+            spec.attribute("mdcv_red_y", (int)std::lround(ry * 50000.0));
+            spec.attribute("mdcv_green_x", (int)std::lround(gx * 50000.0));
+            spec.attribute("mdcv_green_y", (int)std::lround(gy * 50000.0));
+            spec.attribute("mdcv_blue_x", (int)std::lround(bx * 50000.0));
+            spec.attribute("mdcv_blue_y", (int)std::lround(by * 50000.0));
+            spec.attribute("mdcv_white_x", (int)std::lround(wx * 50000.0));
+            spec.attribute("mdcv_white_y", (int)std::lround(wy * 50000.0));
+            spec.attribute("mdcv_max_luminance",
+                           (int)std::lround(maxl * 10000.0));
+            int64_t mn = (int64_t)std::lround(minl * 10000.0);
+            spec.attribute("mdcv_min_luminance", (int)(mn < 1 ? 1 : mn));
         }
     }
 #endif
@@ -366,6 +391,17 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         spec.attribute("oiio:UnassociatedAlpha", (int)1);
 
     // FIXME -- look for an XMP packet in an iTXt chunk.
+
+    // Hand the raw color attributes just deposited to the central color-
+    // metadata reconciler, which applies the audited precedence cascade
+    // (replacing this reader's former inline CICP -> color-space override).
+    // Per-open config hints (if any) override the global policy tier. With
+    // policy at its defaults the resolved color space is identical.
+    pvt::reconcile_color_metadata(
+        spec,
+        pvt::ColorReadPolicy::snapshot(config_hints,
+                                       pvt::ambient_color_config(), filename),
+        "png");
 
     return ok;
 }
@@ -613,7 +649,7 @@ put_parameter(png_structp& sp, png_infop& ip, const std::string& _name,
 inline const std::string
 write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
            std::vector<png_text>& text, bool& convert_alpha, bool& srgb,
-           float& gamma)
+           float& gamma, string_view filename = {})
 {
     // Force either 16 or 8 bit integers
     if (spec.format == TypeDesc::UINT8 || spec.format == TypeDesc::INT8)
@@ -768,22 +804,105 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
                      (png_uint_32)(yres * scale), unittype);
     }
 
+    // Central write plan (spec 09): consume it instead of deriving inline.
+    // Drives the CICP chunk (below) and, under the verbose policy, the
+    // redundant cHRM/gAMA chunks (Feature 2).
+    const pvt::ColorMetadataPlan color_plan = pvt::plan_color_metadata(
+        nullptr, spec, pvt::color_write_caps_for_format("png"),
+        pvt::ColorWritePolicy::snapshot(&spec, pvt::ambient_color_config(),
+                                        filename));
+
 #ifdef PNG_cICP_SUPPORTED
-    // Only automatically determine CICP from oiio::ColorSpace if we didn't
-    // write colorspace metadata yet.
-    const ParamValue* p = spec.find_attribute(CICP_ATTR,
-                                              TypeDesc(TypeDesc::INT, 4));
-    cspan<int> cicp     = (p) ? p->as_cspan<int>()
-                          : (!wrote_colorspace) ? colorconfig.get_cicp(colorspace)
-                                                : cspan<int>();
-    if (!cicp.empty()) {
-        png_byte vals[4];
-        for (int i = 0; i < 4; ++i)
-            vals[i] = static_cast<png_byte>(cicp[i]);
-        if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
-            return "Could not set PNG cICP chunk";
-        // libpng will only write the chunk if the third byte is 0
-        png_set_cICP(sp, ip, vals[0], vals[1], (png_byte)0, vals[3]);
+    // CICP: the plan emits an author-supplied CICP tuple verbatim, or one
+    // derived from the color space. PNG only auto-derives a tuple when no other
+    // color-space chunk was already written; an explicitly authored tuple is
+    // always emitted.
+    {
+        const auto& cicp = color_plan.cicp;
+        const bool emit  = cicp.action == pvt::ColorPlanAction::Write
+                          || (cicp.action == pvt::ColorPlanAction::Derive
+                              && !wrote_colorspace);
+        if (emit && cicp.ints.size() == 4) {
+            png_byte vals[4];
+            for (int i = 0; i < 4; ++i)
+                vals[i] = static_cast<png_byte>(cicp.ints[i]);
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG cICP chunk";
+            // libpng will only write the chunk if the third byte is 0
+            png_set_cICP(sp, ip, vals[0], vals[1], (png_byte)0, vals[3]);
+        }
+    }
+#endif
+
+    // Feature 2 (spec 09): verbose/redundant emission. When the plan derives a
+    // chromaticities set and/or a pure-gamma value for a space that did not
+    // already write a color-space chunk, emit the redundant cHRM/gAMA chunks so
+    // every consumer finds a signal it understands. `floats` is R,G,B,W (x,y).
+    if (!wrote_colorspace) {
+        const auto& chrm = color_plan.chromaticities;
+        if (chrm.emit() && chrm.floats.size() == 8) {
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG cHRM chunk";
+            png_set_cHRM(sp, ip, chrm.floats[6], chrm.floats[7],  // white x,y
+                         chrm.floats[0], chrm.floats[1],          // red x,y
+                         chrm.floats[2], chrm.floats[3],          // green x,y
+                         chrm.floats[4], chrm.floats[5]);         // blue x,y
+        }
+        const auto& g = color_plan.gamma;
+        if (g.emit() && g.gamma > 0.0f) {
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG gAMA chunk";
+            png_set_gAMA(sp, ip, 1.0f / g.gamma);  // PNG stores file gamma
+        }
+    }
+
+#ifdef PNG_mDCV_SUPPORTED
+    // mDCV (SMPTE ST 2086 mastering-display colour volume). Adopt the sibling
+    // oicio project's exact wire keys (oicio spec 34, "Wire metadata keys"):
+    //   mdcv_{red,green,blue,white}_{x,y} = chromaticity xy scaled x50000
+    //   mdcv_{max,min}_luminance          = cd/m2 scaled x10000 (min floored 1)
+    // Source priority: explicit mdcv_* ImageSpec attributes win; otherwise,
+    // under the broadcast policy, bridge the plan's derived RGBW primaries
+    // (color_plan.mdcv.floats, a flat R,G,B,W xy float[8]) into a volume.
+    // libpng wants WHITE-FIRST doubles in [0,1] xy and nits luminance, so we
+    // reorder RGBW->WRGB and unscale (xy/50000, luminance/10000).
+    {
+        static const char* xykeys[8]
+            = { "mdcv_red_x",  "mdcv_red_y",  "mdcv_green_x", "mdcv_green_y",
+                "mdcv_blue_x", "mdcv_blue_y", "mdcv_white_x", "mdcv_white_y" };
+        int64_t xy[8];
+        bool have_xy = true;
+        for (int i = 0; i < 8; ++i) {
+            if (spec.find_attribute(xykeys[i]))
+                xy[i] = spec.get_int_attribute(xykeys[i]);
+            else {
+                have_xy = false;
+                break;
+            }
+        }
+        // Bridge the broadcast-derived primaries when no explicit xy present.
+        const auto& md = color_plan.mdcv;
+        if (!have_xy && md.emit() && md.floats.size() == 8) {
+            for (int i = 0; i < 8; ++i)
+                xy[i] = (int64_t)std::lround(md.floats[i] * 50000.0);
+            have_xy = true;
+        }
+        // ponytail: no photometric luminance probe here. oicio derives peak/
+        // black via a probe ladder (spec 34 tiers 2-4) not ported to OIIO; the
+        // interim is supplied-or-default. Default = P3 broadcast mastering
+        // display: 1000 nits peak, 0.0001 nit black (ST2086 min floor of 1).
+        // Override via the mdcv_max_luminance / mdcv_min_luminance attributes.
+        int64_t maxlum = spec.get_int_attribute("mdcv_max_luminance", 10000000);
+        int64_t minlum = spec.get_int_attribute("mdcv_min_luminance", 1);
+        if (have_xy) {
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG mDCV chunk";
+            png_set_mDCV(sp, ip, xy[6] / 50000.0, xy[7] / 50000.0,  // white x,y
+                         xy[0] / 50000.0, xy[1] / 50000.0,          // red x,y
+                         xy[2] / 50000.0, xy[3] / 50000.0,          // green x,y
+                         xy[4] / 50000.0, xy[5] / 50000.0,          // blue x,y
+                         maxlum / 10000.0, minlum / 10000.0);
+        }
     }
 #endif
 
@@ -793,6 +912,13 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
     png_set_eXIf_1(sp, ip, static_cast<png_uint_32>(exifBlob.size()),
                    reinterpret_cast<png_bytep>(exifBlob.data()));
 #endif
+
+    // Feature 1 (spec 09): PNG has no native colorInteropID slot. Under the
+    // force_interop_id policy, stamp the derived id so the tEXt emission below
+    // carries it; otherwise strip it so the file stays untagged. Must run
+    // BEFORE the generic loop -- that loop would otherwise emit an authored id
+    // as a tEXt chunk verbatim, ignoring write:interop_id=never.
+    pvt::apply_forced_interop_id(spec, "png", filename);
 
     // Deal with all other params
     for (size_t p = 0; p < spec.extra_attribs.size(); ++p)

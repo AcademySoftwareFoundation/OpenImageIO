@@ -1062,6 +1062,15 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
     // Note: we only overwrite m_spec if the requested mode was valid.
     m_spec = userspec;
 
+    // CICP (ITU-T H.273) is transport metadata: it may only ride in a format's
+    // native CICP slot (PNG's cICP chunk, HEIF's nclx, ...). A format that
+    // declares no such slot via supports("cicp") must strip it here so it never
+    // leaks into the container as a generic custom attribute -- the same
+    // write-side discipline the P6b provenance attributes follow. Formats with
+    // a slot keep it and emit it through their own writer path.
+    if (!supports("cicp"))
+        m_spec.erase_attribute("CICP");
+
     // Check for sensible resolutions, etc.
     if (m_spec.width > range.width() || m_spec.height > range.height()) {
         errorfmt("{} image resolution may not exceed {}x{}, you asked for {}x{}",
