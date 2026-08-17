@@ -4651,6 +4651,9 @@ test_config_archive()
 
     std::string wd = Filesystem::temp_directory_path()
                      + "/oiio_color_test_archive_wd";
+    // A crashed prior run can leave wd behind; start from a clean slate so
+    // the create below is meaningful either way.
+    Filesystem::remove_all(wd);
     OIIO_CHECK_ASSERT(Filesystem::create_directory(wd));
     std::string arc = Filesystem::temp_directory_path()
                       + "/oiio_color_test_archive.ocioz";

@@ -408,12 +408,12 @@ derive_mastering_volume(const ColorConfig& config, string_view display,
 /// keeps them in sync), so a color_space_analysis_flags() result can be
 /// tested against them.
 enum ColorSpaceAnalysis {
-    ColorSpaceIsData              = 64,    // "isdata: true" in the config
-    ColorSpaceIsUnique            = 128,   // has OCIO category "is-unique"
-    ColorSpaceShouldSkipMatching  = 256,   // never a matching candidate
-    ColorSpaceHasComplexTransform = 512,   // rejected by the simple allowlist
-    ColorSpaceIsSimple            = 1024,  // member of the simple set
-    ColorSpaceIsContextInvariant  = 2048,  // no context vars affect it
+    ColorSpaceIsData              = 128,   // "isdata: true" in the config
+    ColorSpaceIsUnique            = 256,   // has OCIO category "is-unique"
+    ColorSpaceShouldSkipMatching  = 512,   // never a matching candidate
+    ColorSpaceHasComplexTransform = 1024,  // rejected by the simple allowlist
+    ColorSpaceIsSimple            = 2048,  // member of the simple set
+    ColorSpaceIsContextInvariant  = 4096,  // no context vars affect it
 };
 
 /// Compute (lazily, on first request for this config) and return the interop
