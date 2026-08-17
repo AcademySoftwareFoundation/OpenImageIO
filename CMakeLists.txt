@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-cmake_minimum_required (VERSION 3.22.0...4.0)
+cmake_minimum_required (VERSION 3.23.0...4.0)
 
 set (OpenImageIO_VERSION "3.2.0.2")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING

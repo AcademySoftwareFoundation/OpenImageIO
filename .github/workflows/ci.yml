@@ -481,7 +481,7 @@ jobs:
             python_ver: "3.9"
             python_action_ver: "3.9"
             gcc_action_ver: 9
-            setenvs: export  CMAKE_VERSION=3.22.0
+            setenvs: export  CMAKE_VERSION=3.23.0
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.11
@@ -510,7 +510,7 @@ jobs:
             python_ver: "3.9"
             python_action_ver: "3.9"
             llvm_action_ver: "11"
-            setenvs: export CMAKE_VERSION=3.22.0
+            setenvs: export CMAKE_VERSION=3.23.0
                             PTEX_VERSION=v2.3.2
                             WEBP_VERSION=v1.1.0
                             PUGIXML_VERSION=v1.11
@@ -550,7 +550,7 @@ jobs:
             gcc_action_ver: 9
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
-                             CMAKE_VERSION=3.22.0
+                             CMAKE_VERSION=3.23.0
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              USE_JPEGTURBO=0
