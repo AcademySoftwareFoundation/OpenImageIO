@@ -246,6 +246,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
 
     if (!valid_file(m_io)) {
         errorfmt("\"{}\" is not an OpenEXR file", name);
+        close();
         return false;
     }
 
@@ -289,6 +290,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
             std::string e = m_io->error();
             errorfmt("Could not open \"{}\" ({})", name,
                      e.size() ? e : std::string("unknown error"));
+            close();
             return false;
         }
         m_io->seek(0);
@@ -296,10 +298,12 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     } catch (const std::exception& e) {
         m_input_stream = NULL;
         errorfmt("OpenEXR exception: {}", e.what());
+        close();
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
         m_input_stream = NULL;
         errorfmt("OpenEXR exception: unknown");
+        close();
         return false;
     }
 
@@ -308,13 +312,12 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     try {
         m_input_multipart = new Imf::MultiPartInputFile(*m_input_stream);
     } catch (const std::exception& e) {
-        delete m_input_stream;
-        m_input_stream = NULL;
         errorfmt("OpenEXR exception: {}", e.what());
+        close();
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
-        m_input_stream = NULL;
         errorfmt("OpenEXR exception: unknown");
+        close();
         return false;
     }
 

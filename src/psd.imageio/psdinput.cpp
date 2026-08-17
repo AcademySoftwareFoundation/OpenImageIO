@@ -587,6 +587,7 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
     // File Header
     if (!load_header()) {
         errorfmt("failed to open \"{}\": failed load_header", name);
+        close();
         return false;
     }
 
@@ -610,36 +611,42 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
     // Color Mode Data
     if (!load_color_data()) {
         errorfmt("failed to open \"{}\": failed load_color_data", name);
+        close();
         return false;
     }
 
     // Image Resources
     if (!load_resources()) {
         errorfmt("failed to open \"{}\": failed load_resources", name);
+        close();
         return false;
     }
 
     // Layers
     if (!load_layers()) {
         errorfmt("failed to open \"{}\": failed load_layers", name);
+        close();
         return false;
     }
 
     // Global Mask Info
     if (!load_global_mask_info()) {
         errorfmt("failed to open \"{}\": failed load_global_mask_info", name);
+        close();
         return false;
     }
 
     // Global Additional Layer Info
     if (!load_global_additional()) {
         errorfmt("failed to open \"{}\": failed load_global_additional", name);
+        close();
         return false;
     }
 
     // Image Data
     if (!load_image_data()) {
         errorfmt("failed to open \"{}\": failed load_image_data", name);
+        close();
         return false;
     }
 

@@ -65,3 +65,6 @@ command += info_command ("src/crash-3950.dds", hash=True)
 # crash-bpp.dds has a corrupt bytes-per-pixel that used to drive a multi-GB
 # allocation (OOM) before the native bpp was sanity-checked.
 command += info_command ("src/crash-bpp.dds", hash=True)
+# Tiny file declaring a huge DXT5 image (decompression bomb) is rejected
+# before the m_buf allocation.
+command += info_command ("src/crash-bomb-32768.dds", hash=True)

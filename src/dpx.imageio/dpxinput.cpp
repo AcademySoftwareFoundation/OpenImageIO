@@ -145,6 +145,7 @@ DPXInput::open(const std::string& name, ImageSpec& newspec)
     m_stream   = new InStream(ioproxy());
     if (!m_stream) {
         errorfmt("Could not open file \"{}\"", name);
+        close();
         return false;
     }
 

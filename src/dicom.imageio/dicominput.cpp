@@ -109,7 +109,11 @@ DICOMInput::open(const std::string& name, ImageSpec& newspec,
 
     bool ok = seek_subimage(0, 0);
     newspec = spec();
-    return ok;
+    if (!ok) {
+        close();
+        return false;
+    }
+    return true;
 }
 
 

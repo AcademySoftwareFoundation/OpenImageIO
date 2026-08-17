@@ -1100,7 +1100,7 @@ hwy_binary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
                 (void)ba;
 
                 using DstLaneT = HwyLaneTypeT<Rtype>;
-                auto d_dstlane = hn::Rebind<DstLaneT, decltype(d)>();
+                auto d_dstlane = hn::Rebind<DstLaneT, hn::ScalableTag<MathT>>();
                 hn::Vec<decltype(d_dstlane)> dr, dg, db, da;
                 hn::LoadInterleaved4(d_dstlane,
                                      reinterpret_cast<const DstLaneT*>(r_row
@@ -1189,7 +1189,7 @@ hwy_ternary_perpixel_op_rgba_rgb_roi(ImageBuf& R, const ImageBuf& A,
                 (void)ca;
 
                 using DstLaneT = HwyLaneTypeT<Rtype>;
-                auto d_dstlane = hn::Rebind<DstLaneT, decltype(d)>();
+                auto d_dstlane = hn::Rebind<DstLaneT, hn::ScalableTag<MathT>>();
                 hn::Vec<decltype(d_dstlane)> dr, dg, db, da;
                 hn::LoadInterleaved4(d_dstlane,
                                      reinterpret_cast<const DstLaneT*>(r_row
