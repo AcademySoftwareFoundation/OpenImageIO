@@ -224,19 +224,21 @@ test_universe_and_visibility()
     ColorConfig config = config_from_text(dir, "search.ocio", kSearchConfig);
 
     pvt::FindColorSpacesOptions opt;
-    // Default universe: active/display simple spaces + the matrix space; the
-    // data space and inactive space are absent.
-    OIIO_CHECK_ASSERT(
-        pvt::find_color_spaces(config, opt)
-        == std::vector<std::string>(
-            { "active_simple", "display_simple", "unknown_encoding" }));
-
-    // include_inactive appends the inactive simple space.
-    opt.include_inactive = true;
+    // Default universe: active and inactive simple spaces + the matrix
+    // space; the data space is absent. (Inactive spaces are searched by
+    // default, matching upstream's always-enumerate + active-flag model.)
     OIIO_CHECK_ASSERT(
         pvt::find_color_spaces(config, opt)
         == std::vector<std::string>({ "active_simple", "display_simple",
                                       "unknown_encoding", "inactive_simple" }));
+
+    // include_inactive = false restricts to active spaces.
+    opt.include_inactive = false;
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, opt)
+        == std::vector<std::string>(
+            { "active_simple", "display_simple", "unknown_encoding" }));
+    opt.include_inactive = true;
 
     // Active off, inactive on: only the inactive space.
     opt.include_active = false;
@@ -398,11 +400,13 @@ test_encoding_three_valued_split()
     ScratchDir dir;
     ColorConfig config = config_from_text(dir, "search.ocio", kSearchConfig);
 
-    // include: only the proven scene-linear space.
+    // include: only the proven scene-linear spaces (the inactive one is
+    // searched by default).
     pvt::FindColorSpacesOptions inc;
     inc.encodings = { "scene-linear" };
-    OIIO_CHECK_ASSERT(pvt::find_color_spaces(config, inc)
-                      == std::vector<std::string>({ "active_simple" }));
+    OIIO_CHECK_ASSERT(
+        pvt::find_color_spaces(config, inc)
+        == std::vector<std::string>({ "active_simple", "inactive_simple" }));
 
     // ~ inverse: only the space *proven different* (display_simple). The
     // unknown-encoding matrix space is REJECTED (its encoding is unknown).
@@ -752,19 +756,20 @@ test_internal_adapter()
     OIIO_CHECK_ASSERT(config.find_color_spaces({}, {}, enc, {})
                       == pvt::find_color_spaces(config, core));
 
-    // Default (all axes empty) exposes the active/simple universe.
+    // Default (all axes empty) exposes the simple universe, inactive
+    // spaces included.
     OIIO_CHECK_ASSERT(
         config.find_color_spaces()
-        == std::vector<std::string>(
-            { "active_simple", "display_simple", "unknown_encoding" }));
-
-    // include_inactive flows through the adapter.
-    ColorSpaceSearchOptions inactive_opts;
-    inactive_opts.include_inactive = true;
-    OIIO_CHECK_ASSERT(
-        config.find_color_spaces({}, {}, {}, {}, inactive_opts)
         == std::vector<std::string>({ "active_simple", "display_simple",
                                       "unknown_encoding", "inactive_simple" }));
+
+    // include_inactive = false flows through the adapter.
+    ColorSpaceSearchOptions active_only_opts;
+    active_only_opts.include_inactive = false;
+    OIIO_CHECK_ASSERT(
+        config.find_color_spaces({}, {}, {}, {}, active_only_opts)
+        == std::vector<std::string>(
+            { "active_simple", "display_simple", "unknown_encoding" }));
 
     // The core's fail-fast throw on an unresolvable hint is converted to
     // the error convention: empty result, has_error() set, never a throw.

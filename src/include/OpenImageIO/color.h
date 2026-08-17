@@ -95,13 +95,17 @@ struct ColorConfigClassificationPeek;
 /// Options controlling ColorConfig::find_color_spaces(). The four hint axes
 /// are passed separately; this bundles the search-scope toggles and the
 /// per-call context. Default-constructed options give the default search
-/// (active, simple, context-invariant spaces; encoding axis may use the
-/// interop-identity twin).
+/// (active and inactive, simple, context-invariant spaces; encoding axis may
+/// use the interop-identity twin).
 ///
 /// @version 3.2
 struct ColorSpaceSearchOptions {
-    /// Also consider the config's inactive color spaces.
-    bool include_inactive = false;
+    /// Consider the config's inactive color spaces. On by default: inactive
+    /// spaces are fully functional for lookup and conversion (they are only
+    /// hidden from user-facing lists), so identification should find them.
+    /// Set to false to restrict the search to active spaces, or filter
+    /// results with `ColorConfig::isColorSpaceActive()`.
+    bool include_inactive = true;
     /// Also consider spaces whose transforms depend on context variables.
     bool include_context_sensitive = false;
     /// Also consider complex (non-simple) spaces by inspecting their
@@ -820,8 +824,9 @@ public:
     /// examined -- and the search returns an empty list. This method does not
     /// throw.
     ///
-    /// By default the search considers the config's active, simple color
-    /// spaces. `options.include_inactive` also considers inactive spaces;
+    /// By default the search considers the config's active and inactive
+    /// simple color spaces (`options.include_inactive = false` restricts to
+    /// active spaces);
     /// `options.include_context_sensitive` also considers spaces whose
     /// transforms depend on context variables; `options.include_complex` also
     /// considers complex (non-simple) spaces by inspecting their authored and

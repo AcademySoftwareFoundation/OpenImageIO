@@ -2431,13 +2431,18 @@ colorspacesearch(Oiiotool& ot, cspan<const char*> argv)
     std::vector<std::string> image_state = terms(
         options.get_string("image_state"));
 
+    // Absent modifiers keep the ColorSpaceSearchOptions defaults.
     OIIO::ColorSpaceSearchOptions searchopts;
-    searchopts.include_inactive          = options.get_int("include_inactive");
-    searchopts.include_context_sensitive = options.get_int(
-        "include_context_sensitive");
-    searchopts.include_complex        = options.get_int("include_complex");
-    searchopts.authored_encoding_only = options.get_int(
-        "authored_encoding_only");
+    searchopts.include_inactive = options.get_int("include_inactive",
+                                                  searchopts.include_inactive);
+    searchopts.include_context_sensitive
+        = options.get_int("include_context_sensitive",
+                          searchopts.include_context_sensitive);
+    searchopts.include_complex = options.get_int("include_complex",
+                                                 searchopts.include_complex);
+    searchopts.authored_encoding_only
+        = options.get_int("authored_encoding_only",
+                          searchopts.authored_encoding_only);
 
     std::vector<std::string> results
         = ot.colorconfig().find_color_spaces(chromaticities, transfer, encoding,

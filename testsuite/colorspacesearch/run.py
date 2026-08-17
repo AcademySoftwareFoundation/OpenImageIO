@@ -26,8 +26,8 @@ command += oiiotool ("-echo \"consumer: srgb display-referred =\" "
 # encoding axis, three-valued split (plain / inverse / exclude) + visibility
 command += oiiotool ("-echo \"consumer: default universe =\" "
                      "--colorconfig " + core + " --colorspacesearch")
-command += oiiotool ("-echo \"consumer: include inactive =\" "
-                     "--colorconfig " + core + " --colorspacesearch:include_inactive=1")
+command += oiiotool ("-echo \"consumer: active only =\" "
+                     "--colorconfig " + core + " --colorspacesearch:include_inactive=0")
 command += oiiotool ("-echo \"consumer: encoding=scene-linear =\" "
                      "--colorconfig " + core + " --colorspacesearch:encoding=scene-linear")
 command += oiiotool ("-echo \"consumer: encoding=~scene-linear =\" "

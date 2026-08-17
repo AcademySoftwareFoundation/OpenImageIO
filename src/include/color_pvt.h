@@ -744,7 +744,7 @@ struct FindColorSpacesOptions {
     std::vector<std::string> encodings;
     std::vector<std::string> image_states;
     bool include_active            = true;
-    bool include_inactive          = false;
+    bool include_inactive          = true;
     bool include_context_sensitive = false;
     bool exhaustive                = false;
     // strict limits encoding characterization to explicitly authored

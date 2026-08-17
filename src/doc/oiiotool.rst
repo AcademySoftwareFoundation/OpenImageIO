@@ -4667,7 +4667,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
       When nonzero, also consider (respectively) the config's inactive color
       spaces, its context-sensitive spaces, and complex (non-simple) spaces
-      whose transforms are inspected exhaustively. All default to 0.
+      whose transforms are inspected exhaustively. `include_inactive`
+      defaults to 1 (inactive spaces are only hidden from user-facing
+      lists, so identification finds them); the others default to 0.
 
     - `authored_encoding_only=` *val* :
 
