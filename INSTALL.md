@@ -24,7 +24,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * **CMake >= 3.23.0** (tested through 4.4)
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
- * libTIFF >= 4.0 (tested through 4.7 and master)
+ * **libTIFF >= 4.1** (tested through 4.7 and master)
  * OpenColorIO >= 2.3 (tested through 2.5 and main)
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.2)

@@ -103,7 +103,7 @@ if (NOT TARGET Deflate::Deflate)
 endif ()
 
 checked_find_package (TIFF REQUIRED
-                      VERSION_MIN 4.0
+                      VERSION_MIN 4.1
                       RECOMMEND_MIN 4.5
                       RECOMMEND_MIN_REASON "4.2+ for GPS, 4.5+ various security fixes")
 alias_library_if_not_exists (TIFF::TIFF TIFF::tiff)
