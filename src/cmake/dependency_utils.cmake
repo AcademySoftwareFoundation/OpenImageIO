@@ -386,7 +386,7 @@ macro (checked_find_package pkgname)
         # PKGConfigVersion.cmake has might have arbitrary rules. Use our own
         # MIN_VERSION and MAX_VERSION parameters to manually check instead.
         #
-        if (_pkg_VERSION_MIN AND _pkg_VERSION_MAX AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
+        if (_pkg_VERSION_MIN AND _pkg_VERSION_MAX)
             set (_${pkgname}_version_range "${_pkg_VERSION_MIN}...<${_pkg_VERSION_MAX}")
         elseif (_pkg_VERSION_MIN)
             set (_${pkgname}_version_range "${_pkg_VERSION_MIN}")
