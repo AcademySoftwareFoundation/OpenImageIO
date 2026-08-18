@@ -30,10 +30,7 @@ build_dependency_with_cmake(yaml-cpp
         -D CMAKE_POLICY_VERSION_MINIMUM=3.5
     )
 
-set (yaml-cpp_ROOT ${yaml-cpp_LOCAL_INSTALL_DIR})
-set (yaml-cpp_DIR ${yaml-cpp_LOCAL_INSTALL_DIR})
-set (yaml-cpp_VERSION ${yaml-cpp_BUILD_VERSION})
-
+# Signal to caller that we need to find again at the installed location
 set (yaml-cpp_REFIND TRUE)
 set (yaml-cpp_REFIND_ARGS CONFIG)
 set (yaml-cpp_REFIND_VERSION ${yaml-cpp_BUILD_VERSION})

@@ -469,6 +469,26 @@ macro (checked_find_package pkgname)
         #   ${pkgname}_REFIND_ARGS    : additional arguments to pass to find_package
         if (${pkgname}_REFIND)
             message (STATUS "Refinding ${pkgname} with ${pkgname}_ROOT=${${pkgname}_ROOT}")
+            # A prior find_package() may have left a bunch of cruft from a
+            # rejected an unsuitable system install that were set in its Find
+            # module.  Clear them all here so they are not polluting our
+            # attempt to use the new one we built and are about to re-find.
+            foreach (_v IN ITEMS
+                     ${pkgname}_LIBRARY ${pkgname}_LIBRARIES
+                     ${pkgname}_LIBRARY_RELEASE ${pkgname}_LIBRARY_DEBUG
+                     ${pkgname}_INCLUDE_DIR ${pkgname}_INCLUDE_DIRS
+                     ${pkgname_upper}_LIBRARY ${pkgname_upper}_LIBRARIES
+                     ${pkgname_upper}_LIBRARY_RELEASE ${pkgname_upper}_LIBRARY_DEBUG
+                     ${pkgname_upper}_INCLUDE_DIR ${pkgname_upper}_INCLUDE_DIRS)
+                unset (${_v})
+                unset (${_v} CACHE)
+            endforeach ()
+            # Same for a stale <Pkg>_DIR (the CONFIG-mode search hint).
+            # CACHE-only: some build scripts set it as a plain variable on
+            # purpose as a hint for this find_package() call.
+            foreach (_v IN ITEMS ${pkgname}_DIR ${pkgname_upper}_DIR)
+                unset (${_v} CACHE)
+            endforeach ()
             find_package (${pkgname} ${${pkgname}_REFIND_VERSION} REQUIRED ${_pkg_UNPARSED_ARGUMENTS} ${${pkgname}_REFIND_ARGS})
             unset (${pkgname}_REFIND)
         endif()

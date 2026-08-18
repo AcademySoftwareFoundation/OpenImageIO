@@ -20,18 +20,6 @@ if (PNG_BUILD_USE_CUSTOM_PREFIX)
 endif ()
 string (MAKE_C_IDENTIFIER ${PNG_BUILD_VERSION} PNG_VERSION_IDENT)
 
-unset (PNG_FOUND)
-unset (PNG_LIBRARY)
-unset (PNG_LIBRARY_RELEASE)
-unset (PNG_LIBRARY_DEBUG)
-unset (PNG_LIBRARIES)
-unset (PNG_INCLUDE_DIRS)
-unset (PNG_INCLUDE_DIR)
-unset (PNG_PNG_INCLUDE_DIR)
-unset (PNG_VERSION_STRING)
-unset (PNG_DEFINITIONS)
-unset (PNG_VERSION)
-
 build_dependency_with_cmake (PNG
     VERSION         ${PNG_BUILD_VERSION}
     GIT_REPOSITORY  ${PNG_BUILD_GIT_REPOSITORY}
@@ -49,33 +37,16 @@ build_dependency_with_cmake (PNG
         ${PNG_BUILD_EXTRA_CMAKE_ARGS}
     )
 
-    
-set (PNG_REFIND FALSE)
+# Signal to caller that we need to find again at the installed location.
+# HINTS + NO_DEFAULT_PATH keep this from ever picking up a system PNG.
+set (PNG_REFIND TRUE)
 set (PNG_REFIND_VERSION ${PNG_BUILD_VERSION})
-set (PNG_REFIND_ARGS EXACT REQUIRED)
-set (PNG_FIND_VERSION_EXACT ON)
-unset (PNG_FOUND)
-unset (PNG_LIBRARY)
-unset (PNG_LIBRARY_RELEASE)
-unset (PNG_LIBRARY_DEBUG)
-unset (PNG_LIBRARIES)
-unset (PNG_INCLUDE_DIRS)
-unset (PNG_INCLUDE_DIR)
-unset (PNG_PNG_INCLUDE_DIR)
-unset (PNG_VERSION_STRING)
-unset (PNG_DEFINITIONS)
-unset (PNG_VERSION)
-
+set (PNG_REFIND_ARGS EXACT
+     HINTS ${PNG_LOCAL_INSTALL_DIR}/lib/cmake/PNG ${PNG_LOCAL_INSTALL_DIR}
+     NO_DEFAULT_PATH)
 if (PNG_BUILD_VERSION VERSION_GREATER 1.6.43)
     list (APPEND PNG_REFIND_ARGS CONFIG)
 endif ()
-
-find_package(PNG ${PNG_REFIND_VERSION} ${PNG_REFIND_ARGS}
-             HINTS 
-                    ${PNG_LOCAL_INSTALL_DIR}/lib/cmake/PNG
-                    ${PNG_LOCAL_INSTALL_DIR}
-             NO_DEFAULT_PATH
-            )
 
 set (PNG_INCLUDE_DIRS ${PNG_LOCAL_INSTALL_DIR}/include)
 include_directories(BEFORE ${PNG_INCLUDE_DIRS})
