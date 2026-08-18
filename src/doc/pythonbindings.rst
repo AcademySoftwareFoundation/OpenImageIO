@@ -4155,7 +4155,7 @@ details.
         if oiio.is_colorspace_srgb (spec) :
             print ("The image is sRGB")
 
-    This function was added in OpenImageIO 3.1.
+    This function was added in OpenImageIO 3.2.
 
 
 .. py:method:: get_colorspace_icc_profile (spec, from_colorspace = True)
@@ -4170,7 +4170,7 @@ details.
 
         icc_profile = oiio.get_colorspace_icc_profile (spec)
 
-    This function was added in OpenImageIO 3.1.
+    This function was added in OpenImageIO 3.2.
 
 
 .. py:method:: get_colorspace_cicp (spec, from_colorspace = True)
@@ -4187,7 +4187,7 @@ details.
         if cicp:
             primaries, transfer, matrix, range = cicp
 
-    This function was added in OpenImageIO 3.1.
+    This function was added in OpenImageIO 3.2.
 
 
 .. py:method:: equivalent_colorspace (a, b)

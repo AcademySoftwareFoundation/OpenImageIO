@@ -4391,7 +4391,7 @@ OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
 /// If `default_to_srgb` is true, the color space will be assumed to be sRGB
 /// if no color space was specified in the spec.
 ///
-/// @version 3.1
+/// @version 3.2
 OIIO_API bool is_colorspace_srgb(const ImageSpec& spec,
                                  bool default_to_srgb = true);
 
@@ -4399,7 +4399,7 @@ OIIO_API bool is_colorspace_srgb(const ImageSpec& spec,
 /// "ICCProfile" attribute or from the color space if `from_colorspace` is
 /// true. Returns an empty vector if not found.
 ///
-/// @version 3.1
+/// @version 3.2
 OIIO_API std::vector<uint8_t>
 get_colorspace_icc_profile(const ImageSpec& spec, bool from_colorspace = true);
 
@@ -4407,7 +4407,7 @@ get_colorspace_icc_profile(const ImageSpec& spec, bool from_colorspace = true);
 /// "CICP" attribute or from the color space if `from_colorspace` is true.
 /// Returns a cspan of 4 ints, or an empty span if not found.
 ///
-/// @version 3.1
+/// @version 3.2
 OIIO_API cspan<int> get_colorspace_cicp(const ImageSpec& spec,
                                         bool from_colorspace = true);
 
