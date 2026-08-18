@@ -1,5 +1,7 @@
 Comparing "resample.tif" and "ref/resample.tif"
 PASS
+Comparing "resample-nearest.tif" and "ref/resample-nearest.tif"
+PASS
 Comparing "resize.tif" and "ref/resize.tif"
 PASS
 Comparing "resize2.tif" and "ref/resize2.tif"
