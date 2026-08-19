@@ -133,6 +133,11 @@ parallel_convert_from_float(const float* src, void* dst, size_t nvals,
 OIIO_API bool
 check_texture_metadata_sanity(ImageSpec& spec);
 
+/// If the spec's metadata specifies a color space with Rec709 primaries and
+/// gamma transfer function, return the gamma value. If not, return zero.
+OIIO_API float
+get_colorspace_rec709_gamma(const ImageSpec& spec);
+
 /// Get the timing report from log_time entries.
 OIIO_API std::string
 timing_report();

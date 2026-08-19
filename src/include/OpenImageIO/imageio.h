@@ -4385,6 +4385,32 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
 
+/// Returns true if for the purpose of interop, the metadata of the `spec`
+/// specifies a color space that should be encoded as sRGB.
+///
+/// If `default_to_srgb` is true, the color space will be assumed to be sRGB
+/// if no color space was specified in the spec.
+///
+/// @version 3.2
+OIIO_API bool is_colorspace_srgb(const ImageSpec& spec,
+                                 bool default_to_srgb = true);
+
+/// Returns the ICC profile from the metadata of the `spec`, either from an
+/// "ICCProfile" attribute or from the color space if `from_colorspace` is
+/// true. Returns an empty vector if not found.
+///
+/// @version 3.2
+OIIO_API std::vector<uint8_t>
+get_colorspace_icc_profile(const ImageSpec& spec, bool from_colorspace = true);
+
+/// Returns the CICP code from the metadata of the `spec`, either from a
+/// "CICP" attribute or from the color space if `from_colorspace` is true.
+/// Returns a cspan of 4 ints, or an empty span if not found.
+///
+/// @version 3.2
+OIIO_API cspan<int> get_colorspace_cicp(const ImageSpec& spec,
+                                        bool from_colorspace = true);
+
 
 /// Are the two named color spaces equivalent, based on the default color
 /// config in effect?
@@ -4772,6 +4798,8 @@ using v3_1::debugfmt;
 using v3_1::declare_imageio_format;
 using v3_1::equivalent_colorspace;
 using v3_1::errorfmt;
+using v3_1::get_colorspace_cicp;
+using v3_1::get_colorspace_icc_profile;
 using v3_1::get_extension_map;
 using v3_1::get_float_attribute;
 using v3_1::get_int_attribute;
@@ -4779,6 +4807,7 @@ using v3_1::get_string_attribute;
 using v3_1::getattribute;
 using v3_1::geterror;
 using v3_1::has_error;
+using v3_1::is_colorspace_srgb;
 using v3_1::is_imageio_format_name;
 using v3_1::log_time;
 using v3_1::openimageio_version;

@@ -4140,6 +4140,56 @@ details.
     This function was added in OpenImageIO 3.0.
 
 
+.. py:method:: is_colorspace_srgb (spec, default_to_srgb = True)
+
+    Returns `True` if for the purpose of interop, the metadata of the `spec`
+    specifies a color space that should be encoded as sRGB.
+
+    If `default_to_srgb` is `True`, the color space will be assumed to be
+    sRGB if no color space was specified in the spec.
+
+    Example:
+
+    .. code-block:: python
+
+        if oiio.is_colorspace_srgb (spec) :
+            print ("The image is sRGB")
+
+    This function was added in OpenImageIO 3.2.
+
+
+.. py:method:: get_colorspace_icc_profile (spec, from_colorspace = True)
+
+    Returns the ICC profile from the metadata of the `spec` as a `bytes`
+    object, either from an "ICCProfile" attribute or from the color space if
+    `from_colorspace` is `True`. Returns `None` if not found.
+
+    Example:
+
+    .. code-block:: python
+
+        icc_profile = oiio.get_colorspace_icc_profile (spec)
+
+    This function was added in OpenImageIO 3.2.
+
+
+.. py:method:: get_colorspace_cicp (spec, from_colorspace = True)
+
+    Returns the CICP code from the metadata of the `spec` as a list of 4
+    ints, either from a "CICP" attribute or from the color space if
+    `from_colorspace` is `True`. Returns `None` if not found.
+
+    Example:
+
+    .. code-block:: python
+
+        cicp = oiio.get_colorspace_cicp (spec)
+        if cicp:
+            primaries, transfer, matrix, range = cicp
+
+    This function was added in OpenImageIO 3.2.
+
+
 .. py:method:: equivalent_colorspace (a, b)
 
     Return `True` if the color spaces `a` and `b` are equivalent in the

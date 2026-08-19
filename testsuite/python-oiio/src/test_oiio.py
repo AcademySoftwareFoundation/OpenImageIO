@@ -73,6 +73,26 @@ try:
            spec.get_string_attribute ("oiio:ColorSpace"))
     print ("")
 
+    print ("Testing get_colorspace module helpers:")
+    spec = oiio.ImageSpec()
+    print ("  is_colorspace_srgb(unset):", oiio.is_colorspace_srgb (spec))
+    print ("  is_colorspace_srgb(unset, False):",
+           oiio.is_colorspace_srgb (spec, False))
+    oiio.set_colorspace_rec709_gamma (spec, 2.2)
+    print ("  is_colorspace_srgb(g22):", oiio.is_colorspace_srgb (spec))
+    print ("  get_colorspace_icc_profile(no profile):",
+           oiio.get_colorspace_icc_profile (spec))
+    spec.attribute ("ICCProfile", oiio.TypeDesc("uint8[6]"),
+                    bytes([0, 1, 2, 253, 254, 255]))
+    print ("  get_colorspace_icc_profile(dummy profile):",
+           oiio.get_colorspace_icc_profile (spec))
+    print ("  get_colorspace_cicp(no attribute):",
+           oiio.get_colorspace_cicp (spec, False))
+    spec.attribute ("CICP", oiio.TypeDesc("int[4]"), (9, 16, 9, 1))
+    print ("  get_colorspace_cicp(attribute):",
+           oiio.get_colorspace_cicp (spec, False))
+    print ("")
+
     print ("Testing global attribute() one-arg:")
     oiio.attribute ("plugin_searchpath", "path/A:path/B")
     print ("  plugin_searchpath str:",

@@ -15,6 +15,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 
+#include "imageio_pvt.h"
+
 #include "targa_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -181,7 +183,9 @@ TGAOutput::open(const std::string& name, const ImageSpec& userspec,
     m_convert_alpha = m_spec.alpha_channel != -1
                       && !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
 
-    m_gamma = m_spec.get_float_attribute("oiio:Gamma", 1.0);
+    m_gamma = pvt::get_colorspace_rec709_gamma(m_spec);
+    if (m_gamma == 0.0f)
+        m_gamma = 1.0f;
 
     // prepare and write Targa header
     tga_header tga;
@@ -360,31 +364,13 @@ TGAOutput::write_tga20_data_fields()
         }
 
         // gamma -- two shorts, giving a ratio
-        const ColorConfig& colorconfig = ColorConfig::default_colorconfig();
-        string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-        if (colorconfig.equivalent(colorspace, "g22_rec709_scene")) {
-            m_gamma = 2.2f;
-            write(uint16_t(m_gamma * 10.0f));
-            write(uint16_t(10));
-        } else if (colorconfig.equivalent(colorspace, "g18_rec709_scene")) {
-            m_gamma = 1.8f;
-            write(uint16_t(m_gamma * 10.0f));
-            write(uint16_t(10));
-        } else if (colorconfig.equivalent(colorspace, "g24_rec709_scene")) {
-            m_gamma = 2.4f;
-            write(uint16_t(m_gamma * 10.0f));
-            write(uint16_t(10));
-        } else if (Strutil::istarts_with(colorspace, "Gamma")) {
-            // Extract gamma value from color space, if it's there
-            Strutil::parse_word(colorspace);
-            float g = Strutil::from_string<float>(colorspace);
-            if (g >= 0.01f && g <= 10.0f /* sanity check */)
-                m_gamma = g;
+        const float gamma = pvt::get_colorspace_rec709_gamma(m_spec);
+        if (gamma != 0.0f) {
             // FIXME: invent a smarter way to convert to a vulgar fraction?
             // NOTE: the spec states that only 1 decimal place of precision
             // is needed, thus the expansion by 10
             // numerator
-            write(uint16_t(std::round(m_gamma * 10.0f)));
+            write(uint16_t(std::round(gamma * 10.0f)));
             write(uint16_t(10));
         } else {
             // just dump two zeros in there
