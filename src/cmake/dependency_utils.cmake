@@ -470,9 +470,9 @@ macro (checked_find_package pkgname)
         if (${pkgname}_REFIND)
             message (STATUS "Refinding ${pkgname} with ${pkgname}_ROOT=${${pkgname}_ROOT}")
             # A prior find_package() may have left a bunch of cruft from a
-            # rejected an unsuitable system install that were set in its Find
-            # module.  Clear them all here so they are not polluting our
-            # attempt to use the new one we built and are about to re-find.
+            # rejected, unsuitable system install in its Find module. Clear it
+            # here so it does not pollute our attempt to use the one we just
+            # built and are about to re-find.
             foreach (_v IN ITEMS
                      ${pkgname}_LIBRARY ${pkgname}_LIBRARIES
                      ${pkgname}_LIBRARY_RELEASE ${pkgname}_LIBRARY_DEBUG

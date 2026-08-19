@@ -41,7 +41,7 @@ build_dependency_with_cmake(expat
         -D EXPAT_SHARED_LIBS=${expat_BUILD_SHARED_LIBS}
     )
 
-# Set some things up that we'll need for a subsequent find_package to work
+# Signal to caller that we need to find again at the installed location
 set (expat_REFIND TRUE)
 set (expat_REFIND_VERSION ${expat_BUILD_VERSION})
 set (expat_REFIND_ARGS CONFIG)
