@@ -650,6 +650,17 @@ inline bool cpu_has_avx512cd() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<28)) 
 inline bool cpu_has_avx512bw() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<30)) != 0; }
 inline bool cpu_has_avx512vl() {int i[4]; cpuid(i,7,0); return (i[1] & (0x80000000 /*1<<31*/)) != 0; }
 
+/// Is NEON (ARM AdvSIMD) available? Note that unlike the x86 queries above,
+/// this needs no runtime check: NEON is architecturally mandatory on
+/// ARMv8-A, so it is simply always present on any aarch64 target.
+inline bool cpu_has_neon() {
+#if defined(__aarch64__) || defined(__aarch64) || defined(_M_ARM64) || defined(_M_ARM64EC)
+    return true;
+#else
+    return false;
+#endif
+}
+
 // portable aligned malloc
 OIIO_UTIL_API void* aligned_malloc(std::size_t size, std::size_t align);
 OIIO_UTIL_API void  aligned_free(void* ptr);
@@ -716,5 +727,6 @@ using v3_1::cpu_has_avx512er;
 using v3_1::cpu_has_avx512cd;
 using v3_1::cpu_has_avx512bw;
 using v3_1::cpu_has_avx512vl;
+using v3_1::cpu_has_neon;
 #endif
 OIIO_NAMESPACE_END
