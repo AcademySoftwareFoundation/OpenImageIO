@@ -27,12 +27,10 @@ build_dependency_with_cmake(pystring
         -D CMAKE_INSTALL_LIBDIR=lib
 )
 
-set (pystring_VERSION ${pystring_BUILD_VERSION})
-unset (PYSTRING_LIBRARY)
-unset (PYSTRING_INCLUDE_DIR)
-
-set (pystring_REFIND FALSE)
+# Signal to caller that we need to find again at the installed location
+set (pystring_REFIND TRUE)
 set (pystring_REFIND_VERSION ${pystring_BUILD_VERSION})
+set (pystring_VERSION ${pystring_BUILD_VERSION})
 
 
 if (pystring_BUILD_SHARED_LIBS)

@@ -28,10 +28,6 @@ build_dependency_with_cmake(openjph
         -D CMAKE_CXX_COMPILER=${openjph_CMAKE_CXX_COMPILER}
     )
 
-# Set some things up that we'll need for a subsequent find_package to work
-set (openjph_ROOT ${openjph_LOCAL_INSTALL_DIR})
-set (openjph_VERSION ${openjph_BUILD_VERSION})
-
 # Signal to caller that we need to find again at the installed location
 set (openjph_REFIND TRUE)
 set (openjph_REFIND_VERSION ${openjph_BUILD_VERSION})

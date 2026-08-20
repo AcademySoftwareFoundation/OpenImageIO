@@ -39,12 +39,9 @@ build_dependency_with_cmake(Freetype
         -D CMAKE_POLICY_VERSION_MINIMUM=3.5
 )
 
-# Set some things up that we'll need for a subsequent find_package to work
-
-set (Freetype_ROOT ${Freetype_LOCAL_INSTALL_DIR})
-
 # Signal to caller that we need to find again at the installed location
 set (Freetype_REFIND TRUE)
+set (Freetype_REFIND_VERSION ${Freetype_BUILD_VERSION})
 set (Freetype_REFIND_ARGS CONFIG)
 
 if (Freetype_BUILD_SHARED_LIBS)

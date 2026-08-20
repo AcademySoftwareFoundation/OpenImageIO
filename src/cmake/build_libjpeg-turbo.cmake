@@ -23,12 +23,9 @@ build_dependency_with_cmake(libjpeg-turbo
         -D CMAKE_POSITION_INDEPENDENT_CODE=1
 
     )
-# Set some things up that we'll need for a subsequent find_package to work
-set (libjpeg-turbo_ROOT ${libjpeg-turbo_LOCAL_INSTALL_DIR})
-
-
 # Signal to caller that we need to find again at the installed location
 set (libjpeg-turbo_REFIND TRUE)
+set (libjpeg-turbo_REFIND_VERSION ${libjpeg-turbo_BUILD_VERSION})
 set (libjpeg-turbo_REFIND_ARGS CONFIG)
 
 if (libjpeg-turbo_BUILD_SHARED_LIBS)

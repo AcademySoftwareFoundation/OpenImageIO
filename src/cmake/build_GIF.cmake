@@ -30,11 +30,10 @@ build_dependency_with_cmake(GIF
 unset(GIF_CMAKELISTS_TEMPLATE_PATH)
 
 
-# Set some things up that we'll need for a subsequent find_package to work
-set (GIF_ROOT ${GIF_LOCAL_INSTALL_DIR})
-
 # Signal to caller that we need to find again at the installed location
-find_package (GIF ${GIF_BUILD_VERSION} EXACT CONFIG REQUIRED)
+set (GIF_REFIND TRUE)
+set (GIF_REFIND_VERSION ${GIF_BUILD_VERSION})
+set (GIF_REFIND_ARGS EXACT CONFIG)
 
 if (GIF_BUILD_SHARED_LIBS)
     install_local_dependency_libs (GIF GIF)

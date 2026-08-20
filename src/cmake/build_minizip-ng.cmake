@@ -52,8 +52,7 @@ build_dependency_with_cmake(minizip-ng
     )
 
 
-set (minizip-ng_DIR ${minizip-ng_LOCAL_INSTALL_DIR}/lib/cmake/minizip-ng)
-set (minizip-ng_VERSION ${minizip-ng_BUILD_VERSION})
+# Signal to caller that we need to find again at the installed location
 set (minizip-ng_REFIND TRUE)
 set (minizip-ng_REFIND_VERSION ${minizip-ng_BUILD_VERSION})
-set (minizip-ng_REFIND_ARGS REQUIRED)
+set (minizip-ng_REFIND_ARGS CONFIG)

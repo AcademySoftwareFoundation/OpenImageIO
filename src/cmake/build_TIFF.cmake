@@ -51,15 +51,9 @@ build_dependency_with_cmake(TIFF
         ${MORE_TIFF_CMAKE_ARGS}
     )
 
-# Set some things up that we'll need for a subsequent find_package to work
-
-set (TIFF_ROOT ${TIFF_LOCAL_INSTALL_DIR})
-set (TIFF_DIR ${TIFF_LOCAL_INSTALL_DIR})
-set (TIFF_VERSION ${TIFF_BUILD_VERSION})
-
 # Signal to caller that we need to find again at the installed location
-# set (TIFF_REFIND TRUE)
-find_package (TIFF REQUIRED)
+set (TIFF_REFIND TRUE)
+set (TIFF_REFIND_VERSION ${TIFF_BUILD_VERSION})
 
 if (TIFF_BUILD_SHARED_LIBS)
     install_local_dependency_libs (TIFF TIFF)

@@ -22,14 +22,9 @@ build_dependency_with_cmake(OpenJPEG
         -D BUILD_CODEC=OFF 
         -D CMAKE_POSITION_INDEPENDENT_CODE=ON
     )
-# Set some things up that we'll need for a subsequent find_package to work
-set (OpenJPEG_ROOT ${OpenJPEG_LOCAL_INSTALL_DIR})
-set (OpenJPEG_VERSION ${OpenJPEG_BUILD_VERSION})
-set (OPENJPEG_VERSION ${OpenJPEG_BUILD_VERSION})
-
-
 # Signal to caller that we need to find again at the installed location
 set (OpenJPEG_REFIND TRUE)
+set (OpenJPEG_REFIND_VERSION ${OpenJPEG_BUILD_VERSION})
 set (OpenJPEG_REFIND_ARGS CONFIG)
 set_invert (OpenJPEG_LINKSTATIC ${OpenJPEG_BUILD_SHARED_LIBS})
 

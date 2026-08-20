@@ -30,12 +30,8 @@ build_dependency_with_cmake(ZLIB
         -D CMAKE_POLICY_VERSION_MINIMUM=3.5
     )
 
-# Set some things up that we'll need for a subsequent find_package to work
-set (ZLIB_ROOT ${ZLIB_LOCAL_INSTALL_DIR})
-
 # Signal to caller that we need to find again at the installed location
 set (ZLIB_REFIND TRUE)
-set (ZLIB_VERSION ${ZLIB_BUILD_VERSION})
 set (ZLIB_REFIND_VERSION ${ZLIB_BUILD_VERSION})
 
 if (ZLIB_BUILD_SHARED_LIBS)
