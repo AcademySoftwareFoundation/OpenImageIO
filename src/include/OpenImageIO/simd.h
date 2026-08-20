@@ -76,6 +76,17 @@
 // OIIO_SIMD_HAS_MATRIX4 : nonzero if matrix44 is defined
 // OIIO_SIMD_HAS_SIMD8 : nonzero if vfloat8, vint8, vbool8 are defined
 // OIIO_SIMD_HAS_SIMD16 : nonzero if vfloat16, vint16, vbool16 are defined
+//
+// A note on baselines: OIIO considers SSE4.2 to be the floor for x86_64 and
+// NEON to be the floor for aarch64. NEON takes care of itself, being
+// architecturally mandatory on ARMv8-A. For x86_64, however, gcc and clang
+// only make the SSE3/SSSE3/SSE4 intrinsics available when told to with -m
+// flags, so this header cannot simply assume them -- it must keep honoring
+// __SSE4_1__ and friends. OIIO's own build passes -msse4.2 (see USE_SIMD in
+// src/cmake/compiler.cmake); a downstream translation unit that includes this
+// header will only get the SSE4 code paths if it too is compiled with
+// -msse4.2 or better. MSVC is the exception: it exposes all intrinsics
+// regardless of /arch:, so we can and do assume SSE4 there unconditionally.
 
 #ifdef OIIO_NO_SIMD /* Request to disable all SIMD */
 #  define OIIO_NO_SSE 1
@@ -141,6 +152,15 @@
        * comparisons and CRCs, which don't currently seem relevant to OIIO,
        * so for simplicity, we sweep this difference under the rug.
        */
+#  elif defined(_MSC_VER) && !defined(__clang__) && !defined(__INTEL_LLVM_COMPILER) \
+        && (defined(_M_X64) || defined(_M_AMD64)) && !defined(_M_ARM64EC)
+#    define OIIO_SIMD_SSE 4
+     /* MSVC never predefines the __SSE*__ macros, but it makes every
+      * intrinsic through AVX2 available regardless of the /arch: setting,
+      * and all x86-64 hardware is SSE4.2 or better. So just use SSE4.
+      * (Note that clang-cl and icx define _MSC_VER but do gate intrinsics
+      * on -m flags, so they must take the branch above instead.)
+      */
 #  elif defined(__SSSE3__)
 #    define OIIO_SIMD_SSE 3
      /* N.B. We only use OIIO_SIMD_SSE = 3 when fully at SSSE3. In theory,

@@ -317,11 +317,81 @@ endif ()
 # SIMD and machine architecture options.
 #
 # The USE_SIMD option may be set to a comma-separated list of machine /
-# instruction set options, such as "avx3,f16c". The list will be parsed and
+# instruction set options, such as "avx2,f16c". The list will be parsed and
 # the proper compiler directives added to generate code for those ISA
 # capabilities.
 #
-set_cache (USE_SIMD "" "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, aes)")
+# The default depends on the architecture we are building for:
+#   * x86_64 : "sse4.2". Every 64 bit Intel/AMD CPU has supported SSE4.2
+#     since 2008, so there is no point in targeting a lower baseline. Without
+#     this, gcc and clang would generate only SSE2 code.
+#   * arm64 / aarch64 : "" (empty). NEON is architecturally mandatory on
+#     ARMv8-A, so the compiler enables it without any help from us.
+#   * anything else : "" (empty), i.e. whatever the compiler defaults to.
+# Setting USE_SIMD=0 disables SIMD entirely, regardless of architecture.
+#
+# Feature tokens naming an ISA belonging to some other CPU family than the
+# one we are building for are ignored rather than passed to the compiler, so
+# that a caller (or a CI matrix) may pass "avx2,f16c" without breaking an ARM
+# build.
+
+# Which CPU family(s) are we targeting? On Apple, CMAKE_OSX_ARCHITECTURES,
+# when set, overrides CMAKE_SYSTEM_PROCESSOR and may name more than one
+# architecture (a universal binary).
+if (CMAKE_OSX_ARCHITECTURES)
+    set (_simd_target_archs "${CMAKE_OSX_ARCHITECTURES}")
+else ()
+    set (_simd_target_archs "${CMAKE_SYSTEM_PROCESSOR}")
+endif ()
+set (SIMD_TARGET_X86_64 OFF)
+set (SIMD_TARGET_X86_32 OFF)
+set (SIMD_TARGET_ARM64 OFF)
+foreach (_arch ${_simd_target_archs})
+    string (TOLOWER "${_arch}" _arch)
+    if (_arch MATCHES "^(x86_64|amd64|x64)$")
+        set (SIMD_TARGET_X86_64 ON)
+    elseif (_arch MATCHES "^(i.86|x86)$")
+        set (SIMD_TARGET_X86_32 ON)
+    elseif (_arch MATCHES "^(arm64.*|aarch64)$")
+        set (SIMD_TARGET_ARM64 ON)
+    endif ()
+endforeach ()
+message (VERBOSE "SIMD target archs = ${_simd_target_archs}"
+                 " (x86_64=${SIMD_TARGET_X86_64} x86_32=${SIMD_TARGET_X86_32}"
+                 " arm64=${SIMD_TARGET_ARM64})")
+
+if (SIMD_TARGET_X86_64)
+    set (_simd_default "sse4.2")
+else ()
+    set (_simd_default "")
+endif ()
+set_cache (USE_SIMD "${_simd_default}"
+           "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, fma, aes, neon)")
+unset (_simd_default)
+
+# Tokens we recognize as naming an x86 or an ARM ISA feature. Anything not on
+# either list is passed through to the compiler as before.
+set (_simd_x86_features sse2 sse3 ssse3 sse4.1 sse4.2 avx avx2
+                        avx512f avx512dq avx512bw avx512vl avx512cd avx512ifma
+                        f16c fma aes popcnt)
+
+# For a universal binary we must attach the per-family flags to just the one
+# slice they apply to. Apple's clang has -Xarch_<arch> for exactly this.
+set (_simd_x86_xarch "")
+set (_simd_arm_xarch "")
+set (_simd_skip_x86 OFF)
+if (SIMD_TARGET_X86_64 AND SIMD_TARGET_ARM64)
+    if (APPLE)
+        set (_simd_x86_xarch "-Xarch_x86_64")
+        set (_simd_arm_xarch "-Xarch_arm64")
+    else ()
+        # No way to qualify a flag per-slice, so a global -msse4.2 would be
+        # handed to the ARM compilation too. Better to add nothing.
+        set (_simd_skip_x86 ON)
+        message (STATUS "Multi-architecture build: omitting x86 SIMD flags")
+    endif ()
+endif ()
+
 set (SIMD_COMPILE_FLAGS "")
 message (STATUS "Compiling with SIMD level ${USE_SIMD}")
 if (NOT USE_SIMD STREQUAL "")
@@ -332,36 +402,67 @@ if (NOT USE_SIMD STREQUAL "")
         string (REPLACE "," ";" SIMD_FEATURE_LIST "${USE_SIMD}")
         foreach (feature ${SIMD_FEATURE_LIST})
             message (VERBOSE "SIMD feature: ${feature}")
-            if (MSVC OR CMAKE_COMPILER_IS_INTEL)
-                if (feature STREQUAL "sse2")
-                    list (APPEND SIMD_COMPILE_FLAGS "/D__SSE2__")
+            if (feature IN_LIST _simd_x86_features)
+                if (NOT (SIMD_TARGET_X86_64 OR SIMD_TARGET_X86_32))
+                    message (STATUS "  Ignoring SIMD feature '${feature}' (not an x86 target)")
+                    continue ()
                 endif ()
-                if (feature STREQUAL "sse4.1")
-                    list (APPEND SIMD_COMPILE_FLAGS "/D__SSE2__" "/D__SSE4_1__")
+                if (_simd_skip_x86)
+                    continue ()
                 endif ()
-                if (feature STREQUAL "sse4.2")
-                    list (APPEND SIMD_COMPILE_FLAGS "/D__SSE2__" "/D__SSE4_2__")
+                if (MSVC OR CMAKE_COMPILER_IS_INTEL)
+                    # The SSE levels are handled unconditionally below. Here we
+                    # only need to track the highest /arch: level requested.
+                    if (feature STREQUAL "avx" AND _highest_msvc_arch LESS 1)
+                        set(_highest_msvc_arch 1)
+                    endif ()
+                    if (feature STREQUAL "avx2" AND _highest_msvc_arch LESS 2)
+                        set(_highest_msvc_arch 2)
+                    endif ()
+                    if (feature STREQUAL "avx512f" AND _highest_msvc_arch LESS 3)
+                        set(_highest_msvc_arch 3)
+                    endif ()
+                else ()
+                    list (APPEND SIMD_COMPILE_FLAGS ${_simd_x86_xarch} "-m${feature}")
                 endif ()
-                if (feature STREQUAL "avx" AND _highest_msvc_arch LESS 1)
-                    set(_highest_msvc_arch 1)
+                if (feature STREQUAL "fma" AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
+                    # If fma is requested, for numerical accuracy sake, turn it
+                    # off by default except when we explicitly use madd. At some
+                    # future time, we should look at this again carefully and
+                    # see if we want to use it more widely by ffp-contract=fast.
+                    add_compile_options ("-ffp-contract=off")
                 endif ()
-                if (feature STREQUAL "avx2" AND _highest_msvc_arch LESS 2)
-                    set(_highest_msvc_arch 2)
+            elseif (feature STREQUAL "neon" OR feature MATCHES "^(armv|apple-|m(arch|cpu|tune)=)")
+                if (NOT SIMD_TARGET_ARM64)
+                    message (STATUS "  Ignoring SIMD feature '${feature}' (not an ARM target)")
+                    continue ()
                 endif ()
-                if (feature STREQUAL "avx512f" AND _highest_msvc_arch LESS 3)
-                    set(_highest_msvc_arch 3)
+                if (feature STREQUAL "neon")
+                    # NEON is mandatory on ARMv8-A; nothing to ask the
+                    # compiler for. Accepted so that it can be named
+                    # explicitly for symmetry with the x86 tokens.
+                elseif (feature MATCHES "^armv")
+                    list (APPEND SIMD_COMPILE_FLAGS ${_simd_arm_xarch} "-march=${feature}")
+                elseif (feature MATCHES "^apple-")
+                    list (APPEND SIMD_COMPILE_FLAGS ${_simd_arm_xarch} "-mcpu=${feature}")
+                else () # already in march=/mcpu=/mtune= form
+                    list (APPEND SIMD_COMPILE_FLAGS ${_simd_arm_xarch} "-${feature}")
                 endif ()
             else ()
-                list (APPEND SIMD_COMPILE_FLAGS "-m${feature}")
-            endif ()
-            if (feature STREQUAL "fma" AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
-                # If fma is requested, for numerical accuracy sake, turn it
-                # off by default except when we explicitly use madd. At some
-                # future time, we should look at this again carefully and
-                # see if we want to use it more widely by ffp-contract=fast.
-                add_compile_options ("-ffp-contract=off")
+                # Unrecognized token: pass it through the way we always have.
+                if (NOT (MSVC OR CMAKE_COMPILER_IS_INTEL))
+                    list (APPEND SIMD_COMPILE_FLAGS "-m${feature}")
+                endif ()
             endif ()
         endforeach()
+
+        if ((MSVC OR CMAKE_COMPILER_IS_INTEL) AND SIMD_TARGET_X86_64)
+            # MSVC makes every intrinsic through AVX2 available regardless of
+            # the /arch: setting, and it never predefines the __SSE*__ macros
+            # that simd.h keys off. Since all x86-64 hardware is SSE4.2 or
+            # better, just say so.
+            list (APPEND SIMD_COMPILE_FLAGS "/D__SSE2__" "/D__SSE4_1__" "/D__SSE4_2__")
+        endif ()
 
         # Only add a single /arch flag representing the highest level of support.
         if (MSVC OR CMAKE_COMPILER_IS_INTEL)
@@ -377,8 +478,14 @@ if (NOT USE_SIMD STREQUAL "")
         endif ()
         unset(_highest_msvc_arch)
     endif ()
+    message (VERBOSE "SIMD compile flags: ${SIMD_COMPILE_FLAGS}")
     add_compile_options (${SIMD_COMPILE_FLAGS})
 endif ()
+unset (_simd_target_archs)
+unset (_simd_x86_features)
+unset (_simd_x86_xarch)
+unset (_simd_arm_xarch)
+unset (_simd_skip_x86)
 
 
 ###########################################################################
