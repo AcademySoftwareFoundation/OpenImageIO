@@ -951,6 +951,14 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         header.zipCompressionLevel() = (qual >= 1 && qual <= 9) ? qual : 4;
     }
 #endif
+#if OPENEXR_CODED_VERSION >= 30500
+    // OpenEXR 3.5.0 and later allow us to pick the quality level. We've found
+    // that 5 is a great tradeoff between size and speed, so that is our
+    // default.
+    if (Strutil::istarts_with(comp, "zstd")) {
+        header.zstdCompressionLevel() = (qual >= 1 && qual <= 22) ? qual : 5;
+    }
+#endif
     if (Strutil::istarts_with(comp, "dwa") && qual > 0) {
 #if OPENEXR_CODED_VERSION >= 30103
         // OpenEXR 3.1.3 and later have an API for setting the quality level
@@ -1204,6 +1212,10 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
 #ifdef IMF_HTJ2K32_COMPRESSION
             else if (Strutil::iequals(str, "htj2k32"))
                 header.compression() = Imf::HTJ2K32_COMPRESSION;
+#endif
+#ifdef ZSTD_COMPRESSION
+            else if (Strutil::iequals(str, "zstd"))
+                header.compression() = Imf::ZSTD_COMPRESSION;
 #endif
         }
         return true;
