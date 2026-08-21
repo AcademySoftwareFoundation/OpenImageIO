@@ -499,6 +499,8 @@ jobs:
             build_local_deps: 'TIFF'
           - desc: oldest clang11/C++17 py3.9 exr3.1 ocio2.3
             # Oldest clang and versions of the dependencies that we support.
+            # Deliberately sets no `simd`, so that this job exercises the
+            # default SIMD level for x86_64 (sse4.2). Please leave it unset.
             nametag: linux-oldest-clang-ubuntu
             runner: ubuntu-22.04
             cxx_std: 17

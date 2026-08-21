@@ -192,6 +192,37 @@ system. This will obviously disable any functionality that requires the
 dependency. This works both as a CMake variable and
 also as an environment variable.
 
+**Selecting the SIMD instruction set**
+
+`USE_SIMD=...` : A comma-separated list of the machine / instruction set
+capabilities to generate code for, for example `USE_SIMD=avx2,f16c`. Like the
+options above, it works as a CMake variable, an environment variable, or a
+setting on the Make wrapper (`make USE_SIMD=avx2,f16c`).
+
+The recognized x86 tokens are `sse2`, `sse3`, `ssse3`, `sse4.1`, `sse4.2`,
+`avx`, `avx2`, `avx512f` (and the other `avx512*` subsets), `f16c`, `fma`,
+`aes`, and `popcnt`. On ARM you may pass `neon`, an architecture name such as
+`armv8.2-a+fp16`, or a CPU name such as `apple-m1`. Tokens naming an ISA that
+belongs to a different CPU family than the one being built for are ignored,
+so passing `avx2,f16c` on an ARM machine is harmless rather than fatal.
+
+The default depends on the target architecture:
+
+* x86_64 : `sse4.2`. Every 64 bit Intel/AMD CPU has supported SSE4.2 since
+  2008, so OIIO treats it as the floor. (Note that without this, gcc and
+  clang would generate only SSE2 code.)
+* arm64 / aarch64 : empty. NEON is architecturally mandatory on ARMv8-A, so
+  the compiler already enables it and there is nothing to request.
+
+`USE_SIMD=0` disables SIMD entirely, on any architecture.
+
+Beware that the resulting binaries will not run on a CPU that lacks the
+instructions you asked for. Also note that this only controls how OIIO itself
+is compiled. Because `simd.h` is a public header and gcc/clang only make the
+SSE4/AVX intrinsics available when the corresponding `-m` flag is present,
+downstream code that includes `simd.h` gets the SSE4 code paths only if it is
+compiled with `-msse4.2` (or better) itself.
+
 
 
 Building OpenImageIO on Linux or OS X
@@ -361,7 +392,8 @@ On the other hand, if you would prefer to open the generated Visual Studio
 solution, the "cmake configure" will have produced
 `{OIIO_ROOT}/build/OpenImageIO.sln` that can be opened in Visual Studio IDE.
 Note that the solution will be only for the Intel x64 architecture only; and
-will only target "min-spec" (SSE2) SIMD instruction set.
+will target the default SSE4.2 SIMD instruction set (see `USE_SIMD` above if
+you want something else).
 
 Optional packages that OIIO can use (e.g. libpng, Qt) can be build and pointed to OIIO build process in a similar way.
 
