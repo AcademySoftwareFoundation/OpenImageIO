@@ -312,19 +312,26 @@ exif_parser_cb(ImageSpec* spec, int tag, int tifftype, int len,
     size_t streampos = ifp->tell();
     // std::cerr << "Stream position " << streampos << "\n";
 
-    TypeDesc type          = tiff_datatype_to_typedesc(TIFFDataType(tifftype),
-                                                       size_t(len));
     const TagInfo* taginfo = tag_lookup("Exif", tag);
     if (!taginfo) {
         // print(stderr, "NO TAGINFO FOR CALLBACK tag=%d (0x{:x}): tifftype={},len={} ({}), byteorder=0x{:x}\n",
         //       tag, tag, tifftype, len, type, byteorder);
         return;
     }
-    if (type.size() >= (1 << 20))
+    // Both tifftype and len come straight out of the file. tiff_data_size()
+    // returns size_t(-1) for a type it doesn't recognize, so validate before
+    // multiplying, lest the product become a bogus allocation size.
+    size_t elemsize = tiff_data_size(TIFFDataType(tifftype));
+    if (len <= 0 || elemsize == 0 || elemsize == size_t(-1))
+        return;
+    if (size_t(len) > (1 << 20) / elemsize)
         return;  // sanity check -- too much memory
-    size_t size = tiff_data_size(TIFFDataType(tifftype)) * len;
+    size_t size   = elemsize * size_t(len);
+    TypeDesc type = tiff_datatype_to_typedesc(TIFFDataType(tifftype),
+                                              size_t(len));
     std::vector<unsigned char> buf(size);
-    ifp->read(buf.data(), size, 1);
+    if (ifp->read(buf.data(), size, 1) != 1)
+        return;  // truncated or otherwise unreadable
 
     // debug scaffolding
     // print(stderr, "CALLBACK tag={}: tifftype={},len={} ({}), byteorder=0x{:x}\n",
@@ -462,9 +469,14 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     // a truncated/fuzzed file; unpack() would then spend a long time
     // decoding garbage instead of erroring out.
     {
-        int64_t raw_width          = m_processor->imgdata.sizes.raw_width;
-        int64_t raw_height         = m_processor->imgdata.sizes.raw_height;
-        int64_t raw_bps            = m_processor->imgdata.rawdata.color.raw_bps;
+        int64_t raw_width  = m_processor->imgdata.sizes.raw_width;
+        int64_t raw_height = m_processor->imgdata.sizes.raw_height;
+        int64_t raw_bps    = m_processor->imgdata.rawdata.color.raw_bps;
+        // raw_bps is not meaningful for every camera (Phase One stores a
+        // format code there), and is 0 if the header didn't say. Fall back to
+        // the 8 bits/sample floor rather than letting the guard evaporate.
+        if (raw_bps < 8 || raw_bps > 32)
+            raw_bps = 8;
         imagesize_t declared_bytes = imagesize_t(raw_width) * raw_height
                                      * raw_bps / 8;
         imagesize_t filesize = Filesystem::file_size(name);
@@ -740,13 +752,16 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
 
             float black_level = m_processor->imgdata.rawdata.color.black;
             if (black_level == 0) {
-                unsigned* cblack = m_processor->imgdata.rawdata.color.cblack;
-                size_t size      = cblack[4] * cblack[5];
-                size_t offset    = 6;
+                auto& cblack  = m_processor->imgdata.rawdata.color.cblack;
+                size_t size   = size_t(cblack[4]) * size_t(cblack[5]);
+                size_t offset = 6;
                 if (size == 0) {
                     size   = 4;
                     offset = 0;
                 }
+                // cblack[] is a fixed-size array; the black level pattern
+                // dimensions it declares are not to be trusted.
+                size = std::min(size, std::size(cblack) - offset);
 
                 for (size_t i = 0; i < size; i++)
                     black_level += cblack[offset + i];
@@ -1625,10 +1640,22 @@ RawInput::do_unpack()
 
     // We need to unpack but we didn't when we opened the file. Close and
     // re-open with unpack.
+    ImageSpec oldspec = m_spec;
     close();
-    bool ok    = open_raw(true, false, m_filename, m_config);
+    if (!open_raw(true, false, m_filename, m_config))
+        return false;
     m_unpacked = true;
-    return ok;
+    // Re-opening rebuilt m_spec from LibRaw's post-unpack sizes, but the
+    // caller already sized its buffer from the spec we advertised at open
+    // time. Refuse to read into it if the pixel layout moved underneath us.
+    if (m_spec.width != oldspec.width || m_spec.height != oldspec.height
+        || m_spec.nchannels != oldspec.nchannels
+        || m_spec.format != oldspec.format) {
+        errorfmt("Image dimensions of \"{}\" changed after unpacking",
+                 m_filename);
+        return false;
+    }
+    return true;
 }
 
 
@@ -1676,8 +1703,8 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
 
-    if (!m_unpacked)
-        do_unpack();
+    if (!m_unpacked && !do_unpack())
+        return false;
 
     if (!m_process) {
         // The user has selected not to apply any debayering.
@@ -1689,42 +1716,49 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
             return false;
         }
 
-        // The raw_image buffer might contain junk pixels that are usually trimmed off
-        // we must index into the raw buffer, taking these into account
-        auto& sizes        = m_processor->imgdata.sizes;
-        int offset         = sizes.raw_width * sizes.top_margin;
-        int scanline_start = sizes.raw_width * y + sizes.left_margin;
-
-        // The raw_image will not have been rotated, so we must factor that into our
-        // array access
-        // For none or 180 degree rotation, the scanlines are still contiguous in memory
-        if (sizes.flip == 0 /*no rotation*/ || sizes.flip == 3 /*180 degrees*/) {
-            if (sizes.flip == 3) {
-                scanline_start = sizes.raw_width * (m_spec.height - 1 - y)
-                                 + sizes.left_margin;
-            }
-            unsigned short* scanline = &((m_processor->imgdata.rawdata.raw_image
-                                          + offset)[scanline_start]);
-            convert_pixel_values(TypeDesc::UINT16, scanline, m_spec.format,
-                                 data, m_spec.width);
+        // The raw_image buffer holds the unrotated sensor grid, including the
+        // junk pixels around the margins that the visible image excludes, so
+        // we must map each output pixel back to its sensor location the same
+        // way LibRaw's own flip_index() does: bit 2 transposes, bit 1 mirrors
+        // vertically, bit 0 mirrors horizontally.
+        auto& sizes             = m_processor->imgdata.sizes;
+        const int flip          = sizes.flip;
+        const int64_t raw_width = sizes.raw_width;
+        // Extents of the image prior to the bit-2 transpose.
+        const int64_t iwidth  = (flip & 4) ? m_spec.height : m_spec.width;
+        const int64_t iheight = (flip & 4) ? m_spec.width : m_spec.height;
+        // Nothing but the header says the image extents fit in the sensor data
+        // LibRaw unpacked, so bound the largest index we can touch before
+        // indexing anything. LibRaw always allocates at least raw_width by
+        // raw_height samples for raw_image.
+        const int64_t maxindex = raw_width * (sizes.top_margin + iheight - 1)
+                                 + sizes.left_margin + iwidth - 1;
+        if (maxindex >= raw_width * int64_t(sizes.raw_height)) {
+            errorfmt(
+                "Corrupt raw file \"{}\": the {}x{} image does not fit in the {}x{} sensor data",
+                m_filename, iwidth, iheight, sizes.raw_width, sizes.raw_height);
+            return false;
         }
-        // For 90 degrees ClockWise or CounterClockWise, our desired scanlines now run perpendicular
-        // to the array direction so we must copy the pixels into a temporary contiguous buffer
-        else if (sizes.flip == 5 /*90 degrees CCW*/
-                 || sizes.flip == 6 /*90 degrees CW*/) {
-            scanline_start = m_spec.height - 1 - y + sizes.left_margin;
-            if (sizes.flip == 6) {
-                scanline_start = y + sizes.left_margin;
-            }
+        const uint16_t* raw_image = m_processor->imgdata.rawdata.raw_image
+                                    + raw_width * sizes.top_margin
+                                    + sizes.left_margin;
+
+        if (flip == 0) {
+            // Unrotated: the scanline is contiguous in the raw buffer.
+            convert_pixel_values(TypeDesc::UINT16, raw_image + raw_width * y,
+                                 m_spec.format, data, m_spec.width);
+        } else {
+            // Any other rotation makes the output scanline run perpendicular
+            // to, or backwards along, the raw data, so gather it first.
             auto buffer = std::make_unique<uint16_t[]>(m_spec.width);
-            for (size_t i = 0; i < static_cast<size_t>(m_spec.width); ++i) {
-                size_t index
-                    = (sizes.flip == 5)
-                          ? i
-                          : m_spec.width - 1
-                                - i;  //flip the index if rotating 90 degrees CW
-                buffer[index] = (m_processor->imgdata.rawdata.raw_image
-                                 + offset)[sizes.raw_width * i + scanline_start];
+            for (int64_t x = 0; x < m_spec.width; ++x) {
+                int64_t r = (flip & 4) ? x : y;
+                int64_t c = (flip & 4) ? y : x;
+                if (flip & 2)
+                    r = iheight - 1 - r;
+                if (flip & 1)
+                    c = iwidth - 1 - c;
+                buffer[x] = raw_image[raw_width * r + c];
             }
             convert_pixel_values(TypeDesc::UINT16, buffer.get(), m_spec.format,
                                  data, m_spec.width);
@@ -1740,7 +1774,19 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         }
     }
 
-    int length = m_spec.width * m_image->colors;  // Should always be 3 colors
+    imagesize_t length = imagesize_t(m_spec.width)
+                         * m_image->colors;  // Should always be 3 colors
+
+    // The caller's buffer is sized from m_spec, and m_image is whatever LibRaw
+    // decided to hand back; neither may be overrun if the two disagree.
+    if (m_image->colors > m_spec.nchannels
+        || (length * (y + 1)) * sizeof(uint16_t) > m_image->data_size) {
+        errorfmt(
+            "LibRaw returned a {}x{}x{} image that does not match the {}x{}x{} spec of \"{}\"",
+            m_image->width, m_image->height, m_image->colors, m_spec.width,
+            m_spec.height, m_spec.nchannels, m_filename);
+        return false;
+    }
 
     // Because we are reading UINT16's, we need to cast m_image->data
     unsigned short* scanline = &(((unsigned short*)m_image->data)[length * y]);
@@ -1811,12 +1857,12 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         return false;
     }
 
-    if (!m_thumb) {
-        m_thumb = m_processor->dcraw_make_mem_thumb(&errcode);
-        if (m_thumb == nullptr) {
-            _errorfmt(this, m_thumb_index, "dcraw_make_mem_thumb error");
-            return false;
-        }
+    std::unique_ptr<libraw_processed_image_t, void (*)(libraw_processed_image_t*)>
+        m_thumb(m_processor->dcraw_make_mem_thumb(&errcode),
+                LibRaw::dcraw_clear_mem);
+    if (m_thumb == nullptr) {
+        _errorfmt(this, subimage, "dcraw_make_mem_thumb error");
+        return false;
     }
 
     std::string image_type;
@@ -1843,8 +1889,10 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
     }
 
     if (image_type == "bmp") {
-        size_t data_size = m_thumb->width * m_thumb->height * m_thumb->colors;
-        if (data_size != m_thumb->data_size)
+        size_t data_size = size_t(m_thumb->width) * size_t(m_thumb->height)
+                           * size_t(m_thumb->colors);
+        if (data_size == 0 || data_size != m_thumb->data_size
+            || m_thumb->colors > 4)
             return false;
 
         ImageSpec image_spec(m_thumb->width, m_thumb->height, m_thumb->colors,
