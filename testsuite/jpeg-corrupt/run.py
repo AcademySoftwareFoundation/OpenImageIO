@@ -54,6 +54,20 @@ command += run_app (oiio_app("iconvert") + " src/corrupt-icc-4551.jpg out-4551.j
 # This file has a corrupted ICC profile block
 command += info_command ("src/corrupt-icc-4552.jpg", safematch=True)
 
+# This file's ICC profile places an 'mluc' (multi-localized unicode) tag at an
+# odd byte offset, with its English record pointing the UTF-16 string at
+# another odd offset. The shared ICC decoder read the record's 32-bit counts
+# and the 16-bit string code units directly through pointers at those
+# file-controlled offsets, so both loads were misaligned (UBSan `alignment`,
+# and a fault on strict-alignment CPUs). It now reads via memcpy and must
+# decode the profile_description cleanly.
+command += info_command ("src/corrupt-icc-unaligned-mluc.jpg", safematch=True)
+
+# This file's ICC header declares a profile_size far larger than the bytes that
+# follow. The decoder must reject it on the size-mismatch check with a bounded
+# read, never trusting the declared length.
+command += info_command ("src/corrupt-icc-oversized.jpg", safematch=True)
+
 # These files have short APP1/APP2 metadata marker payloads that used to be
 # read past their saved-marker buffers before being ignored. Use iconvert to
 # a null output to force a full input read.
