@@ -275,6 +275,40 @@ parse_rational(string_view s, int& n, int& d)
 
 
 
+// Bounds on the work an XMP decode may do. Real XMP is a few hundred bytes
+// to a few tens of KB, nested a handful of levels deep, holding tens of
+// attributes. These caps sit far above anything legitimate; they exist
+// because every one of those quantities is otherwise bounded only by the
+// length of an attacker-supplied packet.
+static constexpr int max_xmp_depth      = 64;
+static constexpr size_t max_xmp_attribs = 4096;
+static constexpr size_t max_xmp_bytes   = 1024 * 1024;
+
+
+// Running totals for one decode. `bytes` accumulates the size add_attrib()
+// reports for each attribute it writes; for a list attribute that size is the
+// whole re-joined list, so this total is the quadratic cost of growing the
+// list, and capping it caps that cost directly.
+struct XMPbudget {
+    size_t bytes   = 0;
+    size_t attribs = 0;
+
+    bool exhausted() const
+    {
+        return bytes > max_xmp_bytes || attribs > max_xmp_attribs;
+    }
+
+    // Charge one attribute write; return false once the budget is gone.
+    bool spend(size_t nbytes)
+    {
+        bytes += nbytes;
+        ++attribs;
+        return !exhausted();
+    }
+};
+
+
+
 // Utility: add an attribute to the spec with the given xml name and
 // value.  Search for it in xmptag, and if found that will tell us what
 // the type is supposed to be, as well as any special handling.  If not
@@ -428,9 +462,15 @@ add_attrib(ImageSpec& spec, string_view xmlname, string_view xmlvalue,
 // Return value is the size of the resulting attribute (can be used to
 // catch runaway or corrupt XML).
 static size_t
-decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
-                const char* parentname = NULL, bool isList = false)
+decode_xmp_node(pugi::xml_node node, ImageSpec& spec, XMPbudget& budget,
+                int level = 1, const char* parentname = NULL,
+                bool isList = false)
 {
+    // Each level of XML nesting costs a stack frame here, and a packet can
+    // nest as deep as its own length allows, so cap the descent.
+    if (level > max_xmp_depth)
+        return 0;
+
     std::string mylist;  // will accumulate for list items
     size_t totalsize = 0;
     for (; node; node = node.next_sibling()) {
@@ -454,10 +494,12 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
                 totalsize += sz;
                 // As a guard against runaway lists or corrupt XMP blocks,
                 // don't let attribute lists grow to more than 64KB each.
-                if (sz > 64 * 1024)
+                if (!budget.spend(sz) || sz > 64 * 1024)
                     break;
             }
         }
+        if (budget.exhausted())
+            break;
         if (Strutil::iequals(node.name(), "xmpMM::History")) {
             // FIXME -- image history is complicated. Come back to it.
             continue;
@@ -477,12 +519,12 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
             || Strutil::iequals(node.name(), "rdf:li")) {
             // Various kinds of lists.  Recurse, pass the parent name
             // down, and let the child know it's part of a list.
-            totalsize += decode_xmp_node(node.first_child(), spec, level + 1,
-                                         parentname, true);
+            totalsize += decode_xmp_node(node.first_child(), spec, budget,
+                                         level + 1, parentname, true);
         } else {
             // Not a list, but it's got children.  Recurse.
-            totalsize += decode_xmp_node(node.first_child(), spec, level + 1,
-                                         node.name(), isList);
+            totalsize += decode_xmp_node(node.first_child(), spec, budget,
+                                         level + 1, node.name(), isList);
         }
 
         // If this node has a value but no name, it's definitely part
@@ -493,16 +535,22 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, int level = 1,
                 mylist += ";";
             mylist += node.value();
             totalsize += mylist.size();
+            if (mylist.size() > max_xmp_bytes)
+                break;
         }
         // As a guard against runaway lists or corrupt XMP blocks,
         // don't let attribute lists grow to more than 64KB each.
         if (isList && totalsize > 64 * 1024)
             break;
+        if (budget.exhausted())
+            break;
     }
 
     // If we have accumulated a list, turn it into an attribute
     if (parentname && mylist.size()) {
-        totalsize += add_attrib(spec, parentname, mylist, true);
+        size_t sz = add_attrib(spec, parentname, mylist, true);
+        totalsize += sz;
+        budget.spend(sz);
     }
     return totalsize;
 }
@@ -560,13 +608,45 @@ decode_xmp(string_view xml, ImageSpec& spec)
     auto first_desc = doc.find_node([](pugi::xml_node n) {
         return strcmp(n.name(), "rdf:Description") == 0;
     });
-    if (first_desc)
-        decode_xmp_node(first_desc, spec);
+    if (first_desc) {
+        XMPbudget budget;
+        // A file may hold many XMP packets (png allows any number of zTXt
+        // chunks), and ImageSpec::attribute() is a linear scan, so the cost is
+        // quadratic in the spec's total attribute count, not in any one
+        // packet's share. Charge what the spec already holds.
+        budget.attribs = spec.extra_attribs.size();
+        decode_xmp_node(first_desc, spec, budget);
+    }
 #if DEBUG_XMP_READ
     std::cerr << "XMP total parse time " << timer() << "\n";
 #endif
 
     return true;
+}
+
+
+
+// Escape the XML metacharacters so a value cannot close its own quote (or its
+// element) and turn into markup. Values reaching the encoder are ordinary
+// metadata, which may equally well have arrived from a file read by
+// decode_xmp(), so they are not trusted to be XML-safe. Apostrophes are left
+// alone: every value we emit is inside double quotes, so escaping them would
+// only churn the output of files that are already fine.
+static std::string
+xml_escape(string_view s)
+{
+    std::string out;
+    out.reserve(s.size());
+    for (char c : s) {
+        switch (c) {
+        case '&': out += "&amp;"; break;
+        case '<': out += "&lt;"; break;
+        case '>': out += "&gt;"; break;
+        case '"': out += "&quot;"; break;
+        default: out += c; break;
+        }
+    }
+    return out;
 }
 
 
@@ -670,16 +750,18 @@ encode_xmp_category(std::vector<std::pair<const XMPtag*, std::string>>& list,
         if (Strutil::istarts_with(xmpname, pattern)) {
             std::string x;
             if (control == XMP_attribs)
-                x = Strutil::fmt::format("{}=\"{}\"", xmpname, val);
+                x = Strutil::fmt::format("{}=\"{}\"", xmpname, xml_escape(val));
             else if (control == XMP_AltList || control == XMP_BagList) {
                 std::vector<std::string> vals;
                 Strutil::split(val, vals, ";");
                 for (auto& val : vals) {
                     val = Strutil::strip(val);
-                    x += Strutil::fmt::format("<rdf:li>{}</rdf:li>", val);
+                    x += Strutil::fmt::format("<rdf:li>{}</rdf:li>",
+                                              xml_escape(val));
                 }
             } else
-                x = Strutil::fmt::format("<{}>{}</{}>", xmpname, val, xmpname);
+                x = Strutil::fmt::format("<{}>{}</{}>", xmpname,
+                                         xml_escape(val), xmpname);
             if (!x.empty() && control != XMP_suppress) {
                 if (!found) {
                     // if (nodename && nodename[0]) {

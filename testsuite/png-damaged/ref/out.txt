@@ -22,3 +22,14 @@ src/exif-deep-ifds.png :    1 x    1, 1 channel, uint8 png
     SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
     channel list: Y
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/xmp-deep-nesting.png
+src/xmp-deep-nesting.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    oiio:ColorSpace: "srgb_rec709_scene"
+src/xmp-list-blowup.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+src/xmp-many-attribs.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+src/xmp-multi-packet.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F

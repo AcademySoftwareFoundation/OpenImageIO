@@ -35,6 +35,11 @@ src/corrupt-exif-deep-ifds.jpg :    1 x    1, 1 channel, uint8 jpeg
     SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
     channel list: Y
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/corrupt-xmp-deep-nesting.jpg
+src/corrupt-xmp-deep-nesting.jpg :    1 x    1, 1 channel, uint8 jpeg
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    oiio:ColorSpace: "srgb_rec709_scene"
 corrupt-icc-4551.jpg
 Reading src/corrupt-icc-4552.jpg
 src/corrupt-icc-4552.jpg : 1500 x 1000, 3 channel, uint8 jpeg
