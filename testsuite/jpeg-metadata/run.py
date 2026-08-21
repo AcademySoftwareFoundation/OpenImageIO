@@ -36,3 +36,12 @@ command += rw_command ("src", "blender-render.jpg", use_oiiotool=1,
                        extraargs="--attrib:type=string ImageDescription \"Example:Text\"")
 command += info_command ("with-colon-desc.jpg", safematch=True,
                          extraargs="--oiioattrib:type=int jpeg:com_attributes 0")
+
+# The XMP encoder interpolates attribute values into XML text, so a value
+# holding XML metacharacters has to be escaped or it becomes markup. This one
+# is carried only by XMP (not also by the IPTC IIM block); unescaped, it
+# truncated to "a" and took the rest of the packet with it.
+command += oiiotool ("--create 1x1 3 "
+                     "--attrib:type=string IPTC:RightsUsageTerms \"a<b&c>d\" "
+                     "-o xmp-escape.jpg")
+command += info_command ("xmp-escape.jpg", safematch=True)
