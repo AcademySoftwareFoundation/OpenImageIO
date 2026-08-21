@@ -7,6 +7,7 @@ add_oiio_plugin (tiffinput.cpp tiffoutput.cpp
                                 ZLIB::ZLIB
                                 $<TARGET_NAME_IF_EXISTS:libjpeg-turbo::jpeg>
                                 $<TARGET_NAME_IF_EXISTS:JPEG::JPEG>
+                                $<TARGET_NAME_IF_EXISTS:Deflate::Deflate>
                 )
 
 # TODO: It's not clear that we need to explicitly list the ZLIB and JPEG
