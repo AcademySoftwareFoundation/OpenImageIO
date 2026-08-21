@@ -187,6 +187,7 @@ hw_simd_caps()
     if (cpu_has_f16c())        caps.emplace_back ("f16c");
     if (cpu_has_popcnt())      caps.emplace_back ("popcnt");
     if (cpu_has_rdrand())      caps.emplace_back ("rdrand");
+    if (cpu_has_neon())        caps.emplace_back ("neon");
     return Strutil::join (caps, ",");
     // clang-format on
 }
