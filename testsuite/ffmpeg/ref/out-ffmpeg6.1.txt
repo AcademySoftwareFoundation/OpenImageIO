@@ -124,3 +124,6 @@ Full command line was:
 src/resolution-change.mkv :  320 x  240, 3 channel, uint8 FFmpeg movie (4 subimages)
     SHA-1: "src/resolution-change.mkv" frame 0 does not match the 320x240 format declared by the header
 iinfo ERROR: "src/resolution-change.mkv" : "src/resolution-change.mkv" frame 0 does not match the 320x240 format declared by the header
+src/bframes.mp4      :   32 x   32, 3 channel, uint8 FFmpeg movie (10 subimages)
+src/audio-track.mkv  :   32 x   32, 3 channel, uint8 FFmpeg movie (10 subimages)
+src/start-offset.mkv :   32 x   32, 3 channel, uint8 FFmpeg movie (10 subimages)

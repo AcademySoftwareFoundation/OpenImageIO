@@ -21,7 +21,7 @@ command = command + oiiotool ("src/ffmpeg-width1-gbrp16.mkv --hash")
 # frames were requested from swscale as GRAY8/GRAY16, so every scanline copy
 # ran past the end of the decoded row. Check the channel count, then read the
 # pixels to make sure the copy stays in bounds. (No hash: swscale output is
-# not bit-identical across FFmpeg versions.) See src/make_malformed_movies.py.
+# not bit-identical across FFmpeg versions.) See src/make_test_movies.py.
 for f in [ "gray8.avi", "gray16.avi" ]:
     command = command + info_command ("src/" + f, verbose=False, hash=False)
     command = command + oiiotool ("src/" + f + " --hash")
@@ -37,3 +37,18 @@ for f in [ "bomb-16384x9000.avi", "truncated.avi" ]:
 # because oiiotool's --hash exits 0 on a failed read.)
 command = command + info_command ("src/resolution-change.mkv", verbose=False,
                                   failureok=True, info_program="iinfo")
+
+# Frame indexing. Each of these is 10 frames of well-formed video: check that
+# the reader says so, and that every frame decodes. (No hashes: swscale
+# output is not bit-identical across FFmpeg versions, so just read the pixels
+# and let a failed decode show up as an error.)
+#   bframes.mp4       the decoder holds frames back, so the last ones only
+#                     appear once it is flushed at the end of the stream.
+#   audio-track.mkv   the audio track is longer than the video, and used to
+#                     be counted as extra frames.
+#   start-offset.mkv  the first frame is at t = 5 s, and the whole movie used
+#                     to be undecodable.
+for f in [ "bframes.mp4", "audio-track.mkv", "start-offset.mkv" ]:
+    command = command + info_command ("src/" + f, verbose=False, hash=False)
+    # -o so oiiotool actually reads the pixels; the .exr is not compared.
+    command = command + oiiotool ("-a src/" + f + " -o " + f + ".exr")
