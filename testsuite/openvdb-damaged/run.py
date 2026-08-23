@@ -19,7 +19,7 @@ for f in [ "bad-bbox-huge.vdb",     # extent past the per-dimension ceiling
            "bad-bbox-roundup.vdb",  # overflows when rounded to the leaf grid
            "bad-bbox-inverted.vdb", # min > max, i.e. negative resolution
            "bad-bbox-empty.vdb" ]:  # no active voxels at all
-    command += oiiotool("--info -v src/" + f, failureok=True)
+    command += oiiotool("--info -v -oiioattrib limits:imagesize_MB 16384 src/" + f, failureok=True)
 
 # Also rejected, but the message is OpenVDB's own and its wording varies by
 # version, so keep it out of the compared output and just check that the read

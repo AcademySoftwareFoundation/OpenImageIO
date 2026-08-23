@@ -134,8 +134,7 @@ main(int argc, char** argv)
 
     // A file that ends in the middle of the grid descriptor. Truncating any
     // deeper trips an unbounded length-prefixed string read inside OpenVDB
-    // that costs ~12 GB of RSS, which is no good for CI or the fuzzer; see
-    // the openvdb entries in docs/dev/format-hardening-deferrals.md.
+    // that costs ~12 GB of RSS, which is no good for CI or the fuzzer.
     truncate_copy(p("bad-bbox-huge.vdb"), p("truncated.vdb"), 80);
 
     return 0;
