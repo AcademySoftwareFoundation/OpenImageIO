@@ -490,8 +490,8 @@ jobs:
                              PIP_INSTALLS=numpy
                              Robinmap_BUILD_VERSION=1.3.0
                              Robinmap_GIT_COMMIT=188c45569cc2a5dd768077c193830b51d33a5020
-                             TIFF_BUILD_VERSION=4.0.0
-                             TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+                             TIFF_BUILD_VERSION=4.1.0
+                             TIFF_GIT_COMMIT=e0d707dc1524d8c0e20f03396f234e0f1b07b3f4
                              LIBRAW_VERSION=0.21.0
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
@@ -521,8 +521,8 @@ jobs:
                             OIIO_CXX=clang++
                             Robinmap_BUILD_VERSION=1.3.0
                             Robinmap_GIT_COMMIT=188c45569cc2a5dd768077c193830b51d33a5020
-                            TIFF_BUILD_VERSION=4.0.0
-                            TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+                            TIFF_BUILD_VERSION=4.1.0
+                            TIFF_GIT_COMMIT=e0d707dc1524d8c0e20f03396f234e0f1b07b3f4
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
                             LIBRAW_VERSION=0.21.0
@@ -563,8 +563,8 @@ jobs:
                              PIP_INSTALLS=numpy
                              Robinmap_BUILD_VERSION=1.3.0
                              Robinmap_GIT_COMMIT=188c45569cc2a5dd768077c193830b51d33a5020
-                             TIFF_BUILD_VERSION=4.0.0
-                             TIFF_GIT_COMMIT=f7b79dc7dc86ccbaabe9882e2b9ffa5ee8dac917
+                             TIFF_BUILD_VERSION=4.1.0
+                             TIFF_GIT_COMMIT=e0d707dc1524d8c0e20f03396f234e0f1b07b3f4
             required_deps: none
             build_local_deps: 'TIFF'
 
