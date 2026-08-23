@@ -69,6 +69,33 @@ src/corrupt-icc-4552.jpg : 1500 x 1000, 3 channel, uint8 jpeg
     ICCProfile:rendering_intent: "Unknown"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/corrupt-icc-unaligned-mluc.jpg
+src/corrupt-icc-unaligned-mluc.jpg :    1 x    1, 1 channel, uint8 jpeg
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    ICCProfile: 0, 0, 0, 177, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [177 x uint8]
+    ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
+    ICCProfile:cmm_type: 0
+    ICCProfile:color_space: ""
+    ICCProfile:creation_date: "00:00:00 00:00:00"
+    ICCProfile:creator_signature: "0"
+    ICCProfile:device_class: ""
+    ICCProfile:flags: "Not Embedded, Independent"
+    ICCProfile:manufacturer: "0"
+    ICCProfile:model: "0"
+    ICCProfile:platform_signature: ""
+    ICCProfile:profile_connection_space: ""
+    ICCProfile:profile_description: "Hi"
+    ICCProfile:profile_size: 177
+    ICCProfile:profile_version: "0.0.0"
+    ICCProfile:rendering_intent: "Perceptual"
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/corrupt-icc-oversized.jpg
+src/corrupt-icc-oversized.jpg :    1 x    1, 1 channel, uint8 jpeg
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    ICCProfile: 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... [132 x uint8]
+    oiio:ColorSpace: "srgb_rec709_scene"
 short-exif-app1-len4-ok
 short-exif-app1-len5-ok
 short-icc-app2-len11-ok
