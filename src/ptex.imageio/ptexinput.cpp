@@ -458,7 +458,7 @@ PtexInput::get_ptex_metadata(PtexMetaData* pmeta)
     if (!pmeta)
         return;
 
-        // Helper macro to get metadata of a specific type
+    // Helper macro to get metadata of a specific type
 #define GETMETA(pmeta, key, ptype, basetype, typedesc, value) \
     {                                                         \
         const ptype* v;                                       \

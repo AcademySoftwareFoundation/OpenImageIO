@@ -286,10 +286,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 #if OIIO_TIFFLIB_VERSION < 40500
-extern std::string&
-oiio_tiff_last_error();
-extern void
-oiio_tiff_set_error_handler();
+extern std::string& oiio_tiff_last_error();
+extern void oiio_tiff_set_error_handler();
 #endif
 
 
@@ -1783,10 +1781,11 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                         tile_ystride = tile_xstride * m_spec.tile_width;
                         tile_zstride = tile_ystride * m_spec.tile_height;
                     }
-                    const void* buf
-                        = to_native_tile(format, tilestart, tile_xstride,
-                                         tile_ystride, tile_zstride,
-                                         tilebuf[tileno], m_dither, x, y, z);
+                    const void* buf = to_native_tile(format, tilestart,
+                                                     tile_xstride, tile_ystride,
+                                                     tile_zstride,
+                                                     tilebuf[tileno], m_dither,
+                                                     x, y, z);
                     if (buf == (const void*)tilestart) {
                         // Ugly detail: if to_native_rectangle did not allocate
                         // scratch space and copy to it, we need to do it now,

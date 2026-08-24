@@ -414,7 +414,9 @@ ArgParse::ArgParse(int argc, const char** argv)
 
 
 
-ArgParse::~ArgParse() {}
+ArgParse::~ArgParse()
+{
+}
 
 
 

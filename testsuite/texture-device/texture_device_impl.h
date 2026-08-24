@@ -38,11 +38,11 @@ RequestHash::operator()(const Request& req) const
     uint64_t h = 1469598103934665603ull;
     h          = hash_mix_u64(h, static_cast<uint64_t>(req.type));
     h          = hash_mix_u64(h, req.tile.texture_hash);
-    h          = hash_mix_u64(h,
-                              static_cast<uint64_t>(static_cast<uint32_t>(req.tile.x)));
-    h          = hash_mix_u64(h,
-                              static_cast<uint64_t>(static_cast<uint32_t>(req.tile.y)));
-    h          = hash_mix_u64(h, static_cast<uint64_t>(
+    h = hash_mix_u64(h,
+                     static_cast<uint64_t>(static_cast<uint32_t>(req.tile.x)));
+    h = hash_mix_u64(h,
+                     static_cast<uint64_t>(static_cast<uint32_t>(req.tile.y)));
+    h = hash_mix_u64(h, static_cast<uint64_t>(
                             static_cast<uint32_t>(req.tile.mip)));
     return static_cast<size_t>(h);
 }
@@ -217,7 +217,7 @@ DTS::load_tiles(SampleArray& samples)
         uint32_t tile_pool_index = 0;
         const bool found         = m_tile_index.find(samples[i].tcoords,
                                                      tile_pool_index)
-                           && tile_pool_index < m_tile_count;
+                                   && tile_pool_index < m_tile_count;
 
         // Apply the same tile-resolution result to all duplicate tap entries
         // with identical tile coordinates in this sample batch.
@@ -293,7 +293,7 @@ DTS::lookup(OIIO::ustringhash name, float u, float v, Vec2 du, Vec2 dv,
                             const size_t idx = size_t(samples[i].local_y)
                                                    * size_t(kTileWidth)
                                                + size_t(samples[i].local_x);
-                            accum = samples[i].tile->pixels[idx];
+                            accum            = samples[i].tile->pixels[idx];
                             break;
                         }
                     }

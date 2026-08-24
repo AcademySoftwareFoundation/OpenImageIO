@@ -144,7 +144,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
         std::string val;
         bool ok = express_parse_summands(s, s, val)
                   && Strutil::parse_char(s, ')');
-        result = Strutil::eval_as_bool(val) ? "0" : "1";
+        result  = Strutil::eval_as_bool(val) ? "0" : "1";
         if (!ok)
             return false;
 
@@ -276,13 +276,14 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                     out << (i ? "," : "") << pixstat.avg[i];
                 result = out.str();
             } else if (metadata == "NONFINITE_COUNT") {
-                auto pixstat = ImageBufAlgo::computePixelStats((*img)(0, 0));
-                imagesize_t sum
-                    = std::accumulate(pixstat.nancount.begin(),
-                                      pixstat.nancount.end(), imagesize_t(0))
-                      + std::accumulate(pixstat.infcount.begin(),
-                                        pixstat.infcount.end(), imagesize_t(0));
-                result = Strutil::to_string(sum);
+                auto pixstat    = ImageBufAlgo::computePixelStats((*img)(0, 0));
+                imagesize_t sum = std::accumulate(pixstat.nancount.begin(),
+                                                  pixstat.nancount.end(),
+                                                  imagesize_t(0))
+                                  + std::accumulate(pixstat.infcount.begin(),
+                                                    pixstat.infcount.end(),
+                                                    imagesize_t(0));
+                result          = Strutil::to_string(sum);
             } else if (metadata == "META" || metadata == "METANATIVE") {
                 std::stringstream out;
                 print_info_options opt;

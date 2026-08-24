@@ -213,17 +213,16 @@ catalog_plugin(const std::string& format_name,
     }
 
     std::string version_function = format_name + "_imageio_version";
-    int* plugin_version          = (int*)Plugin::getsym(handle,
-                                                        version_function.c_str());
+    int* plugin_version = (int*)Plugin::getsym(handle,
+                                               version_function.c_str());
     if (!plugin_version || *plugin_version != OIIO_PLUGIN_VERSION) {
         Plugin::close(handle);
         return;
     }
 
     std::string lib_version_function = format_name + "_imageio_library_version";
-    PluginLibVersionFunc plugin_lib_version
-        = (PluginLibVersionFunc)Plugin::getsym(handle,
-                                               lib_version_function.c_str());
+    PluginLibVersionFunc plugin_lib_version = (PluginLibVersionFunc)
+        Plugin::getsym(handle, lib_version_function.c_str());
 
     // Add the filepath and handle to the master lists
     plugin_filepaths[format_name] = plugin_fullpath;
@@ -231,14 +230,12 @@ catalog_plugin(const std::string& format_name,
 
     ImageInput::Creator input_creator = (ImageInput::Creator)
         Plugin::getsym(handle, format_name + "_input_imageio_create");
-    const char** input_extensions
-        = (const char**)Plugin::getsym(handle,
-                                       format_name + "_input_extensions");
+    const char** input_extensions = (const char**)
+        Plugin::getsym(handle, format_name + "_input_extensions");
     ImageOutput::Creator output_creator = (ImageOutput::Creator)
         Plugin::getsym(handle, format_name + "_output_imageio_create");
-    const char** output_extensions
-        = (const char**)Plugin::getsym(handle,
-                                       format_name + "_output_extensions");
+    const char** output_extensions = (const char**)
+        Plugin::getsym(handle, format_name + "_output_extensions");
 
     if (input_creator || output_creator)
         declare_imageio_format_locked(format_name, input_creator,

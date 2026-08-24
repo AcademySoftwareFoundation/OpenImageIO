@@ -1031,7 +1031,7 @@ convert_image(int nchannels, int width, int height, int depth, const void* src,
         for (int y = 0; y < height; ++y) {
             const char* f = (const char*)src
                             + (z * src_zstride + y * src_ystride);
-            char* t = (char*)dst + (z * dst_zstride + y * dst_ystride);
+            char* t       = (char*)dst + (z * dst_zstride + y * dst_ystride);
             if (contig) {
                 // Special case: pixels within each row are contiguous
                 // in both src and dst and we're copying all channels.
@@ -1065,9 +1065,8 @@ parallel_convert_image(int nchannels, int width, int height, int depth,
 {
     if (nthreads <= 0)
         nthreads = oiio_threads;
-    nthreads
-        = clamp(int((int64_t(width) * height * depth * nchannels) / 100000), 1,
-                nthreads);
+    nthreads = clamp(int((int64_t(width) * height * depth * nchannels) / 100000),
+                     1, nthreads);
     if (nthreads <= 1)
         return convert_image(nchannels, width, height, depth, src, src_type,
                              src_xstride, src_ystride, src_zstride, dst,
@@ -1108,7 +1107,7 @@ copy_image(int nchannels, int width, int height, int depth, const void* src,
         for (int y = 0; y < height; ++y) {
             const char* f = (const char*)src
                             + (z * src_zstride + y * src_ystride);
-            char* t = (char*)dst + (z * dst_zstride + y * dst_ystride);
+            char* t       = (char*)dst + (z * dst_zstride + y * dst_ystride);
             if (contig) {
                 // Special case: pixels within each row are contiguous
                 // in both src and dst and we're copying all channels.

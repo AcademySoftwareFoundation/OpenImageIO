@@ -48,12 +48,10 @@ static bool exrdebug = Strutil::stoi(Sysutil::getenv("OIIO_DEBUG_OPENEXR"))
 namespace pvt {
 
 // Split a full channel name into layer and suffix.
-void
-split_name(string_view fullname, string_view& layer, string_view& suffix);
+void split_name(string_view fullname, string_view& layer, string_view& suffix);
 
 // Do the channels appear to be R, G, B (or known common aliases)?
-bool
-channels_are_rgb(const ImageSpec& spec);
+bool channels_are_rgb(const ImageSpec& spec);
 
 }  // namespace pvt
 

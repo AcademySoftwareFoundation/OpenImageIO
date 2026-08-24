@@ -390,9 +390,9 @@ warp_impl(ImageBuf& dst, const ImageBuf& src, const Imath::M33f& M,
         dst_roi      = roi.defined() ? roi : dst.roi();
         dst_roi_full = dst.roi_full();
     } else {
-        dst_roi      = roi.defined()
-                           ? roi
-                           : (recompute_roi ? transform(M, src.roi()) : src.roi());
+        dst_roi = roi.defined()
+                      ? roi
+                      : (recompute_roi ? transform(M, src.roi()) : src.roi());
         dst_roi_full = src_roi_full;
     }
     dst_roi.chend      = std::min(dst_roi.chend, src.nchannels());
@@ -737,7 +737,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
                         pel[c] = 0.0f;
                     const float* xfiltval = xfiltval_all.get()
                                             + (x - roi.xbegin) * xtaps;
-                    float totalweight_x = 0.0f;
+                    float totalweight_x   = 0.0f;
                     for (int i = 0; i < xtaps; ++i)
                         totalweight_x += xfiltval[i];
                     if (totalweight_x != 0.0f) {
@@ -937,11 +937,7 @@ ImageBufAlgo::fit(ImageBuf& dst, const ImageBuf& src, KWArgs options, ROI roi,
     OIIO::pvt::LoggedTimer logtime("IBA::fit");
 
     static const ustring recognized[] = {
-        filtername_us,
-        filterwidth_us,
-        filterptr_us,
-        fillmode_us,
-        exact_us,
+        filtername_us, filterwidth_us, filterptr_us, fillmode_us, exact_us,
 #if 0 /* Not currently recognized */
         wrap_us,
         edgeclamp_us,
@@ -1569,11 +1565,11 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                 // Compute src_xf for N pixels
                 auto idx_i32 = hn::Iota(d_i32, (float)x);
 
-                auto x_simd     = hn::ConvertTo(d, idx_i32);
-                auto s          = hn::Mul(hn::Sub(hn::Add(x_simd,
-                                                          hn::Set(d, (SimdType)0.5f)),
-                                                  hn::Set(d, (SimdType)dstfx)),
-                                          hn::Set(d, (SimdType)dstpixelwidth));
+                auto x_simd = hn::ConvertTo(d, idx_i32);
+                auto s = hn::Mul(hn::Sub(hn::Add(x_simd,
+                                                 hn::Set(d, (SimdType)0.5f)),
+                                         hn::Set(d, (SimdType)dstfx)),
+                                 hn::Set(d, (SimdType)dstpixelwidth));
                 auto src_xf_vec = hn::MulAdd(s, hn::Set(d, (SimdType)srcfw),
                                              hn::Set(d, (SimdType)srcfx));
                 // Pixel-center convention: subtract 0.5 before interpolation
@@ -1587,9 +1583,9 @@ resample_hwy(ImageBuf& dst, const ImageBuf& src, bool interpolate, ROI roi,
                 auto min_x = hn::Set(d_i32, src.xbegin());
                 auto max_x = hn::Set(d_i32, src.xend() - 1);
                 auto ix0   = hn::Min(hn::Max(ix, min_x), max_x);
-                auto ix1
-                    = hn::Min(hn::Max(hn::Add(ix, hn::Set(d_i32, 1)), min_x),
-                              max_x);
+                auto ix1   = hn::Min(hn::Max(hn::Add(ix, hn::Set(d_i32, 1)),
+                                             min_x),
+                                     max_x);
 
                 // Adjust to 0-based offset from buffer start
                 auto x_offset  = hn::Sub(ix0, min_x);

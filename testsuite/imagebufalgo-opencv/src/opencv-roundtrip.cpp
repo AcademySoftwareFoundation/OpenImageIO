@@ -19,10 +19,11 @@ using namespace OIIO;
 int
 main()
 {
-    ImageBuf src
-        = ImageBufAlgo::fill({ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },
-                             { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f },
-                             ROI(0, 64, 0, 64, 0, 1, 0, 3));
+    ImageBuf src = ImageBufAlgo::fill({ 1.0f, 0.0f, 0.0f },
+                                      { 0.0f, 1.0f, 0.0f },
+                                      { 0.0f, 0.0f, 1.0f },
+                                      { 1.0f, 1.0f, 1.0f },
+                                      ROI(0, 64, 0, 64, 0, 1, 0, 3));
 
     cv::Mat mat;
     bool to_ok = ImageBufAlgo::to_OpenCV(mat, src);

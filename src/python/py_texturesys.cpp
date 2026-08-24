@@ -368,9 +368,7 @@ declare_texturesystem(py_module& m)
             },
             "level"_a = 1, "icstats"_a = true)
         .def("reset_stats",
-             [](TextureSystemWrap& ts) { return ts.m_texsys->reset_stats(); })
-
-        ;
+             [](TextureSystemWrap& ts) { return ts.m_texsys->reset_stats(); });
 }
 
 }  // namespace PyOpenImageIO

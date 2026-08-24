@@ -1082,11 +1082,11 @@ flip_impl(ImageBuf& dst, ImageBuf* exposuremap, FLIPResults* result,
     float ppd           = options.get_float("ppd", FLIP_ppd_default);
     int hdr             = options.get_int("hdr", 1);
     string_view tmapper = options.get_string("tonemapper", "aces");
-    float startExp      = options.get_float("startExposure",
-                                            std::numeric_limits<float>::quiet_NaN());
-    float stopExp       = options.get_float("stopExposure",
-                                            std::numeric_limits<float>::quiet_NaN());
-    int numExp          = options.get_int("numExposures", 0);
+    float startExp = options.get_float("startExposure",
+                                       std::numeric_limits<float>::quiet_NaN());
+    float stopExp  = options.get_float("stopExposure",
+                                       std::numeric_limits<float>::quiet_NaN());
+    int numExp     = options.get_int("numExposures", 0);
 
     // Validate inputs
     if (!ref.initialized() || !test.initialized()) {

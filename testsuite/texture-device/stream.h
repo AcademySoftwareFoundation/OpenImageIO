@@ -236,9 +236,9 @@ private:
             m_managed.m_pages
                 = m_managed.m_arena->alloc(sizeof(tagged_ptr<Page>) * newcap,
                                            "Stream::grow_page_capacity");
-            m_pages                   = m_arena->alloc(m_managed.m_pages,
-                                                       sizeof(tagged_ptr<Page>) * newcap,
-                                                       "Stream::grow_page_capacity");
+            m_pages = m_arena->alloc(m_managed.m_pages,
+                                     sizeof(tagged_ptr<Page>) * newcap,
+                                     "Stream::grow_page_capacity");
             m_managed.m_page_capacity = newcap;
             m_managed.m_owner         = false;
         } else

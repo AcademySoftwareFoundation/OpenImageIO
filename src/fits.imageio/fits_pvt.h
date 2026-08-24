@@ -185,18 +185,16 @@ private:
 namespace fits_pvt {
 
 // converts given number to string
-std::string
-num2str(float val);
+std::string num2str(float val);
 
 
 // creates FITS card from given (keyname, value, comment) strings
-std::string
-create_card(std::string keyname, std::string value);
+std::string create_card(std::string keyname, std::string value);
 
 
 // retrieving keyname, value and comment from the given card
-void
-unpack_card(const std::string& card, std::string& keyname, std::string& value);
+void unpack_card(const std::string& card, std::string& keyname,
+                 std::string& value);
 
 }  // namespace fits_pvt
 

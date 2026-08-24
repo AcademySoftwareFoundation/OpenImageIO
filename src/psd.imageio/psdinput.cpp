@@ -506,11 +506,9 @@ private:
 // 1) Add ADD_LOADER(<ResourceID>) below
 // 2) Add a method in PSDInput:
 //    bool load_resource_<ResourceID> (uint32_t length);
-#define ADD_LOADER(id)                                                      \
-    {                                                                       \
-        id, std::bind(&PSDInput::load_resource_##id, std::placeholders::_1, \
-                      std::placeholders::_2)                                \
-    }
+#define ADD_LOADER(id)                                                    \
+    { id, std::bind(&PSDInput::load_resource_##id, std::placeholders::_1, \
+                    std::placeholders::_2) }
 const PSDInput::ResourceLoader PSDInput::resource_loaders[]
     = { ADD_LOADER(1005), ADD_LOADER(1006), ADD_LOADER(1010), ADD_LOADER(1033),
         ADD_LOADER(1036), ADD_LOADER(1039), ADD_LOADER(1047), ADD_LOADER(1058),
@@ -560,7 +558,10 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-PSDInput::PSDInput() { init(); }
+PSDInput::PSDInput()
+{
+    init();
+}
 
 
 bool
@@ -1747,8 +1748,8 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
                     - int64_t(layer.mask_data.left);
         int64_t h = int64_t(layer.mask_data.bottom)
                     - int64_t(layer.mask_data.top);
-        width  = uint32_t(w < 0 ? -w : w);
-        height = uint32_t(h < 0 ? -h : h);
+        width     = uint32_t(w < 0 ? -w : w);
+        height    = uint32_t(h < 0 ? -h : h);
     } else {
         width  = layer.width;
         height = layer.height;
@@ -1912,7 +1913,7 @@ PSDInput::load_global_additional()
     uint64_t length    = 0;
     uint64_t remaining = m_layer_mask_info.length
                          - (iotell() - m_layer_mask_info.begin);
-    bool ok = true;
+    bool ok            = true;
     while (ok && remaining >= 12) {
         if (!ioread(signature, 4))
             return false;

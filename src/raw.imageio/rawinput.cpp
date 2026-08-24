@@ -479,7 +479,7 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             raw_bps = 8;
         imagesize_t declared_bytes = imagesize_t(raw_width) * raw_height
                                      * raw_bps / 8;
-        imagesize_t filesize = Filesystem::file_size(name);
+        imagesize_t filesize       = Filesystem::file_size(name);
         if (!check_compression_ratio(declared_bytes, filesize))
             return false;
     }
@@ -1172,8 +1172,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                 m_thumb_index = index_map[m_thumb_index];
             }
 
-            width = m_processor->imgdata.thumbs_list.thumblist[m_thumb_index]
-                        .twidth;
+            width  = m_processor->imgdata.thumbs_list.thumblist[m_thumb_index]
+                         .twidth;
             height = m_processor->imgdata.thumbs_list.thumblist[m_thumb_index]
                          .theight;
         }
