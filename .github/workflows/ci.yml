@@ -308,7 +308,7 @@ jobs:
           # the console output).
           - desc: "clang-format"
             nametag: clang-format
-            runner: ubuntu-24.04
+            runner: ubuntu-26.04
             cxx_std: 17
             extra_artifacts: "src/*.*"
             python_ver: "3.10"
@@ -318,8 +318,8 @@ jobs:
             skip_tests: 1
             setenvs: export SKIP_SYSTEM_DEPS_INSTALL=1 SKIP_APT_GET_UPDATE=1
                             INSTALL_OPENCV=0 QT_VERSION=0 USE_LIBHEIF=0
-                            EXTRA_DEP_PACKAGES="clang-format-17"
-                            CLANG_FORMAT_EXE=clang-format-17
+                            CLANG_FORMAT_EXE=clang-format-22
+                            EXTRA_DEP_PACKAGES="clang-format-22"
 
           - desc: latest releases gcc15 C++23 py3.12 avx2 exr3.4 ocio2.4
             nametag: linux-latest-releases
