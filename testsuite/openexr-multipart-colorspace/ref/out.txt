@@ -1,0 +1,316 @@
+Reading typical.exr
+typical.exr          :    4 x    4, 3 channel, half openexr
+    4 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
+ subimage  0:    4 x    4, 3 channel, half openexr
+    SHA-1: 2888D7692B43824B1F6B6AFEE923705DC3BE7B32
+    channel list: R, G, B
+    colorInteropID: "lin_ap1_scene"
+    compression: "zip"
+    name: "beauty"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimagename: "beauty"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  1:    4 x    4, 3 channel, half openexr
+    SHA-1: 2C000460D7DBE3E3F8F015B585D48396D79A953C
+    channel list: R, G, B
+    compression: "zip"
+    name: "diffuse"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimagename: "diffuse"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  2:    4 x    4, 3 channel, half openexr
+    SHA-1: 09130898C63D0749C555654FBF1EF5CA59A79D07
+    channel list: R, G, B
+    colorInteropID: "data"
+    compression: "zip"
+    name: "depth"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "depth"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  3:    4 x    4, 3 channel, half openexr
+    SHA-1: 5497DD3A644B9A44B5259A409346F9184A58891A
+    channel list: R, G, B
+    compression: "zip"
+    name: "specular"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimagename: "specular"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+Reading typical.exr
+typical.exr          :    4 x    4, 3 channel, half openexr
+    4 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
+ subimage  0:    4 x    4, 3 channel, half openexr
+    SHA-1: 2888D7692B43824B1F6B6AFEE923705DC3BE7B32
+    channel list: R, G, B
+    colorInteropID: "lin_ap1_scene"
+    compression: "zip"
+    name: "beauty"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimagename: "beauty"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  1:    4 x    4, 3 channel, half openexr
+    SHA-1: 2C000460D7DBE3E3F8F015B585D48396D79A953C
+    channel list: R, G, B
+    compression: "zip"
+    name: "diffuse"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimagename: "diffuse"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  2:    4 x    4, 3 channel, half openexr
+    SHA-1: 09130898C63D0749C555654FBF1EF5CA59A79D07
+    channel list: R, G, B
+    colorInteropID: "data"
+    compression: "zip"
+    name: "depth"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "depth"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  3:    4 x    4, 3 channel, half openexr
+    SHA-1: 5497DD3A644B9A44B5259A409346F9184A58891A
+    channel list: R, G, B
+    compression: "zip"
+    name: "specular"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimagename: "specular"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+Reading typical_nocolorspace.exr
+typical_nocolorspace.exr :    4 x    4, 3 channel, half openexr
+    3 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
+ subimage  0:    4 x    4, 3 channel, half openexr
+    SHA-1: 2888D7692B43824B1F6B6AFEE923705DC3BE7B32
+    channel list: R, G, B
+    compression: "zip"
+    name: "beauty"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:subimagename: "beauty"
+    oiio:subimages: 3
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  1:    4 x    4, 3 channel, half openexr
+    SHA-1: 09130898C63D0749C555654FBF1EF5CA59A79D07
+    channel list: R, G, B
+    colorInteropID: "data"
+    compression: "zip"
+    name: "depth"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "depth"
+    oiio:subimages: 3
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  2:    4 x    4, 3 channel, half openexr
+    SHA-1: 5497DD3A644B9A44B5259A409346F9184A58891A
+    channel list: R, G, B
+    compression: "zip"
+    name: "specular"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:subimagename: "specular"
+    oiio:subimages: 3
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+Reading typical_nocolorspace.exr
+typical_nocolorspace.exr :    4 x    4, 3 channel, half openexr
+    3 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
+ subimage  0:    4 x    4, 3 channel, half openexr
+    SHA-1: 2888D7692B43824B1F6B6AFEE923705DC3BE7B32
+    channel list: R, G, B
+    compression: "zip"
+    name: "beauty"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:subimagename: "beauty"
+    oiio:subimages: 3
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  1:    4 x    4, 3 channel, half openexr
+    SHA-1: 09130898C63D0749C555654FBF1EF5CA59A79D07
+    channel list: R, G, B
+    colorInteropID: "data"
+    compression: "zip"
+    name: "depth"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "depth"
+    oiio:subimages: 3
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  2:    4 x    4, 3 channel, half openexr
+    SHA-1: 5497DD3A644B9A44B5259A409346F9184A58891A
+    channel list: R, G, B
+    compression: "zip"
+    name: "specular"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:subimagename: "specular"
+    oiio:subimages: 3
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+Reading src/multipart_colorspace_data_first.exr
+src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
+    4 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
+ subimage  0:    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    colorInteropID: "data"
+    compression: "zip"
+    name: "data0"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "data0"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  1:    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    compression: "zip"
+    name: "missing1"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "missing1"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  2:    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    colorInteropID: "lin_ap1_scene"
+    compression: "zip"
+    name: "color2"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimagename: "color2"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  3:    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    compression: "zip"
+    name: "missing3"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "missing3"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+Reading src/multipart_colorspace_data_first.exr
+src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
+    4 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
+ subimage  0:    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    colorInteropID: "data"
+    compression: "zip"
+    name: "data0"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "data0"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  1:    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    compression: "zip"
+    name: "missing1"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "missing1"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  2:    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    colorInteropID: "lin_ap1_scene"
+    compression: "zip"
+    name: "color2"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "lin_ap1_scene"
+    oiio:subimagename: "color2"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+ subimage  3:    4 x    4, 3 channel, half openexr
+    SHA-1: C49A9785B2243F2F080DAAD1747F119ACCECCFA5
+    channel list: R, G, B
+    compression: "zip"
+    name: "missing3"
+    PixelAspectRatio: 1
+    screenWindowCenter: 0, 0
+    screenWindowWidth: 1
+    oiio:ColorSpace: "data"
+    oiio:subimagename: "missing3"
+    oiio:subimages: 4
+    openexr:chunkCount: 1
+    openexr:lineOrder: "increasingY"
+oiiotool ERROR: -o : OpenEXR subimage 1 has color space "lin_rec709_scene", different from "lin_ap1_scene" in the first subimage
+Full command line was:
+> oiiotool --pattern constant:color=1,0,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty --pattern constant:color=0,1,0 4x4 3 -d half --attrib oiio:ColorSpace lin_rec709_scene --attrib oiio:subimagename specular --siappendall -o datafirst.exr
+oiiotool ERROR: -o : OpenEXR subimage 1 has color space "lin_ap1_scene", different from "data" in the first subimage
+Full command line was:
+> oiiotool --pattern constant:color=0.25,0.25,0.25 4x4 3 -d half --attrib oiio:ColorSpace data --attrib oiio:subimagename depth --pattern constant:color=1,0,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty --pattern constant:color=0,1,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename specular --siappendall -o datafirst.exr
