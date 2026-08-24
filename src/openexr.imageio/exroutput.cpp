@@ -710,6 +710,39 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
 }
 
 
+// Follow the color interop forum recommendation for OpenEXR files,
+// where the colorInteropID in later parts must match the first part,
+// except when "data" or missing.
+static std::string
+validate_color_interop_ids(const std::vector<Imf::Header>& headers)
+{
+    string_view file_interop_id;
+
+    for (size_t s = 0; s < headers.size(); ++s) {
+        const Imf::StringAttribute* attr
+            = headers[s].findTypedAttribute<Imf::StringAttribute>(
+                "colorInteropID");
+        string_view interop_id = attr ? string_view(attr->value())
+                                      : string_view();
+
+        if (s == 0) {
+            file_interop_id = interop_id;
+            continue;
+        }
+
+        if (interop_id.empty() || interop_id == "data"
+            || interop_id == file_interop_id)
+            continue;
+
+        return Strutil::fmt::format(
+            "OpenEXR subimage {} has color space \"{}\", different from \"{}\" in the first subimage",
+            s, interop_id, file_interop_id);
+    }
+
+    return "";
+}
+
+
 
 bool
 OpenEXROutput::open(const std::string& name, int subimages,
@@ -756,6 +789,12 @@ OpenEXROutput::open(const std::string& name, int subimages,
                 deep ? (tiled ? Imf::DEEPTILE : Imf::DEEPSCANLINE)
                      : (tiled ? Imf::TILEDIMAGE : Imf::SCANLINEIMAGE));
         }
+    }
+
+    std::string interop_id_error = validate_color_interop_ids(m_headers);
+    if (!interop_id_error.empty()) {
+        errorfmt("{}", interop_id_error);
+        return false;
     }
 
     m_spec = m_subimagespecs[0];

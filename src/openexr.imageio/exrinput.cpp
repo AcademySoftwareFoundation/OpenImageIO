@@ -218,6 +218,17 @@ OpenEXRInput::valid_file(Filesystem::IOProxy* ioproxy) const
 
 
 
+// Color space shared by all parts of the file, taken from the first part.
+static std::string
+file_color_interop_id(const Imf::MultiPartInputFile* multipart)
+{
+    const Imf::StringAttribute* attr
+        = multipart->header(0).findTypedAttribute<Imf::StringAttribute>(
+            "colorInteropID");
+    return attr ? attr->value() : std::string();
+}
+
+
 bool
 OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
                    const ImageSpec& config)
@@ -325,6 +336,8 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     m_parts.resize(m_nsubimages);
     m_subimage = -1;
     m_miplevel = -1;
+
+    m_file_color_interop_id = file_color_interop_id(m_input_multipart);
 
     // Set up for the first subimage ("part"). This will trigger reading
     // information about all the parts.
@@ -731,8 +744,15 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     // Try to figure out the color space for some unambiguous cases
     if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
         spec.set_colorspace("lin_ap0_scene");
-    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
-        spec.set_colorspace(c->get_ustring());
+    } else {
+        // Follow the color interop forum recommendation for OpenEXR files,
+        // inheriting the colorInteropID from the first part.
+        string_view interop_id = spec.get_string_attribute("colorInteropID");
+        if (!interop_id.empty()) {
+            spec.set_colorspace(interop_id);
+        } else if (!in->m_file_color_interop_id.empty()) {
+            spec.set_colorspace(in->m_file_color_interop_id);
+        }
     }
 
     // Squash some problematic texture metadata if we suspect it's wrong
