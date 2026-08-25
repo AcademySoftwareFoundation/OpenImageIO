@@ -28,10 +28,6 @@ build_dependency_with_cmake(libdeflate
         -D LIBDEFLATE_BUILD_GZIP=OFF
     )
 
-# Set some things up that we'll need for a subsequent find_package to work
-
-set (libdeflate_ROOT ${libdeflate_LOCAL_INSTALL_DIR})
-
 # Signal to caller that we need to find again at the installed location
 set (libdeflate_REFIND TRUE)
 set (libdeflate_REFIND_ARGS CONFIG)

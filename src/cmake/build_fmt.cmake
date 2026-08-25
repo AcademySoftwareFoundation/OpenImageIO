@@ -27,4 +27,5 @@ build_dependency_with_cmake(fmt
 
 # Signal to caller that we need to find again at the installed location
 set (fmt_REFIND TRUE)
+set (fmt_REFIND_ARGS CONFIG)
 set (fmt_VERSION ${fmt_BUILD_VERSION})

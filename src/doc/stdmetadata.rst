@@ -74,6 +74,22 @@ Description of the image
 Display hints
 =============
 
+.. |orient1img| image:: figures/orientation1.jpg
+    :height: 1 in
+.. |orient2img| image:: figures/orientation2.jpg
+    :height: 1 in
+.. |orient3img| image:: figures/orientation3.jpg
+    :height: 1 in
+.. |orient4img| image:: figures/orientation4.jpg
+    :height: 1 in
+.. |orient5img| image:: figures/orientation5.jpg
+    :width: 1 in
+.. |orient6img| image:: figures/orientation6.jpg
+    :width: 1 in
+.. |orient7img| image:: figures/orientation7.jpg
+    :width: 1 in
+.. |orient8img| image:: figures/orientation8.jpg
+    :width: 1 in
 
 .. option:: "Orientation" : int
 
@@ -83,16 +99,16 @@ Display hints
     `"Orientation"` field can suggest that it should be displayed with
     a different orientation, according to the TIFF/EXIF conventions:
 
-    ===  ==========================================================================
-     1   normal (top to bottom, left to right)
-     2   flipped horizontally (top to bottom, right to left)
-     3   rotated :math:`180^\circ` (bottom to top, right to left)
-     4   flipped vertically (bottom to top, left to right)
-     5   transposed (left to right, top to bottom)
-     6   rotated :math:`90^\circ` clockwise (right to left, top to bottom)
-     7   transverse (right to left, bottom to top)
-     8   rotated :math:`90^\circ` counter-clockwise (left to right, bottom to top)
-    ===  ==========================================================================
+    ===  ============  ==========================================================================
+     1   |orient1img|  normal (top to bottom, left to right)
+     2   |orient2img|  flipped horizontally (top to bottom, right to left)
+     3   |orient3img|  rotated :math:`180^\circ` (bottom to top, right to left)
+     4   |orient4img|  flipped vertically (bottom to top, left to right)
+     5   |orient5img|  transposed (left to right, top to bottom)
+     6   |orient6img|  rotated :math:`90^\circ` clockwise (right to left, top to bottom)
+     7   |orient7img|  transverse (right to left, bottom to top)
+     8   |orient8img|  rotated :math:`90^\circ` counter-clockwise (left to right, bottom to top)
+    ===  ============  ==========================================================================
 
 .. option:: "PixelAspectRatio" : float
 
@@ -149,9 +165,13 @@ Color information
     - `"lin_ap1_scene"`, `"ACEScg"` :  ACEScg color space encoding.
     - `"lin_ap0_scene"` :  ACES2065-1, the recommended ACES space for
       interchange and archiving.
-    - `"srgb_rec709_scene"` : Using standard (piecewise) sRGB response and
-      primaries. The token `"sRGB"` is treated as a synonym.
-    - `"g22_rec709_scene"` : Rec709/sRGB primaries, but using a response curve
+    - `"srgb_rec709_display"` : Using standard (piecewise) sRGB response and
+      primaries.
+    - `"srgb_rec709_scene"` : Same response and primaries as
+      `"srgb_rec709_display"` but for scene referred images. The token `"sRGB"`
+      is treated as a synonym, but it is recommended to use the more specific
+      interop ID.
+    - `"g22_rec709_display"` : Rec709/sRGB primaries, but using a response curve
       corresponding to gamma 2.2.
 
     Additionally, `"scene_linear"` is a role that is appropriate for color
@@ -231,11 +251,11 @@ Disk file format info/hints
     an example, the OpenEXR writer supports `none`, `rle`, `zip`, `zips`,
     `piz`, `pxr24`, `b44`, `b44a`, `dwaa`, or `dwab`.
 
-    he compression name is permitted to have a quality value to be appended
+    The compression name is permitted to have a quality value to be appended
     after a colon, for example `dwaa:60`.  The exact meaning and range of
-    he quality value can vary between different file formats and compression
-    odes, and some don't support quality values at all (it will be ignored if
-    ot supported, or if out of range).
+    The quality value can vary between different file formats and compression
+    modes, and some don't support quality values at all (it will be ignored if
+    not supported, or if out of range).
 
 .. option:: "CompressionQuality" : int
 
@@ -406,12 +426,12 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
 
 .. option:: "oiio:SHA-1" : string
 
-    f present, is a 40-byte SHA-1 hash of the input image (possibly salted
-    with arious maketx options) that can serve to quickly compare two
-    separate extures to know if they contain the same pixels. While it's
-    not, echnically, 100% guaranteed that no separate textures will match,
-    it's so stronomically unlikely that we discount the possibility (you'd
-    be rendering ovies for centuries before finding a single match).
+    If present, is a 40-byte SHA-1 hash of the input image (possibly salted
+    with various maketx options) that can serve to quickly compare two
+    separate textures to know if they contain the same pixels. While it's
+    not, technically, 100% guaranteed that no separate textures will match,
+    it's so astronomically unlikely that we discount the possibility (you'd
+    be rendering movies for centuries before finding a single match).
 
 
 
@@ -540,7 +560,7 @@ The kind of light source:
     11   shade
     12   daylight fluorescent (D 5700-7100K)
     13   day white fluorescent (N 4600-5400K)
-    14   cool white fuorescent (W 3900 - 4500K)
+    14   cool white fluorescent (W 3900 - 4500K)
     15   white fluorescent (WW 3200 - 3700K)
     17   standard light A
     18   standard light B
@@ -607,7 +627,7 @@ A sum of:
 
 .. option:: "Exif:FlashEnergy" : float
 
-    Strobe energy when the image was captures, measured in Beam Candle Power
+    Strobe energy when the image was captured, measured in Beam Candle Power
     Seconds (BCPS).
 
 .. option:: "Exif:FocalPlaneXResolution" : float
@@ -637,7 +657,7 @@ A sum of:
 
 .. option:: "Exif:SensingMethod" : int
 
-    The image sensor type on the camra:
+    The image sensor type on the camera:
 
     ===  ==============================================================
     1    undefined

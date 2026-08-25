@@ -264,6 +264,12 @@ just exist in the OIIO namespace as general utilities. (See
 
 .. doxygenfunction:: OIIO::set_colorspace_rec709_gamma
 
+.. doxygenfunction:: OIIO::is_colorspace_srgb
+
+.. doxygenfunction:: OIIO::get_colorspace_icc_profile
+
+.. doxygenfunction:: OIIO::get_colorspace_cicp
+
 .. doxygenfunction:: OIIO::equivalent_colorspace
 
 |
@@ -323,7 +329,7 @@ inside the source code.
 .. cpp:var:: OPENIMAGEIO_PLUGIN_PATH
 
     A colon-separated list of directories to search for OpenImageIO plugins
-    (dynamicaly loadable libraries that implement image format readers
+    (dynamically loadable libraries that implement image format readers
     and writers).
 
     This is a new name beginning with OpenImageIO 2.6.3. The old name

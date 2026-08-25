@@ -48,18 +48,6 @@
 #include "ivutils.h"
 
 
-namespace {
-
-inline bool
-IsSpecSrgb(const ImageSpec& spec)
-{
-    return equivalent_colorspace(spec.get_string_attribute("oiio:ColorSpace"),
-                                 "srgb_rec709_scene");
-}
-
-}  // namespace
-
-
 // clang-format off
 static const char *s_file_filters = ""
     "Image Files (*.bmp *.cin *.dcm *.dds *.dpx *.fits *.gif *.hdr *.ico *.iff "
@@ -569,9 +557,11 @@ ImageViewer::createOCIOMenus(QMenu* parent)
         for (int i = 0; i < config.getNumColorSpaces(); i++) {
             const char* colorSpaceName = config.getColorSpaceNameByIndex(i);
 
-            if (colorSpaceName && *colorSpaceName) {
-                // If no color space provided via command line parameters, select the top color space in the list.
-                if (m_ocioColourSpace == "" && i == 0) {
+            if (colorSpaceName && *colorSpaceName
+                && config.isColorSpaceActive(colorSpaceName)) {
+                // If no color space provided via command line parameters,
+                // select the top active color space in the list.
+                if (m_ocioColourSpace == "") {
                     m_ocioColourSpace = colorSpaceName;
                 }
 
@@ -1264,7 +1254,8 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
                 //std::cerr << "Loading HALF-FLOAT as FLOAT\n";
                 read_format = TypeDesc::FLOAT;
             }
-            if (IsSpecSrgb(image_spec) && !glwin->is_srgb_capable()) {
+            if (is_colorspace_srgb(image_spec, false)
+                && !glwin->is_srgb_capable()) {
                 // If the image is in sRGB, but OpenGL can't load sRGB textures then
                 // we'll need to do the transformation on the CPU after loading the
                 // image. We (so far) can only do this with UINT8 images, so make
@@ -1279,7 +1270,8 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
             read_format      = TypeDesc::UINT8;
             allow_transforms = true;
 
-            if (IsSpecSrgb(image_spec) && !glwin->is_srgb_capable())
+            if (is_colorspace_srgb(image_spec, false)
+                && !glwin->is_srgb_capable())
                 srgb_transform = true;
         }
 
@@ -1465,7 +1457,7 @@ ImageViewer::exposureMinusOneTenthStop()
     img->exposure(img->exposure() - 0.1);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && IsSpecSrgb(img->spec()));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1484,7 +1476,7 @@ ImageViewer::exposureMinusOneHalfStop()
     img->exposure(img->exposure() - 0.5);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && IsSpecSrgb(img->spec()));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1503,7 +1495,7 @@ ImageViewer::exposurePlusOneTenthStop()
     img->exposure(img->exposure() + 0.1);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && IsSpecSrgb(img->spec()));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1522,7 +1514,7 @@ ImageViewer::exposurePlusOneHalfStop()
     img->exposure(img->exposure() + 0.5);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && IsSpecSrgb(img->spec()));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1542,7 +1534,7 @@ ImageViewer::gammaMinus()
     img->gamma(img->gamma() - 0.05);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && IsSpecSrgb(img->spec()));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1561,7 +1553,7 @@ ImageViewer::gammaPlus()
     img->gamma(img->gamma() + 0.05);
     if (!glwin->is_glsl_capable()) {
         bool srgb_transform = (!glwin->is_srgb_capable()
-                               && IsSpecSrgb(img->spec()));
+                               && is_colorspace_srgb(img->spec(), false));
         img->pixel_transform(srgb_transform, (int)current_color_mode(),
                              current_channel());
         displayCurrentImage();
@@ -1593,8 +1585,9 @@ ImageViewer::viewChannel(int c, COLOR_MODE colormode)
         if (!glwin->is_glsl_capable()) {
             IvImage* img = cur();
             if (img) {
-                bool srgb_transform = (!glwin->is_srgb_capable()
-                                       && IsSpecSrgb(img->spec()));
+                bool srgb_transform
+                    = (!glwin->is_srgb_capable()
+                       && is_colorspace_srgb(img->spec(), false));
                 img->pixel_transform(srgb_transform, (int)colormode, c);
             }
         } else {

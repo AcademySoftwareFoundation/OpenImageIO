@@ -52,6 +52,8 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wunused-parameter")
 #include <OpenEXR/ImfMatrixAttribute.h>
 #include <OpenEXR/ImfMultiPartInputFile.h>
 #include <OpenEXR/ImfPartType.h>
+#include <OpenEXR/ImfPreviewImage.h>
+#include <OpenEXR/ImfPreviewImageAttribute.h>
 #include <OpenEXR/ImfRationalAttribute.h>
 #include <OpenEXR/ImfStringAttribute.h>
 #include <OpenEXR/ImfStringVectorAttribute.h>
@@ -86,8 +88,8 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // Defined in exrinput_c.cpp. Declare here at C++ namespace scope (not inside
 // the extern "C" block below) so the linkage matches the definition in the
 // non-embedded (dynamic plugin) build where OIIO_PLUGIN_EXPORTS_BEGIN is
-// `extern "C"`.
-extern ImageInput*
+// `extern "C"`. Use OIIO_EXPORT to ensure safe unity build on Windows.
+extern OIIO_EXPORT ImageInput*
 openexrcore_input_imageio_create();
 #endif
 
@@ -140,9 +142,9 @@ static std::map<std::string, std::string> exr_tag_to_oiio_std {
     { "tiledesc", "" },
     { "tiles", "" },
     { "type", "" },
+    { "preview", "" },  // we have thumbnail_* trio instead
 
     // FIXME: Things to consider in the future:
-    // preview
     // screenWindowCenter
     // adoptedNeutral
     // renderingTransform, lookModTransform
@@ -244,6 +246,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
 
     if (!valid_file(m_io)) {
         errorfmt("\"{}\" is not an OpenEXR file", name);
+        close();
         return false;
     }
 
@@ -287,6 +290,7 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
             std::string e = m_io->error();
             errorfmt("Could not open \"{}\" ({})", name,
                      e.size() ? e : std::string("unknown error"));
+            close();
             return false;
         }
         m_io->seek(0);
@@ -294,10 +298,12 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     } catch (const std::exception& e) {
         m_input_stream = NULL;
         errorfmt("OpenEXR exception: {}", e.what());
+        close();
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
         m_input_stream = NULL;
         errorfmt("OpenEXR exception: unknown");
+        close();
         return false;
     }
 
@@ -306,13 +312,12 @@ OpenEXRInput::open(const std::string& name, ImageSpec& newspec,
     try {
         m_input_multipart = new Imf::MultiPartInputFile(*m_input_stream);
     } catch (const std::exception& e) {
-        delete m_input_stream;
-        m_input_stream = NULL;
         errorfmt("OpenEXR exception: {}", e.what());
+        close();
         return false;
     } catch (...) {  // catch-all for edge cases or compiler bugs
-        m_input_stream = NULL;
         errorfmt("OpenEXR exception: unknown");
+        close();
         return false;
     }
 
@@ -696,6 +701,16 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             print(std::cerr, "  unknown attribute '{}' name '{}'\n",
                   type, name);
 #endif
+        }
+    }
+
+    // The header's "preview" is a small RGBA image. Extract dimensions only.
+    if (header->hasPreviewImage()) {
+        const Imf::PreviewImage& preview(header->previewImage());
+        if (preview.width() > 0 && preview.height() > 0) {
+            spec.attribute("thumbnail_width", int(preview.width()));
+            spec.attribute("thumbnail_height", int(preview.height()));
+            spec.attribute("thumbnail_nchannels", 4);
         }
     }
 
@@ -1135,6 +1150,13 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 }))
+        return false;
+
+    // check_open's size cap still admits a dataWindow that is absurd for a tiny
+    // compressed file, so also bound the declared-vs-compressed ratio.
+    imagesize_t filesize = m_io ? m_io->size()
+                                : Filesystem::file_size(m_filename);
+    if (!check_compression_ratio(m_spec, filesize))
         return false;
 
     if (miplevel == 0 && part.levelmode == Imf::ONE_LEVEL) {
@@ -1736,6 +1758,43 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
         m_deep_tiled_input_part->readTiles(firstxtile, firstxtile + xtiles - 1,
                                            firstytile, firstytile + ytiles - 1,
                                            m_miplevel, m_miplevel);
+    } catch (const std::exception& e) {
+        errorfmt("Failed OpenEXR read: {}", e.what());
+        return false;
+    } catch (...) {  // catch-all for edge cases or compiler bugs
+        errorfmt("Failed OpenEXR read: unknown exception");
+        return false;
+    }
+
+    return true;
+}
+
+
+
+bool
+OpenEXRInput::get_thumbnail(ImageBuf& thumb, int subimage)
+{
+    lock_guard lock(*this);
+    if (!m_input_multipart || subimage < 0 || subimage >= m_nsubimages)
+        return false;
+
+    try {
+        const Imf::Header& header(m_input_multipart->header(subimage));
+        if (!header.hasPreviewImage())
+            return false;
+        const Imf::PreviewImage& preview(header.previewImage());
+        int width                      = int(preview.width());
+        int height                     = int(preview.height());
+        const Imf::PreviewRgba* pixels = preview.pixels();
+        if (width < 1 || height < 1 || !pixels)
+            return false;
+
+        // An EXR preview is always 4 channels of 8 bit RGBA, gamma 2.2 encoded
+        static_assert(sizeof(Imf::PreviewRgba) == 4,
+                      "Imf::PreviewRgba is not packed RGBA bytes");
+        ImageSpec thumbspec(width, height, 4, TypeUInt8);
+        thumb.reset(thumbspec);
+        memcpy(thumb.localpixels(), pixels, size_t(width) * size_t(height) * 4);
     } catch (const std::exception& e) {
         errorfmt("Failed OpenEXR read: {}", e.what());
         return false;

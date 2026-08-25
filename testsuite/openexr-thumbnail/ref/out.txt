@@ -1,0 +1,21 @@
+ScanLines/Tree.exr
+ 100 x   98, 4 channel, uint8 
+    channel list: R, G, B, A
+Tiles/Spirals.exr
+ 100 x  100, 4 channel, uint8 
+    channel list: R, G, B, A
+MultiResolution/StageEnvCube.exr
+  30 x  180, 4 channel, uint8 
+    channel list: R, G, B, A
+LuminanceChroma/Garden.exr
+ 100 x   56, 4 channel, uint8 
+    channel list: R, G, B, A
+oiiotool ERROR: --thumbnail-get : Image "../openexr-images/ScanLines/Desk.exr" has no thumbnail
+Full command line was:
+> oiiotool ../openexr-images/ScanLines/Desk.exr --thumbnail-get
+subimage 0 thumbnail 16x12
+oiiotool ERROR: --thumbnail-get : Image "src/multipart-preview.exr" has no thumbnail
+Full command line was:
+> oiiotool src/multipart-preview.exr --subimage 1 --thumbnail-get
+Comparing "thumb.tif" and "ref/thumb.tif"
+PASS

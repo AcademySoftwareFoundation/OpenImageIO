@@ -141,6 +141,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     m_image_size = io->size();
     if (m_image_size == size_t(-1)) {
         errorfmt("Failed to get size for \"{}\"", m_filename);
+        close();
         return false;
     }
 
@@ -211,6 +212,7 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
             bool ok = decode_exif(exif_span, m_spec);
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
                 errorfmt("Could not decode Exif");
+                close();
                 return false;
             }
         }
@@ -237,8 +239,18 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
         if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
             errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
                      errormsg);
+            close();
             return false;
         }
+    }
+
+    // Validate the declared canvas extents and the implied uncompressed size
+    // BEFORE allocating the decoded-image buffer, so a malformed header cannot
+    // drive a large allocation.
+    if (!check_open(m_spec, { 0, (1 << 14) - 1, 0, (1 << 14) - 1, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, m_image_size)) {
+        close();
+        return false;
     }
 
     // Make space for the decoded image
@@ -249,9 +261,6 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
         if (m_spec.alpha_channel != -1)
             m_spec.attribute("oiio:UnassociatedAlpha", 1);
     }
-
-    if (!check_open(m_spec, { 0, (1 << 14) - 1, 0, (1 << 14) - 1, 0, 1, 0, 4 }))
-        return false;
 
     seek_subimage(0, 0);
     spec = m_spec;

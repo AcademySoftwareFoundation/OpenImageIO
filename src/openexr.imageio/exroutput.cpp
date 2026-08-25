@@ -865,14 +865,28 @@ bool
 OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
                               Imf::Header& header)
 {
-    // Force use of one of the three data types that OpenEXR supports
-    switch (spec.format.basetype) {
-    case TypeDesc::UINT: spec.format = TypeDesc::UINT; break;
-    case TypeDesc::FLOAT:
-    case TypeDesc::DOUBLE: spec.format = TypeDesc::FLOAT; break;
-    default:
-        // Everything else defaults to half
-        spec.format = TypeDesc::HALF;
+    // OpenEXR only stores three data types (half, float, uint); map anything
+    // else onto them. Do this for the overall format and, so the spec stays
+    // consistent with what is actually stored, for any per-channel formats.
+    auto exr_stored_format = [](TypeDesc t) -> TypeDesc {
+        switch (t.basetype) {
+        case TypeDesc::UINT: return TypeDesc::UINT;
+        case TypeDesc::FLOAT:
+        case TypeDesc::DOUBLE: return TypeDesc::FLOAT;
+        default: return TypeDesc::HALF;  // everything else defaults to half
+        }
+    };
+    spec.format = exr_stored_format(spec.format);
+    if (spec.channelformats.size() == size_t(spec.nchannels)) {
+        bool allsame = true;
+        for (int c = 0; c < spec.nchannels; ++c) {
+            spec.channelformats[c] = exr_stored_format(spec.channelformats[c]);
+            allsame &= (spec.channelformats[c] == spec.channelformats[0]);
+        }
+        // If every channel ended up the same, the per-channel list is
+        // redundant -- drop it so the spec advertises a single format.
+        if (allsame)
+            spec.channelformats.clear();
     }
 
     Imath::Box2i dataWindow(Imath::V2i(spec.x, spec.y),

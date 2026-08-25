@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+redirect = ' >> out.txt 2>&1 '
+
 files = [ "1.webp", "2.webp", "3.webp", "4.webp" ]
 for f in files:
     command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/" + f)
@@ -27,3 +29,9 @@ short_exif_files = [
 ]
 for f in short_exif_files:
     command += iconvert(f + " out.null", successmessage=f + "-ok")
+
+# Regression test: a 76-byte WebP whose VP8X header declares a 16383x16383
+# canvas inconsistent with its tiny frame. Must be rejected cleanly (libwebp's
+# demux catches the mismatch; the open-time check_open/compression-ratio guard
+# now runs before the decoded-image allocation regardless).
+command += info_command ("src/bomb-16383.webp", failureok=True, safematch=True)

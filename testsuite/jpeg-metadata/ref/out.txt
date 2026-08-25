@@ -110,3 +110,10 @@ with-colon-desc.jpg  :  640 x  480, 3 channel, uint8 jpeg
     Exif:FlashPixVersion: "0100"
     jpeg:subsampling: "4:2:0"
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading xmp-escape.jpg
+xmp-escape.jpg       :    1 x    1, 3 channel, uint8 jpeg
+    SHA-1: 29E2DCFBB16F63BB0254DF7585A15BB6FB5E927D
+    channel list: R, G, B
+    IPTC:RightsUsageTerms: "a<b&c>d"
+    jpeg:subsampling: "4:2:0"
+    oiio:ColorSpace: "srgb_rec709_scene"

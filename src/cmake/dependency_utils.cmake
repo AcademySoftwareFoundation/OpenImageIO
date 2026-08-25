@@ -386,7 +386,7 @@ macro (checked_find_package pkgname)
         # PKGConfigVersion.cmake has might have arbitrary rules. Use our own
         # MIN_VERSION and MAX_VERSION parameters to manually check instead.
         #
-        if (_pkg_VERSION_MIN AND _pkg_VERSION_MAX AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
+        if (_pkg_VERSION_MIN AND _pkg_VERSION_MAX)
             set (_${pkgname}_version_range "${_pkg_VERSION_MIN}...<${_pkg_VERSION_MAX}")
         elseif (_pkg_VERSION_MIN)
             set (_${pkgname}_version_range "${_pkg_VERSION_MIN}")
@@ -469,6 +469,26 @@ macro (checked_find_package pkgname)
         #   ${pkgname}_REFIND_ARGS    : additional arguments to pass to find_package
         if (${pkgname}_REFIND)
             message (STATUS "Refinding ${pkgname} with ${pkgname}_ROOT=${${pkgname}_ROOT}")
+            # A prior find_package() may have left a bunch of cruft from a
+            # rejected, unsuitable system install in its Find module. Clear it
+            # here so it does not pollute our attempt to use the one we just
+            # built and are about to re-find.
+            foreach (_v IN ITEMS
+                     ${pkgname}_LIBRARY ${pkgname}_LIBRARIES
+                     ${pkgname}_LIBRARY_RELEASE ${pkgname}_LIBRARY_DEBUG
+                     ${pkgname}_INCLUDE_DIR ${pkgname}_INCLUDE_DIRS
+                     ${pkgname_upper}_LIBRARY ${pkgname_upper}_LIBRARIES
+                     ${pkgname_upper}_LIBRARY_RELEASE ${pkgname_upper}_LIBRARY_DEBUG
+                     ${pkgname_upper}_INCLUDE_DIR ${pkgname_upper}_INCLUDE_DIRS)
+                unset (${_v})
+                unset (${_v} CACHE)
+            endforeach ()
+            # Same for a stale <Pkg>_DIR (the CONFIG-mode search hint).
+            # CACHE-only: some build scripts set it as a plain variable on
+            # purpose as a hint for this find_package() call.
+            foreach (_v IN ITEMS ${pkgname}_DIR ${pkgname_upper}_DIR)
+                unset (${_v} CACHE)
+            endforeach ()
             find_package (${pkgname} ${${pkgname}_REFIND_VERSION} REQUIRED ${_pkg_UNPARSED_ARGUMENTS} ${${pkgname}_REFIND_ARGS})
             unset (${pkgname}_REFIND)
         endif()
@@ -488,7 +508,7 @@ macro (checked_find_package pkgname)
                 set (${_v} TRUE)
             endforeach ()
             if (_pkg_RECOMMEND_MIN)
-                if (${${pkgname}_VERSION} VERSION_LESS ${_pkg_RECOMMEND_MIN})
+                if ("${${pkgname}_VERSION}" VERSION_LESS ${_pkg_RECOMMEND_MIN})
                     message (STATUS "${ColorYellow}Recommend ${pkgname} >= ${_pkg_RECOMMEND_MIN} ${_pkg_RECOMMEND_MIN_REASON} ${ColorReset}")
                 endif ()
             endif ()

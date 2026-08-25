@@ -10,6 +10,7 @@
 #include <iostream>
 #include <memory>
 
+#include <tiffconf.h>
 #include <tiffio.h>
 #include <zlib.h>
 
@@ -41,12 +42,8 @@
 #    define OIIO_TIFFLIB_VERSION 40200
 #elif TIFFLIB_VERSION >= 20191103
 #    define OIIO_TIFFLIB_VERSION 40100
-#elif TIFFLIB_VERSION >= 20120922
-#    define OIIO_TIFFLIB_VERSION 40003
-#elif TIFFLIB_VERSION >= 20111221
-#    define OIIO_TIFFLIB_VERSION 40000
 #else
-#    error "libtiff 4.0.0 or later is required"
+#    error "libtiff 4.1.0 or later is required"
 #endif
 // clang-format on
 
@@ -317,24 +314,23 @@ static std::pair<int, const char*> tiff_output_compressions[] = {
     //  { COMPRESSION_NEXT,          "next" },        // NeXT 2-bit RLE
     //  { COMPRESSION_CCITTRLEW,     "ccittrle2" },   // #1 w/ word alignment
     { COMPRESSION_PACKBITS, "packbits" },  // Macintosh RLE
-//  { COMPRESSION_THUNDERSCAN,   "thunderscan" }, // ThundeScan RLE
-//  { COMPRESSION_IT8CTPAD,      "IT8CTPAD" },    // IT8 CT w/ patting
-//  { COMPRESSION_IT8LW,         "IT8LW" },       // IT8 linework RLE
-//  { COMPRESSION_IT8MP,         "IT8MP" },       // IT8 monochrome picture
-//  { COMPRESSION_IT8BL,         "IT8BL" },       // IT8 binary line art
-//  { COMPRESSION_PIXARFILM,     "pixarfilm" },   // Pixar 10 bit LZW
-//  { COMPRESSION_PIXARLOG,      "pixarlog" },    // Pixar 11 bit ZIP
-//  { COMPRESSION_DCS,           "dcs" },         // Kodak DCS encoding
-//  { COMPRESSION_JBIG,          "isojbig" },     // ISO JBIG
-//  { COMPRESSION_SGILOG,        "sgilog" },      // SGI log luminance RLE
-//  { COMPRESSION_SGILOG24,      "sgilog24" },    // SGI log 24bit
-//  { COMPRESSION_JP2000,        "jp2000" },      // Leadtools JPEG2000
-#if defined(TIFF_VERSION_BIG) && OIIO_TIFFLIB_VERSION >= 40003
-// Others supported in more recent TIFF library versions.
-//  { COMPRESSION_T85,           "T85" },         // TIFF/FX T.85 JBIG
-//  { COMPRESSION_T43,           "T43" },         // TIFF/FX T.43 color layered JBIG
-//  { COMPRESSION_LZMA,          "lzma" },        // LZMA2
-#endif
+    //  { COMPRESSION_THUNDERSCAN,   "thunderscan" }, // ThundeScan RLE
+    //  { COMPRESSION_IT8CTPAD,      "IT8CTPAD" },    // IT8 CT w/ patting
+    //  { COMPRESSION_IT8LW,         "IT8LW" },       // IT8 linework RLE
+    //  { COMPRESSION_IT8MP,         "IT8MP" },       // IT8 monochrome picture
+    //  { COMPRESSION_IT8BL,         "IT8BL" },       // IT8 binary line art
+    //  { COMPRESSION_PIXARFILM,     "pixarfilm" },   // Pixar 10 bit LZW
+    //  { COMPRESSION_PIXARLOG,      "pixarlog" },    // Pixar 11 bit ZIP
+    //  { COMPRESSION_DCS,           "dcs" },         // Kodak DCS encoding
+    //  { COMPRESSION_JBIG,          "isojbig" },     // ISO JBIG
+    //  { COMPRESSION_SGILOG,        "sgilog" },      // SGI log luminance RLE
+    //  { COMPRESSION_SGILOG24,      "sgilog24" },    // SGI log 24bit
+    //  { COMPRESSION_JP2000,        "jp2000" },      // Leadtools JPEG2000
+    //  { COMPRESSION_T85,           "T85" },         // TIFF/FX T.85 JBIG
+    //  { COMPRESSION_T43,           "T43" },         // TIFF/FX T.43 color layered JBIG
+    //  { COMPRESSION_LZMA,          "lzma" },        // LZMA2
+    //  { COMPRESSION_ZSTD,          "zstd" },        // zstd
+    //  { COMPRESSION_WEBP,          "webp" },        // webp
 };
 
 static int
@@ -397,9 +393,6 @@ TIFFOutput::supports(string_view feature) const
     // Everything else, we either don't support or don't know about
     return false;
 }
-
-
-#define ICC_PROFILE_ATTR "ICCProfile"
 
 
 // Do all elements of vector d have value v?
@@ -883,18 +876,14 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     }
 
     // Write ICC profile, if we have anything
-    const ParamValue* icc_profile_parameter = m_spec.find_attribute(
-        ICC_PROFILE_ATTR);
-    if (icc_profile_parameter != NULL) {
-        unsigned char* icc_profile
-            = (unsigned char*)icc_profile_parameter->data();
-        uint32_t length = icc_profile_parameter->type().size();
-        if (icc_profile && length)
-            TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, length, icc_profile);
+    std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
+    if (icc_profile.size()) {
+        uint32_t icc_profile_size = uint32_t(icc_profile.size());
+        TIFFSetField(m_tif, TIFFTAG_ICCPROFILE, icc_profile_size,
+                     icc_profile.data());
     }
 
-    if (equivalent_colorspace(m_spec.get_string_attribute("oiio:ColorSpace"),
-                              "srgb_rec709_scene"))
+    if (is_colorspace_srgb(m_spec, false))
         m_spec.attribute("Exif:ColorSpace", 1);
 
     // Deal with missing XResolution or YResolution, or a PixelAspectRatio
@@ -1095,7 +1084,6 @@ TIFFOutput::put_parameter(const ParamValue& param)
 bool
 TIFFOutput::write_exif_data()
 {
-#if defined(TIFF_VERSION_BIG) && OIIO_TIFFLIB_VERSION >= 40003
     // Older versions of libtiff do not support writing Exif directories
 
     if (m_spec.get_int_attribute("tiff:write_exif", 1) == 0) {
@@ -1119,25 +1107,25 @@ TIFFOutput::write_exif_data()
                 continue;  // libtiff doesn't understand these
             any_exif = true;
         }
-#    if OIIO_TIFFLIB_VERSION >= 40200
+#if OIIO_TIFFLIB_VERSION >= 40200
         if (!any_gps && gps_tag_lookup(p.name(), tag, tifftype, count)
             && tifftype != TIFF_NOTYPE) {
             any_gps = true;
         }
-#    endif
+#endif
         if (any_exif && any_gps)
             break;  // If we've found both kinds, we're done
     }
     if (!any_exif && !any_gps)
         return true;
 
-#    if ENABLE_JPEG_COMPRESSION
+#if ENABLE_JPEG_COMPRESSION
     if (m_compression == COMPRESSION_JPEG) {
         // For reasons we don't understand, JPEG-compressed TIFF seems
         // to not output properly without a directory checkpoint here.
         TIFFCheckpointDirectory(m_tif);
     }
-#    endif
+#endif
 
     // First, finish writing the current directory
     if (!TIFFWriteDirectory(m_tif)) {
@@ -1154,7 +1142,7 @@ TIFFOutput::write_exif_data()
         }
         exif_dir_offset = write_extra_tag_directory("Exif");
     }
-#    if OIIO_TIFFLIB_VERSION >= 40200
+#if OIIO_TIFFLIB_VERSION >= 40200
     uint64_t gps_dir_offset = 0;
     if (any_gps) {
         // Create a GPS directory
@@ -1164,17 +1152,16 @@ TIFFOutput::write_exif_data()
         }
         gps_dir_offset = write_extra_tag_directory("GPS");
     }
-#    endif
+#endif
 
     // Go back to the first directory, and add the EXIFIFD pointer.
     // std::cout << "diffdir = " << tiffdir << "\n";
     TIFFSetDirectory(m_tif, 0);
     if (exif_dir_offset)
         TIFFSetField(m_tif, TIFFTAG_EXIFIFD, exif_dir_offset);
-#    if OIIO_TIFFLIB_VERSION >= 40200
+#if OIIO_TIFFLIB_VERSION >= 40200
     if (gps_dir_offset)
         TIFFSetField(m_tif, TIFFTAG_GPSIFD, gps_dir_offset);
-#    endif
 #endif
 
     return true;  // all is ok

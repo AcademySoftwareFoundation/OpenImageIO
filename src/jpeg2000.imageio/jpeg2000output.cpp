@@ -66,6 +66,9 @@ private:
     bool m_convert_alpha;  //< Do we deassociate alpha?
     std::vector<unsigned char> m_tilebuffer;
     std::vector<unsigned char> m_scratch;
+#if 0
+    std::vector<uint8_t> m_icc_profile;
+#endif
 
 
 #ifdef USE_OPENJPH
@@ -81,6 +84,9 @@ private:
         m_codec         = NULL;
         m_stream        = NULL;
         m_convert_alpha = true;
+#if 0
+        m_icc_profile.clear();
+#endif
 
         ioproxy_clear();
     }
@@ -481,10 +487,13 @@ Jpeg2000Output::create_jpeg2000_image()
     // someboody comes along that desperately needs JPEG2000 and ICC
     // profiles, maybe they will be motivated enough to track down the
     // problem.
-    const ParamValue *icc = m_spec.find_attribute ("ICCProfile");
-    if (icc && icc->type().basetype == TypeDesc::UINT8 && icc->type().arraylen > 0) {
-        m_image->icc_profile_len = icc->type().arraylen;
-        m_image->icc_profile_buf = (unsigned char *) icc->data();
+    // NOTE: openjpeg does not copy the profile and m_image outlives this
+    // function, so the bytes are kept in a member rather than a local.
+    m_icc_profile = get_colorspace_icc_profile(m_spec);
+    if (m_icc_profile.size()) {
+        m_image->icc_profile_len
+            = decltype(m_image->icc_profile_len)(m_icc_profile.size());
+        m_image->icc_profile_buf = (unsigned char*)m_icc_profile.data();
     }
 #endif
 

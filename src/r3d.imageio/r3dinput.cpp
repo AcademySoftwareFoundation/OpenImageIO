@@ -234,8 +234,8 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     if (m_clip->Status() != R3DSDK::LSClipLoaded) {
         DBG("Error loading {}\n", m_filename);
 
-        delete m_clip;
-        m_clip = nullptr;
+        errorfmt("Could not load R3D clip \"{}\"", m_filename);
+        close();
         return false;
     }
 
@@ -266,6 +266,7 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
         DBG("Failed to allocate {} bytes of memory for output image\n",
             static_cast<int>(memNeeded));
 
+        close();
         return false;
     }
 

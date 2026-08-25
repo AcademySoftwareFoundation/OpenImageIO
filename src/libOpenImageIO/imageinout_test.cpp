@@ -460,6 +460,62 @@ test_all_formats()
 
 
 
+// A format that can't embed a thumbnail must not write the thumbnail_*
+// attributes, where they'd describe a thumbnail that isn't in the file.
+void
+test_thumbnail_attribs()
+{
+    std::cout << "Testing that thumbnail attributes don't leak:\n";
+    for (auto& e :
+         Strutil::splitsv(OIIO::get_string_attribute("extension_list"), ";")) {
+        auto fmtexts           = Strutil::splitsv(e, ":");
+        string_view formatname = fmtexts[0];
+        if (formatname == "term")
+            continue;  // writes to the terminal, not a file
+        if (onlyformat.size() && formatname != onlyformat)
+            continue;
+        std::string filename
+            = Strutil::fmt::format("imageinout_test_thumb-{}.{}", formatname,
+                                   Strutil::splitsv(fmtexts[1], ",")[0]);
+        auto out = ImageOutput::create(filename);
+        if (!out) {
+            (void)OIIO::geterror();
+            continue;
+        }
+        if (out->supports("thumbnail"))
+            continue;
+
+        // Write an image whose spec claims a thumbnail it doesn't have - the lie.
+        ImageBuf buf   = make_test_image(formatname);
+        ImageSpec spec = buf.spec();
+        spec.attribute("thumbnail_width", 16);
+        spec.attribute("thumbnail_height", 12);
+        spec.attribute("thumbnail_nchannels", 3);
+        std::string errmsg;
+        if (!checked_write(out.get(), filename, spec, spec.format,
+                           buf.localpixels_as_writable_byte_image_span(),
+                           false /*do_asserts*/, &errmsg))
+            continue;  // can't write this image at all - not our problem
+
+        auto in = ImageInput::open(filename);
+        OIIO_CHECK_ASSERT(in && "could not reopen the file we just wrote");
+        if (in) {
+            std::cout << "    " << formatname << "\n";
+            const ImageSpec& s(in->spec());
+            OIIO_CHECK_EQUAL(s.get_int_attribute("thumbnail_width"), 0);
+            OIIO_CHECK_EQUAL(s.get_int_attribute("thumbnail_height"), 0);
+            OIIO_CHECK_EQUAL(s.get_int_attribute("thumbnail_nchannels"), 0);
+        } else {
+            (void)OIIO::geterror();
+        }
+        if (!nodelete)
+            Filesystem::remove(filename);
+    }
+    std::cout << "\n";
+}
+
+
+
 // This tests a particular troublesome case where we got the logic wrong.
 // Read 1-channel float exr into 4-channel uint8 buffer with 4-byte xstride.
 // The correct behavior is to translate the one channel from float to uint8
@@ -654,6 +710,7 @@ main(int argc, char* argv[])
     }
 
     test_all_formats();
+    test_thumbnail_attribs();
     test_read_tricky_sizes();
     benchmark_tile_sizes("exr", TypeHalf, 4);
     benchmark_tile_sizes("tif", TypeUInt16, 16);

@@ -86,7 +86,7 @@ typedef bool (*ProgressCallback)(void *opaque_data, float portion_done);
 
 
 /// ROI is a small helper struct describing a rectangular region of interest
-/// in an image. The region is [xbegin,xend) x [begin,yend) x [zbegin,zend),
+/// in an image. The region is [xbegin,xend) x [ybegin,yend) x [zbegin,zend),
 /// with the "end" designators signifying one past the last pixel in each
 /// dimension, a la STL style.
 ///
@@ -333,7 +333,7 @@ public:
     /// All other fields are set to the obvious defaults -- the image is an
     /// ordinary 2D image (not a volume), the image is not offset or a crop
     /// of a bigger image, the image is scanline-oriented (not tiled),
-    /// channel names are "R", "G", "B"' and "A" (up to and including 4
+    /// channel names are "R", "G", "B", and "A" (up to and including 4
     /// channels, beyond that they are named "channel *n*"), the fourth
     /// channel (if it exists) is assumed to be alpha.
     ImageSpec (int xres, int yres, int nchans, TypeDesc fmt = TypeUInt8) noexcept;
@@ -366,7 +366,7 @@ public:
     /// Sets the `channelnames` to reasonable defaults for the number of
     /// channels.  Specifically, channel names are set to "R", "G", "B,"
     /// and "A" (up to and including 4 channels, beyond that they are named
-    /// "channel*n*".
+    /// "channel*n*").
     void default_channel_names () noexcept;
 
     /// Returns the number of bytes comprising each channel of each pixel
@@ -1180,6 +1180,11 @@ public:
     ///
     /// @returns
     ///         `true` if the file was found and opened successfully.
+    ///
+    /// If `open()` returns `false`, the ImageInput will be left in the same
+    /// state as a newly constructed, unopened ImageInput (as if `close()` had
+    /// been called). Callers may assume this and are not responsible for
+    /// calling `close()` after a failed `open()`.
     OIIO_NODISCARD_ERROR virtual bool open (const std::string& name,
                                             ImageSpec &newspec) = 0;
 
@@ -1208,6 +1213,9 @@ public:
     ///
     /// @returns
     ///         `true` if the file was found and opened successfully.
+    ///
+    /// Same close-on-failure contract as `open(name,newspec)`: a `false`
+    /// return must leave the ImageInput as if `close()` had been called.
     OIIO_NODISCARD_ERROR virtual bool open (const std::string& name,
                                             ImageSpec &newspec,
                                             const ImageSpec& config OIIO_MAYBE_UNUSED) {
@@ -3996,7 +4004,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///   But for less sophisticated applications (or users), this is very useful
 ///   for forcing display of error messages so that users can see relevant
 ///   errors even if they never check them explicitly, thus self-diagnose
-///   their troubles before asking the project dev deam for help. Advanced
+///   their troubles before asking the project dev team for help. Advanced
 ///   users who for some reason desire to neither retrieve errors themselves
 ///   nor have them printed in this manner can disable the behavior by setting
 ///   this attribute to 0.
@@ -4011,7 +4019,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///   applications (or users), this is very useful for forcing display of
 ///   error messages so that users can see relevant errors even if they never
 ///   check them explicitly, thus self-diagnose their troubles before asking
-///   the project dev deam for help. Advanced users who for some reason desire
+///   the project dev team for help. Advanced users who for some reason desire
 ///   to neither retrieve errors themselves nor have them printed in this
 ///   manner can disable the behavior by setting this attribute to 0.
 ///
@@ -4183,7 +4191,7 @@ inline bool attribute(string_view name, string_view value) {
 /// - int64_t IB_local_mem_peak
 ///
 ///   Current and peak size (in bytes) of how much memory was consumed by
-///   ImageBufs that owned their own allcoated local pixel buffers. (Added in
+///   ImageBufs that owned their own allocated local pixel buffers. (Added in
 ///   OpenImageIO 2.5.)
 ///
 /// - float IB_total_open_time
@@ -4192,12 +4200,12 @@ inline bool attribute(string_view name, string_view value) {
 ///   Total amount of time (in seconds) that ImageBufs spent opening
 ///   (including reading header information) and reading pixel data from files
 ///   that they opened and read themselves (that is, excluding I/O from IBs
-///   that were backed by ImageCach.  (Added in OpenImageIO 2.5.)
+///   that were backed by ImageCache).  (Added in OpenImageIO 2.5.)
 ///
 /// - `string opencolorio_version`
 ///
 ///   Returns the version (such as "2.2.0") of OpenColorIO that is used by
-///   OpenImageiO, or "0.0.0" if no OpenColorIO support has been enabled.
+///   OpenImageIO, or "0.0.0" if no OpenColorIO support has been enabled.
 ///   (Added in OpenImageIO 2.4.6)
 ///
 /// - `string hw:simd`
@@ -4223,7 +4231,7 @@ inline bool attribute(string_view name, string_view value) {
 ///
 /// - `string build:dependencies` (read-only)
 ///
-///   List of library dependencieis (where known) and versions, separatd by
+///   List of library dependencies (where known) and versions, separated by
 ///   semicolons. (Added in OpenImageIO 2.5.8.)
 ///
 /// - `int resident_memory_used_MB`
@@ -4376,6 +4384,32 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 ///
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
+
+/// Returns true if for the purpose of interop, the metadata of the `spec`
+/// specifies a color space that should be encoded as sRGB.
+///
+/// If `default_to_srgb` is true, the color space will be assumed to be sRGB
+/// if no color space was specified in the spec.
+///
+/// @version 3.2
+OIIO_API bool is_colorspace_srgb(const ImageSpec& spec,
+                                 bool default_to_srgb = true);
+
+/// Returns the ICC profile from the metadata of the `spec`, either from an
+/// "ICCProfile" attribute or from the color space if `from_colorspace` is
+/// true. Returns an empty vector if not found.
+///
+/// @version 3.2
+OIIO_API std::vector<uint8_t>
+get_colorspace_icc_profile(const ImageSpec& spec, bool from_colorspace = true);
+
+/// Returns the CICP code from the metadata of the `spec`, either from a
+/// "CICP" attribute or from the color space if `from_colorspace` is true.
+/// Returns a cspan of 4 ints, or an empty span if not found.
+///
+/// @version 3.2
+OIIO_API cspan<int> get_colorspace_cicp(const ImageSpec& spec,
+                                        bool from_colorspace = true);
 
 
 /// Are the two named color spaces equivalent, based on the default color
@@ -4764,6 +4798,8 @@ using v3_1::debugfmt;
 using v3_1::declare_imageio_format;
 using v3_1::equivalent_colorspace;
 using v3_1::errorfmt;
+using v3_1::get_colorspace_cicp;
+using v3_1::get_colorspace_icc_profile;
 using v3_1::get_extension_map;
 using v3_1::get_float_attribute;
 using v3_1::get_int_attribute;
@@ -4771,6 +4807,7 @@ using v3_1::get_string_attribute;
 using v3_1::getattribute;
 using v3_1::geterror;
 using v3_1::has_error;
+using v3_1::is_colorspace_srgb;
 using v3_1::is_imageio_format_name;
 using v3_1::log_time;
 using v3_1::openimageio_version;

@@ -91,6 +91,12 @@ ImageRec::ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
                 ib = new ImageBuf(srcspec);
                 if (copy_pixels)
                     ib->copy_pixels(srcib);
+                // The spec copy brings the thumbnail_* attributes but not
+                // the thumbnail itself, so copy it over by hand.
+                if (srcib.has_thumbnail())
+                    ib->set_thumbnail(*srcib.get_thumbnail());
+                else
+                    ib->clear_thumbnail();
             } else {
                 // The other image is not modified, and we don't need to be
                 // writable, either.
@@ -204,6 +210,21 @@ ImageRec::ImageRec(const std::string& name, const ImageSpec& spec,
 
 
 
+// When the ImageCache can't supply an image, it has already recorded the
+// underlying reader's specific complaint (bad resolution, corrupt header,
+// etc.). Retrieve it rather than replacing it with a generic message.
+static std::string
+imagecache_error(const std::shared_ptr<ImageCache>& imagecache,
+                 string_view name)
+{
+    std::string err = imagecache->geterror();
+    if (err.empty())
+        err = Strutil::fmt::format("file not found: \"{}\"", name);
+    return err;
+}
+
+
+
 bool
 ImageRec::read_nativespec()
 {
@@ -218,7 +239,7 @@ ImageRec::read_nativespec()
     ustring uname(name());
     if (!m_imagecache->get_image_info(uname, 0, 0, u_subimages, TypeInt,
                                       &subimages)) {
-        errorfmt("file not found: \"{}\"", name());
+        errorfmt("{}", imagecache_error(m_imagecache, name()));
         return false;  // Image not found
     }
     m_subimages.resize(subimages);
@@ -257,7 +278,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
     ustring uname(name());
     if (!m_imagecache->get_image_info(uname, 0, 0, u_subimages, TypeInt,
                                       &subimages)) {
-        errorfmt("file not found: \"{}\"", name());
+        errorfmt("{}", imagecache_error(m_imagecache, name()));
         return false;  // Image not found
     }
     m_subimages.resize(subimages);

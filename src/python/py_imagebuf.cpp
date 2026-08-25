@@ -15,20 +15,18 @@ namespace PyOpenImageIO {
 
 
 static ImageBuf
-ImageBuf_from_buffer(const py::buffer& buffer)
+ImageBuf_from_buffer(const py::object& buffer)
 {
     ImageBuf ib;
-    const py::buffer_info info = buffer.request();
+    const oiio_py_buffer_view info = oiio_py_request_buffer(buffer);
     TypeDesc format;
-    if (info.format.size())
+    if (info.format.size()) {
         format = typedesc_from_python_array_code(info.format);
-    if (format == TypeUnknown)
+    }
+    if (format == TypeUnknown) {
         return ib;
-    // Strutil::print("IB from {} buffer: dims = {}\n", format, info.ndim);
-    // for (int i = 0; i < info.ndim; ++i)
-    //     Strutil::print("IB from buffer: dim[{}]: size = {}, stride = {}\n", i,
-    //                    info.shape[i], info.strides[i]);
-    if (size_t(info.strides[info.ndim - 1]) != format.size()) {
+    }
+    if (info.ndim > 0 && size_t(info.strides[info.ndim - 1]) != format.size()) {
         ib.errorfmt(
             "ImageBuf-from-numpy-array must have contiguous stride within pixels");
         return ib;
@@ -38,23 +36,23 @@ ImageBuf_from_buffer(const py::buffer& buffer)
     stride_t xstride = AutoStride, ystride = AutoStride, zstride = AutoStride;
     if (info.ndim == 3) {
         // Assume [y][x][c]
-        width   = info.shape[1];
-        height  = info.shape[0];
-        nchans  = info.shape[2];
+        width   = int(info.shape[1]);
+        height  = int(info.shape[0]);
+        nchans  = int(info.shape[2]);
         xstride = info.strides[1];
         ystride = info.strides[0];
     } else if (info.ndim == 2) {
         // Assume [y][x], single channel
-        width   = info.shape[1];
-        height  = info.shape[0];
+        width   = int(info.shape[1]);
+        height  = int(info.shape[0]);
         xstride = info.strides[1];
         ystride = info.strides[0];
     } else if (info.ndim == 4) {
         // Assume volume [z][y][x][c]
-        width   = info.shape[2];
-        height  = info.shape[1];
-        depth   = info.shape[0];
-        nchans  = info.shape[3];
+        width   = int(info.shape[2]);
+        height  = int(info.shape[1]);
+        depth   = int(info.shape[0]);
+        nchans  = int(info.shape[3]);
         xstride = info.strides[2];
         ystride = info.strides[1];
         zstride = info.strides[0];
@@ -208,7 +206,7 @@ ImageBuf_set_deep_value_uint(ImageBuf& buf, int x, int y, int z, int c, int s,
 
 
 bool
-ImageBuf_set_pixels_buffer(ImageBuf& self, ROI roi, py::buffer& buffer)
+ImageBuf_set_pixels_buffer(ImageBuf& self, ROI roi, const py::object& buffer)
 {
     if (!roi.defined())
         roi = self.roi();
@@ -217,8 +215,10 @@ ImageBuf_set_pixels_buffer(ImageBuf& self, ROI roi, py::buffer& buffer)
     if (size == 0) {
         return true;  // done
     }
-    oiio_bufinfo buf(buffer.request(), roi.nchannels(), roi.width(),
-                     roi.height(), roi.depth(), self.spec().depth > 1 ? 3 : 2);
+    oiio_bufinfo buf = oiio_bufinfo_from_object(buffer, roi.nchannels(),
+                                                roi.width(), roi.height(),
+                                                roi.depth(),
+                                                self.spec().depth > 1 ? 3 : 2);
     if (!buf.data || buf.error.size()) {
         self.errorfmt("set_pixels error: {}",
                       buf.error.size() ? buf.error.c_str() : "unspecified");
@@ -285,15 +285,35 @@ ImageBuf_repr_png(const ImageBuf& self)
 
 
 void
-declare_imagebuf(py::module& m)
+declare_imagebuf(py_module& m)
 {
-    using namespace pybind11::literals;
-
     py::class_<ImageBuf>(m, "ImageBuf")
         .def(py::init<>())
         .def(py::init<const std::string&>())
         .def(py::init<const std::string&, int, int>())
         .def(py::init<const ImageSpec&>())
+#if defined(OIIO_PY_BACKEND_NANOBIND)
+        .def(
+            "__init__",
+            [](ImageBuf* self, const ImageSpec& spec, bool zero) {
+                new (self) ImageBuf(spec, zero ? InitializePixels::Yes
+                                               : InitializePixels::No);
+            },
+            "spec"_a, "zero"_a)
+        .def(
+            "__init__",
+            [](ImageBuf* self, const std::string& name, int subimage,
+               int miplevel, const ImageSpec& config) {
+                new (self) ImageBuf(name, subimage, miplevel, nullptr, &config);
+            },
+            "name"_a, "subimage"_a, "miplevel"_a, "config"_a)
+        .def(
+            "__init__",
+            [](ImageBuf* self, const py::object& buffer) {
+                new (self) ImageBuf(ImageBuf_from_buffer(buffer));
+            },
+            "buffer"_a)
+#else
         .def(py::init([](const ImageSpec& spec, bool zero) {
             auto z = zero ? InitializePixels::Yes : InitializePixels::No;
             return ImageBuf(spec, z);
@@ -303,10 +323,11 @@ declare_imagebuf(py::module& m)
                  return ImageBuf(name, subimage, miplevel, nullptr, &config);
              }),
              "name"_a, "subimage"_a, "miplevel"_a, "config"_a)
-        .def(py::init([](const py::buffer& buffer) {
+        .def(py::init([](const py::object& buffer) {
                  return ImageBuf_from_buffer(buffer);
              }),
              "buffer"_a)
+#endif
         .def("clear", &ImageBuf::clear)
         .def(
             "reset",
@@ -330,15 +351,13 @@ declare_imagebuf(py::module& m)
             "spec"_a, "zero"_a = true)
         .def(
             "reset",
-            [](ImageBuf& self, const py::buffer& buffer) {
+            [](ImageBuf& self, const py::object& buffer) {
                 self = ImageBuf_from_buffer(buffer);
             },
             "buffer"_a)
 
-        .def_property_readonly("initialized",
-                               [](const ImageBuf& self) {
-                                   return self.initialized();
-                               })
+        .OIIO_PY_PROP_RO("initialized",
+                         [](const ImageBuf& self) { return self.initialized(); })
         .def(
             "init_spec",
             [](ImageBuf& self, std::string filename, int subimage,
@@ -393,64 +412,61 @@ declare_imagebuf(py::module& m)
         // FIXME -- write(ImageOut&)
         .def("set_write_tiles", &ImageBuf::set_write_tiles, "width"_a = 0,
              "height"_a = 0, "depth"_a = 0)
-        .def("spec", &ImageBuf::spec,
-             py::return_value_policy::reference_internal)
-        .def("nativespec", &ImageBuf::nativespec,
-             py::return_value_policy::reference_internal)
-        .def("specmod", &ImageBuf::specmod,
-             py::return_value_policy::reference_internal)
-        .def_property_readonly("has_thumbnail",
-                               [](const ImageBuf& self) {
-                                   return self.has_thumbnail();
-                               })
+        .def("spec", &ImageBuf::spec, oiio_py::ref_internal)
+        .def("nativespec", &ImageBuf::nativespec, oiio_py::ref_internal)
+        .def("specmod", &ImageBuf::specmod, oiio_py::ref_internal)
+        .OIIO_PY_PROP_RO("has_thumbnail",
+                         [](const ImageBuf& self) {
+                             return self.has_thumbnail();
+                         })
         .def("clear_thumbnail", &ImageBuf::clear_thumbnail)
         .def("set_thumbnail", &ImageBuf::set_thumbnail, "thumb"_a)
         .def("get_thumbnail",
              [](const ImageBuf& self) { return *self.get_thumbnail(); })
-        .def_property_readonly("name",
-                               [](const ImageBuf& self) {
-                                   return PY_STR(self.name());
-                               })
-        .def_property_readonly("file_format_name",
-                               [](const ImageBuf& self) {
-                                   return PY_STR(self.file_format_name());
-                               })
-        .def_property_readonly("subimage", &ImageBuf::subimage)
-        .def_property_readonly("nsubimages", &ImageBuf::nsubimages)
-        .def_property_readonly("miplevel", &ImageBuf::miplevel)
-        .def_property_readonly("nmiplevels", &ImageBuf::nmiplevels)
-        .def_property_readonly("nchannels", &ImageBuf::nchannels)
-        .def_property("orientation", &ImageBuf::orientation,
-                      &ImageBuf::set_orientation)
-        .def_property_readonly("oriented_width", &ImageBuf::oriented_width)
-        .def_property_readonly("oriented_height", &ImageBuf::oriented_height)
-        .def_property_readonly("oriented_x", &ImageBuf::oriented_x)
-        .def_property_readonly("oriented_y", &ImageBuf::oriented_y)
-        .def_property_readonly("oriented_full_width",
-                               &ImageBuf::oriented_full_width)
-        .def_property_readonly("oriented_full_height",
-                               &ImageBuf::oriented_full_height)
-        .def_property_readonly("oriented_full_x", &ImageBuf::oriented_full_x)
-        .def_property_readonly("oriented_full_y", &ImageBuf::oriented_full_y)
-        .def_property_readonly("xbegin", &ImageBuf::xbegin)
-        .def_property_readonly("xend", &ImageBuf::xend)
-        .def_property_readonly("ybegin", &ImageBuf::ybegin)
-        .def_property_readonly("yend", &ImageBuf::yend)
-        .def_property_readonly("zbegin", &ImageBuf::zbegin)
-        .def_property_readonly("zend", &ImageBuf::zend)
-        .def_property_readonly("xmin", &ImageBuf::xmin)
-        .def_property_readonly("xmax", &ImageBuf::xmax)
-        .def_property_readonly("ymin", &ImageBuf::ymin)
-        .def_property_readonly("ymax", &ImageBuf::ymax)
-        .def_property_readonly("zmin", &ImageBuf::zmin)
-        .def_property_readonly("zmax", &ImageBuf::zmax)
-        .def_property_readonly("roi", &ImageBuf::roi)
-        .def_property("roi_full", &ImageBuf::roi_full, &ImageBuf::set_roi_full)
+        .OIIO_PY_PROP_RO("name",
+                         [](const ImageBuf& self) {
+                             return PY_STR(self.name());
+                         })
+        .OIIO_PY_PROP_RO("file_format_name",
+                         [](const ImageBuf& self) {
+                             return PY_STR(self.file_format_name());
+                         })
+        .OIIO_PY_PROP_RO("subimage", &ImageBuf::subimage)
+        .OIIO_PY_PROP_RO("nsubimages", &ImageBuf::nsubimages)
+        .OIIO_PY_PROP_RO("miplevel", &ImageBuf::miplevel)
+        .OIIO_PY_PROP_RO("nmiplevels", &ImageBuf::nmiplevels)
+        .OIIO_PY_PROP_RO("nchannels", &ImageBuf::nchannels)
+        .OIIO_PY_PROP_RW("orientation", &ImageBuf::orientation,
+                         &ImageBuf::set_orientation)
+        .OIIO_PY_PROP_RO("oriented_width", &ImageBuf::oriented_width)
+        .OIIO_PY_PROP_RO("oriented_height", &ImageBuf::oriented_height)
+        .OIIO_PY_PROP_RO("oriented_x", &ImageBuf::oriented_x)
+        .OIIO_PY_PROP_RO("oriented_y", &ImageBuf::oriented_y)
+        .OIIO_PY_PROP_RO("oriented_full_width", &ImageBuf::oriented_full_width)
+        .OIIO_PY_PROP_RO("oriented_full_height",
+                         &ImageBuf::oriented_full_height)
+        .OIIO_PY_PROP_RO("oriented_full_x", &ImageBuf::oriented_full_x)
+        .OIIO_PY_PROP_RO("oriented_full_y", &ImageBuf::oriented_full_y)
+        .OIIO_PY_PROP_RO("xbegin", &ImageBuf::xbegin)
+        .OIIO_PY_PROP_RO("xend", &ImageBuf::xend)
+        .OIIO_PY_PROP_RO("ybegin", &ImageBuf::ybegin)
+        .OIIO_PY_PROP_RO("yend", &ImageBuf::yend)
+        .OIIO_PY_PROP_RO("zbegin", &ImageBuf::zbegin)
+        .OIIO_PY_PROP_RO("zend", &ImageBuf::zend)
+        .OIIO_PY_PROP_RO("xmin", &ImageBuf::xmin)
+        .OIIO_PY_PROP_RO("xmax", &ImageBuf::xmax)
+        .OIIO_PY_PROP_RO("ymin", &ImageBuf::ymin)
+        .OIIO_PY_PROP_RO("ymax", &ImageBuf::ymax)
+        .OIIO_PY_PROP_RO("zmin", &ImageBuf::zmin)
+        .OIIO_PY_PROP_RO("zmax", &ImageBuf::zmax)
+        .OIIO_PY_PROP_RO("roi", &ImageBuf::roi)
+        .OIIO_PY_PROP_RW("roi_full", &ImageBuf::roi_full,
+                         &ImageBuf::set_roi_full)
         .def("set_origin", &ImageBuf::set_origin, "x"_a, "y"_a, "z"_a = 0)
         .def("set_full", &ImageBuf::set_full)
-        .def_property_readonly("pixels_valid", &ImageBuf::pixels_valid)
-        .def_property_readonly("pixeltype", &ImageBuf::pixeltype)
-        .def_property_readonly("has_error", &ImageBuf::has_error)
+        .OIIO_PY_PROP_RO("pixels_valid", &ImageBuf::pixels_valid)
+        .OIIO_PY_PROP_RO("pixeltype", &ImageBuf::pixeltype)
+        .OIIO_PY_PROP_RO("has_error", &ImageBuf::has_error)
         .def(
             "geterror",
             [](const ImageBuf& self, bool clear) {
@@ -506,7 +522,7 @@ declare_imagebuf(py::module& m)
              "roi"_a = ROI::All())
         .def("set_pixels", &ImageBuf_set_pixels_buffer, "roi"_a, "pixels"_a)
 
-        .def_property_readonly("deep", &ImageBuf::deep)
+        .OIIO_PY_PROP_RO("deep", &ImageBuf::deep)
         .def("deep_samples", &ImageBuf::deep_samples, "x"_a, "y"_a, "z"_a = 0)
         .def("set_deep_samples", &ImageBuf::set_deep_samples, "x"_a, "y"_a,
              "z"_a = 0, "nsamples"_a = 1)
@@ -524,7 +540,7 @@ declare_imagebuf(py::module& m)
              "z"_a, "channel"_a, "sample"_a, "value"_a = 0)
         .def(
             "deepdata", [](ImageBuf& self) { return *self.deepdata(); },
-            py::return_value_policy::reference_internal)
+            oiio_py::ref_internal)
         .def("_repr_png_", &ImageBuf_repr_png)
 
         // FIXME -- do we want to provide pixel iterators?

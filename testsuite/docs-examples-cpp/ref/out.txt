@@ -1,4 +1,5 @@
 pixels holds unassociated alpha
+resolution is 512x384
 example_output_error1
 error: Uninitialized input image
 example_output_error2

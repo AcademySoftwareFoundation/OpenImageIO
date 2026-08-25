@@ -35,9 +35,6 @@ build_dependency_with_cmake(WebP
         -D CMAKE_INSTALL_LIBDIR=lib
     )
 
-# Set some things up that we'll need for a subsequent find_package to work
-set (WebP_ROOT ${WebP_LOCAL_INSTALL_DIR})
-
 # Signal to caller that we need to find again at the installed location
 set (WebP_REFIND TRUE)
 set (WebP_REFIND_VERSION ${WebP_BUILD_VERSION})

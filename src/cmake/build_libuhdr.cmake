@@ -51,11 +51,11 @@ if (WIN32)
     unset (_header_files)
 endif ()
 
-set (libuhdr_ROOT ${libuhdr_LOCAL_INSTALL_DIR})
-
-find_package(libuhdr REQUIRED)
-
-set (libuhdr_VERSION ${libuhdr_BUILD_VERSION})
+# Signal to caller that we need to find again at the installed location.
+# libuhdr has no upstream CMake package config, only our own MODULE-mode
+# Findlibuhdr.cmake, so REFIND_ARGS must not force CONFIG.
+set (libuhdr_REFIND TRUE)
+set (libuhdr_REFIND_VERSION ${libuhdr_BUILD_VERSION})
 
 if (libuhdr_BUILD_SHARED_LIBS)
     install_local_dependency_libs (uhdr uhdr)

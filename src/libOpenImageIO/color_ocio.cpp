@@ -159,17 +159,21 @@ struct CSInfo {
     int index;         // More than one can have the same index -- aliases
     enum Flags {
         none               = 0,
-        is_linear_response = 1,   // any cs with linear transfer function
-        is_scene_linear    = 2,   // equivalent to scene_linear
-        is_srgb            = 4,   // sRGB (primaries, and transfer function)
-        is_lin_srgb        = 8,   // sRGB/Rec709 primaries, linear response
-        is_ACEScg          = 16,  // ACEScg
-        is_Rec709          = 32,  // Rec709 primaries and transfer function
-        is_data            = 64,  // Non-color-managed data
-        is_known           = is_srgb | is_lin_srgb | is_ACEScg | is_Rec709
+        is_linear_response = 1,  // any cs with linear transfer function
+        is_scene_linear    = 2,  // equivalent to scene_linear
+        is_srgb_display = 4,  // sRGB (primaries, and transfer function) display
+        is_srgb_scene   = 8,  // sRGB (primaries, and transfer function) scene
+        is_lin_srgb     = 16,   // sRGB/Rec709 primaries, linear response
+        is_ACEScg       = 32,   // ACEScg
+        is_Rec709       = 64,   // Rec709 primaries and transfer function
+        is_data         = 128,  // Non-color-managed data
+        is_known = is_srgb_display | is_srgb_scene | is_lin_srgb | is_ACEScg
+                   | is_Rec709
+
     };
     int m_flags   = 0;
     bool examined = false;
+    bool active   = true;
     std::string canonical;  // Canonical name for this color space
     OCIO::ConstColorSpaceRcPtr ocio_cs;
 
@@ -208,7 +212,8 @@ private:
     std::vector<CSInfo> colorspaces;
     std::string scene_linear_alias;  // Alias for a scene-linear color space
     std::string lin_srgb_alias;
-    std::string srgb_alias;
+    std::string srgb_display_alias;
+    std::string srgb_scene_alias;
     std::string ACEScg_alias;
     std::string Rec709_alias;
     mutable spin_rw_mutex m_mutex;
@@ -406,9 +411,9 @@ private:
 
     void debug_print_aliases()
     {
-        DBG("Aliases: scene_linear={}   lin_srgb={}   srgb={}   ACEScg={}   Rec709={}\n",
-            scene_linear_alias, lin_srgb_alias, srgb_alias, ACEScg_alias,
-            Rec709_alias);
+        DBG("Aliases: scene_linear={}   lin_srgb={}   srgb_display={}   srgb_scene={}   ACEScg={}   Rec709={}\n",
+            scene_linear_alias, lin_srgb_alias, srgb_display_alias,
+            srgb_scene_alias, ACEScg_alias, Rec709_alias);
     }
 
     // For OCIO 2.3+, we can ask for the equivalent of some built-in
@@ -426,7 +431,7 @@ private:
 
 
 // ColorConfig utility to take inventory of the color spaces available.
-// It sets up knowledge of "linear", "srgb_rec709_scene", "Rec709", etc,
+// It sets up knowledge of "linear", "srgb_rec709_display", "Rec709", etc,
 // even if the underlying OCIO configuration lacks them.
 void
 ColorConfig::Impl::inventory()
@@ -435,12 +440,35 @@ ColorConfig::Impl::inventory()
     if (config_ && !disable_ocio) {
         try {
             bool nonraw = false;
-            for (int i = 0, e = config_->getNumColorSpaces(); i < e; ++i)
-                nonraw |= !Strutil::iequals(config_->getColorSpaceNameByIndex(i),
+            // In older ACES configs the display color spaces are inactive but
+            // they are essential for interop IDs like srgb_rec709_display to
+            // work.
+            const int numcolorspaces
+                = config_->getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                             OCIO::COLORSPACE_ALL);
+            for (int i = 0; i < numcolorspaces; ++i)
+                nonraw |= !Strutil::iequals(config_->getColorSpaceNameByIndex(
+                                                OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                                OCIO::COLORSPACE_ALL, i),
                                             "raw");
             if (nonraw) {
-                for (int i = 0, e = config_->getNumColorSpaces(); i < e; ++i)
-                    add(config_->getColorSpaceNameByIndex(i), i);
+                for (int i = 0; i < numcolorspaces; ++i) {
+                    add(config_->getColorSpaceNameByIndex(
+                            OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                            OCIO::COLORSPACE_ALL, i),
+                        i);
+                }
+                for (auto&& cs : colorspaces)
+                    cs.active = false;
+                const int numactive = config_->getNumColorSpaces(
+                    OCIO::SEARCH_REFERENCE_SPACE_ALL, OCIO::COLORSPACE_ACTIVE);
+                for (int i = 0; i < numactive; ++i) {
+                    if (CSInfo* cs = find(config_->getColorSpaceNameByIndex(
+                            OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                            OCIO::COLORSPACE_ACTIVE, i))) {
+                        cs->active = true;
+                    }
+                }
                 for (auto&& cs : colorspaces)
                     classify_by_name(cs);
                 OCIO::ConstColorSpaceRcPtr lin = config_->getColorSpace(
@@ -474,8 +502,9 @@ ColorConfig::Impl::inventory()
     add("lin_rec709_scene", 0, linflags);
     add("lin_srgb", 0, linflags);
     add("lin_rec709", 0, linflags);
-    add("srgb_rec709_scene", 1, CSInfo::is_srgb);
-    add("sRGB", 1, CSInfo::is_srgb);
+    add("srgb_rec709_display", 1, CSInfo::is_srgb_display);
+    add("srgb_rec709_scene", 1, CSInfo::is_srgb_scene);
+    add("sRGB", 1, CSInfo::is_srgb_scene);
     add("Rec709", 2, CSInfo::is_Rec709);
 
     for (auto&& cs : colorspaces)
@@ -589,14 +618,17 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
     // General heuristics based on the names -- for a few canonical names,
     // believe them! Woe be unto the poor soul who names a color space "sRGB"
     // or "ACEScg" and it's really something entirely different.
-    if (Strutil::iequals(cs.name, "srgb_rec709_scene")
-        || Strutil::iequals(cs.name, "srgb_tx")
-        || Strutil::iequals(cs.name, "srgb_texture")
-        || Strutil::iequals(cs.name, "srgb texture")
-        || Strutil::iequals(cs.name, "srgb_rec709_scene")
-        || Strutil::iequals(cs.name, "sRGB - Texture")
-        || Strutil::iequals(cs.name, "sRGB")) {
-        cs.setflag(CSInfo::is_srgb, srgb_alias);
+    if (Strutil::iequals(cs.name, "srgb_rec709_display")
+        || Strutil::iequals(cs.name, "srgb_display")
+        || Strutil::iequals(cs.name, "sRGB - Display")) {
+        cs.setflag(CSInfo::is_srgb_display, srgb_display_alias);
+    } else if (Strutil::iequals(cs.name, "srgb_rec709_scene")
+               || Strutil::iequals(cs.name, "srgb_tx")
+               || Strutil::iequals(cs.name, "srgb_texture")
+               || Strutil::iequals(cs.name, "srgb texture")
+               || Strutil::iequals(cs.name, "sRGB - Texture")
+               || Strutil::iequals(cs.name, "sRGB")) {
+        cs.setflag(CSInfo::is_srgb_scene, srgb_scene_alias);
     } else if (Strutil::iequals(cs.name, "lin_rec709_scene")
                || Strutil::iequals(cs.name, "lin_rec709")
                || Strutil::iequals(cs.name, "Linear Rec.709 (sRGB)")
@@ -622,7 +654,7 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
                    ACEScg_alias);
     } else if (cs.name == "srgbf" || cs.name == "srgbh" || cs.name == "srgb16"
                || cs.name == "srgb8") {
-        cs.setflag(CSInfo::is_srgb, srgb_alias);
+        cs.setflag(CSInfo::is_srgb_scene, srgb_scene_alias);
     } else if (cs.name == "srgblnf" || cs.name == "srgblnh"
                || cs.name == "srgbln16" || cs.name == "srgbln8") {
         cs.setflag(CSInfo::is_lin_srgb, lin_srgb_alias);
@@ -633,7 +665,9 @@ ColorConfig::Impl::classify_by_name(CSInfo& cs)
 #endif
 
     // Set up some canonical names
-    if (cs.flags() & CSInfo::is_srgb)
+    if (cs.flags() & CSInfo::is_srgb_display)
+        cs.canonical = "srgb_rec709_display";
+    else if (cs.flags() & CSInfo::is_srgb_scene)
         cs.canonical = "srgb_rec709_scene";
     else if (cs.flags() & CSInfo::is_lin_srgb)
         cs.canonical = "lin_rec709_scene";
@@ -686,8 +720,11 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
                 // canonical spaces anyway.
                 // DBG("{} has LUT3\n", cs.name);
             } else if (check_same_as_builtin_transform(cs.name.c_str(),
+                                                       "srgb_display")) {
+                cs.setflag(CSInfo::is_srgb_display, srgb_display_alias);
+            } else if (check_same_as_builtin_transform(cs.name.c_str(),
                                                        "srgb_tx")) {
-                cs.setflag(CSInfo::is_srgb, srgb_alias);
+                cs.setflag(CSInfo::is_srgb_scene, srgb_scene_alias);
             } else if (check_same_as_builtin_transform(cs.name.c_str(),
                                                        "lin_srgb")) {
                 cs.setflag(CSInfo::is_lin_srgb | CSInfo::is_linear_response,
@@ -707,7 +744,9 @@ ColorConfig::Impl::classify_by_conversions(CSInfo& cs)
     }
 
     // Set up some canonical names
-    if (cs.flags() & CSInfo::is_srgb)
+    if (cs.flags() & CSInfo::is_srgb_display)
+        cs.canonical = "srgb_rec709_display";
+    else if (cs.flags() & CSInfo::is_srgb_scene)
         cs.canonical = "srgb_rec709_scene";
     else if (cs.flags() & CSInfo::is_lin_srgb)
         cs.canonical = "lin_rec709_scene";
@@ -738,6 +777,9 @@ ColorConfig::Impl::reclassify_heuristics(CSInfo& cs)
         // If there is a known srgb space, and transforming our test
         // colors from "this cs" to srgb gives us what we expect for a
         // lin_srgb->srgb, then guess what? -- this is lin_srgb!
+        const std::string& srgb_alias = srgb_scene_alias.size()
+                                            ? srgb_scene_alias
+                                            : srgb_display_alias;
         if (srgb_alias.size()
             && test_conversion_yields(cs.name.c_str(), srgb_alias.c_str(),
                                       test_colors, lin_srgb_to_srgb_results)) {
@@ -757,14 +799,23 @@ ColorConfig::Impl::identify_builtin_equivalents()
     if (disable_builtin_configs)
         return;
     Timer timer;
+    if (auto n = IdentifyBuiltinColorSpace("srgb_display")) {
+        if (CSInfo* cs = find(n)) {
+            cs->setflag(CSInfo::is_srgb_display, srgb_display_alias);
+            DBG("Identified {} = builtin '{}'\n", "srgb_rec709_display",
+                cs->name);
+        }
+    } else {
+        DBG("No config space identified as srgb_display\n");
+    }
     if (auto n = IdentifyBuiltinColorSpace("srgb_tx")) {
         if (CSInfo* cs = find(n)) {
-            cs->setflag(CSInfo::is_srgb, srgb_alias);
+            cs->setflag(CSInfo::is_srgb_scene, srgb_scene_alias);
             DBG("Identified {} = builtin '{}'\n", "srgb_rec709_scene",
                 cs->name);
         }
     } else {
-        DBG("No config space identified as srgb\n");
+        DBG("No config space identified as srgb_scene\n");
     }
     DBG("identify_builtin_equivalents srgb took {:0.2f}s\n", timer.lap());
     if (auto n = IdentifyBuiltinColorSpace("lin_srgb")) {
@@ -921,8 +972,10 @@ ColorConfig::Impl::init(string_view filename)
     for (auto&& cs : colorspaces) {
         // examine(&cs);
         DBG("Color space '{}':\n", cs.name);
-        if (cs.flags() & CSInfo::is_srgb)
-            DBG("'{}' is srgb\n", cs.name);
+        if (cs.flags() & CSInfo::is_srgb_display)
+            DBG("'{}' is srgb_display\n", cs.name);
+        if (cs.flags() & CSInfo::is_srgb_scene)
+            DBG("'{}' is srgb_scene\n", cs.name);
         if (cs.flags() & CSInfo::is_lin_srgb)
             DBG("'{}' is lin_srgb\n", cs.name);
         if (cs.flags() & CSInfo::is_ACEScg)
@@ -1117,6 +1170,15 @@ bool
 ColorConfig::isColorSpaceLinear(string_view name) const
 {
     return getImpl()->isColorSpaceLinear(name);
+}
+
+
+
+bool
+ColorConfig::isColorSpaceActive(string_view name) const
+{
+    const CSInfo* cs = getImpl()->find(getImpl()->resolve(name));
+    return cs ? cs->active : true;
 }
 
 
@@ -1529,8 +1591,11 @@ ColorConfig::Impl::resolve(string_view name) const
     spin_rw_write_lock lock(m_mutex);
     if ((Strutil::iequals(name, "sRGB")
          || Strutil::iequals(name, "srgb_rec709_scene"))
-        && !srgb_alias.empty())
-        return srgb_alias;
+        && !srgb_scene_alias.empty())
+        return srgb_scene_alias;
+    if (Strutil::iequals(name, "srgb_rec709_display")
+        && !srgb_display_alias.empty())
+        return srgb_display_alias;
     if ((Strutil::iequals(name, "lin_srgb")
          || Strutil::iequals(name, "lin_rec709")
          || Strutil::iequals(name, "lin_rec709_scene")
@@ -1574,7 +1639,8 @@ ColorConfig::equivalent(string_view color_space1,
 
     // If the color spaces' flags (when masking only the bits that refer to
     // specific known color spaces) match, consider them equivalent.
-    const int mask = CSInfo::is_srgb | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
+    const int mask = CSInfo::is_srgb_display | CSInfo::is_srgb_scene
+                     | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
                      | CSInfo::is_Rec709;
     const CSInfo* csi1 = getImpl()->find(color_space1);
     const CSInfo* csi2 = getImpl()->find(color_space2);
@@ -2242,16 +2308,19 @@ enum class CICPRange : int {
 };
 
 struct ColorInteropID {
-    constexpr ColorInteropID(const char* interop_id)
+    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias)
         : interop_id(interop_id)
+        , legacy_alias(legacy_alias)
         , cicp({ 0, 0, 0, 0 })
         , has_cicp(false)
     {
     }
 
-    constexpr ColorInteropID(const char* interop_id, CICPPrimaries primaries,
-                             CICPTransfer transfer, CICPMatrix matrix)
+    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias,
+                             CICPPrimaries primaries, CICPTransfer transfer,
+                             CICPMatrix matrix)
         : interop_id(interop_id)
+        , legacy_alias(legacy_alias)
         , cicp({ int(primaries), int(transfer), int(matrix),
                  int(CICPRange::Full) })
         , has_cicp(true)
@@ -2259,68 +2328,78 @@ struct ColorInteropID {
     }
 
     const char* interop_id;
+    const char* legacy_alias;
     std::array<int, 4> cicp;
     bool has_cicp;
 };
 
 // Mapping between color interop ID and CICP, based on Color Interop Forum
-// recommendations.
+// recommendations. The legacy aliases are for older ACES configs.
 constexpr ColorInteropID color_interop_ids[] = {
     // Scene referred interop IDs first so they are the default in automatic
     // conversion from CICP to interop ID. Some are not display color spaces
     // at all, but can be represented by CICP anyway.
-    { "lin_ap1_scene" },
-    { "lin_ap0_scene" },
-    { "lin_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Linear,
-      CICPMatrix::BT709 },
-    { "lin_p3d65_scene", CICPPrimaries::P3D65, CICPTransfer::Linear,
-      CICPMatrix::BT709 },
-    { "lin_rec2020_scene", CICPPrimaries::Rec2020, CICPTransfer::Linear,
-      CICPMatrix::Rec2020_CL },
-    { "lin_adobergb_scene" },
-    { "lin_ciexyzd65_scene", CICPPrimaries::XYZD65, CICPTransfer::Linear,
-      CICPMatrix::Unspecified },
-    { "srgb_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "g22_rec709_scene", CICPPrimaries::Rec709, CICPTransfer::Gamma22,
-      CICPMatrix::BT709 },
-    { "g18_rec709_scene" },
-    { "srgb_ap1_scene" },
-    { "g22_ap1_scene" },
-    { "srgb_p3d65_scene", CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "g22_adobergb_scene" },
-    { "data" },
-    { "unknown" },
+    { "lin_ap1_scene", "lin_ap1" },
+    { "lin_ap0_scene", "lin_ap0" },
+    { "lin_rec709_scene", "lin_rec709", CICPPrimaries::Rec709,
+      CICPTransfer::Linear, CICPMatrix::BT709 },
+    { "lin_p3d65_scene", "lin_p3d65", CICPPrimaries::P3D65,
+      CICPTransfer::Linear, CICPMatrix::BT709 },
+    { "lin_rec2020_scene", "lin_rec2020", CICPPrimaries::Rec2020,
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
+    { "lin_adobergb_scene", "lin_adobergb" },
+    { "lin_ciexyzd65_scene", "cie_xyz_d65", CICPPrimaries::XYZD65,
+      CICPTransfer::Linear, CICPMatrix::Unspecified },
+    { "srgb_rec709_scene", "srgb_texture", CICPPrimaries::Rec709,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    { "g24_rec709_scene", "g24_rec709" },
+    { "g22_rec709_scene", "g22_rec709", CICPPrimaries::Rec709,
+      CICPTransfer::Gamma22, CICPMatrix::BT709 },
+    { "g18_rec709_scene", "g18_rec709" },
+    { "srgb_ap1_scene", "srgb_ap1" },
+    { "g22_ap1_scene", "g22_ap1" },
+    { "srgb_p3d65_scene", "srgb_p3d65", CICPPrimaries::P3D65,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    { "g22_adobergb_scene", nullptr },
+    { "data", nullptr },
+    { "unknown", nullptr },
 
     // Display referred interop IDs.
-    { "srgb_rec709_display", CICPPrimaries::Rec709, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "g24_rec709_display", CICPPrimaries::Rec709, CICPTransfer::BT709,
-      CICPMatrix::BT709 },
-    { "srgb_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "srgbe_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::sRGB,
-      CICPMatrix::BT709 },
-    { "pq_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::PQ,
-      CICPMatrix::Rec2020_NCL },
-    { "pq_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::PQ,
-      CICPMatrix::Rec2020_NCL },
-    { "hlg_rec2020_display", CICPPrimaries::Rec2020, CICPTransfer::HLG,
-      CICPMatrix::Rec2020_NCL },
+    { "srgb_rec709_display", "srgb_display", CICPPrimaries::Rec709,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    // Not all software interprets this CICP the same, see the
+    // "QuickTime Gamma Shift" issue. We follow the CIF recommendation and
+    // interpret it as BT.1886.
+    { "g24_rec709_display", "rec1886_rec709_display", CICPPrimaries::Rec709,
+      CICPTransfer::BT709, CICPMatrix::BT709 },
+    { "srgb_p3d65_display", "displayp3_display", CICPPrimaries::P3D65,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    { "srgbe_p3d65_display", "displayp3_hdr_display", CICPPrimaries::P3D65,
+      CICPTransfer::sRGB, CICPMatrix::BT709 },
+    { "pq_p3d65_display", "st2084_p3d65_display", CICPPrimaries::P3D65,
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+    { "pq_rec2020_display", "rec2100_pq_display", CICPPrimaries::Rec2020,
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+    { "hlg_rec2020_display", "rec2100_hlg_display", CICPPrimaries::Rec2020,
+      CICPTransfer::HLG, CICPMatrix::Rec2020_NCL },
     // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
     // display is more likely meant to be written as sRGB. On read the
     // scene referred interop ID will be used.
-    { "g22_rec709_display",
+    { "g22_rec709_display", nullptr
       /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
     // No CICP code for Adobe RGB primaries.
-    { "g22_adobergb_display" },
-    { "g26_p3d65_display", CICPPrimaries::P3D65, CICPTransfer::Gamma26,
-      CICPMatrix::BT709 },
-    { "g26_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::Gamma26,
+    { "g22_adobergb_display", nullptr },
+    { "g26_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
+      CICPTransfer::Gamma26, CICPMatrix::BT709 },
+    { "g26_xyzd65_display", nullptr, CICPPrimaries::XYZD65,
+      CICPTransfer::Gamma26, CICPMatrix::Unspecified },
+    { "pq_xyzd65_display", nullptr, CICPPrimaries::XYZD65, CICPTransfer::PQ,
       CICPMatrix::Unspecified },
-    { "pq_xyzd65_display", CICPPrimaries::XYZD65, CICPTransfer::PQ,
-      CICPMatrix::Unspecified },
+
+    // OpenColorIO interop IDs, last so that the official ones above take
+    // priority when converting a CICP to an interop ID.
+    { "ocio:lin_ciexyzd65_display", "cie_xyz_d65", CICPPrimaries::XYZD65,
+      CICPTransfer::Linear, CICPMatrix::Unspecified },
 };
 }  // namespace
 
@@ -2340,13 +2419,15 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
         } catch (...) {
             interop_id = nullptr;
         }
-        if (interop_id) {
+        if (interop_id && interop_id[0]) {
             return interop_id;
         }
     }
 #endif
     for (const ColorInteropID& interop : color_interop_ids) {
-        if (equivalent(colorspace, interop.interop_id)) {
+        if (equivalent(colorspace, interop.interop_id)
+            || (interop.legacy_alias
+                && equivalent(colorspace, interop.legacy_alias))) {
             return interop.interop_id;
         }
     }
@@ -3057,5 +3138,93 @@ set_colorspace_rec709_gamma(ImageSpec& spec, float gamma)
     ColorConfig::default_colorconfig().set_colorspace_rec709_gamma(spec, gamma);
 }
 
+bool
+is_colorspace_srgb(const ImageSpec& spec, bool default_to_srgb)
+{
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    if (default_to_srgb && colorspace.empty()) {
+        return true;
+    }
+
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+
+    return (interop_id == "srgb_rec709_scene"
+            || interop_id == "srgb_rec709_display");
+}
+
+std::vector<uint8_t>
+get_colorspace_icc_profile(const ImageSpec& spec, bool /*from_colorspace*/)
+{
+    std::vector<uint8_t> icc_profile;
+    const ParamValue* p = spec.find_attribute("ICCProfile");
+    if (p) {
+        cspan<uint8_t> icc_profile_span = p->as_cspan<uint8_t>();
+        icc_profile.assign(icc_profile_span.begin(), icc_profile_span.end());
+    }
+    return icc_profile;
+}
+
+cspan<int>
+get_colorspace_cicp(const ImageSpec& spec, bool from_colorspace)
+{
+    const ParamValue* p = spec.find_attribute("CICP",
+                                              TypeDesc(TypeDesc::INT, 4));
+    if (p)
+        return p->as_cspan<int>();
+    if (!from_colorspace)
+        return cspan<int>();
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    return colorconfig.get_cicp(spec.get_string_attribute("oiio:ColorSpace"));
+}
+
+OIIO_NAMESPACE_3_1_END
+
+OIIO_NAMESPACE_BEGIN
+
+// Parse a color space name of the form "g<NN>_rec709_(scene|display)".
+static float
+rec709_colorspace_gamma(string_view colorspace)
+{
+    if (!Strutil::parse_prefix(colorspace, "g"))
+        return 0.0f;
+    int g10 = 0;
+    if (!Strutil::parse_int(colorspace, g10) || g10 <= 0)
+        return 0.0f;
+    if (colorspace != "_rec709_scene" && colorspace != "_rec709_display")
+        return 0.0f;
+    return float(g10) / 10.0f;
+}
+
+float
+pvt::get_colorspace_rec709_gamma(const ImageSpec& spec)
+{
+    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
+    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+
+    // Gamma interop IDs, as well as arbitrary names that do not have an
+    // official interop ID as generated by set_colorspace_rec709_gamma().
+    const float gamma = rec709_colorspace_gamma(
+        interop_id.empty() ? colorspace : interop_id);
+
+    // Backwards compatibility, scene_linear is not necessarily Rec.709
+    if (colorconfig.equivalent(colorspace, "linear")
+        || colorconfig.equivalent(colorspace, "scene_linear")
+        || interop_id == "lin_rec709_scene")
+        return 1.0f;
+    else if (gamma != 0.0f)
+        return gamma;
+    // Backwards compatibility, this is DEPRECATED(3.1)
+    else if (Strutil::istarts_with(colorspace, "Gamma")) {
+        Strutil::parse_word(colorspace);
+        float g = Strutil::from_string<float>(colorspace);
+        if (g >= 0.01f && g <= 10.0f /* sanity check */)
+            return g;
+    }
+
+    // Obsolete "oiio:Gamma" attribute for backwards compatibility
+    return spec.get_float_attribute("oiio:Gamma", 0.0f);
+}
 
 OIIO_NAMESPACE_END

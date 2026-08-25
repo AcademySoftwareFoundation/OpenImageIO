@@ -12,4 +12,7 @@ command += iconvert ("src/bad1.ico out.tif")
 command += iconvert ("src/crash-002c.ico out.tif")
 command += iconvert ("src/bad-not-8x-wide.ico out.tif")
 command += iconvert ("src/bad-palette.ico out.tif")
+# ICO embedding a PNG whose IHDR declares a ~6 GB image (46340x46340). The
+# compression-ratio guard must reject it before the PNG buffer is allocated.
+command += iconvert ("src/bomb-png-46340.ico out.tif")
 

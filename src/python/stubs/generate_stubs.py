@@ -36,6 +36,9 @@ class OIIOSignatureGenerator(AdvancedSignatureGenerator):
             # signatures for these special methods include many inaccurate overloads
             "*.__ne__": "(self, other: object) -> bool",
             "*.__eq__": "(self, other: object) -> bool",
+            # stubgen cannot parse the result of these, override below
+            "*.get_colorspace_cicp": "(spec: ImageSpec, from_colorspace: bool = ...) -> object",
+            "*.get_colorspace_icc_profile": "(spec: ImageSpec, from_colorspace: bool = ...) -> object",
         },
         arg_type_overrides={
             # FIXME: Buffer may in fact be more accurate here
@@ -88,6 +91,9 @@ class OIIOSignatureGenerator(AdvancedSignatureGenerator):
             # our custom code to convert vector to tuple obscures the contained type.
             ("*.ImageBufAlgo.isConstantColor", "*"): "tuple[float, ...] | None",
             ("*.ImageBufAlgo.color_range_check", "*"): "tuple[int, ...] | None",
+
+            ("*.get_colorspace_cicp", "object"): "list[int] | None",
+            ("*.get_colorspace_icc_profile", "object"): "bytes | None",
 
             ("*.TextureSystem.imagespec", "object"): "ImageSpec | None",
             ("*.TextureSystem.texture", "tuple"): "tuple[float, ...]",

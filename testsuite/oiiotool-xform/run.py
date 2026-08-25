@@ -40,6 +40,10 @@ shutil.copy (oiiotoolsrcdir + "/image.tif", "./image.tif")
 # test resample
 command += oiiotool ("../common/grid.tif --resample 128x128 -o resample.tif")
 
+# test resample with interpolation off (nearest). Separate from the case above
+# because the two use entirely different code paths.
+command += oiiotool ("../common/grid.tif --resample:interp=0 128x128 -o resample-nearest.tif")
+
 # test resize
 command += oiiotool ("../common/grid.tif --resize 256x256 -o resize.tif")
 command += oiiotool ("../common/grid.tif --resize 25% -o resize2.tif")
@@ -116,12 +120,15 @@ command += oiiotool ("image.tif --crop 180x140+30+30 --rotate270 -o rotate270-cr
 command += oiiotool ("image.tif --rotate180 -o flipflop.tif")
 command += oiiotool ("image.tif --crop 160x120+30+30 --rotate180 -o flipflop-crop.tif")
 
-# Tricky: make image, rotate, set Orientation, and then re-orient.
-# Make it half size so it can't accidentally match to another test image
-# for the rotation tests.
-command += oiiotool ("image.tif --resample 160x120 --rotate90  --orientccw --reorient -o reorient1.tif")
-command += oiiotool ("image.tif --resample 160x120 --rotate180 --orient180 --reorient -o reorient2.tif")
-command += oiiotool ("image.tif --resample 160x120 --rotate270 --orientcw  --reorient -o reorient3.tif")
+# test reorient
+command += oiiotool ("src/orientation1.tif --reorient -o reorient1.tif")
+command += oiiotool ("src/orientation1.tif --orientation 2 --reorient -o reorient2.tif")
+command += oiiotool ("src/orientation1.tif --orientation 3 --reorient -o reorient3.tif")
+command += oiiotool ("src/orientation1.tif --orientation 4 --reorient -o reorient4.tif")
+command += oiiotool ("src/orientation1.tif --orientation 5 --reorient -o reorient5.tif")
+command += oiiotool ("src/orientation1.tif --orientation 6 --reorient -o reorient6.tif")
+command += oiiotool ("src/orientation1.tif --orientation 7 --reorient -o reorient7.tif")
+command += oiiotool ("src/orientation1.tif --orientation 8 --reorient -o reorient8.tif")
 
 # test transpose
 command += oiiotool ("image.tif --transpose -o transpose.tif")
@@ -138,7 +145,7 @@ command += oiiotool ("image.tif --cshift +100+50 -o cshift.tif")
 
 # Outputs to check against references
 outputs = [
-            "resample.tif", "resize.tif", "resize2.tif",
+            "resample.tif", "resample-nearest.tif", "resize.tif", "resize2.tif",
             "resize64.tif", "resize512.tif",
             "resized-offset.exr",
             "resizefrom.tif", "resizefromto.tif", "resizefromtooffset.tif",
@@ -164,7 +171,8 @@ outputs = [
             "flipflop.tif", "flipflop-crop.tif",
             "rotate90.tif", "rotate90-crop.tif",
             "rotate270.tif", "rotate270-crop.tif",
-            "reorient1.tif", "reorient2.tif", "reorient3.tif",
+            "reorient1.tif", "reorient2.tif", "reorient3.tif", "reorient4.tif",
+            "reorient5.tif", "reorient6.tif", "reorient7.tif", "reorient8.tif",
             "transpose.tif", "transpose-crop.tif",
             "cshift.tif",
             "out.txt" ]

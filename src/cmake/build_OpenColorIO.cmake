@@ -16,14 +16,6 @@ set_cache (OpenColorIO_BUILD_SHARED_LIBS  OFF
 # it all work with the static dependencies, it just makes things complicated
 # downstream.
 
-# Clear variables from the failed find_package
-unset (OPENCOLORIO_LIBRARY)
-unset (OPENCOLORIO_INCLUDE_DIR)
-unset (FIND_PACKAGE_MESSAGE_DETAILS_OpenColorIO)
-unset (OPENCOLORIO_VERSION_MAJOR)
-unset (OPENCOLORIO_VERSION_MINOR)
-unset (OpenColorIO_DIR)
-
 checked_find_package(pystring VERSION_MIN 1.1.3)
 checked_find_package(expat REQUIRED VERSION_MIN 2.6)
 checked_find_package(yaml-cpp REQUIRED VERSION_MIN 0.8.0)
@@ -58,15 +50,10 @@ build_dependency_with_cmake(OpenColorIO
         -D CMAKE_POLICY_VERSION_MINIMUM=3.5
     )
 
-# Set some things up that we'll need for a subsequent find_package to work
-set (OpenColorIO_ROOT ${OpenColorIO_LOCAL_INSTALL_DIR})
-set (OpenColorIO_DIR ${OpenColorIO_LOCAL_INSTALL_DIR})
-
 # Signal to caller that we need to find again at the installed location
-# set (OpenColorIO_REFIND TRUE)
-# set (OpenColorIO_REFIND_ARGS CONFIG)
-find_package (OpenColorIO ${OpenColorIO_BUILD_VERSION} EXACT CONFIG REQUIRED)
-find_package(pystring REQUIRED)
+set (OpenColorIO_REFIND TRUE)
+set (OpenColorIO_REFIND_VERSION ${OpenColorIO_BUILD_VERSION})
+set (OpenColorIO_REFIND_ARGS EXACT CONFIG)
 
 if (OpenColorIO_BUILD_SHARED_LIBS)
     install_local_dependency_libs (OpenColorIO OpenColorIO)

@@ -425,8 +425,10 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     ioseek(0);
 
     static_assert(sizeof(dds_header) == 128, "dds header size does not match");
-    if (!ioread(&m_dds, sizeof(m_dds), 1))
+    if (!ioread(&m_dds, sizeof(m_dds), 1)) {
+        close();
         return false;
+    }
 
     if (bigendian()) {
         // DDS files are little-endian
@@ -481,6 +483,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         || (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP
             && !(m_dds.caps.flags1 & DDS_CAPS1_COMPLEX))) {
         errorfmt("Invalid DDS header, possibly corrupt file");
+        close();
         return false;
     }
 
@@ -494,13 +497,16 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
                  & (DDS_PF_RGB | DDS_PF_LUMINANCE | DDS_PF_ALPHA
                     | DDS_PF_ALPHAONLY)))) {
         errorfmt("Image with no data");
+        close();
         return false;
     }
 
     // read optional DX10 header
     if (m_dds.fmt.fourCC == DDS_4CC_DX10) {
-        if (!ioread(&m_dx10, sizeof(m_dx10), 1))
+        if (!ioread(&m_dx10, sizeof(m_dx10), 1)) {
+            close();
             return false;
+        }
 
         /*std::cerr << "[dds:dx10] dxgiFormat: " << m_dx10.dxgiFormat << "\n";
         std::cerr << "[dds:dx10] resourceDimension: " << m_dx10.resourceDimension << "\n";
@@ -557,6 +563,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
                 if (!GetDxgiFormatChannelMasks(m_dx10.dxgiFormat,
                                                m_dds.fmt.masks)) {
                     errorfmt("Unsupported DXGI format: {}", m_dx10.dxgiFormat);
+                    close();
                     return false;
                 }
                 break;
@@ -564,6 +571,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
         } break;
         default:
             errorfmt("Unsupported compression type: {}", m_dds.fmt.fourCC);
+            close();
             return false;
         }
     }
@@ -627,6 +635,7 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     if (m_compression == Compression::None && (m_Bpp < 1 || m_Bpp > 16)) {
         errorfmt("Invalid DDS bytes-per-pixel ({}). Possible corrupt input?",
                  m_Bpp);
+        close();
         return false;
     }
 
@@ -648,8 +657,10 @@ DDSInput::open(const std::string& name, ImageSpec& newspec)
     } else
         m_nfaces = 1;
 
-    if (!seek_subimage(0, 0))
+    if (!seek_subimage(0, 0)) {
+        close();
         return false;
+    }
     newspec = spec();
     return true;
 }
@@ -944,6 +955,13 @@ DDSInput::seek_subimage(int subimage, int miplevel)
             return false;
     }
 
+    // Decompression-bomb guard: reject a tiny file that declares a huge
+    // decoded image before internal_readimg() commits to the m_buf allocation.
+    // For compressed formats the declared bytes are the decoded (RGBA/half)
+    // size; genuine BCn ratios are well under the default cap.
+    if (!check_compression_ratio(m_spec, ioproxy()->size()))
+        return false;
+
     m_subimage = subimage;
     m_miplevel = miplevel;
     return true;
@@ -1072,8 +1090,8 @@ DDSInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     // don't proceed if a cube map - use tiles then instead
     if (m_dds.caps.flags2 & DDS_CAPS2_CUBEMAP)
         return false;
-    if (m_buf.empty())
-        readimg_scanlines();
+    if (m_buf.empty() && !readimg_scanlines())
+        return false;
 
     size_t size   = spec().scanline_bytes();
     size_t offset = size_t(z) * m_spec.height * size + size_t(y) * size;
@@ -1098,8 +1116,8 @@ DDSInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
     if (m_dds.caps.flags2 & DDS_CAPS2_VOLUME) {
         // This is a 3D volume file. For DDS files, we are emulating tiles,
         // with each scanline as a tile.
-        if (m_buf.empty())
-            readimg_scanlines();
+        if (m_buf.empty() && !readimg_scanlines())
+            return false;
         // We reported scanlines as tiles, so x must be 0.
         if (x != 0)
             return false;
@@ -1133,8 +1151,8 @@ DDSInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
         m_buf.resize(m_spec.tile_bytes());  // resize destination buffer
         if (!w && !h && !d)  // face not present in file, black-pad the image
             memset(&m_buf[0], 0, m_spec.tile_bytes());
-        else
-            readimg_tiles();
+        else if (!readimg_tiles())
+            return false;
     }
 
     memcpy(data, &m_buf[0], m_spec.tile_bytes());

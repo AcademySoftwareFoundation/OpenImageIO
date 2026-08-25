@@ -739,6 +739,157 @@ test_zover()
 
 
 // Test ImageBuf::resample
+// resample_hwy() ignores its `interpolate` argument and always bilerps, so
+// nearest sampling has to stay off that path. Highway is off by default, so a
+// reference image would not exercise this; compare the two settings instead.
+void
+test_resample_hwy_nearest()
+{
+    std::cout << "test resample nearest is not routed to Highway\n";
+
+    int prev_hwy = 0;
+    OIIO::getattribute("enable_hwy", prev_hwy);
+
+    // Neighbouring pixels must differ, or bilerp and nearest would agree and
+    // the test would pass on broken code.
+    ImageSpec srcspec(64, 48, 4, TypeFloat);
+    ImageBuf src(srcspec);
+    for (ImageBuf::Iterator<float> it(src); !it.done(); ++it)
+        for (int c = 0; c < 4; ++c)
+            it[c] = float(((it.x() + it.y() + c) % 7) * 0.125f);
+
+    ImageSpec dstspec(37, 29, 4, TypeFloat);
+    ImageBuf without_hwy(dstspec), with_hwy(dstspec);
+    OIIO::attribute("enable_hwy", 0);
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(without_hwy, src, false));
+    OIIO::attribute("enable_hwy", 1);
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(with_hwy, src, false));
+    OIIO::attribute("enable_hwy", prev_hwy);
+
+    OIIO_CHECK_EQUAL(memcmp(with_hwy.localpixels(), without_hwy.localpixels(),
+                            dstspec.image_bytes()),
+                     0);
+}
+
+// Same pixels as `src`, but with a gap between scanlines and, optionally,
+// a gap between pixels. `storage` owns the memory and must outlive the result.
+// Row padding is legal for a source the tables handle -- contiguous_scanline()
+// permits it -- so it has to be read through the real scanline stride. Pixel
+// padding is not, and selects the per-pixel fallback instead.
+static ImageBuf
+padded_copy(const ImageBuf& src, bool pad_pixels,
+            std::unique_ptr<char[]>& storage)
+{
+    const ImageSpec& spec(src.spec());
+    stride_t chansize = stride_t(spec.format.size());
+    stride_t xstride  = chansize * (spec.nchannels + (pad_pixels ? 1 : 0));
+    stride_t ystride  = xstride * (spec.width + 1);
+    storage.reset(new char[size_t(ystride) * spec.height]);
+    memset(storage.get(), 0, size_t(ystride) * spec.height);
+    ImageBuf padded(spec, storage.get(), xstride, ystride);
+    ImageBufAlgo::paste(padded, spec.x, spec.y, spec.z, 0, src);
+    return padded;
+}
+
+
+
+// The tables are a pure optimization: they must reproduce the per-pixel path
+// exactly, so this compares the two rather than checking against a tolerance,
+// which would hide the one-pixel shift a mistake in the mapping arithmetic
+// actually causes. Pixel padding is what selects the fallback -- there is no
+// runtime switch to flip, the dispatch is by capability.
+static void
+check_against_fallback(const ImageBuf& src, const ImageSpec& dstspec,
+                       bool interpolate)
+{
+    std::unique_ptr<char[]> fast_mem, slow_mem;
+    ImageBuf fast_src = padded_copy(src, false, fast_mem);
+    ImageBuf slow_src = padded_copy(src, true, slow_mem);
+    ImageBuf fast(dstspec), slow(dstspec);
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(fast, fast_src, interpolate));
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(slow, slow_src, interpolate));
+    if (memcmp(fast.localpixels(), slow.localpixels(), dstspec.image_bytes())
+        == 0)
+        return;
+    auto cr = ImageBufAlgo::compare(fast, slow, 0.0f, 0.0f);
+    Strutil::print("    interp={} {}x{} nch={} type={}: maxerror={:g} "
+                   "({} of {} values differ)\n",
+                   int(interpolate), dstspec.width, dstspec.height,
+                   dstspec.nchannels, dstspec.format, cr.maxerror, cr.nfail,
+                   size_t(dstspec.width) * dstspec.height * dstspec.nchannels);
+    OIIO_CHECK_ASSERT(false && "resample paths disagree");
+}
+
+
+
+// Nearest resampling must pick the same source pixel as the mapping in the
+// OIIO docs, and must be black wherever the destination maps outside the
+// source data window. The crop case is what distinguishes a data window from
+// a full window, and is not exercised by an ordinary resize.
+void
+test_resample_correctness()
+{
+    std::cout << "test resample correctness\n";
+
+    // Source pixel (x,y) holds the value x + 10*y, so a resampled pixel
+    // identifies exactly which source pixel it came from.
+    const int srcsize = 4;
+    ImageBuf src(ImageSpec(srcsize, srcsize, 1, TypeFloat));
+    for (ImageBuf::Iterator<float> it(src); !it.done(); ++it)
+        it[0] = float(it.x() + 10 * it.y());
+
+    // Both a magnification and a reduction, checked against the mapping
+    // evaluated independently here.
+    for (int dstsize : { 8, 2 }) {
+        ImageBuf dst(ImageSpec(dstsize, dstsize, 1, TypeFloat));
+        OIIO_CHECK_ASSERT(ImageBufAlgo::resample(dst, src, false));
+        for (ImageBuf::ConstIterator<float> it(dst); !it.done(); ++it) {
+            int sx = int((it.x() + 0.5f) / dstsize * srcsize);
+            int sy = int((it.y() + 0.5f) / dstsize * srcsize);
+            OIIO_CHECK_EQUAL(it[0], float(sx + 10 * sy));
+        }
+    }
+
+    // A source whose data window is a 2x2 crop of a 4x4 full window. The
+    // destination covers the whole full window, so its outer ring must come
+    // out black rather than clamped or out of bounds.
+    ImageSpec cropspec(2, 2, 1, TypeFloat);
+    cropspec.x = cropspec.y = 1;
+    cropspec.full_x = cropspec.full_y = 0;
+    cropspec.full_width = cropspec.full_height = 4;
+    ImageBuf crop(cropspec);
+    for (ImageBuf::Iterator<float> it(crop); !it.done(); ++it)
+        it[0] = float(it.x() + 10 * it.y());
+
+    ImageBuf dst(ImageSpec(4, 4, 1, TypeFloat));
+    OIIO_CHECK_ASSERT(ImageBufAlgo::resample(dst, crop, false));
+    for (ImageBuf::ConstIterator<float> it(dst); !it.done(); ++it) {
+        bool inside = it.x() >= 1 && it.x() <= 2 && it.y() >= 1 && it.y() <= 2;
+        float expected = inside ? float(it.x() + 10 * it.y()) : 0.0f;
+        OIIO_CHECK_EQUAL(it[0], expected);
+    }
+
+    // Against the per-pixel path, for both sampling modes: uint8 because its
+    // rescaling to [0,1] is the conversion most easily got wrong, float
+    // because it is the one where a mapping error cannot hide in rounding.
+    // One reduction and one magnification is enough -- the mapping is the
+    // same arithmetic in both directions.
+    for (auto type : { TypeUInt8, TypeFloat }) {
+        float top[4]    = { 0.1f, 0.2f, 0.3f, 0.4f };
+        float bottom[4] = { 0.9f, 0.8f, 0.7f, 0.6f };
+        ImageBuf grad(ImageSpec(97, 61, 4, type));
+        ImageBufAlgo::fill(grad, cspan<float>(top), cspan<float>(bottom));
+        for (auto wh :
+             { std::pair<int, int>(53, 79), std::pair<int, int>(211, 43) })
+            for (bool interp : { false, true })
+                check_against_fallback(grad,
+                                       ImageSpec(wh.first, wh.second, 4, type),
+                                       interp);
+    }
+}
+
+
+
 void
 test_resample()
 {
@@ -748,7 +899,7 @@ test_resample()
     Benchmarker bench;
     bench.trials(ntrials);
     bench.iterations(iterations);
-    bench.units(Benchmarker::Unit::ms);
+    bench.units(Benchmarker::Unit::us);
 
     ImageSpec spec_hd_rgba_f(1920, 1080, 4, TypeFloat);
     ImageSpec spec_hd_rgba_u8(1920, 1080, 4, TypeUInt8);
@@ -771,6 +922,12 @@ test_resample()
           [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_f, false); });
     bench("  IBA::resample HD->1024x512 rgba u8->u8 no interp ",
           [&]() { ImageBufAlgo::resample(smallu8, buf_hd_rgba_u8, false); });
+
+    // A nearest magnification: the reductions above cannot show the case
+    // where consecutive destination pixels read the same source pixel.
+    ImageBuf bigu8(ImageSpec(3840, 2160, 4, TypeUInt8));
+    bench("  IBA::resample HD->4K      rgba u8->u8 no interp ",
+          [&]() { ImageBufAlgo::resample(bigu8, buf_hd_rgba_u8, false); });
 }
 
 
@@ -1336,7 +1493,7 @@ test_FLIP()
     ImageSpec spec(32, 32, 3, TypeDesc::FLOAT);
     ImageBuf img(spec);
     ImageBufAlgo::fill(img, { 0.3f, 0.5f, 0.7f });
-    ImageBuf result = ImageBufAlgo::experimental::FLIP_diff(img, img);
+    ImageBuf result = ImageBufAlgo::FLIP_diff(img, img);
     OIIO_CHECK_ASSERT(!result.has_error());
     OIIO_CHECK_EQUAL(result.nchannels(), 1);
     OIIO_CHECK_EQUAL_THRESH(result.spec().get_float_attribute("FLIP:maxerror"),
@@ -1346,7 +1503,7 @@ test_FLIP()
     ImageBuf black(spec), white(spec);
     ImageBufAlgo::fill(black, { 0.0f, 0.0f, 0.0f });
     ImageBufAlgo::fill(white, { 1.0f, 1.0f, 1.0f });
-    ImageBuf bw = ImageBufAlgo::experimental::FLIP_diff(black, white);
+    ImageBuf bw = ImageBufAlgo::FLIP_diff(black, white);
     OIIO_CHECK_ASSERT(!bw.has_error());
     OIIO_CHECK_EQUAL(bw.nchannels(), 1);
     // Max error should be positive and in range [0,1].
@@ -1358,7 +1515,7 @@ test_FLIP()
     OIIO_CHECK_ASSERT(maxerror <= 1.0);
 
     // Test FLIP_ppd helper.
-    float ppd = ImageBufAlgo::experimental::FLIP_ppd(0.7f, 3840.0f, 0.7f);
+    float ppd = ImageBufAlgo::FLIP_ppd(0.7f, 3840.0f, 0.7f);
     OIIO_CHECK_ASSERT(ppd > 60.0f && ppd < 80.0f);
 
     // Benchmarking
@@ -1381,14 +1538,14 @@ test_FLIP()
     ImageBufAlgo::noise(noisy, "gaussian", 0.0, 0.001f);
     ImageBuf flipresult(ImageSpec(xres, yres, 1, TypeFloat));
     bench(Strutil::format("FLIP_diff() LDR {}", xres), [&]() {
-        auto buf OIIO_MAYBE_UNUSED
-            = ImageBufAlgo::experimental::FLIP_diff(flipresult, noisy, ramp,
-                                                    { { "hdr", 0 } });
+        auto buf OIIO_MAYBE_UNUSED = ImageBufAlgo::FLIP_diff(flipresult, noisy,
+                                                             ramp,
+                                                             { { "hdr", 0 } });
     });
     bench(Strutil::format("FLIP_diff() HDR {}", xres), [&]() {
-        auto buf OIIO_MAYBE_UNUSED
-            = ImageBufAlgo::experimental::FLIP_diff(flipresult, noisy, ramp,
-                                                    { { "hdr", 1 } });
+        auto buf OIIO_MAYBE_UNUSED = ImageBufAlgo::FLIP_diff(flipresult, noisy,
+                                                             ramp,
+                                                             { { "hdr", 1 } });
     });
 }
 
@@ -1811,6 +1968,8 @@ main(int argc, char** argv)
     test_over(TypeFloat);
     test_over(TypeHalf);
     test_zover();
+    test_resample_hwy_nearest();
+    test_resample_correctness();
     test_resample();
     test_compare();
     test_isConstantColor();

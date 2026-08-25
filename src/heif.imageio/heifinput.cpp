@@ -205,15 +205,19 @@ HeifInput::open(const std::string& name, ImageSpec& newspec,
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        close();
         return false;
     } catch (const std::exception& err) {
         std::string e = err.what();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+        close();
         return false;
     }
 
     bool ok = seek_subimage(0, 0);
     newspec = spec();
+    if (!ok)
+        close();
     return ok;
 }
 
@@ -226,6 +230,7 @@ HeifInput::close()
     m_ihandle = heif::ImageHandle();
     m_ctx.reset();
     m_reader.reset();
+    m_item_ids.clear();
     m_subimage                = -1;
     m_num_subimages           = 0;
     m_associated_alpha        = true;
@@ -298,6 +303,17 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     const heif_channel channel       = is_monochrome ? heif_channel_Y
                                                      : heif_channel_interleaved;
     const int nchannels              = is_monochrome ? 1 : m_has_alpha ? 4 : 3;
+
+    // Validate the handle's declared dimensions against OIIO's limits BEFORE
+    // asking libheif to decode (and allocate) the full image. libheif has its
+    // own internal security limits, but this additionally enforces OIIO's
+    // limits:* policy and rejects degenerate (zero/negative) dimensions.
+    m_spec = ImageSpec(m_ihandle.get_width(), m_ihandle.get_height(), nchannels,
+                       (m_bitdepth > 8) ? TypeUInt16 : TypeUInt8);
+    if (!check_open(m_spec, { 0, 1 << 18, 0, 1 << 18, 0, 1, 0, 4 })) {
+        m_ctx.reset();
+        return false;
+    }
 
 #if 0
     try {

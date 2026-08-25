@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-cmake_minimum_required (VERSION 3.18.2...4.0)
+cmake_minimum_required (VERSION 3.23.0...4.0)
 
 set (OpenImageIO_VERSION "3.2.0.2")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
@@ -29,15 +29,6 @@ if (${PROJECT_NAME}_SUPPORTED_RELEASE)
     set (${PROJECT_NAME}_DEV_RELEASE OFF)
 else ()
     set (${PROJECT_NAME}_DEV_RELEASE ON)
-endif ()
-
-# Set PROJECT_IS_TOP_LEVEL to ON if if this is the top level project (not
-# if this is included as a subproject of something else). Note that this is
-# handled automatically for CMake >= 3.21.
-if (CMAKE_VERSION VERSION_LESS 3.21)
-    if ("${CMAKE_PROJECT_NAME}" STREQUAL "${PROJECT_NAME}")
-        set (PROJECT_IS_TOP_LEVEL ON)
-    endif ()
 endif ()
 
 # Set up module path for our own cmake modules and add some essential ones
@@ -85,6 +76,7 @@ message (STATUS "Project install prefix = ${CMAKE_INSTALL_PREFIX}")
 message (STATUS "Configuration types    = ${CMAKE_CONFIGURATION_TYPES}")
 message (STATUS "Build type             = ${CMAKE_BUILD_TYPE}")
 message (STATUS "Supported release      = ${${PROJECT_NAME}_SUPPORTED_RELEASE}")
+message (STATUS "Project is top level   = ${PROJECT_IS_TOP_LEVEL}")
 
 # Make the build area layout look a bit more like the final dist layout
 if (PROJECT_IS_TOP_LEVEL)
@@ -337,6 +329,11 @@ if (NUKE_FOUND)
     add_subdirectory (src/nuke/txWriter)
 endif ()
 
+set_option (OIIO_BUILD_FUZZ_TARGETS "Build libFuzzer fuzz targets (requires clang)" OFF)
+if (OIIO_BUILD_FUZZ_TARGETS)
+    add_subdirectory (src/fuzz)
+endif ()
+
 # install pkgconfig file
 if (NOT MSVC)
    configure_file(src/build-scripts/OpenImageIO.pc.in "${CMAKE_BINARY_DIR}/OpenImageIO.pc" @ONLY)
@@ -386,6 +383,9 @@ install (EXPORT OIIO_EXPORTED_TARGETS
 
 
 if (PROJECT_IS_TOP_LEVEL AND BUILD_TESTING AND ${PROJ_NAME}_BUILD_TESTS)
+    if (NOT BUILD_OIIOUTIL_ONLY)
+        add_subdirectory (testsuite/texture-device)
+    endif ()
     oiio_setup_test_data()
     oiio_add_all_tests()
 endif ()

@@ -40,4 +40,9 @@ command += iconvert ("src/crash-cmyk-e12b.tif out.tif", failureok=True)
 # causing a heap buffer overflow.
 command += info_command ("src/crash-cmyk-1bit.tif", safematch=True)
 
+# Regression: a valid DEFLATE TIFF whose StripOffsets[0] points past EOF must
+# be rejected cleanly during the pixel read (not read out of bounds). Placed
+# last so its output appends at the tail of every libtiff-version ref variant.
+command += oiiotool ("--oiioattrib try_all_readers 0 src/crash-rawstrip-offset-past-eof.tif -o out.exr", failureok = True)
+
 outputs = [ "check1.tif", "out.txt" ]

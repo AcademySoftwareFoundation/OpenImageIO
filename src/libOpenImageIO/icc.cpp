@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <cstring>
 #include <string>
 #include <unordered_map>
 
@@ -203,11 +204,16 @@ template<typename T>
 bool
 extract(cspan<uint8_t> iccdata, size_t& offset, T& result, std::string& error)
 {
-    if (offset + sizeof(T) > std::size(iccdata)) {
+    // Use subtraction rather than `offset + sizeof(T)` so a large offset can
+    // never overflow, and read via memcpy so an arbitrary (file-controlled)
+    // offset can never produce a misaligned load (UBSan alignment).
+    if (offset > std::size(iccdata)
+        || sizeof(T) > std::size(iccdata) - offset) {
         error = "ICC profile too small";
         return false;
     }
-    result = *(const T*)(iccdata.data() + offset);
+    // It could be unaligned, so use memcpy instead of `=`
+    memcpy(&result, iccdata.data() + offset, sizeof(T));
     offset += sizeof(T);
     if (littleendian())
         swap_endian(&result);
@@ -219,15 +225,29 @@ bool
 extract(cspan<uint8_t> iccdata, size_t& offset, ICCTag& result,
         std::string& error)
 {
-    if (offset + sizeof(result) > std::size(iccdata)) {
+    if (offset > std::size(iccdata)
+        || sizeof(result) > std::size(iccdata) - offset) {
         error = "ICC profile too small";
         return false;
     }
-    result = *(const ICCTag*)(iccdata.data() + offset);
+    // It could be unaligned, so use memcpy instead of `=`
+    memcpy(&result, iccdata.data() + offset, sizeof(ICCTag));
     offset += sizeof(ICCTag);
     if (littleendian())
         result.swap_endian();
     return true;
+}
+
+
+// Return true if the half-open byte range [offset, offset+len) lies entirely
+// within a buffer of `size` bytes. All arithmetic is done in 64 bits so a
+// pair of in-range uint32 fields (offset, len) can never overflow, and no
+// out-of-bounds pointer is ever formed to perform the check (which would be
+// undefined behavior, and unsafe on 32-bit platforms).
+inline bool
+range_in_bounds(uint64_t offset, uint64_t len, uint64_t size)
+{
+    return offset <= size && len <= size - offset;
 }
 
 }  // namespace
@@ -245,7 +265,8 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
         error = "ICC profile too small";
         return false;
     }
-    ICCHeader header = *(const ICCHeader*)iccdata.data();
+    ICCHeader header;
+    memcpy(&header, iccdata.data(), sizeof(ICCHeader));
     header.swap_endian();
     if (header.magic != 0x61637370) {
         error = "ICC profile has bad magic number";
@@ -307,8 +328,8 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
         if (!extract(iccdata, offset, tag, error))
             return false;
         string_view signature(tag.signature, 4);
-        if (!check_span(iccdata, iccdata.data() + tag.offset,
-                        std::max(4U, tag.size))) {
+        if (!range_in_bounds(tag.offset, std::max<uint64_t>(4, tag.size),
+                             iccdata.size())) {
             error = format(
                 "ICC profile tag {} appears to contain corrupted/invalid data",
                 signature);
@@ -377,18 +398,21 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
                     // Strutil::print(
                     //     "eng len={} stfoffset={} ({:x}) wcharsize={}\n", len,
                     //     stroffset, tag.offset + stroffset, sizeof(wchar_t));
-                    if (!check_span(iccdata,
-                                    iccdata.data() + tag.offset + stroffset,
-                                    len)) {
+                    if (!range_in_bounds(uint64_t(tag.offset) + stroffset, len,
+                                         iccdata.size())) {
                         error = format(
                             "ICC profile tag {} appears to contain corrupted/invalid data",
                             signature);
                         return false;  // Non-sensical: tag extends beyond icc data block
                     }
-                    const char* start = (const char*)iccdata.data() + tag.offset
-                                        + stroffset;
-                    // The actual data is UTF-16
-                    std::u16string wstr((const char16_t*)start, len / 2);
+                    const uint8_t* start = iccdata.data() + tag.offset
+                                           + stroffset;
+                    // The actual data is UTF-16. Copy it out byte-wise (memcpy)
+                    // because `start` is at a file-controlled offset and may
+                    // not be 2-byte aligned (UBSan alignment).
+                    std::u16string wstr(len / 2, u'\0');
+                    memcpy(wstr.data(), start,
+                           size_t(len / 2) * sizeof(char16_t));
                     if (littleendian())
                         swap_endian((uint16_t*)wstr.data(), int(wstr.size()));
                     spec.attribute(tagname, Strutil::utf16_to_utf8(wstr));

@@ -11,6 +11,9 @@ Reading ../openexr-images/MultiResolution/Bonita.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "Plain Texture"
+    thumbnail_height: 151
+    thumbnail_nchannels: 4
+    thumbnail_width: 100
     wrapmodes: "clamp,clamp"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -164,6 +167,9 @@ Reading ../openexr-images/MultiResolution/StageEnvCube.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "CubeFace Environment"
+    thumbnail_height: 180
+    thumbnail_nchannels: 4
+    thumbnail_width: 30
     oiio:sampleborder: 1
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -182,6 +188,9 @@ Reading ../openexr-images/MultiResolution/StageEnvLatLong.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     textureformat: "LatLong Environment"
+    thumbnail_height: 50
+    thumbnail_nchannels: 4
+    thumbnail_width: 100
     oiio:sampleborder: 1
     oiio:subimages: 1
     oiio:updirection: "y"

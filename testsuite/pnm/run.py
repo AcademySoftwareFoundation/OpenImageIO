@@ -23,3 +23,8 @@ for f in files:
 files = [ "src/bad-4552.pgm", "src/bad-4553.pgm" ]
 for f in files:
     command += info_command (f, extraargs="--oiioattrib try_all_readers 0 --printstats", failureok=True)
+
+# Decompression bomb: a 19-byte header declaring a ~4 GB image (65000x65000).
+# The compression-ratio guard must reject it before the caller allocates the
+# full pixel buffer.
+command += info_command ("src/bomb-65000.pgm", failureok=True, safematch=True)

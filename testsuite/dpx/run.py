@@ -45,3 +45,8 @@ command += oiiotool("src/crash-badusersize.dpx -o test.tif", failureok=True)
 # remained for the last (partial) group in the scanline, writing/reading
 # one uint16 past the end of the caller's scanline buffer.
 command += info_command("src/crash-1chan-10bit-filled-methodA.dpx", safematch=True)
+
+# Regression test: a 21 KB DPX whose header declares a ~12 GB image
+# (46341x46341x3) -- a decompression bomb the compression-ratio guard must
+# reject before any large allocation.
+command += info_command("src/bomb-46341.dpx", safematch=True, failureok=True)

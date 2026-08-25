@@ -73,6 +73,26 @@ try:
            spec.get_string_attribute ("oiio:ColorSpace"))
     print ("")
 
+    print ("Testing get_colorspace module helpers:")
+    spec = oiio.ImageSpec()
+    print ("  is_colorspace_srgb(unset):", oiio.is_colorspace_srgb (spec))
+    print ("  is_colorspace_srgb(unset, False):",
+           oiio.is_colorspace_srgb (spec, False))
+    oiio.set_colorspace_rec709_gamma (spec, 2.2)
+    print ("  is_colorspace_srgb(g22):", oiio.is_colorspace_srgb (spec))
+    print ("  get_colorspace_icc_profile(no profile):",
+           oiio.get_colorspace_icc_profile (spec))
+    spec.attribute ("ICCProfile", oiio.TypeDesc("uint8[6]"),
+                    bytes([0, 1, 2, 253, 254, 255]))
+    print ("  get_colorspace_icc_profile(dummy profile):",
+           oiio.get_colorspace_icc_profile (spec))
+    print ("  get_colorspace_cicp(no attribute):",
+           oiio.get_colorspace_cicp (spec, False))
+    spec.attribute ("CICP", oiio.TypeDesc("int[4]"), (9, 16, 9, 1))
+    print ("  get_colorspace_cicp(attribute):",
+           oiio.get_colorspace_cicp (spec, False))
+    print ("")
+
     print ("Testing global attribute() one-arg:")
     oiio.attribute ("plugin_searchpath", "path/A:path/B")
     print ("  plugin_searchpath str:",
@@ -112,6 +132,26 @@ try:
            oiio.get_int_attribute ("plugin_searchpath", 77))
     print ("  get_float on int attribute returns default:",
            oiio.get_float_attribute ("threads", -1.0) == -1.0)
+    print ("")
+
+    # Cover get_bytes_attribute default conversion branches (str / bytes / None /
+    # omitted). Nanobind does not auto-convert bytes→std::string like pybind11.
+    print ("Testing get_bytes_attribute default branches:")
+    missing = "not_a_real_attr_for_bytes_default"
+    omitted = oiio.get_bytes_attribute (missing)
+    none_def = oiio.get_bytes_attribute (missing, None)
+    str_def = oiio.get_bytes_attribute (missing, "from_str")
+    bytes_def = oiio.get_bytes_attribute (missing, b"from_bytes")
+    print ("  omitted default type bytes:", isinstance (omitted, bytes))
+    print ("  omitted default value:", omitted)
+    print ("  None default type bytes:", isinstance (none_def, bytes))
+    print ("  None default value:", none_def)
+    print ("  str default type bytes:", isinstance (str_def, bytes))
+    print ("  str default value:", str_def)
+    print ("  bytes default type bytes:", isinstance (bytes_def, bytes))
+    print ("  bytes default value:", bytes_def)
+    present = oiio.get_bytes_attribute ("font_searchpath", b"unused")
+    print ("  present attr ignores default:", present == b"/fonts")
     print ("")
 
     print ("Testing getattribute() with TypeUnknown:")

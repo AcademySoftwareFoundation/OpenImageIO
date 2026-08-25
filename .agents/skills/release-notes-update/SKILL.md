@@ -237,6 +237,11 @@ message makes it clear that a new ImageBufAlgo API call was added, and also a
 new oiiotool command line argument was added, and that couldn't all be
 described in the one-line brief message of the commit.
 
+Also cross-reference against SECURITY.md -- the PRs that have assigned
+CVEs should reference that CE in the CHANGES.md entry corresponding to
+that PR.
+
+
 ## Reference
 
 Full release procedures: `docs/dev/RELEASING.md`

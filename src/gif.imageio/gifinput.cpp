@@ -233,6 +233,12 @@ GIFInput::read_gif_extension(int ext_code, GifByteType* ext, ImageSpec& newspec)
         // read background color index, disposal method and delay time between frames
         // http://giflib.sourceforge.net/whatsinagif/bits_and_bytes.html#graphics_control_extension_block
 
+        // ext[0] is the sub-block byte count; a well-formed graphics control
+        // block is 4 bytes. A corrupt file can declare fewer, so bail before
+        // reading ext[1..4] out of the giflib-provided buffer.
+        if (ext[0] < 4)
+            return;
+
         if (ext[1] & 0x01) {
             m_transparent_color = (int)ext[4];
         }
@@ -460,7 +466,8 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     m_spec.full_width  = m_spec.width;
     m_spec.full_depth  = m_spec.depth;
 
-    if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 })) {
+    if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, ioproxy()->size())) {
         return false;
     }
 

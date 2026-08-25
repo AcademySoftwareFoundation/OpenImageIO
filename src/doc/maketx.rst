@@ -214,7 +214,7 @@ Command-line arguments are:
     features "pop" visually even at high MIP-map levels. The *contrast*
     controls the degree to which it does this. Probably a good value to
     enhance detail but not go overboard is 0.5 or even 0.25. A value of 1.0
-    may make strage artifacts at high MIP-map levels. Also, if you
+    may make strange artifacts at high MIP-map levels. Also, if you
     simultaneously use `--filter unsharp-median`, a slightly different
     variant of unsharp masking will be used that employs a median filter to
     separate out the low-frequencies, this may tend to help emphasize small
@@ -311,7 +311,7 @@ Command-line arguments are:
     texture at a reduced resolution equal to the tile size, rather than
     filling endless tiles with the same constant color.  That is, by
     substituting a low-res texture for a high-res texture if it's a constant
-    color, you could save a lot of save disk space, I/O, and texture cache
+    color, you could save a lot of disk space, I/O, and texture cache
     size. It also sets the `"ImageDescription"` to contain a special message
     of the form `ConstantColor=[r,g,...]`.
 

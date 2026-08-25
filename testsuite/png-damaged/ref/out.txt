@@ -11,3 +11,25 @@ idiff ERROR: Could not read invalid_gray_alpha_sbit.png:
 PNG read error: oFFs: Read error: hit end of file in png reader
 Invalid image file "invalid_gray_alpha_sbit.png": Read error: hit end of file in png reader
 PNG read error: oFFs: Read error: hit end of file in png reader
+Reading src/exif-utf8-type.png
+src/exif-utf8-type.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    ImageDescription: ""
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/exif-deep-ifds.png
+src/exif-deep-ifds.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/xmp-deep-nesting.png
+src/xmp-deep-nesting.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+    channel list: Y
+    oiio:ColorSpace: "srgb_rec709_scene"
+src/xmp-list-blowup.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+src/xmp-many-attribs.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F
+src/xmp-multi-packet.png :    1 x    1, 1 channel, uint8 png
+    SHA-1: 5BA93C9DB0CFF93F52B521D7420E43F6EDA2784F

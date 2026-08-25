@@ -60,7 +60,8 @@ tiles.
      - Version of the BMP file format
    * - ``oiio:ColorSpace``
      - string
-     - currently, it is always ``"sRGB"`` (we presume all BMP files are sRGB)
+     - currently, it is always ``"srgb_rec709_display"`` or
+       ``"srgb_rec709_scene"`` (we presume all BMP files are sRGB)
 
 **Configuration settings for BMP input**
 
@@ -212,7 +213,7 @@ attributes are supported:
        example by reading from memory rather than the file system.    
 
 Additionally, an integer ``dds:bc5normal`` global attribute is supported
-to control behaviour of images compressed in BC5/ATI2 compression format.
+to control behavior of images compressed in BC5/ATI2 compression format.
 When the attribute value is set to non-zero (default is zero), any input
 image using BC5/ATI2 compression format is assumed to be a normal map,
 even if pixel format "normal map" flag is not set.
@@ -522,10 +523,33 @@ found at: http://fits.gsfc.nasa.gov/
 OpenImageIO supports multiple images in FITS files, and supports the
 following pixel data types: UINT8, UINT16, UINT32, FLOAT, DOUBLE.
 
-FITS files can store various kinds of arbitrary data arrays, but
-OpenImageIO's support of FITS is mostly limited using FITS for image
-storage.  Currently, OpenImageIO only supports 2D FITS data (images), not 3D
-(volume) data, nor 1-D or higher-dimensional arrays.
+**Inferring dimensions and color channels**
+
+FITS files can store arbitrary N-dimensional data arrays (``NAXIS`` /
+``NAXISn``), but say nothing about which axes, if any, are "color."
+OpenImageIO infers a role for each axis from ``NAXIS`` (trailing axes of
+length 1 are dropped first):
+
+* ``NAXIS`` = 1: a single row (width = NAXIS1, height = 1).
+* ``NAXIS`` = 2: an ordinary 2D grayscale image (width = NAXIS1, height = NAXIS2).
+* ``NAXIS`` = 3: if NAXIS3 <= 4, a color image, stored as one full-resolution
+  plane per channel (width = NAXIS1, height = NAXIS2, nchannels = NAXIS3).
+  Otherwise, if NAXIS3 is more than 4, the file is interpreted as a grayscale
+  volume (width = NAXIS1, height = NAXIS2, depth = NAXIS3).
+* ``NAXIS`` = 4: a color volume (width = NAXIS1, height = NAXIS2, depth =
+  NAXIS3, nchannels = NAXIS4, again one full-resolution volume per channel).
+
+This is only a heuristic -- FITS has no way to formally declare an axis as
+"color" -- so a genuinely non-color NAXIS3 that happens to be <= 4 long can be
+misclassified as color.
+
+Channel names default to the usual OpenImageIO conventions (``R,G,B``,
+``R,G,B,A``, ``Y``, etc.), improved when the header says more: if the
+channel axis is a FITS WCS ``STOKES`` axis, channels are named from the
+standard Stokes codes (``I``, ``Q``, ``U``, ``V``, ``RR``, ``LL``, ``RL``,
+``LR``, ``XX``, ``YY``, ``XY``, ``YX``); otherwise, if every plane has a
+``FILTERn`` or ``BANDn`` keyword (an informal convention, not part of the
+FITS standard), those values are used instead.
 
 
 
@@ -1111,6 +1135,10 @@ control aspects of the writing itself:
      - int
      - If nonzero, extra attributes will be written into the file as comment
        blocks.
+   * - ``jpeg:ultrahdr``
+     - int
+     - If nonzero, the image will be written as an Ultra HDR image, if the
+       image spec allows it (see below), or as a regular JPEG image otherwise.
 
 
 **Custom I/O Overrides**
@@ -1134,7 +1162,7 @@ via the `ImageInput::set_ioproxy()` method and the special
 
 **Ultra HDR**
 
-JPEG input also suports Ultra HDR images.
+JPEG input and output support Ultra HDR images.
 Ultra HDR is an image format that encodes a high dynamic range image
 in a JPEG image file by including a gain map in addition to the
 primary image.
@@ -1142,6 +1170,27 @@ See https://developer.android.com/media/platform/hdr-image-format for
 a complete reference on the Ultra HDR image format.
 In the specific case of reading an Ultra HDR image, JPEG input will also
 support alpha channels and high dynamic range imagery (`half` pixels).
+
+Ultra HDR *output* is enabled by setting the ``jpeg:ultrahdr`` attribute to a
+nonzero value. This makes it possible, for example, to convert a linear HDR
+OpenEXR image into a widely shareable Ultra HDR JPEG.
+When writing Ultra HDR, the following requirements apply:
+
+* The pixel data type must be ``half`` or ``float`` (an HDR-capable, linear
+  data type).
+* The image must have at least 3 channels. If a 4th channel is present it is preserved;
+  RGB images are written with an opaque alpha.
+* The image's ``oiio:ColorSpace`` must be a linear scene-referred space whose
+  primaries are Rec.709, Display-P3, or Rec.2020 (i.e. ``lin_rec709_scene``,
+  ``lin_p3d65_scene``, or ``lin_rec2020_scene``). The color gamut written to
+  the file is inferred from this.
+* The base image JPEG quality is taken from the ``compression`` attribute
+  (e.g. ``compression="jpeg:90"``), defaulting to 95.
+
+If any of these requirements is not met, the write does *not* fail: the
+Ultra HDR request is silently ignored and the image is written as a regular
+JPEG (and therefore converted to UINT8 and at most 3 channels, as described
+in the limitations above).
 
 
 
@@ -1393,7 +1442,7 @@ control aspects of the writing itself:
    * - ``jpegxl:jumb_box``
      - int (bool)
      - If nonzero, will enable JUMBF metadata writing to the output file.
-       Default is 0. (dows not supported at this moment in OIIO)
+       Default is 0. (This is not supported at this moment in OIIO.)
    * - ``jpegxl:iptc_box``
      - int (bool)
      - If nonzero, will enable IPTC metadata writing to the output file.
@@ -1881,6 +1930,11 @@ The official OpenEXR site is http://www.openexr.com/.
    * - ``captureRate``
      - int[2]
      - Frames per second capture rate (vecsemantics will be marked as RATIONAL)
+   * - ``thumbnail_width``, ``thumbnail_height``, ``thumbnail_nchannels``
+     - int
+     - Dimensions of the part's ``preview`` image, if it has one. The
+       preview attribute itself is not passed through under its own name;
+       the thumbnail pixels are retrieved with `ImageInput::get_thumbnail()`.
    * - ``oiio:subimages``
      - int
      - The number of "parts" (subimages) in the file.
@@ -2146,7 +2200,7 @@ attributes are supported:
        example by reading from memory rather than the file system.
    * - ``png:linear_premult``
      - int
-     - If nonzero, will convert  or gamma-encoded values to linear color
+     - If nonzero, will convert sRGB or gamma-encoded values to linear color
        space for any premultiplication-by-alpha step done by the PNG reader.
        If zero (the default), any needed premultiplication will happen directly
        to the encoded values.
@@ -2512,16 +2566,16 @@ options are supported:
        precedence over ``raw:greybox``, ``raw:user_mul``.
        (Default: 0)
    * - ``raw:greybox``
-     - int[4]
-     - White balance by averaging over the given box. The four values are the 
+     - int[4] or int2[2]
+     - White balance by averaging over the given box. The four values are the
        X and Y coordinate of the top-left corner, the width and the height.
        Only applies if the size is non-zero, and ``raw:use_camera_wb`` is not 
        equal to 0, ``raw:use_auto_wb`` is not equal to 0. Takes 
        precedence over ``raw:user_mul``.
        (Default: 0, 0, 0, 0; meaning no correction.)
    * - ``raw:cropbox``
-     - int[4]
-     - If present, sets the box to crop the image to. The four values are the 
+     - int[4] or int2[2]
+     - If present, sets the box to crop the image to. The four values are the
        X and Y coordinate of the top-left corner, the width and the height.
        If not present, the image is cropped to match the in-camera JPEG,
        assuming the necessary information is present in the metadata. The
@@ -2553,7 +2607,7 @@ options are supported:
      - int
      - If nonzero, outputs the image in half size. (Default: 0)
    * - ``raw:user_mul``
-     - float[4]
+     - float[4] or float4
      - Sets user white balance coefficients. Only applies if ``raw:use_camera_wb``
        is not equal to 0, ``raw:use_auto_wb`` is not equal to 0, and the 
        ``raw:greybox`` box is zero size.
@@ -2592,7 +2646,7 @@ options are supported:
        (Default: 0)
    * - ``raw:camera_to_scene_linear_scale``
      - float
-     - Whilst the libraw pixel values are linear, they are normalized based on
+     - While the libraw pixel values are linear, they are normalized based on
        the whitepoint / sensor / ISO and shooting conditions. An additional multiplication
        is needed to bring exposure levels up so that a correctly photographed 18% grey card
        has pixel values at 0.18. Setting this metadata key implies ``raw:apply_scene_linear_scale``.
@@ -2629,6 +2683,18 @@ options are supported:
      - A path to a file containing the list of bad pixels in libraw format:
        a plain text where each line describes a single bad pixel using three
        numbers separated by whitespace for the column, row and UNIX timestamp.
+   * - ``raw:thumbnail_index``
+     - int
+     - An index of the thumbnail that gets returned from get_thumbnail(). The
+       default index (-1) leaves the choice to libraw, which normally would pick
+       the largest resolution.
+       (Default: -1)
+   * - ``raw:thumbnail_sort``
+     - int
+     - Controls the sort order of the list the thumbnail gets picked from. 
+       -1 - sort small-to-large, 0 - don't sort, use the original file order,
+       1 - sort large-to-small.
+       (Default: 0)
 |
 
 .. _sec-bundledplugins-rla:
@@ -3025,7 +3091,7 @@ the `set_ioproxy()` methods.
   silently convert all output images to UINT8 (except if UINT16 is
   explicitly requested).
 * Targa only supports grayscale, RGB, and RGBA; the OpenImageIO TGA writer
-  will fail its call to ``open()`` if it is asked create a file with more
+  will fail its call to ``open()`` if it is asked to create a file with more
   than 4 color channels.
 
 
@@ -3081,7 +3147,7 @@ There's also a `256color` method that just uses the 6x6x6 color space in the
 256 color palette -- which looks horrible -- and an experimental `dither`
 which does a half-assed Floyd-Steinberg dithering, horizontally only, and
 frankly is not an improvement unless you squint really hard. These may
-change or be eliminted in the future.
+change or be eliminated in the future.
 
 In all cases, the image will automatically be resized to fit in the terminal
 and keep approximately the correct aspect ratio, as well as converted to
@@ -3199,7 +3265,7 @@ aspects of the writing itself:
      - Requests that the RGB image be converted and saved in the TIFF file in
        a non-RGB color space. Choices are ``RGB``, ``CMYK``.  (Note that
        ``YCbCr``, ``CIELAB``, ``ICCLAB``, ``ITULAB`` are not yet supported
-       for convertion. However, if the `oiio:ColorSpace` is one of those,
+       for conversion. However, if the `oiio:ColorSpace` is one of those,
        meaning that the image data is presumed to already be in that
        space, the TIFF PhotometricInterpretation tag will be set to convey
        this information.)

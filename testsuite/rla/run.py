@@ -25,5 +25,17 @@ command += oiiotool("src/crash-3951.rla -o crash4.exr", failureok = True)
 command += oiiotool("src/crash-1.rla -o crash5.exr", failureok = True)
 command += oiiotool("src/crash-5152.rla -o crash6.exr", failureok = True)
 command += oiiotool("src/crash-5159.rla -o crash7.exr", failureok = True)
+command += oiiotool("src/crash-badrle.rla -o crash8.exr", failureok = True)
+
+# Malformed inputs built by src/make_malformed_rla.py.
+# A 1.2 KB file claiming a 6.8 GB image must be rejected before anything is
+# sized from the spec.
+command += oiiotool("--info -a -v src/bomb.rla", failureok = True)
+# A subimage whose NextOffset points at itself must not present an endless
+# supply of subimages; enumeration has to terminate.
+command += oiiotool("--info -a -v --hash src/subimage-loop.rla", failureok = True)
+# Field-rendered images halve the height, so the scanline offset table has
+# more entries than there are scanlines. Reading must stay in bounds.
+command += oiiotool("--info -v --hash src/field-rendered.rla", failureok = True)
 
 outputs = [ "rlacrop.rla", 'out.txt' ]
