@@ -1,5 +1,5 @@
-Reading typical.exr
-typical.exr          :    4 x    4, 3 channel, half openexr
+Reading copy_from_first.exr
+copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     4 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
  subimage  0:    4 x    4, 3 channel, half openexr
     SHA-1: 2888D7692B43824B1F6B6AFEE923705DC3BE7B32
@@ -55,8 +55,8 @@ typical.exr          :    4 x    4, 3 channel, half openexr
     oiio:subimages: 4
     openexr:chunkCount: 1
     openexr:lineOrder: "increasingY"
-Reading typical.exr
-typical.exr          :    4 x    4, 3 channel, half openexr
+Reading copy_from_first.exr
+copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     4 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
  subimage  0:    4 x    4, 3 channel, half openexr
     SHA-1: 2888D7692B43824B1F6B6AFEE923705DC3BE7B32
@@ -112,8 +112,8 @@ typical.exr          :    4 x    4, 3 channel, half openexr
     oiio:subimages: 4
     openexr:chunkCount: 1
     openexr:lineOrder: "increasingY"
-Reading typical_nocolorspace.exr
-typical_nocolorspace.exr :    4 x    4, 3 channel, half openexr
+Reading missing_first.exr
+missing_first.exr    :    4 x    4, 3 channel, half openexr
     3 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
  subimage  0:    4 x    4, 3 channel, half openexr
     SHA-1: 2888D7692B43824B1F6B6AFEE923705DC3BE7B32
@@ -153,8 +153,8 @@ typical_nocolorspace.exr :    4 x    4, 3 channel, half openexr
     oiio:subimages: 3
     openexr:chunkCount: 1
     openexr:lineOrder: "increasingY"
-Reading typical_nocolorspace.exr
-typical_nocolorspace.exr :    4 x    4, 3 channel, half openexr
+Reading missing_first.exr
+missing_first.exr    :    4 x    4, 3 channel, half openexr
     3 subimages: 4x4 [h,h,h], 4x4 [h,h,h], 4x4 [h,h,h]
  subimage  0:    4 x    4, 3 channel, half openexr
     SHA-1: 2888D7692B43824B1F6B6AFEE923705DC3BE7B32
@@ -310,7 +310,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     openexr:lineOrder: "increasingY"
 oiiotool ERROR: -o : OpenEXR subimage 1 has color space "lin_rec709_scene", different from "lin_ap1_scene" in the first subimage
 Full command line was:
-> oiiotool --pattern constant:color=1,0,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty --pattern constant:color=0,1,0 4x4 3 -d half --attrib oiio:ColorSpace lin_rec709_scene --attrib oiio:subimagename specular --siappendall -o datafirst.exr
+> oiiotool --pattern constant:color=1,0,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty --pattern constant:color=0,1,0 4x4 3 -d half --attrib oiio:ColorSpace lin_rec709_scene --attrib oiio:subimagename specular --siappendall -o mismatched.exr
 oiiotool ERROR: -o : OpenEXR subimage 1 has color space "lin_ap1_scene", different from "data" in the first subimage
 Full command line was:
-> oiiotool --pattern constant:color=0.25,0.25,0.25 4x4 3 -d half --attrib oiio:ColorSpace data --attrib oiio:subimagename depth --pattern constant:color=1,0,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty --pattern constant:color=0,1,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename specular --siappendall -o datafirst.exr
+> oiiotool --pattern constant:color=0.25,0.25,0.25 4x4 3 -d half --attrib oiio:ColorSpace data --attrib oiio:subimagename depth --pattern constant:color=1,0,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty --pattern constant:color=0,1,0 4x4 3 -d half --attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename specular --siappendall -o data_first.exr
