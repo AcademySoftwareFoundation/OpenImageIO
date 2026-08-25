@@ -322,8 +322,9 @@ endif ()
 # capabilities.
 #
 # The default depends on the architecture we are building for:
-#   * x86_64 : "sse4.2". Every 64 bit Intel/AMD CPU has supported SSE4.2
-#     since 2008, so there is no point in targeting a lower baseline. Without
+#   * x86_64 : "sse4.2". OIIO defaults to SSE4.2 for x86_64 builds to enable
+#     newer fast paths; if you need compatibility with older x86_64 CPUs, set
+#     USE_SIMD to a lower level (e.g. sse2) or to 0 to disable SIMD. Without
 #     this, gcc and clang would generate only SSE2 code.
 #   * arm64 / aarch64 : "" (empty). NEON is architecturally mandatory on
 #     ARMv8-A, so the compiler enables it without any help from us.

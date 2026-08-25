@@ -156,8 +156,9 @@
         && (defined(_M_X64) || defined(_M_AMD64)) && !defined(_M_ARM64EC)
 #    define OIIO_SIMD_SSE 4
      /* MSVC never predefines the __SSE*__ macros, but it makes every
-      * intrinsic through AVX2 available regardless of the /arch: setting,
-      * and all x86-64 hardware is SSE4.2 or better. So just use SSE4.
+      * intrinsic through AVX2 available regardless of the /arch: setting.
+      * For OIIO we treat SSE4.x as the baseline for x86-64 builds, so enable
+      * the SSE4 code paths here unconditionally.
       * (Note that clang-cl and icx define _MSC_VER but do gate intrinsics
       * on -m flags, so they must take the branch above instead.)
       */

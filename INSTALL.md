@@ -206,9 +206,10 @@ so passing `avx2,f16c` on an ARM machine is harmless rather than fatal.
 
 The default depends on the target architecture:
 
-* x86_64 : `sse4.2`. Every 64 bit Intel/AMD CPU has supported SSE4.2 since
-  2008, so OIIO treats it as the floor. (Note that without this, gcc and
-  clang would generate only SSE2 code.)
+* x86_64 : `sse4.2`. OIIO defaults to SSE4.2 on x86_64 to enable newer fast
+  paths; if you need to run on older x86_64 CPUs, set `USE_SIMD` to a lower
+  level (e.g. `sse2`) or `0`. (Without this, gcc and clang would generate only
+  SSE2 code.)
 * arm64 / aarch64 : empty. NEON is architecturally mandatory on ARMv8-A, so
   the compiler already enables it and there is nothing to request.
 
