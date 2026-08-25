@@ -37,4 +37,34 @@ for f in files:
                          + "-o " + outputname)
     outputs += [ outputname ]
 
+# Undebayered reads must present the sensor data in the orientation the
+# spec advertises, for every one of LibRaw's 8 flip codes -- four of them
+# used to leave the caller's buffer untouched, and a fifth was mirrored.
+# Compare against the unflipped read put through the equivalent oiiotool
+# transform, so the check doesn't depend on the LibRaw version.
+flipsrc = OIIO_TESTSUITE_IMAGEDIR + "/RAW_SONY_A300.ARW"
+fliptransform = [ (1, "--flop"), (2, "--flip"), (3, "--flip --flop"),
+                  (4, "--transpose"), (5, "--transpose --flip"),
+                  (6, "--transpose --flop"), (7, "--transpose --flip --flop") ]
+undebayer = "-iconfig raw:Demosaic none -iconfig raw:user_flip "
+corner = " --cut 64x64+0+0 -d uint16 -o "
+cmd = undebayer + "0 -i " + flipsrc
+for flip, transform in fliptransform :
+    cmd += " --dup " + transform + corner + "flipref%d.tif --pop" % flip
+command += oiiotool (cmd)
+for flip, transform in fliptransform :
+    command += oiiotool (undebayer + "%d -i %s%sflip%d.tif"
+                         % (flip, flipsrc, corner, flip))
+    command += oiiotool ("--diff flipref%d.tif flip%d.tif" % (flip, flip))
+
+# Malformed and hostile headers must be rejected cleanly, and the valid
+# control must still read. Read the pixels undebayered so the expected
+# output doesn't move with LibRaw's demosaicing.
+redirect = " >> out.txt 2>&1"
+for f in [ "valid-32x32.dng", "bad-exif-type.dng", "truncated.dng",
+           "bomb-32000x32000.dng" ] :
+    command += oiiotool ("--info src/" + f, failureok = True)
+    command += oiiotool ("-iconfig raw:Demosaic none --stats src/" + f,
+                         failureok = True)
+
 outputs += [ "out.txt" ]
