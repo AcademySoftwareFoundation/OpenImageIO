@@ -18,10 +18,10 @@ command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace data --attrib oiio:subimagename depth "
                     "--pattern constant:color=0,0,1 4x4 3 -d half "
                     "--eraseattrib oiio:ColorSpace --attrib oiio:subimagename specular "
-                    "--siappendall -o typical.exr")
-command += info_command("typical.exr",
+                    "--siappendall -o copy_from_first.exr")
+command += info_command("copy_from_first.exr",
                         extraargs="-oiioattrib openexr:core 0", safematch=True)
-command += info_command("typical.exr",
+command += info_command("copy_from_first.exr",
                         extraargs="-oiioattrib openexr:core 1", safematch=True)
 
 # Parts: missing, "data", missing
@@ -31,10 +31,10 @@ command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace data --attrib oiio:subimagename depth "
                     "--pattern constant:color=0,0,1 4x4 3 -d half "
                     "--eraseattrib oiio:ColorSpace --attrib oiio:subimagename specular "
-                    "--siappendall -o typical_nocolorspace.exr")
-command += info_command("typical_nocolorspace.exr",
+                    "--siappendall -o missing_first.exr")
+command += info_command("missing_first.exr",
                         extraargs="-oiioattrib openexr:core 0", safematch=True)
-command += info_command("typical_nocolorspace.exr",
+command += info_command("missing_first.exr",
                         extraargs="-oiioattrib openexr:core 1", safematch=True)
 
 # Parts: "data", missing, "lin_ap1_scene", missing
@@ -49,22 +49,22 @@ command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
                     "--pattern constant:color=0,1,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename specular "
-                    "--siappendall -o datafirst.exr", failureok=True)
+                    "--siappendall -o matched.exr")
+
+# Parts: "lin_ap1_scene", "lin_rec709_scene"
+# Not valid according to the CIF recommendation, error on write.
+command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
+                    "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
+                    "--pattern constant:color=0,1,0 4x4 3 -d half "
+                    "--attrib oiio:ColorSpace lin_rec709_scene --attrib oiio:subimagename specular "
+                    "--siappendall -o mismatched.exr", failureok=True)
 
 # Parts: "lin_ap1_scene", missing
 command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
                     "--pattern constant:color=0,1,0 4x4 3 -d half "
                     "--attrib oiio:subimagename specular "
-                    "--siappendall -o datafirst.exr", failureok=True)
-
-# Parts: "lin_ap1_scene", "lin_ap1_scene"
-# Not valid according to the CIF recommendation, error on write.
-command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
-                    "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
-                    "--pattern constant:color=0,1,0 4x4 3 -d half "
-                    "--attrib oiio:ColorSpace lin_rec709_scene --attrib oiio:subimagename specular "
-                    "--siappendall -o datafirst.exr", failureok=True)
+                    "--siappendall -o missing_second.exr")
 
 # Parts: "data", "lin_ap1_scene", "lin_ap1_scene"
 # Not valid according to the CIF recommendation, error on write.
@@ -74,4 +74,4 @@ command += oiiotool("--pattern constant:color=0.25,0.25,0.25 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
                     "--pattern constant:color=0,1,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename specular "
-                    "--siappendall -o datafirst.exr", failureok=True)
+                    "--siappendall -o data_first.exr", failureok=True)
