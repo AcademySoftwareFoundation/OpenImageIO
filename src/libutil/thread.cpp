@@ -586,10 +586,15 @@ paropt::resolve()
 {
     if (m_pool == nullptr)
         m_pool = default_thread_pool();
-    if (m_maxthreads <= 0)
-        m_maxthreads = m_pool->size() + 1;  // pool size + caller
-    if (!m_recursive && m_pool->is_worker())
+
+    if (!m_recursive && m_pool->is_worker()) {
         m_maxthreads = 1;
+    } else {
+        if (m_maxthreads < 0)
+            m_maxthreads = fmax(m_pool->size() + m_maxthreads + 1, 1);
+        else if (m_maxthreads == 0)
+            m_maxthreads = m_pool->size() + 1;  // pool size + caller
+    }
 }
 
 
