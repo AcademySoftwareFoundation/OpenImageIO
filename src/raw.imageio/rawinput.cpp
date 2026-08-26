@@ -1917,10 +1917,12 @@ RawInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     return true;
 }
 
+
+
 template<typename... Args>
 void
-_errorfmt(const RawInput* input, int subimage, const char* format,
-          const Args&... args)
+thumb_errorfmt(const RawInput* input, int subimage, const char* format,
+               const Args&... args)
 {
     std::string fmt = "Failed to extract thumbnail at index "
                       + std::to_string(subimage) + ": " + format + ".";
@@ -1931,8 +1933,8 @@ bool
 RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
 {
     if (m_processor == nullptr) {
-        _errorfmt(this, m_thumb_index,
-                  "ImageInput hasn't been initialised properly");
+        thumb_errorfmt(this, m_thumb_index,
+                       "ImageInput hasn't been initialised properly");
         return false;
     }
 
@@ -1940,7 +1942,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
     int errcode = m_processor->unpack_thumb();
     if (errcode != 0) {
         if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_IMAGE)
-            _errorfmt(this, m_thumb_index, "unpack_thumb error");
+            thumb_errorfmt(this, m_thumb_index, "unpack_thumb error");
         return false;
     }
 #else
@@ -1952,7 +1954,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
 
     if (errcode != 0) {
         if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_THUMBNAIL)
-            _errorfmt(this, m_thumb_index, "unpack_thumb_ex error");
+            thumb_errorfmt(this, m_thumb_index, "unpack_thumb_ex error");
         return false;
     }
 #endif
@@ -1961,7 +1963,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         m_thumb(m_processor->dcraw_make_mem_thumb(&errcode),
                 LibRaw::dcraw_clear_mem);
     if (m_thumb == nullptr) {
-        _errorfmt(this, subimage, "dcraw_make_mem_thumb error");
+        thumb_errorfmt(this, subimage, "dcraw_make_mem_thumb error");
         return false;
     }
 
@@ -1978,13 +1980,14 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
 #endif
 
     if (image_type == "h265") {
-        _errorfmt(this, m_thumb_index, "h265 thumbnails are not supported yet");
+        thumb_errorfmt(this, m_thumb_index,
+                       "h265 thumbnails are not supported yet");
         return false;
     }
 
     if (image_type.empty()) {
-        _errorfmt(this, m_thumb_index, "unknown image type {}",
-                  static_cast<int>(m_thumb->type));
+        thumb_errorfmt(this, m_thumb_index, "unknown image type {}",
+                       static_cast<int>(m_thumb->type));
         return false;
     }
 
@@ -2002,17 +2005,17 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
     } else {
         auto image_input = OIIO::ImageInput::create(image_type, false);
         if (image_input == nullptr) {
-            _errorfmt(this, m_thumb_index,
-                      "OIIO::ImageInput::create(\{}\") error", image_type);
+            thumb_errorfmt(this, m_thumb_index,
+                           "OIIO::ImageInput::create(\{}\") error", image_type);
             return false;
         }
 
         Filesystem::IOMemReader proxy(m_thumb->data, m_thumb->data_size);
         bool result = image_input->valid_file(&proxy);
         if (!result) {
-            _errorfmt(this, m_thumb_index,
-                      "the thumbnail is not a valid image of type \"{}\"",
-                      image_type);
+            thumb_errorfmt(this, m_thumb_index,
+                           "the thumbnail is not a valid image of type \"{}\"",
+                           image_type);
             return false;
         }
 
@@ -2022,7 +2025,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
 
         result = image_input->open("", image_spec, temp_spec);
         if (!result) {
-            _errorfmt(
+            thumb_errorfmt(
                 this, m_thumb_index,
                 "failed to initialise an ImageInput object with the thumbnail"
                 " data");
@@ -2034,7 +2037,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
                                          image_spec.format,
                                          thumb.localpixels());
         if (!result) {
-            _errorfmt(
+            thumb_errorfmt(
                 this, m_thumb_index,
                 "failed to initialise an ImageInput object of type \"{}\" with"
                 " the thumbnail data",
