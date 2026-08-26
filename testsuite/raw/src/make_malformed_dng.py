@@ -51,11 +51,14 @@ def pack_ifd(entries):
     return struct.pack('<H', len(entries)) + bytes(body) + struct.pack('<I', 0)
 
 
-def make_dng(path, width=32, height=32, exif=None, pixels=True, truncate=None):
+def make_dng(path, width=32, height=32,
+    image_insets = (0,0,0,0), # active area insets (t,l,b,r)
+    crop_insets = (0,0,0,0), # crop insets relative to active area (t,l,b,r)
+    exif=None, pixels=True, truncate=None):
     """Write a single-IFD uncompressed CFA DNG. `exif` is an optional
     (tag, tifftype, count) triple to put in an Exif sub-IFD."""
     make_str, model_str = b'OIIO\0', b'Testcam\0'
-    n_entries = 15 + (exif is not None)
+    n_entries = 18 + (exif is not None)
     ifd_off = 8
     heap_off = ifd_off + 2 + 12 * n_entries + 4
 
@@ -69,6 +72,13 @@ def make_dng(path, width=32, height=32, exif=None, pixels=True, truncate=None):
 
     make_off = place(make_str)
     model_off = place(model_str)
+
+    active_area = struct.pack('<HHHH',
+        image_insets[0], image_insets[1],
+        height - image_insets[2],
+        width - image_insets[3])
+    active_area_off = place(active_area)
+
     if exif is not None:
         exif_ifd = (struct.pack('<H', 1)
                     + struct.pack('<HHII', exif[0], exif[1], exif[2], 0)
@@ -92,6 +102,14 @@ def make_dng(path, width=32, height=32, exif=None, pixels=True, truncate=None):
         (0x828d, SHORT, 2, struct.pack('<HH', 2, 2)),    # CFARepeatPatternDim
         (0x828e, BYTE, 4, bytes([0, 1, 1, 2])),          # CFAPattern: RGGB
         (0xc612, BYTE, 4, bytes([1, 4, 0, 0])),          # DNGVersion
+        (0xc61f, SHORT, 2, struct.pack('<HH',            # DefaultCropOrigin
+                crop_insets[1], crop_insets[0])),
+        (0xc620, SHORT, 2, struct.pack('<HH',            # DefaultCropSize
+                width - crop_insets[1] - crop_insets[3]
+                      - image_insets[1] - image_insets[3],
+                height - crop_insets[0] - crop_insets[2]
+                      - image_insets[0] - image_insets[2])),
+        (0xc68d, SHORT, 4, active_area_off),             # ActiveArea
     ]
     if exif is not None:
         entries.append((0x8769, LONG, 1, exif_off))
@@ -116,7 +134,10 @@ def main(dir):
     make_dng(os.path.join(dir, 'bomb-32000x32000.dng'),
              width=32000, height=32000, pixels=False)
     make_dng(os.path.join(dir, 'truncated.dng'), truncate=1024)
-
+    make_dng(os.path.join(dir, 'crop-36x32.dng'),
+             width = 36, height = 32,
+             image_insets=(6, 2, 4, 10),
+             crop_insets=(2, 4, 8, 6))
 
 if __name__ == '__main__':
     main(sys.argv[1] if len(sys.argv) > 1 else '.')

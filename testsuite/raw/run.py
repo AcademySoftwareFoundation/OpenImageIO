@@ -67,4 +67,10 @@ for f in [ "valid-32x32.dng", "bad-exif-type.dng", "truncated.dng",
     command += oiiotool ("-iconfig raw:Demosaic none --stats src/" + f,
                          failureok = True)
 
+# Check the crop size and position in all 4 orientations.
+for rotation in [0, 3, 5, 6]:
+    command += oiiotool ("-echo \"rotation " + str(rotation) + "\""
+        " -iconfig:type=int raw:user_flip " + str(rotation) +
+        " -i src/" + "crop-36x32.dng   --eraseattrib \".*\" --printinfo")
+
 outputs += [ "out.txt" ]
