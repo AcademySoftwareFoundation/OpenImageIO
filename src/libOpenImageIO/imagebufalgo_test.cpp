@@ -1389,10 +1389,11 @@ test_opencv()
     // Make a gradient RGB image, convert to OpenCV cv::Mat, then convert
     // that back to ImageBuf, make sure the round trip has the same pixels
     // as the original image.
-    ImageBuf src
-        = ImageBufAlgo::fill({ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },
-                             { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f },
-                             ROI(0, 64, 0, 64, 0, 1, 0, 3));
+    ImageBuf src = ImageBufAlgo::fill({ 1.0f, 0.0f, 0.0f },
+                                      { 0.0f, 1.0f, 0.0f },
+                                      { 0.0f, 0.0f, 1.0f },
+                                      { 1.0f, 1.0f, 1.0f },
+                                      ROI(0, 64, 0, 64, 0, 1, 0, 3));
     cv::Mat mat;
     ImageBufAlgo::to_OpenCV(mat, src);
     OIIO_CHECK_ASSERT(!mat.empty());
@@ -1605,7 +1606,7 @@ test_simple_perpixel()
         // Test with lambda, including variable capture
         float bias = 0.0;  // Force capture of this variable
         result     = ImageBufAlgo::perpixel_op(src, [&](span<float> d,
-                                                    cspan<float> s) {
+                                                        cspan<float> s) {
             for (size_t c = 0, nc = size_t(d.size()); c < nc; ++c)
                 d[c] = s[nc - 1 - c] + bias;
             return true;
@@ -1682,10 +1683,9 @@ test_simple_perpixel()
 
 
 template<class T>
-std::string
-do_mosaic(ImageBuf& dst, const ImageBuf& src, int x_offset, int y_offset,
-          const std::string& pattern, const float (&white_balance)[4],
-          int nthreads);
+std::string do_mosaic(ImageBuf& dst, const ImageBuf& src, int x_offset,
+                      int y_offset, const std::string& pattern,
+                      const float (&white_balance)[4], int nthreads);
 
 template<>
 std::string
@@ -1760,9 +1760,10 @@ test_demosaic_algo(const ImageBuf& src_image, const ImageBuf& mosaiced_image,
     roi.xend -= inset;
     roi.yend -= inset;
 
-    ImageBufAlgo::CompareResults cr
-        = ImageBufAlgo::compare(src_image, demosaiced_image, threshold,
-                                threshold, roi);
+    ImageBufAlgo::CompareResults cr = ImageBufAlgo::compare(src_image,
+                                                            demosaiced_image,
+                                                            threshold,
+                                                            threshold, roi);
     OIIO_CHECK_FALSE(cr.error);
 
     if (write_images) {

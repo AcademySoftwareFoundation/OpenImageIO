@@ -58,7 +58,9 @@ TagMap::TagMap(string_view mapname, cspan<TagInfo> tag_table)
 
 
 
-TagMap::~TagMap() {}
+TagMap::~TagMap()
+{
+}
 
 
 const TagInfo*
@@ -1484,7 +1486,7 @@ encode_exif(const ImageSpec& spec, std::vector<char>& blob,
     // Compute offsets:
     // TIFF dirs will start after the data
     size_t tiffdirs_offset = blob.size() - tiffstart;
-    size_t tiffdirs_size   = sizeof(uint16_t)  // ndirs
+    size_t tiffdirs_size = sizeof(uint16_t)  // ndirs
                            + sizeof(TIFFDirEntry) * tiffdirs.size()
                            + (exifdirs.size() ? sizeof(TIFFDirEntry) : 0)
                            + (gpsdirs.size() ? sizeof(TIFFDirEntry) : 0)

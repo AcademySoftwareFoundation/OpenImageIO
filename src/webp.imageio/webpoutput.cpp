@@ -90,8 +90,8 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     // The 'webp' form indicates that lossy compression is requested.
     bool is_lossless = false;
     int quality      = default_lossy_quality;
-    auto comp_qual   = m_spec.decode_compression_metadata("webp",
-                                                          default_lossy_quality);
+    auto comp_qual = m_spec.decode_compression_metadata("webp",
+                                                        default_lossy_quality);
     if (Strutil::iequals(comp_qual.first, "webp")) {
         quality = OIIO::clamp(comp_qual.second, 0, 100);
     } else {

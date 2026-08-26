@@ -152,9 +152,9 @@
 
 OIIO_NAMESPACE_3_1_BEGIN
 // Internal contract assertion handler
-OIIO_UTIL_API void
-contract_violation_handler(const char* location, const char* function,
-                           const char* msg = "");
+OIIO_UTIL_API void contract_violation_handler(const char* location,
+                                              const char* function,
+                                              const char* msg = "");
 OIIO_NAMESPACE_3_1_END
 
 OIIO_NAMESPACE_BEGIN

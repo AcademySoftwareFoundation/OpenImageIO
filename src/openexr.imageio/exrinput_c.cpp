@@ -296,7 +296,10 @@ static std::map<std::string, std::string> cexr_tag_to_oiio_std {
 
 
 
-OpenEXRCoreInput::OpenEXRCoreInput() { init(); }
+OpenEXRCoreInput::OpenEXRCoreInput()
+{
+    init();
+}
 
 
 
@@ -1742,7 +1745,7 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
                 curchan.user_bytes_per_element = ud->deepdata->samplesize();
                 curchan.user_pixel_stride      = size_t(chans) * sizeof(void*);
                 curchan.user_line_stride       = (size_t(w) * size_t(chans)
-                                            * sizeof(void*));
+                                                  * sizeof(void*));
                 chanoffset += 1;
                 break;
             }
@@ -2013,7 +2016,7 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                 } else {
                     uint32_t* allsampdata = all_samples.data()
                                             + ty * width * tileh;
-                    int sw = tilew;
+                    int sw                = tilew;
                     if ((size_t(tx) * size_t(tilew) + size_t(tilew)) > width)
                         sw = width - (tx * tilew);
                     int nlines = tileh;
@@ -2043,10 +2046,11 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
             exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
             DecoderDestroyer dd(m_exr_context, &decoder);
             // Note: the decoder will be destroyed by dd exiting scope
-            exr_result_t rv
-                = exr_read_tile_chunk_info(m_exr_context, subimage,
-                                           firstxtile + tx, firstytile + ty,
-                                           miplevel, miplevel, &cinfo);
+            exr_result_t rv = exr_read_tile_chunk_info(m_exr_context, subimage,
+                                                       firstxtile + tx,
+                                                       firstytile + ty,
+                                                       miplevel, miplevel,
+                                                       &cinfo);
             if (rv == EXR_ERR_SUCCESS)
                 rv = exr_decoding_initialize(m_exr_context, subimage, &cinfo,
                                              &decoder);

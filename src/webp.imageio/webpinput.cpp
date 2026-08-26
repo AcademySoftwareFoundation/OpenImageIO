@@ -27,11 +27,11 @@ struct WebpHead {
 static bool
 webp_exif_payload_has_tiff_header(cspan<uint8_t> exif)
 {
-    const size_t exif_header_size = 6;
-    const bool has_exif_header    = exif.size() >= exif_header_size
-                                 && exif[0] == 'E' && exif[1] == 'x'
-                                 && exif[2] == 'i' && exif[3] == 'f'
-                                 && exif[4] == 0 && exif[5] == 0;
+    const size_t exif_header_size   = 6;
+    const bool has_exif_header      = exif.size() >= exif_header_size
+                                      && exif[0] == 'E' && exif[1] == 'x'
+                                      && exif[2] == 'i' && exif[3] == 'f'
+                                      && exif[4] == 0 && exif[5] == 0;
     const size_t tiff_header_offset = has_exif_header ? exif_header_size : 0;
     return exif.size() >= tiff_header_offset + sizeof(TIFFHeader);
 }

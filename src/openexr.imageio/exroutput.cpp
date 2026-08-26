@@ -424,10 +424,10 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec, std::string& reason)
 
     // Check chromaticities
     float chromaticities[8] = { 0., 0., 0., 0., 0., 0., 0., 0. };
-    bool chroms_found
-        = spec.getattribute("chromaticities",
-                            OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
-                            chromaticities);
+    bool chroms_found = spec.getattribute("chromaticities",
+                                          OIIO::TypeDesc(OIIO::TypeDesc::FLOAT,
+                                                         8),
+                                          chromaticities);
     bool chroms_equal = std::equal(std::begin(chromaticities),
                                    std::end(chromaticities),
                                    std::begin(ACES_AP0_chromaticities));
@@ -1667,7 +1667,7 @@ OpenEXROutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     // image.
     imagesize_t scanlinebytes = m_spec.scanline_bytes(native);
     char* buf                 = (char*)data - ptrdiff_t(m_spec.x * pixel_bytes)
-                - ptrdiff_t(y * scanlinebytes);
+                                - ptrdiff_t(y * scanlinebytes);
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -1781,15 +1781,15 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
     const imagesize_t limit = 16 * 1024
                               * 1024;  // Allocate 16 MB, or 1 scanline
-    int chunk = std::max(1, int(limit / scanlinebytes));
+    int chunk               = std::max(1, int(limit / scanlinebytes));
 
     bool ok                  = true;
     const bool isDecreasingY = m_spec.get_string_attribute("openexr:lineOrder")
                                == "decreasingY";
     const int nAvailableScanLines = yend - ybegin;
-    const int numChunks           = nAvailableScanLines > 0
-                                        ? 1 + ((nAvailableScanLines - 1) / chunk)
-                                        : 0;
+    const int numChunks  = nAvailableScanLines > 0
+                               ? 1 + ((nAvailableScanLines - 1) / chunk)
+                               : 0;
     const int yLoopStart = isDecreasingY ? ybegin + (numChunks - 1) * chunk
                                          : ybegin;
     const int yDelta     = isDecreasingY ? -chunk : chunk;
@@ -2107,9 +2107,9 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
         int firstxtile = (xbegin - m_spec.x) / m_spec.tile_width;
         int firstytile = (ybegin - m_spec.y) / m_spec.tile_height;
         int xtiles     = round_to_multiple(xend - xbegin, m_spec.tile_width)
-                     / m_spec.tile_width;
-        int ytiles = round_to_multiple(yend - ybegin, m_spec.tile_height)
-                     / m_spec.tile_height;
+                         / m_spec.tile_width;
+        int ytiles     = round_to_multiple(yend - ybegin, m_spec.tile_height)
+                         / m_spec.tile_height;
 
         // Write the pixels
         m_deep_tiled_output_part->writeTiles(firstxtile,

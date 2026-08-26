@@ -399,7 +399,10 @@ ImageCacheFile::ImageCacheFile(ImageCacheImpl& imagecache,
 
 
 
-ImageCacheFile::~ImageCacheFile() { close(); }
+ImageCacheFile::~ImageCacheFile()
+{
+    close();
+}
 
 
 
@@ -488,7 +491,7 @@ ImageCacheFile::SubimageInfo::init(ImageCacheFile& icfile, ImageSpec* spec_,
     // See if there's a constant color tag
     string_view software = spec.get_string_attribute("Software");
     bool from_maketx     = Strutil::istarts_with(software, "OpenImageIO")
-                       || Strutil::istarts_with(software, "maketx");
+                           || Strutil::istarts_with(software, "maketx");
 
     string_view constant_color = spec.get_string_attribute(
         "oiio:ConstantColor");
@@ -1884,7 +1887,7 @@ ImageCacheTile::read(ImageCachePerThreadInfo* thread_info)
                         + ((m_id.y() - dims.y) / dims.tile_height) * lev.nxtiles
                         + ((m_id.z() - dims.z) / dims.tile_depth)
                               * (lev.nxtiles * lev.nytiles);
-        int index       = whichtile / 64;
+        int index     = whichtile / 64;
         int64_t bitmask = int64_t(1ULL << (whichtile & 63));
         int64_t oldval  = lev.tiles_read[index].fetch_or(bitmask);
         if (oldval & bitmask)  // Was it previously read?
@@ -3591,7 +3594,7 @@ ImageCacheImpl::get_pixels(ImageCacheFile* file,
     size_t formatsize           = format.size();
     stride_t result_pixelsize   = result_nchans * formatsize;
     bool xcontig                = (result_pixelsize == xstride
-                    && result_nchans == cache_nchans);
+                                   && result_nchans == cache_nchans);
     stride_t scanlinesize       = (xend - xbegin) * result_pixelsize;
     stride_t zplanesize         = (yend - ybegin) * scanlinesize;
     OIIO_DASSERT(dims.depth >= 1 && dims.tile_depth >= 1);
@@ -3931,9 +3934,10 @@ ImageCacheImpl::add_tile(ustring filename, int subimage, int miplevel, int x,
         chend   = file->spec(subimage).nchannels;
     }
     TileID tileid(*file, subimage, miplevel, x, y, z, chbegin, chend);
-    ImageCacheTileRef tile
-        = new ImageCacheTile(tileid, buffer.data(), format, buffer.xstride(),
-                             buffer.ystride(), buffer.zstride(), copy);
+    ImageCacheTileRef tile = new ImageCacheTile(tileid, buffer.data(), format,
+                                                buffer.xstride(),
+                                                buffer.ystride(),
+                                                buffer.zstride(), copy);
     if (!tile || !tile->valid()) {
         if (file->errors_should_issue())
             error("Could not construct the tile; unknown reasons.");
@@ -4126,7 +4130,7 @@ ImageCacheFile::udim_setup()
     // that these markers will almost always be close to the end of the
     // full pathname.
     bool udim1   = (Strutil::rcontains(m_filename, "<UDIM>")
-                  || Strutil::rcontains(m_filename, "%(UDIM)d"));
+                    || Strutil::rcontains(m_filename, "%(UDIM)d"));
     bool udim2_0 = (Strutil::rcontains(m_filename, "<u>")
                     || Strutil::rcontains(m_filename, "<v>")
                     || Strutil::rcontains(m_filename, "<uvtile>")
@@ -4426,7 +4430,7 @@ ImageCacheImpl::footprint(ImageCacheFootprint& output) const
     // strings
     output.ic_str_count = m_searchdirs.size() + 2;
     output.ic_str_mem   = heapsize(m_searchdirs) + heapsize(m_searchpath)
-                        + heapsize(m_plugin_searchpath);
+                          + heapsize(m_plugin_searchpath);
 
     // thread info
     output.ic_thdi_count = m_all_perthread_info.size();
@@ -4441,8 +4445,8 @@ ImageCacheImpl::footprint(ImageCacheFootprint& output) const
     // finger prints; we only account for references, this map does not own the files.
     constexpr size_t sizeofFingerprintPair = sizeof(ustring)
                                              + sizeof(ImageCacheFileRef);
-    output.ic_fgpt_count = m_fingerprints.size();
-    output.ic_fgpt_mem   = output.ic_fgpt_count * sizeofFingerprintPair;
+    output.ic_fgpt_count                   = m_fingerprints.size();
+    output.ic_fgpt_mem = output.ic_fgpt_count * sizeofFingerprintPair;
 
     // files; count the footprint of files, subimages, level infos, image inputs, image specs
     for (FilenameMap::iterator t = m_files.begin(), e = m_files.end(); t != e;
@@ -4509,7 +4513,9 @@ ImageCache::ImageCache()
 
 
 
-ImageCache::~ImageCache() {}
+ImageCache::~ImageCache()
+{
+}
 
 
 

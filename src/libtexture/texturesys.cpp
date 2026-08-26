@@ -102,7 +102,9 @@ TextureSystem::TextureSystem(std::shared_ptr<ImageCache> imagecache)
 
 
 
-TextureSystem::~TextureSystem() {}
+TextureSystem::~TextureSystem()
+{
+}
 
 
 
@@ -632,9 +634,9 @@ wrap_periodic_pow2_simd(simd::vint4& coord_, const simd::vint4& origin,
 {
     simd::vint4 coord(coord_);
     // OIIO_DASSERT (ispow2(width));
-    coord = coord - origin;
-    coord = coord
-            & (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
+    coord  = coord - origin;
+    coord  = coord
+             & (width - 1);  // Shortcut periodic if we're sure it's a pow of 2
     coord  = coord + origin;
     coord_ = coord;
     return simd::vbool4::True();
@@ -3295,7 +3297,7 @@ TextureSystemImpl::sample_bicubic(
         vfloat4 wy_1302        = simd::shuffle<1, 3, 0, 2>(wy);
         vfloat4 wy_01_23_01_23 = wy_0213
                                  + wy_1302;  // wy[0]+wy[1] wy[2]+wy[3] ..
-        vfloat4 g = AxyBxy(
+        vfloat4 g              = AxyBxy(
             wx_01_23_01_23,
             wy_01_23_01_23);  // wx[0]+wx[1] wx[2]+wx[3] wy[0]+wy[1] wy[2]+wy[3]
         vfloat4 wx13_wy13 = AxyBxy(wx_1302, wy_1302);
@@ -3419,9 +3421,9 @@ TextureSystemImpl::visualize_ellipse(const std::string& name, float dsdx,
 
     TextureOpt options;
     float trueaspect;
-    float aspect      = TextureSystemImpl::anisotropic_aspect(majorlength,
-                                                              minorlength, options,
-                                                              trueaspect);
+    float aspect = TextureSystemImpl::anisotropic_aspect(majorlength,
+                                                         minorlength, options,
+                                                         trueaspect);
     bool stoch_aniso  = (m_stochastic & StochasticStrategy_Aniso);
     int maxsamples    = round_to_multiple_of_pow2(2 * options.anisotropic, 4);
     float* lineweight = OIIO_ALLOCA(float, 4 * maxsamples);

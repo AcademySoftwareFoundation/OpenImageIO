@@ -134,7 +134,10 @@ using pvt::print_info_options;
 
 
 
-Oiiotool::Oiiotool() { clear_options(); }
+Oiiotool::Oiiotool()
+{
+    clear_options();
+}
 
 
 
@@ -1667,9 +1670,7 @@ Oiiotool::get_position(string_view command, string_view geom, int& x, int& y)
 
 
 // Tround rounds x to the nearest T type.
-template<typename T>
-inline T
-Tround(float x);
+template<typename T> inline T Tround(float x);
 
 // Tround of float to float just returns the float, no round necessary.
 template<>
@@ -2037,7 +2038,7 @@ static bool
 do_rotate_orientation(ImageSpec& spec, string_view cmd)
 {
     bool rotcw  = (cmd == "--orientcw" || cmd == "-orientcw" || cmd == "--rotcw"
-                  || cmd == "-rotcw");
+                   || cmd == "-rotcw");
     bool rotccw = (cmd == "--orientccw" || cmd == "-orientccw"
                    || cmd == "--rotccw" || cmd == "-rotccw");
     bool rot180 = (cmd == "--orient180" || cmd == "-orient180"
@@ -3279,11 +3280,11 @@ action_thumbnail_get(Oiiotool& ot, cspan<const char*> argv)
 
         // Fit inside a box, preserving aspect ratio and never enlarging
         const int boxsize = 256;
-        int longest       = std::max(1,
-                                     std::max(Aspec.full_width, Aspec.full_height));
-        float scale       = std::min(1.0f, float(boxsize) / float(longest));
-        int tw            = std::max(1, int(roundf(Aspec.full_width * scale)));
-        int th            = std::max(1, int(roundf(Aspec.full_height * scale)));
+        int longest = std::max(1,
+                               std::max(Aspec.full_width, Aspec.full_height));
+        float scale = std::min(1.0f, float(boxsize) / float(longest));
+        int tw      = std::max(1, int(roundf(Aspec.full_width * scale)));
+        int th      = std::max(1, int(roundf(Aspec.full_height * scale)));
         ROI roi(0, tw, 0, th, 0, 1, 0, Aspec.nchannels);
 
         ImageBufRef generated(new ImageBuf(
@@ -3696,12 +3697,11 @@ OIIOTOOL_OP(colormap, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 // that we don't break compatibility repeatedly.
 
 namespace ImageBufAlgox {
-ImageBuf
-cryptomatte_colors(const ImageBuf& src, span<const int> channelset,
-                   ROI roi = {}, int nthreads = 0);
-bool
-cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
-                   span<const int> channelset, ROI roi = {}, int nthreads = 0);
+ImageBuf cryptomatte_colors(const ImageBuf& src, span<const int> channelset,
+                            ROI roi = {}, int nthreads = 0);
+bool cryptomatte_colors(ImageBuf& dst, const ImageBuf& src,
+                        span<const int> channelset, ROI roi = {},
+                        int nthreads = 0);
 }  // namespace ImageBufAlgox
 
 // The cryptomatte spec can be found here:
@@ -4546,14 +4546,14 @@ public:
             }
             nochange = false;
             // Compute corresponding data window.
-            float wratio = float(newspec.full_width) / float(Aspec.full_width);
-            float hratio = float(newspec.full_height)
-                           / float(Aspec.full_height);
-            newspec.x = newspec.full_x
-                        + int(floorf((Aspec.x - Aspec.full_x) * wratio));
-            newspec.y = newspec.full_y
-                        + int(floorf((Aspec.y - Aspec.full_y) * hratio));
-            newspec.width  = int(ceilf(Aspec.width * wratio));
+            float wratio  = float(newspec.full_width) / float(Aspec.full_width);
+            float hratio  = float(newspec.full_height)
+                            / float(Aspec.full_height);
+            newspec.x     = newspec.full_x
+                            + int(floorf((Aspec.x - Aspec.full_x) * wratio));
+            newspec.y     = newspec.full_y
+                            + int(floorf((Aspec.y - Aspec.full_y) * hratio));
+            newspec.width = int(ceilf(Aspec.width * wratio));
             newspec.height = int(ceilf(Aspec.height * hratio));
         }
         if (nochange) {
@@ -4612,10 +4612,10 @@ public:
                                / float(Aspec.full_width);
                 float hratio = float(newspec.full_height)
                                / float(Aspec.full_height);
-                newspec.x = newspec.full_x
-                            + int(floorf((Aspec.x - Aspec.full_x) * wratio));
-                newspec.y = newspec.full_y
-                            + int(floorf((Aspec.y - Aspec.full_y) * hratio));
+                newspec.x    = newspec.full_x
+                               + int(floorf((Aspec.x - Aspec.full_x) * wratio));
+                newspec.y    = newspec.full_y
+                               + int(floorf((Aspec.y - Aspec.full_y) * hratio));
                 newspec.width  = int(ceilf(Aspec.width * wratio));
                 newspec.height = int(ceilf(Aspec.height * hratio));
             }
@@ -5457,12 +5457,12 @@ OIIOTOOL_OP(contrast, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
         op.options().get_string("black", "0"), n, 0.0f);
     auto white = Strutil::extract_from_list_string(
         op.options().get_string("white", "1"), n, 1.0f);
-    auto min
-        = Strutil::extract_from_list_string(op.options().get_string("min", "0"),
-                                            n, 0.0f);
-    auto max
-        = Strutil::extract_from_list_string(op.options().get_string("max", "1"),
-                                            n, 1.0f);
+    auto min = Strutil::extract_from_list_string(op.options().get_string("min",
+                                                                         "0"),
+                                                 n, 0.0f);
+    auto max = Strutil::extract_from_list_string(op.options().get_string("max",
+                                                                         "1"),
+                                                 n, 1.0f);
     auto scontrast = Strutil::extract_from_list_string(
         op.options().get_string("scontrast", "1"), n, 1.0f);
     auto sthresh = Strutil::extract_from_list_string(
@@ -5982,9 +5982,9 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
     string_view stripped_command = command;
     Strutil::parse_char(stripped_command, '-');
     Strutil::parse_char(stripped_command, '-');
-    bool do_tex     = Strutil::starts_with(stripped_command, "otex");
-    bool do_latlong = Strutil::starts_with(stripped_command, "oenv")
-                      || Strutil::starts_with(stripped_command, "olatlong");
+    bool do_tex        = Strutil::starts_with(stripped_command, "otex");
+    bool do_latlong    = Strutil::starts_with(stripped_command, "oenv")
+                         || Strutil::starts_with(stripped_command, "olatlong");
     bool do_shad       = Strutil::starts_with(stripped_command, "oshad");
     bool do_bumpslopes = Strutil::starts_with(stripped_command, "obump");
 
@@ -6117,13 +6117,14 @@ output_file(Oiiotool& ot, cspan<const char*> argv)
         for (int s = 0; s < ir->subimages(); ++s)
             crops_needed |= (roi != (*ir)(s).roi());
         if (crops_needed) {
-            std::string crop
-                = (ir->spec(0, 0)->depth == 1)
-                      ? format_resolution(roi.width(), roi.height(), roi.xbegin,
-                                          roi.ybegin)
-                      : format_resolution(roi.width(), roi.height(),
-                                          roi.depth(), roi.xbegin, roi.ybegin,
-                                          roi.zbegin);
+            std::string crop = (ir->spec(0, 0)->depth == 1)
+                                   ? format_resolution(roi.width(),
+                                                       roi.height(), roi.xbegin,
+                                                       roi.ybegin)
+                                   : format_resolution(roi.width(),
+                                                       roi.height(),
+                                                       roi.depth(), roi.xbegin,
+                                                       roi.ybegin, roi.zbegin);
             const char* argv[] = { "crop:allsubimages=1", crop.c_str() };
             void action_crop(Oiiotool & ot,
                              cspan<const char*> argv);  // forward decl
@@ -6782,9 +6783,9 @@ print_build_info(Oiiotool& ot, std::ostream& out)
                             OIIO_CPLUSPLUS_VERSION, __cplusplus);
     OIIO::print(out, "{}\n", Strutil::wordwrap(buildinfo, columns, 4));
 
-    auto hwbuildfeats
-        = format("    HW features enabled at build: {}",
-                 OIIO::get_string_attribute("build:simd", "no SIMD"));
+    auto hwbuildfeats = format("    HW features enabled at build: {}",
+                               OIIO::get_string_attribute("build:simd",
+                                                          "no SIMD"));
     OIIO::print(out, "{}\n", Strutil::wordwrap(hwbuildfeats, columns, 4));
 #ifdef OIIO_USE_CUDA
     int cudaver = OIIO::get_int_attribute("cuda:build_version");

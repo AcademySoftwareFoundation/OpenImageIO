@@ -138,8 +138,8 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         size_t row_bytes   = size_t(m_spec.width) * comp_size;
         size_t plane_bytes = row_bytes * size_t(m_spec.height)
                              * size_t(m_spec.depth);
-        size_t row_off = (size_t(z) * m_spec.height + (m_spec.height - y))
-                         * row_bytes;
+        size_t row_off     = (size_t(z) * m_spec.height + (m_spec.height - y))
+                             * row_bytes;
         std::vector<unsigned char> chan_row(row_bytes);
         for (int c = 0; c < m_spec.nchannels; ++c) {
             fsetpos(m_fd, &m_filepos);
@@ -509,15 +509,15 @@ FitsInput::assign_channel_names()
             = { { 1, "I" },   { 2, "Q" },   { 3, "U" },   { 4, "V" },
                 { -1, "RR" }, { -2, "LL" }, { -3, "RL" }, { -4, "LR" },
                 { -5, "XX" }, { -6, "YY" }, { -7, "XY" }, { -8, "YX" } };
-        float crval
-            = m_spec.get_float_attribute(Strutil::format("Crval{}", axis),
-                                         1.0f);
-        float crpix
-            = m_spec.get_float_attribute(Strutil::format("Crpix{}", axis),
-                                         1.0f);
-        float cdelt
-            = m_spec.get_float_attribute(Strutil::format("Cdelt{}", axis),
-                                         1.0f);
+        float crval    = m_spec.get_float_attribute(Strutil::format("Crval{}",
+                                                                    axis),
+                                                    1.0f);
+        float crpix    = m_spec.get_float_attribute(Strutil::format("Crpix{}",
+                                                                    axis),
+                                                    1.0f);
+        float cdelt    = m_spec.get_float_attribute(Strutil::format("Cdelt{}",
+                                                                    axis),
+                                                    1.0f);
         bool all_found = true;
         std::vector<std::string> names(m_spec.nchannels);
         for (int c = 0; c < m_spec.nchannels && all_found; ++c) {

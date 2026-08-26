@@ -13,7 +13,9 @@ IvGL_OCIO::IvGL_OCIO(QWidget* parent, ImageViewer& viewer)
 {
 }
 
-IvGL_OCIO::~IvGL_OCIO() {}
+IvGL_OCIO::~IvGL_OCIO()
+{
+}
 
 void
 IvGL_OCIO::update_state()

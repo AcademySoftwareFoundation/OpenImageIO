@@ -858,11 +858,16 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 
 
 
-ColorConfig::ColorConfig(string_view filename) { (void)reset(filename); }
+ColorConfig::ColorConfig(string_view filename)
+{
+    (void)reset(filename);
+}
 
 
 
-ColorConfig::~ColorConfig() {}
+ColorConfig::~ColorConfig()
+{
+}
 
 
 
@@ -1639,9 +1644,9 @@ ColorConfig::equivalent(string_view color_space1,
 
     // If the color spaces' flags (when masking only the bits that refer to
     // specific known color spaces) match, consider them equivalent.
-    const int mask = CSInfo::is_srgb_display | CSInfo::is_srgb_scene
-                     | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
-                     | CSInfo::is_Rec709;
+    const int mask     = CSInfo::is_srgb_display | CSInfo::is_srgb_scene
+                         | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
+                         | CSInfo::is_Rec709;
     const CSInfo* csi1 = getImpl()->find(color_space1);
     const CSInfo* csi2 = getImpl()->find(color_space2);
     if (csi1 && csi2) {

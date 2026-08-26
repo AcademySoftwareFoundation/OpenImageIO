@@ -476,9 +476,10 @@ Jpeg2000Output::create_jpeg2000_image()
     m_image->x1 = m_compression_parameters.image_offset_x0
                   + (m_spec.width - 1) * m_compression_parameters.subsampling_dx
                   + 1;
-    m_image->y1
-        = m_compression_parameters.image_offset_y0
-          + (m_spec.height - 1) * m_compression_parameters.subsampling_dy + 1;
+    m_image->y1 = m_compression_parameters.image_offset_y0
+                  + (m_spec.height - 1)
+                        * m_compression_parameters.subsampling_dy
+                  + 1;
 
 #if OIIO_OPJ_VERSION >= 20504
     // OpenJPEG versions before 2.5.4 fail to write the ICC profile

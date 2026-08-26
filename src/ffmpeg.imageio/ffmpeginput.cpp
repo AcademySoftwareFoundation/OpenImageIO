@@ -184,20 +184,27 @@ ffmpeg_input_imageio_create()
 // QuickTime / MOV
 // raw MPEG-4 video
 // MPEG-1 Systems / MPEG program stream
-OIIO_EXPORT const char* ffmpeg_input_extensions[]
-    = { "avi", "mov", "qt",  "mp4", "m4a", "3gp",
-        "3g2", "mj2", "m4v", "mpg", "mkv", nullptr };
+OIIO_EXPORT const char* ffmpeg_input_extensions[] = { "avi", "mov", "qt",
+                                                      "mp4", "m4a", "3gp",
+                                                      "3g2", "mj2", "m4v",
+                                                      "mpg", "mkv", nullptr };
 
 
 OIIO_PLUGIN_EXPORTS_END
 
 
 
-FFmpegInput::FFmpegInput() { init(); }
+FFmpegInput::FFmpegInput()
+{
+    init();
+}
 
 
 
-FFmpegInput::~FFmpegInput() { close(); }
+FFmpegInput::~FFmpegInput()
+{
+    close();
+}
 
 
 
@@ -500,9 +507,10 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
                          nchannels, datatype);
     m_stride = (size_t)(m_spec.scanline_bytes());
 
-    int rgb_buffer_size
-        = av_image_get_buffer_size(m_dst_pix_format, m_codec_context->width,
-                                   m_codec_context->height, ffmpeg_image_align);
+    int rgb_buffer_size = av_image_get_buffer_size(m_dst_pix_format,
+                                                   m_codec_context->width,
+                                                   m_codec_context->height,
+                                                   ffmpeg_image_align);
     if (rgb_buffer_size <= 0) {
         errorfmt("\"{}\" invalid FFmpeg RGB buffer size", file_name);
         close();
@@ -510,11 +518,12 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     }
     m_rgb_buffer.resize(static_cast<size_t>(rgb_buffer_size), 0);
 
-    m_sws_rgb_context
-        = sws_getContext(m_codec_context->width, m_codec_context->height,
-                         src_pix_format, m_codec_context->width,
-                         m_codec_context->height, m_dst_pix_format, SWS_AREA,
-                         NULL, NULL, NULL);
+    m_sws_rgb_context = sws_getContext(m_codec_context->width,
+                                       m_codec_context->height, src_pix_format,
+                                       m_codec_context->width,
+                                       m_codec_context->height,
+                                       m_dst_pix_format, SWS_AREA, NULL, NULL,
+                                       NULL);
     if (!m_sws_rgb_context) {
         errorfmt("\"{}\" could not create FFmpeg scaling context", file_name);
         close();

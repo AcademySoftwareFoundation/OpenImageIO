@@ -457,17 +457,13 @@ OpenVDBInput::readMetaData(const openvdb::GridBase& grid,
         } else if (type == FloatMetadata::staticTypeName()) {
             spec.attribute(mdPrefix(name),
                            static_cast<FloatMetadata&>(*value).value());
-        }
-
-        else if (type == Int32Metadata::staticTypeName()) {
+        } else if (type == Int32Metadata::staticTypeName()) {
             spec.attribute(mdPrefix(name),
                            static_cast<Int32Metadata&>(*value).value());
         } else if (type == DoubleMetadata::staticTypeName()) {
             const auto v = static_cast<DoubleMetadata&>(*value).value();
             spec.attribute(mdPrefix(name), TypeDesc::DOUBLE, &v);
-        }
-
-        else if (type == Vec3IMetadata::staticTypeName()) {
+        } else if (type == Vec3IMetadata::staticTypeName()) {
             const auto v = static_cast<Vec3IMetadata&>(*value).value();
             spec.attribute(mdPrefix(name),
                            TypeDesc(TypeDesc::INT, TypeDesc::VEC3), &v);
@@ -475,9 +471,7 @@ OpenVDBInput::readMetaData(const openvdb::GridBase& grid,
             const auto v = static_cast<Vec3DMetadata&>(*value).value();
             spec.attribute(mdPrefix(name),
                            TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC3), &v);
-        }
-
-        else if (type == Vec2SMetadata::staticTypeName()) {
+        } else if (type == Vec2SMetadata::staticTypeName()) {
             const auto v = static_cast<Vec2SMetadata&>(*value).value();
             spec.attribute(mdPrefix(name),
                            TypeDesc(TypeDesc::FLOAT, TypeDesc::VEC2), &v);
@@ -489,9 +483,7 @@ OpenVDBInput::readMetaData(const openvdb::GridBase& grid,
             const auto v = static_cast<Vec2DMetadata&>(*value).value();
             spec.attribute(mdPrefix(name),
                            TypeDesc(TypeDesc::DOUBLE, TypeDesc::VEC2), &v);
-        }
-
-        else if (type == Mat4SMetadata::staticTypeName()) {
+        } else if (type == Mat4SMetadata::staticTypeName()) {
             const auto v = static_cast<Mat4SMetadata&>(*value).value();
             spec.attribute(mdPrefix(name), TypeMatrix44, &v);
         } else if (type == Mat4DMetadata::staticTypeName()) {
@@ -576,11 +568,12 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
             channelnames.resize(layerspec.nchannels);
             if (layerspec.nchannels > 1) {
                 OIIO_DASSERT(layerspec.nchannels <= 4);
-                const bool iscolor = layer.name == "Cd"
-                                     || layer.name == "color";
-                const char kChanName[4]
-                    = { iscolor ? 'r' : 'x', iscolor ? 'g' : 'y',
-                        iscolor ? 'b' : 'z', iscolor ? 'a' : 'w' };
+                const bool iscolor      = layer.name == "Cd"
+                                          || layer.name == "color";
+                const char kChanName[4] = { iscolor ? 'r' : 'x',
+                                            iscolor ? 'g' : 'y',
+                                            iscolor ? 'b' : 'z',
+                                            iscolor ? 'a' : 'w' };
                 for (int c = 0; c < layerspec.nchannels; ++c)
                     channelnames[c] = layer.name + "."
                                       + std::string(&kChanName[c], 1);

@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-// clang-format off
-
 /////////////////////////////////////////////////////////////////////////
 /// @file   thread.h
 ///
@@ -81,8 +79,8 @@ public:
 using std::mutex;
 using std::recursive_mutex;
 using std::thread;
-using lock_guard = std::lock_guard<mutex>;
-using recursive_lock_guard = std::lock_guard<recursive_mutex>;
+using lock_guard                 = std::lock_guard<mutex>;
+using recursive_lock_guard       = std::lock_guard<recursive_mutex>;
 using recursive_timed_lock_guard = std::lock_guard<std::recursive_timed_mutex>;
 
 
@@ -112,19 +110,19 @@ pause(int delay) noexcept
 
 #elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
-        // A reimplementation of winnt.h YieldProcessor,
-        // to avoid including windows headers.
-        #if defined(_M_AMD64)
+// A reimplementation of winnt.h YieldProcessor,
+// to avoid including windows headers.
+#    if defined(_M_AMD64)
         _mm_pause();
-        #elif defined(_M_ARM64) || defined(_M_HYBRID_X86_ARM64)
+#    elif defined(_M_ARM64) || defined(_M_HYBRID_X86_ARM64)
         __dmb(_ARM64_BARRIER_ISHST);
         __yield();
-        #elif defined(_M_ARM)
+#    elif defined(_M_ARM)
         __dmb(_ARM_BARRIER_ISHST);
         __yield();
-        #else
+#    else
         _asm pause
-        #endif
+#    endif
     }
 
 #else
@@ -159,7 +157,6 @@ private:
     int m_count;
     int m_pausemax;
 };
-
 
 
 
@@ -258,8 +255,8 @@ public:
         ~lock_guard() noexcept { m_fm.unlock(); }
 
     private:
-        lock_guard() = delete;
-        lock_guard(const lock_guard& other) = delete;
+        lock_guard()                                   = delete;
+        lock_guard(const lock_guard& other)            = delete;
         lock_guard& operator=(const lock_guard& other) = delete;
         spin_mutex& m_fm;
     };
@@ -287,7 +284,7 @@ public:
     ~spin_rw_mutex() noexcept {}
 
     // Do not allow copy or assignment.
-    spin_rw_mutex(const spin_rw_mutex&) = delete;
+    spin_rw_mutex(const spin_rw_mutex&)                  = delete;
     const spin_rw_mutex& operator=(const spin_rw_mutex&) = delete;
 
     /// Acquire the reader lock.
@@ -362,24 +359,34 @@ public:
     /// read lock upon construction, releases the lock when it exits scope.
     class read_lock_guard {
     public:
-        read_lock_guard (spin_rw_mutex &fm) noexcept : m_fm(fm) { m_fm.read_lock(); }
-        ~read_lock_guard () noexcept { m_fm.read_unlock(); }
+        read_lock_guard(spin_rw_mutex& fm) noexcept
+            : m_fm(fm)
+        {
+            m_fm.read_lock();
+        }
+        ~read_lock_guard() noexcept { m_fm.read_unlock(); }
+
     private:
-        read_lock_guard(const read_lock_guard& other) = delete;
-        read_lock_guard& operator = (const read_lock_guard& other) = delete;
-        spin_rw_mutex & m_fm;
+        read_lock_guard(const read_lock_guard& other)            = delete;
+        read_lock_guard& operator=(const read_lock_guard& other) = delete;
+        spin_rw_mutex& m_fm;
     };
 
     /// Helper class: scoped write lock for a spin_rw_mutex -- grabs the
     /// read lock upon construction, releases the lock when it exits scope.
     class write_lock_guard {
     public:
-        write_lock_guard (spin_rw_mutex &fm) noexcept : m_fm(fm) { m_fm.write_lock(); }
-        ~write_lock_guard () noexcept { m_fm.write_unlock(); }
+        write_lock_guard(spin_rw_mutex& fm) noexcept
+            : m_fm(fm)
+        {
+            m_fm.write_lock();
+        }
+        ~write_lock_guard() noexcept { m_fm.write_unlock(); }
+
     private:
-        write_lock_guard(const write_lock_guard& other) = delete;
-        write_lock_guard& operator = (const write_lock_guard& other) = delete;
-        spin_rw_mutex & m_fm;
+        write_lock_guard(const write_lock_guard& other)            = delete;
+        write_lock_guard& operator=(const write_lock_guard& other) = delete;
+        spin_rw_mutex& m_fm;
     };
 
 private:
@@ -387,13 +394,13 @@ private:
     // that it's locked for writing.  This will only work if we have
     // fewer than 2^30 simultaneous readers.  I think that should hold
     // us for some time.
-    enum { WRITER = 1<<30, NOTWRITER = WRITER-1 };
+    enum { WRITER = 1 << 30, NOTWRITER = WRITER - 1 };
     std::atomic<int> m_bits { 0 };
 };
 
 
 
-using spin_rw_read_lock = spin_rw_mutex::read_lock_guard;
+using spin_rw_read_lock  = spin_rw_mutex::read_lock_guard;
 using spin_rw_write_lock = spin_rw_mutex::write_lock_guard;
 
 
@@ -414,7 +421,10 @@ template<class Mutex, class Key, class Hash, size_t Bins = 16>
 class mutex_pool {
 public:
     mutex_pool() noexcept {}
-    Mutex& operator[](const Key& key) noexcept { return m_mutex[m_hash(key) % Bins].m; }
+    Mutex& operator[](const Key& key) noexcept
+    {
+        return m_mutex[m_hash(key) % Bins].m;
+    }
 
 private:
     // Helper type -- force cache line alignment. This should make an array
@@ -578,17 +588,18 @@ public:
     /// has no worker threads, the task will be run immediately by the
     /// calling thread.
     template<typename F, typename... Rest>
-    auto push (F && f, Rest&&... rest) ->std::future<decltype(f(0, rest...))> {
-        auto pck = std::make_shared<std::packaged_task<decltype(f(0, rest...))(int)>>(
-            std::bind(std::forward<F>(f), std::placeholders::_1, std::forward<Rest>(rest)...)
-        );
+    auto push(F&& f, Rest&&... rest) -> std::future<decltype(f(0, rest...))>
+    {
+        auto pck
+            = std::make_shared<std::packaged_task<decltype(f(0, rest...))(int)>>(
+                std::bind(std::forward<F>(f), std::placeholders::_1,
+                          std::forward<Rest>(rest)...));
         if (size() < 1) {
-            (*pck)(-1); // No worker threads, run it with the calling thread
+            (*pck)(-1);  // No worker threads, run it with the calling thread
         } else {
-            auto _f = new std::function<void(int id)>([pck](int id) {
-                (*pck)(id);
-            });
-            push_queue_and_notify (_f);
+            auto _f = new std::function<void(int id)>(
+                [pck](int id) { (*pck)(id); });
+            push_queue_and_notify(_f);
         }
         return pck->get_future();
     }
@@ -633,10 +644,10 @@ public:
 
 private:
     // Disallow copy construction and assignment
-    thread_pool(const thread_pool&) = delete;
-    thread_pool(thread_pool&&) = delete;
+    thread_pool(const thread_pool&)            = delete;
+    thread_pool(thread_pool&&)                 = delete;
     thread_pool& operator=(const thread_pool&) = delete;
-    thread_pool& operator=(thread_pool&&) = delete;
+    thread_pool& operator=(thread_pool&&)      = delete;
 
     // PIMPL pattern hides all the guts far away from the public API
     class Impl;
@@ -692,7 +703,7 @@ public:
     }
     ~task_set() { wait(); }
 
-    task_set(const task_set&) = delete;
+    task_set(const task_set&)                  = delete;
     const task_set& operator=(const task_set&) = delete;
 
     // Return the thread id of the thread that set up this task_set and
@@ -743,15 +754,14 @@ OIIO_NAMESPACE_3_1_END
 
 
 // Compatibility -- current version just reuses these old items
-// clang-format off
 #ifndef OIIO_DOXYGEN
 OIIO_NAMESPACE_BEGIN
 using v3_1::atomic_backoff;
 using v3_1::default_thread_pool;
 using v3_1::default_thread_pool_shutdown;
 using v3_1::mutex_pool;
-using v3_1::null_mutex;
 using v3_1::null_lock;
+using v3_1::null_mutex;
 using v3_1::pause;
 using v3_1::spin_mutex;
 using v3_1::spin_rw_mutex;
@@ -764,12 +774,11 @@ using std::mutex;
 using std::recursive_mutex;
 using std::thread;
 
-using lock_guard = std::lock_guard<mutex>;
-using recursive_lock_guard = std::lock_guard<recursive_mutex>;
+using lock_guard                 = std::lock_guard<mutex>;
+using recursive_lock_guard       = std::lock_guard<recursive_mutex>;
 using recursive_timed_lock_guard = std::lock_guard<std::recursive_timed_mutex>;
-using spin_lock = spin_mutex::lock_guard;
-using spin_rw_read_lock = spin_rw_mutex::read_lock_guard;
-using spin_rw_write_lock = spin_rw_mutex::write_lock_guard;
+using spin_lock                  = spin_mutex::lock_guard;
+using spin_rw_read_lock          = spin_rw_mutex::read_lock_guard;
+using spin_rw_write_lock         = spin_rw_mutex::write_lock_guard;
 OIIO_NAMESPACE_END
 #endif
-// clang-format on

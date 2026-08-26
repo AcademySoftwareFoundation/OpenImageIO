@@ -115,7 +115,10 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-PNGOutput::PNGOutput() { init(); }
+PNGOutput::PNGOutput()
+{
+    init();
+}
 
 
 

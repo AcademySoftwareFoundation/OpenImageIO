@@ -199,24 +199,24 @@ parallel_for_chunked(int64_t begin, int64_t end, int64_t chunksize,
 
 #ifndef OIIO_DOXYGEN
 // DEPRECATED(3.2) -- old version makes a copy of task instead of &&, ick
-OIIO_UTIL_API void
-parallel_for(int32_t begin, int32_t end, function_view<void(int32_t)> task,
-             paropt opt = 0);
+OIIO_UTIL_API void parallel_for(int32_t begin, int32_t end,
+                                function_view<void(int32_t)> task,
+                                paropt opt = 0);
 
 // DEPRECATED(3.2) -- old version makes a copy of task instead of &&, ick
-OIIO_UTIL_API void
-parallel_for(int64_t begin, int64_t end, function_view<void(int64_t)> task,
-             paropt opt = 0);
+OIIO_UTIL_API void parallel_for(int64_t begin, int64_t end,
+                                function_view<void(int64_t)> task,
+                                paropt opt = 0);
 
 // DEPRECATED(3.2) -- old version makes a copy of task instead of &&, ick
-OIIO_UTIL_API void
-parallel_for(uint32_t begin, uint32_t end, function_view<void(uint32_t)> task,
-             paropt opt = 0);
+OIIO_UTIL_API void parallel_for(uint32_t begin, uint32_t end,
+                                function_view<void(uint32_t)> task,
+                                paropt opt = 0);
 
 // DEPRECATED(3.2) -- old version makes a copy of task instead of &&, ick
-OIIO_UTIL_API void
-parallel_for(uint64_t begin, uint64_t end, function_view<void(uint64_t)> task,
-             paropt opt = 0);
+OIIO_UTIL_API void parallel_for(uint64_t begin, uint64_t end,
+                                function_view<void(uint64_t)> task,
+                                paropt opt = 0);
 #endif
 
 OIIO_NAMESPACE_3_1_END
@@ -236,21 +236,21 @@ OIIO_NAMESPACE_BEGIN
 /// actually each thread will iterate over some chunk of adjacent indices
 /// (to aid data coherence and minimize the amount of thread queue
 /// diddling). The chunk size is chosen automatically.
-OIIO_UTIL_API void
-parallel_for(int32_t begin, int32_t end, function_view<void(int32_t)>&& task,
-             paropt opt = 0);
+OIIO_UTIL_API void parallel_for(int32_t begin, int32_t end,
+                                function_view<void(int32_t)>&& task,
+                                paropt opt = 0);
 
-OIIO_UTIL_API void
-parallel_for(int64_t begin, int64_t end, function_view<void(int64_t)>&& task,
-             paropt opt = 0);
+OIIO_UTIL_API void parallel_for(int64_t begin, int64_t end,
+                                function_view<void(int64_t)>&& task,
+                                paropt opt = 0);
 
-OIIO_UTIL_API void
-parallel_for(uint32_t begin, uint32_t end, function_view<void(uint32_t)>&& task,
-             paropt opt = 0);
+OIIO_UTIL_API void parallel_for(uint32_t begin, uint32_t end,
+                                function_view<void(uint32_t)>&& task,
+                                paropt opt = 0);
 
-OIIO_UTIL_API void
-parallel_for(uint64_t begin, uint64_t end, function_view<void(uint64_t)>&& task,
-             paropt opt = 0);
+OIIO_UTIL_API void parallel_for(uint64_t begin, uint64_t end,
+                                function_view<void(uint64_t)>&& task,
+                                paropt opt = 0);
 
 OIIO_NAMESPACE_END
 

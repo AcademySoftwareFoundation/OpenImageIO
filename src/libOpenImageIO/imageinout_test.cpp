@@ -425,9 +425,9 @@ test_all_formats()
                 continue;
             auto nvalues = span_size_t(buf.spec().image_pixels()
                                        * buf.spec().nchannels);
-            ok           = test_pixel_match({ orig_pixels, nvalues },
-                                            { (const float*)pixels.data(), nvalues },
-                                            eps);
+            ok = test_pixel_match({ orig_pixels, nvalues },
+                                  { (const float*)pixels.data(), nvalues },
+                                  eps);
             if (ok)
                 std::cout << term.ansi("green", "OK\n");
             OIIO_CHECK_ASSERT(ok && "Failed read/write comparison");

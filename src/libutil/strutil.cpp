@@ -539,7 +539,7 @@ strcasecmp(const char* a, const char* b)
 #elif defined(__EMSCRIPTEN__)
     return ::strcasecmp(a, b);
 #else
-#    error("need equivalent of strcasecmp_l on this platform");
+#    error ("need equivalent of strcasecmp_l on this platform");
 #endif
 }
 
@@ -569,7 +569,7 @@ strncasecmp(const char* a, const char* b, size_t size)
 #elif defined(__EMSCRIPTEN__)
     return ::strncasecmp(a, b, size);
 #else
-#    error("need equivalent of strncasecmp_l on this platform");
+#    error ("need equivalent of strncasecmp_l on this platform");
 #endif
 }
 
