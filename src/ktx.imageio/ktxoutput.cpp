@@ -676,8 +676,8 @@ KtxOutput::write_ktx2()
     create_info.isArray = KTX_FALSE;  // Can't support this with current OIIO API
     create_info.generateMipmaps = m_generate_mipmaps;
 
-    DBG std::cout << "calling ktxTexture2_Create with: " << "vkFormat="
-                  << create_info.vkFormat << "; "
+    DBG std::cout << "calling ktxTexture2_Create with: "
+                  << "vkFormat=" << create_info.vkFormat << "; "
                   << "baseWidth=" << create_info.baseWidth << "; "
                   << "baseHeight=" << create_info.baseHeight << "; "
                   << "baseDepth=" << create_info.baseDepth << "; "
@@ -756,9 +756,9 @@ KtxOutput::write_ktx2()
                         slice_idx, face_idx, level_idx, data_size)
                                   << std::endl;
                 }  // slices
-            }  // faces
-        }  // layers
-    }  // mip levels
+            }      // faces
+        }          // layers
+    }              // mip levels
 
 
     //
