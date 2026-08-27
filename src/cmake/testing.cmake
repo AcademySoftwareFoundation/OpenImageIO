@@ -611,10 +611,11 @@ function (oiio_get_test_data name)
 endfunction()
 
 function (oiio_setup_test_data)
-  # TODO: revert this after accepting OpenImageIO-images PR and before merging (just so that the CI passes)
+    # TODO: revert this to target dev branch before merging
     oiio_get_test_data (oiio-images
-                        REPO https://github.com/walcht/OpenImageIO-images.git
-                        BRANCH add-ktx2-images)
+                        REPO https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git
+                        BRANCH main)
+                        # BRANCH dev-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR})
     oiio_get_test_data (openexr-images
                         REPO https://github.com/AcademySoftwareFoundation/openexr-images.git
                         BRANCH main)

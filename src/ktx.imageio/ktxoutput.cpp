@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include "OpenImageIO/color.h"
 #include "OpenImageIO/imageio.h"
 #include "ktx_pvt.h"
 #include <cstdint>
@@ -58,25 +59,25 @@ public:
 private:
     std::string m_filename;
 
-    bool m_initialized { false };  ///< Has open() with mode == Create was
+    bool m_initialized { false };  // Has open() with mode == Create was
 
-    /// Uncompressed Vulkan format to create the initial texture with.
+    // Uncompressed Vulkan format to create the initial texture with.
     VkFormat m_vkformat { VK_FORMAT_UNDEFINED };
 
-    uint32_t m_miplevel_idx { 0 };  ///< Current MIP level
+    uint32_t m_miplevel_idx { 0 };  // Current MIP level
 
-    uint32_t m_max_nmiplevels { 1 };  ///< Max number allowable MIP levels
+    uint32_t m_max_nmiplevels { 1 };  // Max number allowable MIP levels
 
-    uint32_t m_basewidth { 0 };  ///< MIP level 0 width
+    uint32_t m_basewidth { 0 };  // MIP level 0 width
 
-    uint32_t m_baseheight { 0 };  ///< MIP level 0 height
+    uint32_t m_baseheight { 0 };  // MIP level 0 height
 
-    uint32_t m_basedepth { 0 };  ///< MIP level 0 depth
+    uint32_t m_basedepth { 0 };  // MIP level 0 depth
 
     ktxSupercmpScheme m_superCmp { KTX_SS_NONE };
 
-    /// Whether to generate MIP maps when loading texture to graphics API. This
-    /// will be passed to ktxTextureCreateInfo's generateMipmaps param.
+    // Whether to generate MIP maps when loading texture to graphics API. This
+    // will be passed to ktxTextureCreateInfo's generateMipmaps param.
     bool m_generate_mipmaps { false };
 
     BlockCompression m_cmp { BlockCompression::NONE };
@@ -85,37 +86,37 @@ private:
 
     ktxBasisParams m_basis_params { 0 };
 
-    ktxAstcParams m_astc_params { 0 };  ///< Only for ASTC block compression
+    ktxAstcParams m_astc_params { 0 };  // Only for ASTC block compression
 
-    // ktxBCnParams m_bcn_params { 0 }; ///< Only for BCn block compression
+    // ktxBCnParams m_bcn_params { 0 }; // Only for BCn block compression
 
-    uint32_t m_zlib_level { 9 };  ///< Only for Zlib supercompression. Defaults
-                                  ///< to highest compression level.
+    uint32_t m_zlib_level { 9 };  // Only for Zlib supercompression. Defaults to
+                                  // highest compression level.
 
-    uint32_t m_zstd_level { 22 };  ///< Only for ZSTD supercompression. Defaults
-                                   ///< to highest compression level.
+    uint32_t m_zstd_level { 22 };  // Only for ZSTD supercompression. Defaults
+                                   // to highest compression level.
 
     std::vector<unsigned char> m_scratch;
 
-    ///
-    /// Container for raw (i.e., uncompressed) texture data structured as
-    /// follows:
-    ///   mip level -> slice/face -> pixels
-    ///
-    /// The number of slices/faces is known before hand (i.e., appending
-    /// slices/faces is not supported). This significantly simplifies the
-    /// implementation.
-    ///
-    /// Q. Why store all subimages/levels/slices/faces here?
-    /// A. libktx only supports writing whole images (i.e.,
-    ///    miplevel+layer+slice/face hence why we keep a large std::vector at
-    ///    all times. This is also needed because we apply compression upon file
-    ///    closure and not each time on write_scanline(s).
-    ///
-    /// To access underlying data: [miplevel_idx][slice_idx + face_idx]
-    /// Note: slice_idx and face_idx are mutually exclusive so summing them is
-    ///       perfectly fine.
-    ///
+    //
+    // Container for raw (i.e., uncompressed) texture data structured as
+    // follows:
+    //   mip level -> slice/face -> pixels
+    //
+    // The number of slices/faces is known before hand (i.e., appending
+    // slices/faces is not supported). This significantly simplifies the
+    // implementation.
+    //
+    // Q. Why store all subimages/levels/slices/faces here?
+    // A. libktx only supports writing whole images (i.e.,
+    //    miplevel+layer+slice/face hence why we keep a large std::vector at
+    //    all times. This is also needed because we apply compression upon file
+    //    closure and not each time on write_scanline(s).
+    //
+    // To access underlying data: [miplevel_idx][slice_idx + face_idx]
+    // Note: slice_idx and face_idx are mutually exclusive so summing them is
+    //       perfectly fine.
+    //
     std::vector<std::vector<std::vector<uint8_t>>> m_imgs;
 
     void append_mipmaps_vector();
@@ -200,9 +201,9 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 
         const auto compression = m_spec.get_string_attribute("compression",
                                                              "NONE");
-        if (iequals(compression, "NONE")) {
+        if (Strutil::iequals(compression, "none")) {
             m_cmp = BlockCompression::NONE;
-        } else if (iequals(compression, "ASTC")) {
+        } else if (Strutil::iequals(compression, "astc")) {
             m_cmp = BlockCompression::ASTC;
         } else {
             errorfmt(
@@ -214,7 +215,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // Currently only two colorspaces are tested, linear or REC709 sRGB
         const auto colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
                                                             "srgb_rec709_scene");
-        bool is_srgb          = colorspace == "srgb_rec709_scene";
+        bool is_srgb          = ColorConfig::default_colorconfig().equivalent(
+            colorspace, "srgb_rec709_scene");
         m_spec.set_colorspace(colorspace);
 
         // TODO: get_int_attribute causes a segfault and I have no idea why ...
@@ -230,11 +232,11 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         //
         const auto& supercompression_str
             = m_spec.get_string_attribute("ktx:supercompressionscheme", "NONE");
-        if (iequals(supercompression_str, "NONE")) {
+        if (Strutil::iequals(supercompression_str, "none")) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_NONE;
-        } else if (iequals(supercompression_str, "ZSTD")) {
+        } else if (Strutil::iequals(supercompression_str, "zstd")) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
-        } else if (iequals(supercompression_str, "ZLIB")) {
+        } else if (Strutil::iequals(supercompression_str, "zip" /* zlib */)) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_ZLIB;
         } else {
             close();
@@ -491,31 +493,31 @@ KtxOutput::init()
 
 
 
-///
-/// Contruct ktxBasisParams struct from given input (from the provided
-/// ImageSpec). There are two ways to approach this:
-///   1. Expect the whole ktxBasisParams to be provided by the user
-///   2. Search for each individual field
-///
-/// Option 1) has the following benefits:
-///   -  Expose only one attribute "ktx:basisparams"
-/// But:
-///   -  The user has to be aware of which libktx version is used (very bad)
-///   -  Less safe (?)
-///
-/// Options 2) has the following benefits:
-///   -  User just has to provide each parameter separately thus => don't have
-///      to care about which libktx version is used.
-///   -  Safer (?)
-/// But:
-///   -  A lot of "ktx:<param-name>" attributes have to be exposed. We can
-///      provide "high-level" parameters but that will make writing KTX2 output
-///      using OIIO significantly less customizable.
-///
-/// TODO: update comment when we finally agree on which approach.
-///
-/// For the moment, option 2) option 2) is opted for.
-///
+//
+// Contruct ktxBasisParams struct from given input (from the provided
+// ImageSpec). There are two ways to approach this:
+//   1. Expect the whole ktxBasisParams to be provided by the user
+//   2. Search for each individual field
+//
+// Option 1) has the following benefits:
+//   -  Expose only one attribute "ktx:basisparams"
+// But:
+//   -  The user has to be aware of which libktx version is used (very bad)
+//   -  Less safe (?)
+//
+// Options 2) has the following benefits:
+//   -  User just has to provide each parameter separately thus => don't have
+//      to care about which libktx version is used.
+//   -  Safer (?)
+// But:
+//   -  A lot of "ktx:<param-name>" attributes have to be exposed. We can
+//      provide "high-level" parameters but that will make writing KTX2 output
+//      using OIIO significantly less customizable.
+//
+// TODO: update comment when we finally agree on which approach.
+//
+// For the moment, option 2) option 2) is opted for.
+//
 bool
 KtxOutput::construct_basis_params(ktxBasisParams& params,
                                   std::string_view codec,
@@ -530,20 +532,21 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
 
     params.uastcFlags = KTX_PACK_UASTC_LEVEL_DEFAULT;
 
-    if (iequals(codec, "NONE")) {
+    if (Strutil::iequals(codec, "none")) {
         // no need to fill remaining struct members
         params.codec = KTX_BASIS_CODEC_NONE;
         return true;
     }
 
-    if (iequals(codec, "uastc") || iequals(codec, "uastc-ldr")
-        || iequals(codec, "uastc-ldr-4x4")) {
+    if (Strutil::iequals(codec, "uastc") || Strutil::iequals(codec, "uastc-ldr")
+        || Strutil::iequals(codec, "uastc-ldr-4x4")) {
         params.codec = KTX_BASIS_CODEC_UASTC_LDR_4x4;
-    } else if (iequals(codec, "uastc-hdr") || iequals(codec, "uastc-hdr-4x4")) {
+    } else if (Strutil::iequals(codec, "uastc-hdr")
+               || Strutil::iequals(codec, "uastc-hdr-4x4")) {
         params.codec = KTX_BASIS_CODEC_UASTC_HDR_4x4;
-    } else if (iequals(codec, "etc1s")) {
+    } else if (Strutil::iequals(codec, "etc1s")) {
         params.codec = KTX_BASIS_CODEC_ETC1S;
-    } else if (iequals(codec, "uastc-hdr-6x6")) {
+    } else if (Strutil::iequals(codec, "uastc-hdr-6x6")) {
         params.codec = KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE;
     } else {
         errorfmt(
@@ -644,14 +647,14 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
 bool
 KtxOutput::write_ktx2()
 {
-    ///
-    /// KTX2 texture RAII'fied via a unique_ptr.
-    /// Q. Why not create this in open()?
-    /// A. open() can be called with AppendMIPLevel mode which means we don't
-    ///    actually know the number of miplevels to create this texture with
-    ///    until a call to close(). libktx doesn't support changing texture
-    ///    attributes after its creation.
-    ///
+    //
+    // KTX2 texture RAII'fied via a unique_ptr.
+    // Q. Why not create this in open()?
+    // A. open() can be called with AppendMIPLevel mode which means we don't
+    //    actually know the number of miplevels to create this texture with
+    //    until a call to close(). libktx doesn't support changing texture
+    //    attributes after its creation.
+    //
     std::unique_ptr<ktxTexture2, decltype(ktxTexture2_Destroy)*> tex {
         nullptr, ktxTexture2_Destroy
     };
@@ -673,8 +676,8 @@ KtxOutput::write_ktx2()
     create_info.isArray = KTX_FALSE;  // Can't support this with current OIIO API
     create_info.generateMipmaps = m_generate_mipmaps;
 
-    DBG std::cout << "calling ktxTexture2_Create with: "
-                  << "vkFormat=" << create_info.vkFormat << "; "
+    DBG std::cout << "calling ktxTexture2_Create with: " << "vkFormat="
+                  << create_info.vkFormat << "; "
                   << "baseWidth=" << create_info.baseWidth << "; "
                   << "baseHeight=" << create_info.baseHeight << "; "
                   << "baseDepth=" << create_info.baseDepth << "; "
@@ -753,9 +756,9 @@ KtxOutput::write_ktx2()
                         slice_idx, face_idx, level_idx, data_size)
                                   << std::endl;
                 }  // slices
-            }      // faces
-        }          // layers
-    }              // mip levels
+            }  // faces
+        }  // layers
+    }  // mip levels
 
 
     //

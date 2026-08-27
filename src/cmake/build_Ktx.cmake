@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# TODO: revert this before merging! I set this to my own PR branch that includes
-#       BCn and that will be merged (as per the reviewer)
-set_cache (Ktx_BUILD_VERSION add-BCn-decoder "Ktx version for local builds")
-set       (Ktx_GIT_REPOSITORY "https://github.com/walcht/KTX-Software.git")
+# TODO: update to v5.0.0 once libktx v5.0.0 is released
+set_cache (Ktx_BUILD_VERSION v5.0.0-rc2 "Ktx version for local builds")
+set       (Ktx_GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git")
 set_cache (Ktx_GIT_TAG "${Ktx_BUILD_VERSION}" "Git branch or tag")
-set_cache (Ktx_GIT_COMMIT "77075ec1d5125df4b938e2f5d96565b10189b1f3"
+set_cache (Ktx_GIT_COMMIT "16059fa93d834242a0aaed9bb54952d76b143fac"
               "commit hash to verify tag/branch against")
 set_cache (Ktx_BUILD_SHARED_LIBS OFF #${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
               DOC "Should a local Ktx build, if necessary, build shared libraries" ADVANCED)

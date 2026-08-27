@@ -288,6 +288,7 @@ PLUGENTRY(iff);
 PLUGENTRY(jpeg);
 PLUGENTRY(jpeg2000);
 PLUGENTRY(jpegxl);
+PLUGENTRY(ktx);
 PLUGENTRY(null);
 PLUGENTRY(openexr);
 PLUGENTRY(openvdb);
@@ -305,7 +306,6 @@ PLUGENTRY(tiff);
 PLUGENTRY(targa);
 PLUGENTRY(webp);
 PLUGENTRY(zfile);
-PLUGENTRY(ktx);
 
 
 #endif  // defined(EMBED_PLUGINS)
@@ -395,6 +395,9 @@ catalog_builtin_plugins()
 #if defined(USE_JXL)
     DECLAREPLUG (jpegxl);
 #endif
+#if !defined(DISABLE_KTX)
+    DECLAREPLUG (ktx);
+#endif
 #if !defined(DISABLE_NULL)
     DECLAREPLUG (null);
 #endif
@@ -439,9 +442,6 @@ catalog_builtin_plugins()
 #endif
 #if !defined(DISABLE_ZFILE)
     DECLAREPLUG (zfile);
-#endif
-#if !defined(DISABLE_KTX)
-    DECLAREPLUG (ktx);
 #endif
 #endif
 }

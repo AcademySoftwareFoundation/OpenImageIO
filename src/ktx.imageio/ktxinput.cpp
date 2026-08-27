@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include "OpenImageIO/span.h"
 #include "ktx_pvt.h"
 #include <cstdio>
 #include <regex>
@@ -63,34 +64,29 @@ public:
 private:
     std::string m_filename;
 
-    /// KTX2 texture.
+    // KTX2 texture.
     std::unique_ptr<ktxTexture2, decltype(ktxTexture2_Destroy)*> m_tex {
         nullptr, ktxTexture2_Destroy
     };
 
-    int m_subimage { -1 };  ///< What subimage are we looking at. This is not
-                            ///< used anywhere else except in current_subimage()
+    int m_subimage { -1 };  // What subimage are we looking at. This is not used
+                            // anywhere else except in current_subimage()
 
-    int m_miplevel { -1 };  ///< What mip level are we looking at. This is not
-                            ///< used anywhere else except in current_miplevel()
+    int m_miplevel { -1 };  // What mip level are we looking at. This is not
+                            // used anywhere else except in current_miplevel()
 
-    /// GPU block compression kind (only set in case of GPU-block-compressed KTX
-    /// textures).
+    // GPU block compression kind (only set in case of GPU-block-compressed KTX
+    // textures).
     BlockCompression m_cmp { BlockCompression::NONE };
 
-    /// Original VkFormat (i.e., before applying any decompression or transcoding).
-    VkFormat m_vkformat { VK_FORMAT_UNDEFINED };
+    std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
 
-    std::unique_ptr<ImageSpec> m_config;  ///< Saved copy of configuration spec
-
-    /// Helper function: performs the actual pixel decoding.
-    bool internal_readimg(unsigned char* dst, int w, int h, int d);
-
-    /// Checks the magic
-    bool ktx_magic_cmp(const uint8_t* sig, size_t start) const;
+    // Checks the magic
+    bool ktx_magic_cmp(cspan<uint8_t> sig) const;
 
     std::string get_colorspace() const;
 
+    // std::string& because string_view are still not supported by std::regex
     void parse_ktx_sc_params_metadata(const std::string& ktx_sc_params);
 
     bool check(int subimage, int miplevel) const;
@@ -224,7 +220,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                              TypeDesc::UINT8);
     m_spec.depth = m_spec.full_depth = m_tex->baseDepth;
     std::string colorspace           = get_colorspace();
-    if (iequals(colorspace, "unknown"))
+    if (Strutil::iequals(colorspace, "unknown"))
         return false;
     m_spec.set_colorspace(colorspace);
 
@@ -311,7 +307,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
             // vallen checks are done below depending on the attribute name
 
-            auto attr_name              = std::string(key, key + (keylen - 1));
+            auto attr_name              = OIIO::string_view(key, keylen);
             auto ktx_prefixed_attr_name = fmt::format("ktx:{}", attr_name);
 
             if (attr_name == KTX_WRITER_SCPARAMS_KEY) {
@@ -747,18 +743,21 @@ OpenImageIO::KtxInput::valid_file(Filesystem::IOProxy* ioproxy) const
     uint8_t magic[12] {};
     const size_t numRead = ioproxy->pread(magic, sizeof(magic), 0);
 
-    return (numRead == sizeof(magic)) && this->ktx_magic_cmp(magic, 0);
+    return (numRead == sizeof(magic))
+           && this->ktx_magic_cmp(make_cspan(magic, numRead));
 }
 
 
 
 bool
-KtxInput::ktx_magic_cmp(const uint8_t* sig, size_t start) const
+KtxInput::ktx_magic_cmp(cspan<uint8_t> sig) const
 {
     // this is: "«KTX 20»\r\n\x1A\n"
     const uint8_t KTX2_IDENTIFIER[12] { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32,
                                         0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A };
-    for (size_t i = start; (i - start) < sizeof(KTX2_IDENTIFIER); ++i)
+    if (sig.size() < sizeof(KTX2_IDENTIFIER))
+        return false;
+    for (size_t i = 0; i < sizeof(KTX2_IDENTIFIER); ++i)
         if (sig[i] != KTX2_IDENTIFIER[i])
             return false;
     return true;
@@ -837,32 +836,30 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
         std::regex etc1s_max_selectors("--max-selectors\\s+(\\d+)", f);
         std::regex etc1s_selector_rdo_threshold(
             "--selector-rdo-threshold\\s+((\\d*[.])?\\d+)", f);
-        std::regex etc1s_no_endpoint_rdo_re("--no-endpoint-rdo", f);
-        std::regex etc1s_no_selector_rdo_re("--no-selector-rdo", f);
 
         if (std::smatch m; std::regex_search(ktx_sc_params, m, etc1s_clevel)
                            && m.size() == 2) {
-            auto level = static_cast<uint32_t>(std::stol(m[1].str()));
+            auto level = Strutil::stoui(m[1].str());
             m_spec.extra_attribs.attribute("ktx:etc1sCompressionLevel", level);
         }
 
         if (std::smatch m; std::regex_search(ktx_sc_params, m, etc1s_qlevel)
                            && m.size() == 2) {
-            auto level = static_cast<uint32_t>(std::stol(m[1].str()));
+            auto level = Strutil::stoui(m[1].str());
             m_spec.extra_attribs.attribute("ktx:etc1sQualityLevel", level);
         }
 
         if (std::smatch m;
             std::regex_search(ktx_sc_params, m, etc1s_max_endpoints)
             && m.size() == 2) {
-            auto level = static_cast<uint32_t>(std::stol(m[1].str()));
+            auto level = Strutil::stoui(m[1].str());
             m_spec.extra_attribs.attribute("ktx:etc1sMaxEndpoints", level);
         }
 
         if (std::smatch m;
             std::regex_search(ktx_sc_params, m, etc1s_endpoint_rdo_threshold)
             && m.size() == 2) {
-            auto val = std::stof(m[1].str());
+            auto val = Strutil::stof(m[1].str());
             m_spec.extra_attribs.attribute("ktx:etc1sEndpointRDOThreshold",
                                            val);
         }
@@ -870,37 +867,30 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
         if (std::smatch m;
             std::regex_search(ktx_sc_params, m, etc1s_max_selectors)
             && m.size() == 2) {
-            auto level = static_cast<uint32_t>(std::stol(m[1].str()));
+            auto level = Strutil::stoui(m[1].str());
             m_spec.extra_attribs.attribute("ktx:etc1sMaxSelectors", level);
         }
 
         if (std::smatch m;
             std::regex_search(ktx_sc_params, m, etc1s_selector_rdo_threshold)
             && m.size() == 2) {
-            auto val = std::stof(m[1].str());
+            auto val = Strutil::stof(m[1].str());
             m_spec.extra_attribs.attribute("ktx:etc1sSelectorRDOThreshold",
                                            val);
         }
 
-        if (std::regex_match(ktx_sc_params, etc1s_no_endpoint_rdo_re))
+        if (Strutil::icontains(ktx_sc_params, "--no-endpoint-rdo"))
             m_spec.extra_attribs.attribute("ktx:etc1sNoEndpointRDO", true);
-
-        if (std::regex_match(ktx_sc_params, etc1s_no_selector_rdo_re))
+        if (Strutil::icontains(ktx_sc_params, "--no-selector-rdo"))
             m_spec.extra_attribs.attribute("ktx:etc1sNoSelectorRDO", true);
     }
 
     {  // UASTC params (see KTX-Software/tools/ktx/encode_utils_basis.h)
         std::regex uastc_quality_re("--uastc-quality\\s+(\\d+)", f);
-        std::regex uastc_rdo_re("--uastc-rdo", f);
         std::regex uastc_rdo_l_re("--uastc-rdo-l\\s+((\\d*[.])?\\d+)", f);
         std::regex uastc_rdo_d_re("--uastc-rdo-d\\s+(\\d+)", f);
         std::regex uastc_rdo_b_re("--uastc-rdo-b\\s+((\\d*[.])?\\d+)", f);
         std::regex uastc_rdo_s_re("--uastc-rdo-s\\s+((\\d*[.])?\\d+)", f);
-        std::regex uastc_rdo_f_re("--uastc-rdo-f", f);
-        std::regex uastc_rdo_m_re("--uastc-rdo-m", f);
-        std::regex uastc_rdo_uber_mode_re("--uastc-hdr-uber-mode", f);
-        std::regex uastc_rdo_ultra_quant_re("--uastc-hdr-ultra-quant", f);
-        std::regex uastc_rdo_favor_astc_re("--uastc-hdr-favor-astc", f);
         std::regex uastc_hdr_lambda_re("--uastc-hdr-lambda\\s+((\\d*[.])?\\d+)",
                                        f);
         std::regex uastc_hdr_6x6i_level_re("--uastc-hdr-6x6i-level\\s+(\\d+)",
@@ -908,7 +898,7 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
 
         if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_quality_re)
                            && m.size() == 2) {
-            auto uastc_quality = static_cast<uint32_t>(std::stol(m[1].str()));
+            auto uastc_quality = Strutil::stoui(m[1].str());
             const uint32_t uastc_flags
                 = (unsigned int)~KTX_PACK_UASTC_LEVEL_MASK | uastc_quality;
             m_spec.extra_attribs.attribute("ktx:uastcFlags", uastc_flags);
@@ -916,56 +906,55 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
                                            uastc_quality);
         }
 
-        if (std::regex_match(ktx_sc_params, uastc_rdo_re))
+        if (Strutil::icontains(ktx_sc_params, "--uastc-rdo"))
             m_spec.extra_attribs.attribute("ktx:uastcRDO", true);
 
         if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_rdo_l_re)
                            && m.size() == 2) {
-            auto uastc_rdo_l = std::stof(m[1].str());
+            auto uastc_rdo_l = Strutil::stof(m[1].str());
             m_spec.extra_attribs.attribute("ktx:uastcRDOQualityScalar",
                                            uastc_rdo_l);
         }
 
         if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_rdo_d_re)
                            && m.size() == 2) {
-            auto uastc_rdo_d = static_cast<uint32_t>(std::stol(m[1].str()));
+            auto uastc_rdo_d = Strutil::stoui(m[1].str());
             m_spec.extra_attribs.attribute("ktx:uastcRDODictSize", uastc_rdo_d);
         }
 
         if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_rdo_b_re)
                            && m.size() == 2) {
-            auto uastc_rdo_b = std::stof(m[1].str());
+            auto uastc_rdo_b = Strutil::stof(m[1].str());
             m_spec.extra_attribs.attribute(
                 "ktx:uastcRDOMaxSmoothBlockErrorScale", uastc_rdo_b);
         }
 
         if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_rdo_s_re)
                            && m.size() == 2) {
-            auto uastc_rdo_s = std::stof(m[1].str());
+            auto uastc_rdo_s = Strutil::stof(m[1].str());
             m_spec.extra_attribs.attribute("ktx:uastcRDOMaxSmoothBlockStdDev",
                                            uastc_rdo_s);
         }
 
-        if (std::regex_match(ktx_sc_params, uastc_rdo_f_re))
+        if (Strutil::icontains(ktx_sc_params, "--uastc-rdo-f"))
             m_spec.extra_attribs.attribute("ktx:uastcRDODontFavorSimplerModes",
                                            true);
-        if (std::regex_match(ktx_sc_params, uastc_rdo_m_re))
+        if (Strutil::icontains(ktx_sc_params, "--uastc-rdo-m"))
             m_spec.extra_attribs.attribute("ktx:uastcRDONoMultithreading",
                                            true);
-
-        if (std::regex_match(ktx_sc_params, uastc_rdo_m_re))
+        if (Strutil::icontains(ktx_sc_params, ""))
             m_spec.extra_attribs.attribute("ktx:uastcHDRQuality", true);
-        if (std::regex_match(ktx_sc_params, uastc_rdo_uber_mode_re))
+        if (Strutil::icontains(ktx_sc_params, "--uastc-hdr-uber-mode"))
             m_spec.extra_attribs.attribute("ktx:uastcHDRUberMode", true);
-        if (std::regex_match(ktx_sc_params, uastc_rdo_ultra_quant_re))
+        if (Strutil::icontains(ktx_sc_params, "--uastc-hdr-ultra-quant"))
             m_spec.extra_attribs.attribute("ktx:uastcHDRUltraQuant", true);
-        if (std::regex_match(ktx_sc_params, uastc_rdo_favor_astc_re))
+        if (Strutil::icontains(ktx_sc_params, "--uastc-hdr-favor-astc"))
             m_spec.extra_attribs.attribute("ktx:uastcHDRFavorAstc", true);
 
         if (std::smatch m;
             std::regex_search(ktx_sc_params, m, uastc_hdr_lambda_re)
             && m.size() == 2) {
-            auto uastc_hdr_lambda = std::stof(m[1].str());
+            auto uastc_hdr_lambda = Strutil::stof(m[1].str());
             m_spec.extra_attribs.attribute("ktx:uastcHDRLambda",
                                            uastc_hdr_lambda);
         }
@@ -973,20 +962,16 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
         if (std::smatch m;
             std::regex_search(ktx_sc_params, m, uastc_hdr_6x6i_level_re)
             && m.size() == 2) {
-            auto uastc_hdr_6x6i_level = static_cast<uint32_t>(
-                std::stol(m[1].str()));
+            auto uastc_hdr_6x6i_level = Strutil::stoui(m[1].str());
             m_spec.extra_attribs.attribute("ktx:uastcHDRLevel",
                                            uastc_hdr_6x6i_level);
         }
     }
 
     {  // Common params (see KTX-Software/tools/ktx/encode_utils_common.h)
-        std::regex common_normal_map("--normal-mode", f);
-        std::regex common_no_sse("--no-sse", f);
-
-        if (std::regex_match(ktx_sc_params, common_normal_map))
+        if (Strutil::icontains(ktx_sc_params, "--normal-mode"))
             m_spec.extra_attribs.attribute("ktx:normalMap", true);
-        if (std::regex_match(ktx_sc_params, common_no_sse))
+        if (Strutil::icontains(ktx_sc_params, "--no-sse"))
             m_spec.extra_attribs.attribute("ktx:noSSE", true);
     }
 
