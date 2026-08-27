@@ -86,9 +86,9 @@ private:
 
     ktxBasisParams m_basis_params { 0 };
 
-    ktxAstcParams m_astc_params { 0 };  // Only for ASTC block compression
+    ktxAstcParams m_astc_params { 0 };  // Params for ASTC GPU block compression
 
-    // ktxBCnParams m_bcn_params { 0 }; // Only for BCn block compression
+    // ktxBCnParams m_bcn_params { 0 }; // Params for BCn GPU block compression
 
     uint32_t m_zlib_level { 9 };  // Only for Zlib supercompression. Defaults to
                                   // highest compression level.

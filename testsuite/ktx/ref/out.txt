@@ -112,7 +112,6 @@ Reading ../oiio-images/ktx2/color_grid_zstd_5.ktx2
     SHA-1: 4964D0A088333B6C31CD3BA19A2B8CC1CE879DA8
     channel list: R, G, B, A
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--zstd 5"
     ktx:supercompressionscheme: 2
     ktx:version: "2.0"
     oiio:ColorSpace: "srgb_rec709_scene"
@@ -143,7 +142,6 @@ Reading ../oiio-images/ktx2/color_grid_uastc_zstd_5.ktx2
     SHA-1: B631629A3A81C50B2CE264D8CCA4EC4E169DFD6E
     channel list: R, G, B, A
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--zstd 5"
     ktx:supercompressionscheme: 2
     ktx:version: "2.0"
     oiio:ColorSpace: "srgb_rec709_scene"
@@ -153,7 +151,6 @@ Reading ../oiio-images/ktx2/Iron_Bars_001_normal_uastc_zstd_10.ktx2
     SHA-1: D428118F2CD6DE70F04C9BD6D092A5A5DCAB195D
     channel list: R, G, B, A
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--normal-mode --zstd 10"
     ktx:miplevels: 11
     ktx:supercompressionscheme: 2
     ktx:version: "2.0"
@@ -164,7 +161,6 @@ Reading ../oiio-images/ktx2/ktx_document_uastc_rdo_4_zstd_5.ktx2
     SHA-1: 8644BD94DE7A340007640D0063DF80FC2B744849
     channel list: R, G, B, A
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--uastc-rdo --uastc-rdo-l 4 --threads 1 --zstd 5"
     ktx:miplevels: 11
     ktx:supercompressionscheme: 2
     ktx:version: "2.0"
@@ -175,7 +171,6 @@ Reading ../oiio-images/ktx2/cubemap_goldengate_uastc_rdo_4_zstd_5.ktx2
     SHA-1: 730E2C2DABA5D591458C91C4D952638BC4EAADD6
     channel list: R, G, B, A
     textureformat: "CubeFace Environment"
-    ktx:KTXwriterScParams: "--uastc-rdo --uastc-rdo-l 4 --zstd 5"
     ktx:miplevels: 11
     ktx:nfaces: 6
     ktx:supercompressionscheme: 2
@@ -186,7 +181,6 @@ Reading ../oiio-images/ktx2/Desk_small_zstd_15.ktx2
     SHA-1: 547517CC24207ECC0A73486D5224697E3FC38AB6
     channel list: R, G, B
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--zstd 15"
     ktx:supercompressionscheme: 2
     ktx:version: "2.0"
     oiio:ColorSpace: "lin_rec709_scene"
@@ -195,7 +189,6 @@ Reading ../oiio-images/ktx2/Desk_uastc_hdr4x4_zstd_15.ktx2
     SHA-1: BD3B955A6D2F724D306F9AF402BBCA15DCFECC20
     channel list: R, G, B, A
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--uastc-hdr-ultra-quant true --zstd 15"
     ktx:supercompressionscheme: 2
     ktx:version: "2.0"
     oiio:ColorSpace: "lin_rec709_scene"
@@ -204,7 +197,6 @@ Reading ../oiio-images/ktx2/Desk_uastc_hdr6x6i.ktx2
     SHA-1: 8E0DE70C334CFA0A84AC7FE815F7066DFAF1413B
     channel list: R, G, B, A
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--uastc-hdr-lambda 300"
     ktx:supercompressionscheme: 4
     ktx:version: "2.0"
     oiio:ColorSpace: "lin_rec709_scene"
@@ -267,7 +259,6 @@ Reading ../oiio-images/ktx2/Iron_Bars_001_normal_blze.ktx2
     SHA-1: 4B447C9281806EBDC73619B0622F7F3CCC317F05
     channel list: R, G, B, A
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--normal-mode"
     ktx:miplevels: 11
     ktx:supercompressionscheme: 1
     ktx:version: "2.0"
@@ -287,7 +278,6 @@ Reading ../oiio-images/ktx2/alpha_complex_straight.ktx2
     SHA-1: 4DC3A14E38526B307226E2DDE083608891EBD27F
     channel list: R, G, B, A
     textureformat: "Plain Texture"
-    ktx:KTXwriterScParams: "--zstd 10"
     ktx:supercompressionscheme: 2
     ktx:version: "2.0"
     oiio:ColorSpace: "srgb_rec709_scene"
