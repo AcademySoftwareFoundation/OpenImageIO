@@ -73,7 +73,7 @@ set (OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH OFF CACHE BOOL
      "Exclude find_dependency(Imath) from the exported OpenImageIOConfig.cmake")
 
 # JPEG -- prefer JPEG-Turbo to regular libjpeg
-checked_find_package (libjpeg-turbo REQUIRED
+checked_find_package (libjpeg-turbo
                       VERSION_MIN 2.1
                       DEFINITIONS USE_JPEG_TURBO=1)
 if (TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
