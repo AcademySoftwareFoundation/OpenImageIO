@@ -638,10 +638,10 @@ src/truncated.dng    :   32 x   32, 1 channel, uint16 raw
 oiiotool ERROR: stats : Could not unpack "src/truncated.dng", Input/output error
 Full command line was:
 > oiiotool -iconfig raw:Demosaic none --stats src/truncated.dng
-oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 208 byte file; probably a corrupt or malicious header
+oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 252 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool --info src/bomb-32000x32000.dng
-oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 208 byte file; probably a corrupt or malicious header
+oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 252 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool -iconfig raw:Demosaic none --stats src/bomb-32000x32000.dng
 rotation 0
