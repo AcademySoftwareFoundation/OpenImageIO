@@ -24,6 +24,15 @@ endif ()
 set_cache (UHDR_CMAKE_C_COMPILER ${CMAKE_C_COMPILER} "libuhdr build C compiler override" ADVANCED)
 set_cache (UHDR_CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER} "libuhdr build C++ compiler override" ADVANCED)
 
+# libuhdr's own CMake install target does not work on Windows (it generates
+# no install.vcxproj), so we skip CMake's install step there and instead
+# manually place the built libs and header into the install dir below.
+if (WIN32)
+    set (_libuhdr_noinstall NOINSTALL)
+else ()
+    set (_libuhdr_noinstall)
+endif ()
+
 build_dependency_with_cmake(libuhdr
     VERSION         ${libuhdr_BUILD_VERSION}
     GIT_REPOSITORY  ${libuhdr_GIT_REPOSITORY}
@@ -40,15 +49,24 @@ build_dependency_with_cmake(libuhdr
         -D JPEG_LIBRARY=${JPEG_LIBRARY}
         -D CMAKE_C_COMPILER=${UHDR_CMAKE_C_COMPILER}
         -D CMAKE_CXX_COMPILER=${UHDR_CMAKE_CXX_COMPILER}
+    ${_libuhdr_noinstall}
     )
+unset (_libuhdr_noinstall)
 
 if (WIN32)
-    file (GLOB _lib_files "${libuhdr_LOCAL_BUILD_DIR}/Release/*.lib")
+    # The multi-config VS generator puts the .lib under a per-config
+    # subdirectory named for the config we built (${..._DEPENDENCY_BUILD_TYPE},
+    # e.g. MinSizeRel for our wheel builds), not always "Release".
+    file (GLOB _lib_files "${libuhdr_LOCAL_BUILD_DIR}/${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}/*.lib")
     file (COPY ${_lib_files} DESTINATION ${libuhdr_LOCAL_INSTALL_DIR}/lib)
     unset (_lib_files)
     file (GLOB _header_files "${libuhdr_LOCAL_SOURCE_DIR}/ultrahdr_api.h")
     file (COPY ${_header_files} DESTINATION ${libuhdr_LOCAL_INSTALL_DIR}/include)
     unset (_header_files)
+    # build_dependency_with_cmake() normally sets these after a successful
+    # install step; since we skipped that step above, set them by hand.
+    set (libuhdr_ROOT ${libuhdr_LOCAL_INSTALL_DIR})
+    list (APPEND CMAKE_PREFIX_PATH ${libuhdr_LOCAL_INSTALL_DIR})
 endif ()
 
 # Signal to caller that we need to find again at the installed location.
