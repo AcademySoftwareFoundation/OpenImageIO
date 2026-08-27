@@ -7600,8 +7600,10 @@ OIIO_FORCEINLINE vint4 ifloor (const vfloat4& a)
     // FIXME: look into this, versus the method of quick_floor in texturesys.cpp
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return vint4(floor(a));
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vcvtmq_s32_f32 (a);   // floor and convert, in one instruction
+#elif OIIO_SIMD_NEON
+    return vint4(floor(a));
 #else
     SIMD_RETURN (vint4, (int)floorf(a[i]));
 #endif
