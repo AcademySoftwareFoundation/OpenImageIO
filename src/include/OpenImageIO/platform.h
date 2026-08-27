@@ -654,7 +654,8 @@ inline bool cpu_has_avx512vl() {int i[4]; cpuid(i,7,0); return (i[1] & (0x800000
 /// this needs no runtime check: NEON is architecturally mandatory on
 /// ARMv8-A, so it is simply always present on any aarch64 target.
 inline bool cpu_has_neon() {
-#if defined(__aarch64__) || defined(__aarch64) || defined(_M_ARM64) || defined(_M_ARM64EC)
+#if defined(__ARM_NEON__) || defined(__ARM_NEON) || defined(__aarch64__) \
+    || defined(__aarch64) || defined(_M_ARM64) || defined(_M_ARM64EC)
     return true;
 #else
     return false;
