@@ -770,7 +770,7 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
         // must not be copied out of regardless.
         const int64_t scanline_size = int64_t(buffer_bpp) * m_spec.width
                                       * m_spec.nchannels;
-        const int64_t offset = scanline_size * y;
+        const int64_t offset        = scanline_size * y;
         if (y < 0 || offset < 0
             || offset + scanline_size > int64_t(m_buf.size())) {
             errorfmt("Scanline {} is outside the decoded HTJ2K image", y);
