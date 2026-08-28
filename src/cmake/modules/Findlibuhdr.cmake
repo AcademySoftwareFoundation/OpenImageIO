@@ -20,7 +20,10 @@ find_path(LIBUHDR_INCLUDE_DIR
     include
 )
 
-find_library(LIBUHDR_LIBRARY uhdr
+find_library(LIBUHDR_LIBRARY
+  NAMES
+    uhdr
+    uhdr-static
   PATH_SUFFIXES
     lib
 )
