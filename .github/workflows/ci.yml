@@ -92,10 +92,11 @@ jobs:
             container: aswf/ci-osl:2023-clang15.2
             opencolorio_ver: v2.3.0
             python_ver: "3.10"
+            oiio_python_bindings_backend: pybind11
+            pybind11_ver: v2.10.0
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             fmt_commit: f5e54359df4c26b6230fc61d38aa294581393084
-            pybind11_ver: v2.10.0
             setenvs: export PUGIXML_VERSION=v1.13
             optional_deps_append: 'LibRaw;Ptex;Qt6'
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
@@ -104,10 +105,11 @@ jobs:
             container: aswf/ci-oiio:2024.6
             opencolorio_ver: v2.3.2
             python_ver: "3.11"
+            oiio_python_bindings_backend: pybind11
+            pybind11_ver: v2.12.0
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             fmt_commit: f5e54359df4c26b6230fc61d38aa294581393084
-            pybind11_ver: v2.12.0
             setenvs: export PUGIXML_VERSION=v1.14
             optional_deps_append: "LibRaw"
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
@@ -118,10 +120,11 @@ jobs:
             cxx_compiler: clang++
             opencolorio_ver: v2.3.2
             python_ver: "3.11"
+            oiio_python_bindings_backend: pybind11
+            pybind11_ver: v2.12.0
             simd: "avx2,f16c"
             fmt_ver: 10.1.1
             fmt_commit: f5e54359df4c26b6230fc61d38aa294581393084
-            pybind11_ver: v2.12.0
             setenvs: export PUGIXML_VERSION=v1.14
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
@@ -132,10 +135,11 @@ jobs:
             container: aswf/ci-oiio:2025.5
             cxx_std: 17
             python_ver: "3.11"
+            oiio_python_bindings_backend: pybind11
+            pybind11_ver: v2.13.6
             simd: "avx2,f16c"
             fmt_ver: 11.2.0
             fmt_commit: 40626af88bd7df9a5fb80be7b25ac85b122d6c21
-            pybind11_ver: v2.13.6
             benchmark: 1
             setenvs: export PUGIXML_VERSION=v1.15
             optional_deps_append: "Qt6"
@@ -146,6 +150,7 @@ jobs:
             cxx_std: 17
             build_type: Debug
             ctest_test_timeout: "300"
+            oiio_python_bindings_backend: pybind11
             python_ver: "3.11"
             simd: "avx2,f16c"
             fmt_ver: 11.2.0
@@ -175,6 +180,7 @@ jobs:
             fmt_ver: 11.2.0
             fmt_commit: 40626af88bd7df9a5fb80be7b25ac85b122d6c21
             python_ver: "3.11"
+            oiio_python_bindings_backend: pybind11
             pybind11_ver: v2.13.6
             simd: "avx2,f16c"
             benchmark: 1
@@ -193,16 +199,19 @@ jobs:
             python_ver: "3.13"
             simd: "avx2,f16c"
             pybind11_ver: v3.0.0
+            oiio_python_bindings_backend: both
+            setenvs: export nanobind_GIT_TAG=v2.13.0
+                            nanobind_GIT_COMMIT=e2dc00f7a34f935c6cf91948776d59c4709e9fe6
             optional_deps_append: "Qt5;Qt6"
-
           - desc: VFX2027 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2027
             runner: ubuntu-latest
             container: aswf/ci-oiio:2027
             cxx_std: 20
             python_ver: "3.13"
-            simd: "avx2,f16c"
+            oiio_python_bindings_backend: nanobind
             pybind11_ver: v3.0.4
+            simd: "avx2,f16c"
             benchmark: 1
           - desc: VFX2027 clang21/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2027-clang
@@ -212,8 +221,9 @@ jobs:
             cxx_compiler: clang++
             cxx_std: 20
             python_ver: "3.13"
-            simd: "avx2,f16c"
+            oiio_python_bindings_backend: nanobind
             pybind11_ver: v3.0.4
+            simd: "avx2,f16c"
 
           - desc: Sanitizers
             nametag: sanitizer
@@ -296,7 +306,7 @@ jobs:
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;OpenVDB;Ptex;pystring;Qt5;R3DSDK;Libheif;' }}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
-      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'both' }}
+      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'nanobind' }}
     strategy:
       fail-fast: false
       matrix:
@@ -333,6 +343,7 @@ jobs:
             openexr_ver: v3.4.13
             pybind11_ver: v3.0.4
             python_ver: "3.12"
+            oiio_python_bindings_backend: both
             simd: avx2,f16c
             gcc_action_ver: 15
             setenvs: export OIIO_CC=gcc-15 OIIO_CXX=g++-15
@@ -349,6 +360,8 @@ jobs:
                             UHDR_CMAKE_C_COMPILER=gcc
                             UHDR_CMAKE_CXX_COMPILER=g++
                             OPENCOLORIO_CXX=c++
+                            nanobind_GIT_TAG=v3.0.0
+                            nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
@@ -364,6 +377,7 @@ jobs:
             openexr_ver: main
             pybind11_ver: master
             python_ver: "3.12"
+            oiio_python_bindings_backend: both
             simd: avx2,f16c
             benchmark: 1
             gcc_action_ver: 16
@@ -384,6 +398,8 @@ jobs:
                             UHDR_CMAKE_C_COMPILER=gcc
                             UHDR_CMAKE_CXX_COMPILER=g++
                             OPENCOLORIO_CXX=c++
+                            nanobind_GIT_TAG=master
+                            nanobind_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
@@ -397,6 +413,7 @@ jobs:
             fmt_ver: 12.1.0
             fmt_commit: 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
             python_ver: "3.10"
+            oiio_python_bindings_backend: both
             simd: avx2,f16c
             build_local_deps: all
             setenvs: export OpenImageIO_DEPENDENCY_BUILD_VERBOSE=ON
@@ -431,8 +448,9 @@ jobs:
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
             openexr_ver: v3.4.13
-            pybind11_ver: v3.0.4
             python_ver: "3.12"
+            pybind11_ver: v3.0.4
+            oiio_python_bindings_backend: both
             setenvs: export LIBJPEGTURBO_VERSION=3.2.0
                             LIBPNG_VERSION=v1.6.58
                             LIBRAW_VERSION=0.22.0
@@ -443,6 +461,8 @@ jobs:
                             WEBP_VERSION=v1.6.0
                             FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
+                            nanobind_GIT_TAG=v3.0.0
+                            nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
           - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.4 ocio2.4
             nametag: linux-arm-latest-releases-clang
             runner: ubuntu-24.04-arm
@@ -453,8 +473,9 @@ jobs:
             fmt_commit: 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
             opencolorio_ver: v2.5.2
             openexr_ver: v3.4.13
-            pybind11_ver: v3.0.4
             python_ver: "3.12"
+            pybind11_ver: v3.0.4
+            oiio_python_bindings_backend: both
             setenvs: export LIBJPEGTURBO_VERSION=3.2.0
                             LIBPNG_VERSION=v1.6.58
                             LIBRAW_VERSION=0.22.0
@@ -465,6 +486,8 @@ jobs:
                             WEBP_VERSION=v1.6.0
                             FREETYPE_VERSION=VER-2-14-1
                             USE_OPENVDB=0
+                            nanobind_GIT_TAG=v3.0.0
+                            nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
 
           - desc: oldest gcc9/C++17 py3.9 exr3.1 ocio2.3
             # Oldest gcc and versions of the dependencies that we support.
@@ -480,6 +503,7 @@ jobs:
             pybind11_ver: v2.7.0
             python_ver: "3.9"
             python_action_ver: "3.9"
+            oiio_python_bindings_backend: pybind11
             gcc_action_ver: 9
             setenvs: export  CMAKE_VERSION=3.23.0
                              PTEX_VERSION=v2.3.2
@@ -509,6 +533,7 @@ jobs:
             pybind11_ver: v2.7.0
             python_ver: "3.9"
             python_action_ver: "3.9"
+            oiio_python_bindings_backend: both
             llvm_action_ver: "11"
             setenvs: export CMAKE_VERSION=3.23.0
                             PTEX_VERSION=v2.3.2
@@ -526,6 +551,8 @@ jobs:
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
                             LIBRAW_VERSION=0.21.0
+                            nanobind_GIT_TAG=v2.8.0
+                            nanobind_GIT_COMMIT=0e7aa61a75052034453cd2b906a79fe222792697
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
@@ -547,6 +574,7 @@ jobs:
             pybind11_ver: v2.7.0
             python_ver: "3.9"
             python_action_ver: "3.9"
+            oiio_python_bindings_backend: pybind11
             gcc_action_ver: 9
             simd: 0
             setenvs: export  EMBEDPLUGINS=0
@@ -610,7 +638,7 @@ jobs:
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'Nuke;R3DSDK;' }}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
-      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'both' }}
+      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'nanobind' }}
     strategy:
       fail-fast: false
       matrix:
@@ -622,6 +650,7 @@ jobs:
             cxx_compiler: /usr/bin/clang++
             cxx_std: 17
             python_ver: "3.14"
+            oiio_python_bindings_backend: both
             simd: sse4.2,avx2
             ctest_test_timeout: 1200
             setenvs: export MACOSX_DEPLOYMENT_TARGET=12.0
@@ -635,6 +664,7 @@ jobs:
             cxx_compiler: /usr/bin/clang++
             cxx_std: 20
             python_ver: "3.13"
+            oiio_python_bindings_backend: both
           - desc: MacOS-15-ARM aclang16/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313
@@ -642,6 +672,7 @@ jobs:
             cxx_compiler: /usr/bin/clang++
             cxx_std: 20
             python_ver: "3.13"
+            oiio_python_bindings_backend: nanobind
             benchmark: 1
           - desc: MacOS-26-ARM aclang16/C++20/py3.14
             runner: macos-26
@@ -650,6 +681,7 @@ jobs:
             cxx_compiler: /usr/bin/clang++
             cxx_std: 20
             python_ver: "3.14"
+            oiio_python_bindings_backend: nanobind
             benchmark: 1
 
 
@@ -694,7 +726,7 @@ jobs:
       required_deps: ${{ matrix.required_deps || 'all' }}
       optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
       build_local_deps: ${{ matrix.build_local_deps }}
-      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'both' }}
+      oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'nanobind' }}
     strategy:
       fail-fast: false
       matrix:
@@ -704,7 +736,7 @@ jobs:
             nametag: windows-2022
             generator: "Visual Studio 17 2022"
             python_ver: "3.12"
-            oiio_python_bindings_backend: nanobind
+            oiio_python_bindings_backend: both
             ctest_test_timeout: "240"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
           - desc: Windows-2025 VS2026
@@ -712,7 +744,7 @@ jobs:
             nametag: windows-2025-vs2026
             generator: "Visual Studio 18 2026"
             python_ver: "3.12"
-            oiio_python_bindings_backend: both
+            oiio_python_bindings_backend: nanobind
             ctest_test_timeout: "240"
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
             benchmark: 1

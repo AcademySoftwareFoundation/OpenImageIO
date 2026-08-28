@@ -165,11 +165,9 @@ Make wrapper (`make PkgName_ROOT=...`).
 
 `USE_PYTHON=0` : Omits building the Python bindings.
 
-`OIIO_PYTHON_BINDINGS_BACKEND=pybind11|nanobind|both` : Select which Python
-binding backend(s) to configure for source/CMake builds. `both` keeps the
-existing pybind11 module and also builds the nanobind (WIP) module. The
-Python packaging path driven by `pyproject.toml` still targets the production
-pybind11 bindings today.
+`OIIO_PYTHON_BINDINGS_BACKEND=nanobind|pybind11|both` : Select which Python
+binding backend(s) to configure for source/CMake builds.  The Python packaging
+path driven by `pyproject.toml` targets the nanobind bindings.
 
 `OIIO_BUILD_TESTS=0` : Omits building tests (you probably don't need them
 unless you are a developer of OIIO or want to verify that your build
@@ -261,7 +259,7 @@ Additionally, a few helpful modifiers alter some build-time options:
 | make USE_QT=0 ...             |  Skip anything that needs Qt                                              |
 | make MYCC=xx MYCXX=yy ...     |  Use custom compilers                                                     |
 | make USE_PYTHON=0 ...         |  Don't build the Python binding                                           |
-| make OIIO_PYTHON_BINDINGS_BACKEND=both ... | For source/CMake builds, build the existing pybind11 bindings and the nanobind (WIP) module |
+| make OIIO_PYTHON_BINDINGS_BACKEND=both ... | For source/CMake builds, choosing nanobind (current), pybind11 (legacy) or both modules. |
 | make BUILD_SHARED_LIBS=0      |  Build static library instead of shared                                   |
 | make IGNORE_HOMEBREWED_DEPS=1 |  Ignore homebrew-managed dependencies                                     |
 | make LINKSTATIC=1 ...         |  Link with static external libraries when possible                        |
