@@ -7566,7 +7566,7 @@ OIIO_FORCEINLINE vfloat4 ceil (const vfloat4& a)
 {
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return _mm_ceil_ps (a);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vrndpq_f32 (a);
 #else
     SIMD_RETURN (vfloat4, ceilf(a[i]));
@@ -7577,7 +7577,7 @@ OIIO_FORCEINLINE vfloat4 floor (const vfloat4& a)
 {
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return _mm_floor_ps (a);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vrndmq_f32 (a);
 #else
     SIMD_RETURN (vfloat4, floorf(a[i]));
@@ -7588,7 +7588,7 @@ OIIO_FORCEINLINE vfloat4 round (const vfloat4& a)
 {
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return _mm_round_ps (a, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC));
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vrndnq_f32(a);
 #else
     SIMD_RETURN (vfloat4, roundf(a[i]));
@@ -7715,8 +7715,10 @@ OIIO_FORCEINLINE vfloat4 madd (const simd::vfloat4& a, const simd::vfloat4& b,
 #if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
     // If we are sure _mm_fmadd_ps intrinsic is available, use it.
     return _mm_fmadd_ps (a, b, c);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vfmaq_f32(c.simd(), a.simd(), b.simd());   // c + a*b
+#elif OIIO_SIMD_NEON
+    return vmlaq_f32(c.simd(), a.simd(), b.simd());   // c + a*b (unfused)
 #elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
@@ -7733,10 +7735,12 @@ OIIO_FORCEINLINE vfloat4 msub (const simd::vfloat4& a, const simd::vfloat4& b,
                               const simd::vfloat4& c)
 {
 #if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
-    // If we are sure _mm_fnmsub_ps intrinsic is available, use it.
+    // If we are sure _mm_fmsub_ps intrinsic is available, use it.
     return _mm_fmsub_ps (a, b, c);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vfmaq_f32(vnegq_f32(c.simd()), a.simd(), b.simd());   // -c + a*b
+#elif OIIO_SIMD_NEON
+    return vmlaq_f32(vnegq_f32(c.simd()), a.simd(), b.simd());   // -c + a*b (unfused)
 #elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
@@ -7756,8 +7760,10 @@ OIIO_FORCEINLINE vfloat4 nmadd (const simd::vfloat4& a, const simd::vfloat4& b,
 #if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
     // If we are sure _mm_fnmadd_ps intrinsic is available, use it.
     return _mm_fnmadd_ps (a, b, c);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vfmsq_f32(c.simd(), a.simd(), b.simd());   // c - a*b
+#elif OIIO_SIMD_NEON
+    return vmlsq_f32(c.simd(), a.simd(), b.simd());   // c - a*b (unfused)
 #elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
@@ -7777,8 +7783,10 @@ OIIO_FORCEINLINE vfloat4 nmsub (const simd::vfloat4& a, const simd::vfloat4& b,
 #if OIIO_SIMD_SSE && OIIO_FMA_ENABLED
     // If we are sure _mm_fnmsub_ps intrinsic is available, use it.
     return _mm_fnmsub_ps (a, b, c);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vnegq_f32(vfmaq_f32(c.simd(), a.simd(), b.simd()));   // -(c + a*b)
+#elif OIIO_SIMD_NEON
+    return vnegq_f32(vmlaq_f32(c.simd(), a.simd(), b.simd()));   // -(c + a*b) (unfused)
 #elif OIIO_SIMD_SSE && !defined(_MSC_VER)
     // If we directly access the underlying __m128, on some platforms and
     // compiler flags, it will turn into fma anyway, even if we don't use
@@ -8024,9 +8032,13 @@ OIIO_FORCEINLINE vfloat4 AxBxCxDx (const vfloat4& a, const vfloat4& b,
     vfloat4 l02 = _mm_unpacklo_ps (a, c);
     vfloat4 l13 = _mm_unpacklo_ps (b, d);
     return _mm_unpacklo_ps (l02, l13);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     float32x2_t ab = vtrn1_f32 (vget_low_f32(a), vget_low_f32(b)); // a0 b0
     float32x2_t cd = vtrn1_f32 (vget_low_f32(c), vget_low_f32(d)); // c0 d0
+    return vcombine_f32 (ab, cd);
+#elif OIIO_SIMD_NEON
+    float32x2_t ab = vtrn_f32 (vget_low_f32(a), vget_low_f32(b)).val[0]; // a0 b0
+    float32x2_t cd = vtrn_f32 (vget_low_f32(c), vget_low_f32(d)).val[0]; // c0 d0
     return vcombine_f32 (ab, cd);
 #else
     return vfloat4 (a[0], b[0], c[0], d[0]);
@@ -8041,9 +8053,13 @@ OIIO_FORCEINLINE vint4 AxBxCxDx (const vint4& a, const vint4& b,
     vint4 l02 = _mm_unpacklo_epi32 (a, c);
     vint4 l13 = _mm_unpacklo_epi32 (b, d);
     return _mm_unpacklo_epi32 (l02, l13);
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     int32x2_t ab = vtrn1_s32 (vget_low_s32(a), vget_low_s32(b)); // a0 b0
     int32x2_t cd = vtrn1_s32 (vget_low_s32(c), vget_low_s32(d)); // c0 d0
+    return vcombine_s32 (ab, cd);
+#elif OIIO_SIMD_NEON
+    int32x2_t ab = vtrn_s32 (vget_low_s32(a), vget_low_s32(b)).val[0]; // a0 b0
+    int32x2_t cd = vtrn_s32 (vget_low_s32(c), vget_low_s32(d)).val[0]; // c0 d0
     return vcombine_s32 (ab, cd);
 #else
     return vint4 (a[0], b[0], c[0], d[0]);
@@ -8202,7 +8218,7 @@ OIIO_FORCEINLINE vfloat3 ceil (const vfloat3& a)
 {
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return vfloat3(_mm_ceil_ps (a));
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vfloat3(vrndpq_f32 (a));
 #else
     SIMD_RETURN (vfloat3, ceilf(a[i]));
@@ -8213,7 +8229,7 @@ OIIO_FORCEINLINE vfloat3 floor (const vfloat3& a)
 {
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return vfloat3(_mm_floor_ps (a));
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vfloat3(vrndmq_f32 (a));
 #else
     SIMD_RETURN (vfloat3, floorf(a[i]));
@@ -8224,7 +8240,7 @@ OIIO_FORCEINLINE vfloat3 round (const vfloat3& a)
 {
 #if OIIO_SIMD_SSE >= 4  /* SSE >= 4.1 */
     return vfloat3(_mm_round_ps (a, (_MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC)));
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     return vfloat3(vrndnq_f32 (a));
 #else
     SIMD_RETURN (vfloat3, roundf(a[i]));
@@ -8415,7 +8431,7 @@ OIIO_FORCEINLINE vfloat4 operator* (const matrix44& M, const vfloat4 &V)
        //   M20*Vx + M21*Vy + M22*Vz + M23*Vw,
        //   M30*Vx + M31*Vy + M32*Vz + M33*Vw ]
     return result;
-#elif OIIO_SIMD_NEON
+#elif OIIO_SIMD_NEON && defined(__aarch64__)
     // Same idea as the SSE3 case above -- vpaddq_f32 is the NEON equivalent
     // of _mm_hadd_ps.
     float32x4_t m0v = vfloat4(M[0] * V);
