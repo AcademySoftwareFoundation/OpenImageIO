@@ -43,6 +43,45 @@
 #endif
 
 
+// ThreadSanitizer cannot tell that the spin locks below are locks: they are
+// built out of atomics, so it never sees the happens-before edges they
+// establish and reports races on the data they protect. The __tsan_mutex_*
+// hooks tell it. Compiled away unless the TU is built with tsan.
+#if defined(__SANITIZE_THREAD__)
+#    define OIIO_TSAN_ANNOTATE_LOCKS 1
+#elif defined(__has_feature)
+#    if __has_feature(thread_sanitizer)
+#        define OIIO_TSAN_ANNOTATE_LOCKS 1
+#    endif
+#endif
+#ifndef OIIO_TSAN_ANNOTATE_LOCKS
+#    define OIIO_TSAN_ANNOTATE_LOCKS 0
+#endif
+
+#if OIIO_TSAN_ANNOTATE_LOCKS
+#    include <sanitizer/tsan_interface.h>
+#    define OIIO_TSAN_PRE_LOCK(m, f) __tsan_mutex_pre_lock((void*)(m), (f))
+#    define OIIO_TSAN_POST_LOCK(m, f) \
+        __tsan_mutex_post_lock((void*)(m), (f), 0)
+#    define OIIO_TSAN_PRE_UNLOCK(m, f) \
+        ((void)__tsan_mutex_pre_unlock((void*)(m), (f)))
+#    define OIIO_TSAN_POST_UNLOCK(m, f) \
+        __tsan_mutex_post_unlock((void*)(m), (f))
+#    define OIIO_TSAN_F_TRY __tsan_mutex_try_lock
+#    define OIIO_TSAN_F_TRY_FAILED \
+        (__tsan_mutex_try_lock | __tsan_mutex_try_lock_failed)
+#    define OIIO_TSAN_F_READ __tsan_mutex_read_lock
+#else
+#    define OIIO_TSAN_PRE_LOCK(m, f) ((void)0)
+#    define OIIO_TSAN_POST_LOCK(m, f) ((void)0)
+#    define OIIO_TSAN_PRE_UNLOCK(m, f) ((void)0)
+#    define OIIO_TSAN_POST_UNLOCK(m, f) ((void)0)
+#    define OIIO_TSAN_F_TRY 0
+#    define OIIO_TSAN_F_TRY_FAILED 0
+#    define OIIO_TSAN_F_READ 0
+#endif
+
+
 
 // Some helpful links:
 //
@@ -235,15 +274,21 @@ public:
     ///
     void unlock() noexcept
     {
+        OIIO_TSAN_PRE_UNLOCK(&m_locked, 0);
         // Fastest way to do it is with a clear with "release" semantics
         m_locked.clear(std::memory_order_release);
+        OIIO_TSAN_POST_UNLOCK(&m_locked, 0);
     }
 
     /// Try to acquire the lock.  Return true if we have it, false if
     /// somebody else is holding the lock.
     bool try_lock() noexcept
     {
-        return !m_locked.test_and_set(std::memory_order_acquire);
+        OIIO_TSAN_PRE_LOCK(&m_locked, OIIO_TSAN_F_TRY);
+        const bool got = !m_locked.test_and_set(std::memory_order_acquire);
+        OIIO_TSAN_POST_LOCK(&m_locked,
+                            got ? OIIO_TSAN_F_TRY : OIIO_TSAN_F_TRY_FAILED);
+        return got;
     }
 
     /// Helper class: scoped lock for a spin_mutex -- grabs the lock upon
@@ -297,9 +342,12 @@ public:
         // first increase the readers, and if it turned out nobody was
         // writing, we're done. This means that acquiring a read when nobody
         // is writing is a single atomic operation.
+        OIIO_TSAN_PRE_LOCK(&m_bits, OIIO_TSAN_F_READ);
         int oldval = m_bits.fetch_add(1, std::memory_order_acquire);
-        if (!(oldval & WRITER))
+        if (!(oldval & WRITER)) {
+            OIIO_TSAN_POST_LOCK(&m_bits, OIIO_TSAN_F_READ);
             return;
+        }
         // Oops, we incremented readers but somebody was writing. Backtrack
         // by subtracting, and do things the hard way.
         int expected = (--m_bits) & NOTWRITER;
@@ -307,49 +355,60 @@ public:
         // Do compare-and-exchange until we can increase the number of
         // readers by one and have no writers.
         if (m_bits.compare_exchange_weak(expected, expected + 1,
-                                         std::memory_order_acquire))
+                                         std::memory_order_acquire)) {
+            OIIO_TSAN_POST_LOCK(&m_bits, OIIO_TSAN_F_READ);
             return;
+        }
         atomic_backoff backoff;
         do {
             backoff();
             expected = m_bits.load() & NOTWRITER;
         } while (!m_bits.compare_exchange_weak(expected, expected + 1,
                                                std::memory_order_acquire));
+        OIIO_TSAN_POST_LOCK(&m_bits, OIIO_TSAN_F_READ);
     }
 
     /// Release the reader lock.
     ///
     void read_unlock() noexcept
     {
+        OIIO_TSAN_PRE_UNLOCK(&m_bits, OIIO_TSAN_F_READ);
         // Atomically reduce the number of readers.  It's at least 1,
         // and the WRITER bit should definitely not be set, so this just
         // boils down to an atomic decrement of m_bits.
         m_bits.fetch_sub(1, std::memory_order_release);
+        OIIO_TSAN_POST_UNLOCK(&m_bits, OIIO_TSAN_F_READ);
     }
 
     /// Acquire the writer lock.
     ///
     void write_lock() noexcept
     {
+        OIIO_TSAN_PRE_LOCK(&m_bits, 0);
         // Do compare-and-exchange until we have just ourselves as writer
         int expected = 0;
         if (m_bits.compare_exchange_weak(expected, WRITER,
-                                         std::memory_order_acquire))
+                                         std::memory_order_acquire)) {
+            OIIO_TSAN_POST_LOCK(&m_bits, 0);
             return;
+        }
         atomic_backoff backoff;
         do {
             backoff();
             expected = 0;
         } while (!m_bits.compare_exchange_weak(expected, WRITER,
                                                std::memory_order_acquire));
+        OIIO_TSAN_POST_LOCK(&m_bits, 0);
     }
 
     /// Release the writer lock.
     ///
     void write_unlock() noexcept
     {
+        OIIO_TSAN_PRE_UNLOCK(&m_bits, 0);
         // Remove the writer bit
         m_bits.fetch_sub(WRITER, std::memory_order_release);
+        OIIO_TSAN_POST_UNLOCK(&m_bits, 0);
     }
 
     /// lock() is a synonym for exclusive (write) lock.
