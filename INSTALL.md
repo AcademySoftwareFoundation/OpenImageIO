@@ -47,7 +47,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        `nanobind` or `both`.  If not found at build time, nanobind will be
        automatically downloaded and built.
      * [pybind11](https://github.com/pybind/pybind11) >= 2.7 (tested through
-       3.0), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
+       3.1), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
        either `pybind11` or `both`.
      * NumPy (tested through 2.4.4)
  * If you want support for PNG files:
@@ -85,7 +85,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for JPEG XL images:
      * libjxl >= 0.10.1 (tested through 0.12.0)
  * If you want support for j2c files:
-     * OpenJPH >= 0.21.2 (tested through 0.30)
+     * OpenJPH >= 0.21.2 (tested through 0.31)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against

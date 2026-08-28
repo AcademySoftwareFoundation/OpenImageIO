@@ -6,10 +6,10 @@
 # PNG by hand!
 ######################################################################
 
-set_cache (PNG_BUILD_VERSION 1.6.50 "PNG version for local builds")
+set_cache (PNG_BUILD_VERSION 1.6.58 "PNG version for local builds")
 super_set (PNG_BUILD_GIT_REPOSITORY "https://github.com/pnggroup/libpng")
 super_set (PNG_BUILD_GIT_TAG "v${PNG_BUILD_VERSION}")
-super_set (PNG_BUILD_GIT_COMMIT "2b978915d82377df13fcbb1fb56660195ded868a")
+super_set (PNG_BUILD_GIT_COMMIT "3061454d980de7d53608f594194cfac722721d2a")
 super_set (PNG_BUILD_EXTRA_CMAKE_ARGS "")
 set_cache (PNG_BUILD_SHARED_LIBS OFF
            DOC "Should execute a local PNG build, if necessary, build shared libraries" ADVANCED)

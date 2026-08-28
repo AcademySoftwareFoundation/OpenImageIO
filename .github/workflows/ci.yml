@@ -340,8 +340,8 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.13
-            pybind11_ver: v3.0.4
+            openexr_ver: v3.4.14
+            pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
             simd: avx2,f16c
@@ -349,13 +349,13 @@ jobs:
             setenvs: export OIIO_CC=gcc-15 OIIO_CXX=g++-15
                             LIBJPEGTURBO_VERSION=3.2.0
                             LIBPNG_VERSION=v1.6.58
-                            LIBRAW_VERSION=0.22.0
+                            LIBRAW_VERSION=0.22.2
                             LIBTIFF_VERSION=v4.7.2
                             OPENJPEG_VERSION=v2.5.4
-                            PTEX_VERSION=v2.5.0
+                            PTEX_VERSION=v2.5.2
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-1
+                            FREETYPE_VERSION=VER-2-14-3
                             USE_OPENVDB=0
                             UHDR_CMAKE_C_COMPILER=gcc
                             UHDR_CMAKE_CXX_COMPILER=g++
@@ -447,19 +447,19 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.13
+            openexr_ver: v3.4.14
+            pybind11_ver: v3.1.0
             python_ver: "3.12"
-            pybind11_ver: v3.0.4
             oiio_python_bindings_backend: both
             setenvs: export LIBJPEGTURBO_VERSION=3.2.0
                             LIBPNG_VERSION=v1.6.58
-                            LIBRAW_VERSION=0.22.0
+                            LIBRAW_VERSION=0.22.2
                             LIBTIFF_VERSION=v4.7.2
                             OPENJPEG_VERSION=v2.5.4
-                            PTEX_VERSION=v2.4.3
+                            PTEX_VERSION=v2.5.2
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-1
+                            FREETYPE_VERSION=VER-2-14-3
                             USE_OPENVDB=0
                             nanobind_GIT_TAG=v3.0.0
                             nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
@@ -469,22 +469,22 @@ jobs:
             cc_compiler: clang-18
             cxx_compiler: clang++-18
             cxx_std: 20
-            fmt_ver: 12.1.0
-            fmt_commit: 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
+            fmt_ver: 12.2.0
+            fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.13
+            openexr_ver: v3.4.14
+            pybind11_ver: v3.1.0
             python_ver: "3.12"
-            pybind11_ver: v3.0.4
             oiio_python_bindings_backend: both
             setenvs: export LIBJPEGTURBO_VERSION=3.2.0
                             LIBPNG_VERSION=v1.6.58
-                            LIBRAW_VERSION=0.22.0
+                            LIBRAW_VERSION=0.22.2
                             LIBTIFF_VERSION=v4.7.2
                             OPENJPEG_VERSION=v2.5.4
-                            PTEX_VERSION=v2.4.3
+                            PTEX_VERSION=v2.5.2
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-1
+                            FREETYPE_VERSION=VER-2-14-3
                             USE_OPENVDB=0
                             nanobind_GIT_TAG=v3.0.0
                             nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
