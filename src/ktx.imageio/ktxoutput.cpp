@@ -3,9 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "OpenImageIO/color.h"
-#include "OpenImageIO/imageio.h"
 #include "ktx_pvt.h"
-#include <cstdint>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -39,9 +37,9 @@ public:
             // ktx supports mipmaps
             feature == "mipmap" ||
             // Ktx supports 3D textures
-            feature == "volumes" || feature == "random_access"
+            feature == "volumes" ||
             // Can write in any order whatsoever
-        );
+            feature == "random_access");
     }
 
     bool open(const std::string& name, const ImageSpec& spec,

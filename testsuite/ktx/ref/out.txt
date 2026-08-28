@@ -200,6 +200,15 @@ Reading ../oiio-images/ktx2/Desk_uastc_hdr6x6i.ktx2
     ktx:supercompressionscheme: 4
     ktx:version: "2.0"
     oiio:ColorSpace: "lin_rec709_scene"
+Reading ../oiio-images/ktx2/Desk_astc_hdr6x6.ktx2
+../oiio-images/ktx2/Desk_astc_hdr6x6.ktx2 :  644 x  874, 4 channel, half ktx
+    SHA-1: 1930E94C0D33036B77F929E1C5E6E6AD5154974F
+    channel list: R, G, B, A
+    compression: "ASTC"
+    textureformat: "Plain Texture"
+    ktx:supercompressionscheme: 2
+    ktx:version: "2.0"
+    oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/ktx2/kodim17_blze.ktx2
 ../oiio-images/ktx2/kodim17_blze.ktx2 :  512 x  768, 4 channel, uint8 ktx
     SHA-1: 4313438D8827BD8CB040EBD28A27A64EC7B62F68

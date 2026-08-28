@@ -8,10 +8,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/strutil.h>
-#include <OpenImageIO/tiffutils.h>
-#include <cerrno>
 #include <ktx.h>
-#include <string>
 
 #define Ktx_VERSION \
     OIIO_MAKE_VERSION(Ktx_VERSION_MAJOR, Ktx_VERSION_MINOR, Ktx_VERSION_PATCH)

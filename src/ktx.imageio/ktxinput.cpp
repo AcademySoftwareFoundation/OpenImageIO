@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include "OpenImageIO/span.h"
 #include "ktx_pvt.h"
-#include <cstdio>
 #include <regex>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -221,7 +219,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.depth = m_spec.full_depth = m_tex->baseDepth;
     std::string colorspace           = get_colorspace();
     if (Strutil::iequals(colorspace, "unknown"))
-        return false;
+        return false;  // errorfmt set by get_colorspace()
     m_spec.set_colorspace(colorspace);
 
     // Set textureformat attribute
@@ -370,7 +368,6 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // here to uncompressed format (RGBA32 for LDR and RGBA_HALF for HDR).
     //
     if (ktxTexture2_IsTranscodable(m_tex.get())) {
-        // TODO: in case of HDR, use KTX_TTF_RGBA_HALF
         if (auto status = ktxTexture2_TranscodeBasis(
                 m_tex.get(), is_hdr ? KTX_TTF_RGBA_HALF : KTX_TTF_RGBA32, 0);
             status != KTX_SUCCESS) {
@@ -391,7 +388,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //
     //    BCn:  libktx will provide decoders/encoders for BCn block compression
     //          via ktxTexture2_DecodeBCn.
-    //          TODO: wait libktx BCn PR to get merged then add BCn support.
+    //          TODO: wait for libktx BCn PR to get merged then add BCn support.
     //
     //    ETC2: libktx provides decoders but they fall under non-open-source
     //          license. To quote KTX-Software: "The file lib/etcdec.cxx is not
@@ -683,17 +680,14 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
-#if 0
-    // TODO: ktxTexture_GetRowPitch reports 4-bytes aligned size in bytes (i.e.,
-    // it adds padding when it shouldn't).
+    // Check that our pitch (from spec) is equal to the one reported by libktx
     if (auto libktx_pitch_in_bytes
         = ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel);
-        pitch_in_bytes == libktx_pitch_in_bytes) {
+        pitch_in_bytes != libktx_pitch_in_bytes) {
         errorfmt("Expected a pitch of size {} but libktx expects {}",
                  pitch_in_bytes, libktx_pitch_in_bytes);
         return false;
     }
-#endif
 
     // Use this in case OIIO API provides read_native_scanlines with `data` as
     // `span<std::byte>` and a `z` slice param
@@ -774,28 +768,34 @@ KtxInput::get_colorspace() const
     // for OIIO colorspaces, see:
     //  https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/src/libOpenImageIO/color_ocio.cpp
     //
-    //  Don't use ktxTexture2_GetPrimaries_e/ktxTexture2_GetTransferFunction_e as these are only
-    //  available in newer versions of libktx (>= 5.0.0, I think)
-    //
-    const auto transfer_function = KHR_DFDVAL(m_tex->pDfd + 1, TRANSFER);
-    const auto primaries         = KHR_DFDVAL(m_tex->pDfd + 1, PRIMARIES);
+    const khr_df_transfer_e transfer_function
+        = ktxTexture2_GetTransferFunction_e(m_tex.get());
+    const khr_df_primaries_e primaries = ktxTexture2_GetPrimaries_e(
+        m_tex.get());
     DBG std::cout << "tf: " << transfer_function << "; primaries: " << primaries
                   << '\n';
     switch (transfer_function) {
     case KHR_DF_TRANSFER_SRGB:
         switch (primaries) {
         case KHR_DF_PRIMARIES_BT709: return "srgb_rec709_scene";
-        default: errorfmt("Unsupported color primaries {}", primaries); break;
+        default:
+            errorfmt("Unsupported color primaries {}",
+                     static_cast<uint32_t>(primaries));
+            break;
         }
         break;
     case KHR_DF_TRANSFER_LINEAR:
         switch (primaries) {
         case KHR_DF_PRIMARIES_BT709: return "lin_rec709_scene";
-        default: errorfmt("Unsupported color primaries {}", primaries); break;
+        default:
+            errorfmt("Unsupported color primaries {}",
+                     static_cast<uint32_t>(primaries));
+            break;
         }
         break;
     default:
-        errorfmt("Unsupported color transfer function {}", transfer_function);
+        errorfmt("Unsupported color transfer function {}",
+                 static_cast<uint32_t>(transfer_function));
         break;
     }
     // TODO: need to generate test files before adding support for any other
@@ -942,8 +942,6 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
         if (Strutil::icontains(ktx_sc_params, "--uastc-rdo-m"))
             m_spec.extra_attribs.attribute("ktx:uastcRDONoMultithreading",
                                            true);
-        if (Strutil::icontains(ktx_sc_params, ""))
-            m_spec.extra_attribs.attribute("ktx:uastcHDRQuality", true);
         if (Strutil::icontains(ktx_sc_params, "--uastc-hdr-uber-mode"))
             m_spec.extra_attribs.attribute("ktx:uastcHDRUberMode", true);
         if (Strutil::icontains(ktx_sc_params, "--uastc-hdr-ultra-quant"))

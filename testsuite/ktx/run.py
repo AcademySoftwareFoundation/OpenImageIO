@@ -11,8 +11,10 @@
 
 #
 # KTX-Software has two sets of ktx2 test files:
-#   - a relatively small set for libktx: https://github.com/KhronosGroup/KTX-Software/tree/e2f948066c108b56b8d0052b460b2ac7d34886aa/tests/resources/ktx2
-#   - a very larget tests set for ktx tools: https://github.com/KhronosGroup/KTX-Software-CTS/tree/6d23ae9e52cce2ebc6495c4692ec89f632ff70d4
+#   - a relatively small set for libktx:
+#     https://github.com/KhronosGroup/KTX-Software/tree/e2f948066c108b56b8d0052b460b2ac7d34886aa/tests/resources/ktx2
+#   - a very larget tests set for ktx tools:
+#     https://github.com/KhronosGroup/KTX-Software-CTS/tree/6d23ae9e52cce2ebc6495c4692ec89f632ff70d4
 #
 # commit hashse:
 #   - libktx test files: 6c474d8627999de8acf07d819c196f83d025cd44
@@ -63,7 +65,7 @@ files = [
     "Desk_small_zstd_15.ktx2", # VK_FORMAT_R16G16B16_SFLOAT
     "Desk_uastc_hdr4x4_zstd_15.ktx2",
     "Desk_uastc_hdr6x6i.ktx2",
-    # "Desk_astc_hdr6x6.ktx2", # VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK 
+    "Desk_astc_hdr6x6.ktx2", # VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK 
 
     # Basis LZ/ETC1S formats (widely used within KTX2 container format)
     "kodim17_blze.ktx2",
@@ -103,6 +105,6 @@ command += diff_command ("checker_original.png", "checker_uastc.ktx2")
 command += oiiotool ("checker_original.png --attrib ktx:codec etc1s -o checker_etc1s.ktx2")
 command += diff_command ("checker_original.png", "checker_etc1s.ktx2")
 
-# We do not test read-write of compressed-ktx2 files because any read-write
+# We do not test read-then-write of compressed-ktx2 files because any read-write
 # cycle worsens quality and is absolutely not the intended purpose of ktx usage
-# within OIIO (or ktx usage in general).
+# within OIIO (or in general).
