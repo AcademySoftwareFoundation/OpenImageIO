@@ -56,29 +56,49 @@ avpicture_fill(AVFrame* picture, uint8_t* ptr, enum AVPixelFormat pix_fmt,
 inline int
 receive_frame(AVCodecContext* avctx, AVFrame* picture, AVPacket* avpkt)
 {
-    int ret;
+    int ret = avcodec_send_packet(avctx, avpkt);
 
-    ret = avcodec_send_packet(avctx, avpkt);
-
-    if (ret < 0)
+    // AVERROR_EOF means the decoder is already draining: it accepts no more
+    // input, but it may still have buffered frames to hand back, so keep
+    // going and let avcodec_receive_frame() tell us when it is empty.
+    if (ret < 0 && ret != AVERROR_EOF)
         return 0;
 
-    ret = avcodec_receive_frame(avctx, picture);
-
-    if (ret < 0)
-        return 0;
-
-    return 1;
+    return avcodec_receive_frame(avctx, picture) == 0;
 }
 
 
 
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
+#include <climits>
+#include <cmath>
 #include <iostream>
 #include <mutex>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
+
+
+// Timestamps, frame rates and time bases all come from the file, so the
+// arithmetic below can produce NaN, infinity, or values outside the integer
+// range. Convert through these helpers to keep that out of undefined
+// behavior. safe_int64's range is well under the type's limits so that a sum
+// of two results can't overflow either.
+static int64_t
+safe_int64(double v)
+{
+    return std::isfinite(v) ? int64_t(clamp(v, -4.0e18, 4.0e18)) : 0;
+}
+
+
+static int
+safe_int(double v)
+{
+    return std::isfinite(v) ? int(clamp(v, double(INT_MIN), double(INT_MAX)))
+                            : 0;
+}
 
 
 class FFmpegInput final : public ImageInput {
@@ -120,6 +140,7 @@ private:
     AVFrame* m_frame                  = nullptr;
     AVFrame* m_rgb_frame              = nullptr;
     size_t m_stride;  // scanline width in bytes, a.k.a. scanline stride
+    AVPixelFormat m_decoded_pix_format;  // what the decoder promised at open
     AVPixelFormat m_dst_pix_format;
     SwsContext* m_sws_rgb_context = nullptr;
     AVRational m_frame_rate;
@@ -128,33 +149,35 @@ private:
     int m_video_stream;
     int m_data_stream;
     int64_t m_frames;
-    int m_last_search_pos;
     int m_last_decoded_pos;
-    bool m_offset_time;
     bool m_codec_cap_delay;
     bool m_read_frame;
+    bool m_frame_valid;  // did the last read_frame() actually decode?
     int64_t m_start_time;
 
     // init to initialize state
     void init(void)
     {
         m_filename.clear();
-        m_format_context  = nullptr;
-        m_codec_context   = nullptr;
-        m_codec           = nullptr;
-        m_frame           = nullptr;
-        m_rgb_frame       = nullptr;
-        m_sws_rgb_context = nullptr;
-        m_stride          = 0;
+        m_format_context     = nullptr;
+        m_codec_context      = nullptr;
+        m_codec              = nullptr;
+        m_frame              = nullptr;
+        m_rgb_frame          = nullptr;
+        m_sws_rgb_context    = nullptr;
+        m_stride             = 0;
+        m_decoded_pix_format = AV_PIX_FMT_NONE;
         m_rgb_buffer.clear();
         m_video_indexes.clear();
-        m_video_stream     = -1;
-        m_data_stream      = -1;
-        m_frames           = 0;
-        m_last_search_pos  = 0;
-        m_last_decoded_pos = 0;
-        m_offset_time      = true;
+        m_video_stream = -1;
+        m_data_stream  = -1;
+        m_frames       = 0;
+        // -1, not 0, so that the first read_frame() always seeks: nothing
+        // has been decoded yet, and open() leaves the demuxer wherever the
+        // frame-count pass stopped.
+        m_last_decoded_pos = -1;
         m_read_frame       = false;
+        m_frame_valid      = false;
         m_codec_cap_delay  = false;
         m_subimage         = 0;
         m_start_time       = 0;
@@ -297,41 +320,75 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
         errorfmt("\"{}\" could not open codec", file_name);
         return false;
     }
-    if (!strcmp(m_codec_context->codec->name, "mjpeg")
-        || !strcmp(m_codec_context->codec->name, "dvvideo")) {
-        m_offset_time = false;
-    }
     m_codec_cap_delay = (bool)(m_codec_context->codec->capabilities
                                & AV_CODEC_CAP_DELAY);
 
     AVStream* stream = m_format_context->streams[m_video_stream];
     m_frame_rate     = av_guess_frame_rate(m_format_context, stream, NULL);
 
-    m_frames     = stream->nb_frames;
+    // nb_frames and start_time come from the file. Clamp them to a range the
+    // rest of this reader can handle: subimage indices are int, and an
+    // unset start_time (AV_NOPTS_VALUE == INT64_MIN) would blow up the frame
+    // arithmetic in read_frame().
+    m_frames     = OIIO::clamp(stream->nb_frames, int64_t(0), int64_t(INT_MAX));
     m_start_time = stream->start_time;
+    if (m_start_time == int64_t(AV_NOPTS_VALUE))
+        m_start_time = 0;
     if (!m_frames) {
+        // The container did not say how many frames there are, so find the
+        // timestamp of the first video packet and of the last one, and turn
+        // the span into a frame count. Only video packets count: audio and
+        // data streams have their own time base and often run past the end
+        // of the video, so counting them invents subimages that no frame
+        // will ever decode into.
+        AVPacket* pkt = av_packet_alloc();
+        if (!pkt) {
+            errorfmt("\"{}\" could not allocate FFmpeg packet", file_name);
+            close();
+            return false;
+        }
         seek(0);
-        AVPacket pkt;
-        av_init_packet(&pkt);
-        av_read_frame(m_format_context, &pkt);
-        int64_t first_pts = pkt.pts;
-        int64_t max_pts   = 0;
-        av_packet_unref(&pkt);  //because seek(int) uses m_format_context
+        int64_t first_pts = 0;
+        while (av_read_frame(m_format_context, pkt) >= 0) {
+            bool is_video = (pkt->stream_index == m_video_stream);
+            int64_t pts   = pkt->pts;
+            av_packet_unref(pkt);  // seek() below reuses m_format_context
+            if (is_video) {
+                if (pts != int64_t(AV_NOPTS_VALUE))
+                    first_pts = pts;
+                break;
+            }
+        }
+        int64_t max_pts = 0;
         seek(1 << 29);
-        av_init_packet(&pkt);  //Is this needed?
-        while (stream && av_read_frame(m_format_context, &pkt) >= 0) {
-            int64_t current_pts = static_cast<int64_t>(
-                av_q2d(stream->time_base) * (pkt.pts - first_pts) * fps());
+        while (av_read_frame(m_format_context, pkt) >= 0) {
+            bool is_video = (pkt->stream_index == m_video_stream);
+            int64_t pts   = pkt->pts;
+            av_packet_unref(pkt);  // always free before reusing the context
+            if (!is_video || pts == int64_t(AV_NOPTS_VALUE))
+                continue;
+            // Do the difference in double: both timestamps are untrusted and
+            // subtracting them as int64 can overflow.
+            int64_t current_pts = safe_int64(av_q2d(stream->time_base)
+                                             * (double(pts) - double(first_pts))
+                                             * fps());
             if (current_pts > max_pts) {
                 max_pts = current_pts + 1;
             }
-            av_packet_unref(&pkt);  //Always free before format_context usage
         }
-        m_frames = max_pts;
+        av_packet_free(&pkt);
+        seek(0);  // the pass above ran to the end of the file
+        m_frames = std::min(max_pts, int64_t(INT_MAX));
     }
     m_frame     = av_frame_alloc();
     m_rgb_frame = av_frame_alloc();
+    if (!m_frame || !m_rgb_frame) {
+        errorfmt("\"{}\" could not allocate FFmpeg frame", file_name);
+        close();
+        return false;
+    }
 
+    m_decoded_pix_format = m_codec_context->pix_fmt;
     AVPixelFormat src_pix_format;
     switch (m_codec_context->pix_fmt) {  // deprecation warning for YUV formats
     case AV_PIX_FMT_YUVJ420P: src_pix_format = AV_PIX_FMT_YUV420P; break;
@@ -410,6 +467,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     case AV_PIX_FMT_GRAY8:
     case AV_PIX_FMT_MONOWHITE:
     case AV_PIX_FMT_MONOBLACK:
+        nchannels        = 1;
         datatype         = TypeUInt8;
         m_dst_pix_format = AV_PIX_FMT_GRAY8;
         break;
@@ -422,6 +480,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     case AV_PIX_FMT_GRAY12LE:
     case AV_PIX_FMT_GRAY16BE:
     case AV_PIX_FMT_GRAY16LE:
+        nchannels        = 1;
         datatype         = TypeUInt16;
         m_dst_pix_format = AV_PIX_FMT_GRAY16;
         break;
@@ -488,8 +547,16 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
     default: break;
     }
 
-    m_spec   = ImageSpec(m_codec_context->width, m_codec_context->height,
-                         nchannels, datatype);
+    m_spec = ImageSpec(m_codec_context->width, m_codec_context->height,
+                       nchannels, datatype);
+    // The frame dimensions come from the container/codec headers, which are
+    // untrusted. FFmpeg caps the pixel count at only about 2.7e8, which still
+    // leaves room for a tiny file to declare a multi-GB frame.
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, Filesystem::file_size(name))) {
+        close();
+        return false;
+    }
     m_stride = (size_t)(m_spec.scanline_bytes());
 
     int rgb_buffer_size
@@ -582,8 +649,9 @@ FFmpegInput::seek_subimage(int subimage, int miplevel)
     if (subimage == m_subimage) {
         return true;
     }
-    m_subimage   = subimage;
-    m_read_frame = false;
+    m_subimage    = subimage;
+    m_read_frame  = false;
+    m_frame_valid = false;
     return true;
 }
 
@@ -622,6 +690,14 @@ FFmpegInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;
     if (!m_read_frame) {
         read_frame(m_subimage);
+    }
+    if (!m_frame_valid) {
+        // Nothing was decoded for this subimage. Without this check we would
+        // hand back whatever the previously decoded frame left in the buffer.
+        if (!has_error())
+            errorfmt("Could not decode frame {} of \"{}\"", m_subimage,
+                     m_filename);
+        return false;
     }
     if (m_spec.format == TypeUInt8 || m_spec.nchannels == 1) {
         if (m_rgb_frame->data[0]) {
@@ -666,8 +742,8 @@ FFmpegInput::close(void)
     if (m_codec_context)
         avcodec_free_context(&m_codec_context);
     if (m_format_context) {
+        // Frees the context and everything it owns, and nulls the pointer.
         avformat_close_input(&m_format_context);
-        av_free(m_format_context);  // will free m_codec and m_codec_context
     }
     if (m_frame)
         av_frame_free(&m_frame);  // free after close input
@@ -687,61 +763,87 @@ FFmpegInput::read_frame(int frame)
     if (m_last_decoded_pos + 1 != frame) {
         seek(frame);
     }
-    AVPacket pkt;
-    int finished = 0;
-    int ret      = 0;
-    while ((ret = av_read_frame(m_format_context, &pkt)) == 0
-           || m_codec_cap_delay) {
-        if (ret == AVERROR_EOF) {
-            break;
+    m_read_frame  = true;
+    m_frame_valid = false;
+    // Allocate the packet rather than using a stack AVPacket: av_read_frame
+    // is not guaranteed to initialize it on failure, and the flush path below
+    // would then unref an uninitialized packet.
+    AVPacket* pkt = av_packet_alloc();
+    if (!pkt) {
+        errorfmt("Could not allocate FFmpeg packet");
+        return;
+    }
+    bool flushing = false;
+    while (true) {
+        int ret = av_read_frame(m_format_context, pkt);
+        if (ret < 0) {
+            if (!m_codec_cap_delay)
+                break;
+            // The codec buffers delayed frames, so at the end of the stream
+            // keep going with flush packets (data == null, size == 0) to
+            // collect them. The test below stops us as soon as the decoder
+            // runs dry -- otherwise a stream that keeps returning the same
+            // error would spin here forever.
+            flushing = true;
+            av_packet_unref(pkt);
+            pkt->stream_index = m_video_stream;
         }
-        if (pkt.stream_index == m_video_stream) {
-            if (ret < 0 && m_codec_cap_delay) {
-                pkt.data = NULL;
-                pkt.size = 0;
-            }
+        if (pkt->stream_index == m_video_stream) {
+            int finished = receive_frame(m_codec_context, m_frame, pkt);
+            if (flushing && !finished)
+                break;
 
-            finished = receive_frame(m_codec_context, m_frame, &pkt);
-
+            // m_frame->pts and m_start_time are both counts of time base
+            // ticks; scale both to seconds before taking the difference.
+            double time_base = av_q2d(
+                m_format_context->streams[m_video_stream]->time_base);
             double pts = 0;
             if (static_cast<int64_t>(m_frame->pts) != int64_t(AV_NOPTS_VALUE)) {
-                pts = av_q2d(
-                          m_format_context->streams[m_video_stream]->time_base)
-                      * m_frame->pts;
+                pts = time_base * double(m_frame->pts);
             }
 
-            int current_frame = int((pts - m_start_time) * fps() + 0.5f);  //???
-            //current_frame =   m_frame->display_picture_number;
-            m_last_search_pos = current_frame;
-
+            int current_frame = safe_int(
+                (pts - time_base * double(m_start_time)) * fps() + 0.5);
             if (current_frame == frame && finished) {
-                int fill_ret = avpicture_fill(m_rgb_frame, &m_rgb_buffer[0],
-                                              m_dst_pix_format,
-                                              m_codec_context->width,
-                                              m_codec_context->height);
-                if (fill_ret < 0) {
-                    errorfmt("Error filling FFmpeg RGB frame");
-                    av_packet_unref(&pkt);
+                // A decoder may change frame geometry or pixel format
+                // mid-stream, but the scaling context and RGB buffer were
+                // sized from the header when we opened the file.
+                if (m_frame->width != m_spec.width
+                    || m_frame->height != m_spec.height
+                    || m_frame->format != m_decoded_pix_format) {
+                    errorfmt("\"{}\" frame {} does not match the {}x{} format "
+                             "declared by the header",
+                             m_filename, frame, m_spec.width, m_spec.height);
                     break;
                 }
-                int scale_ret = sws_scale(
-                    m_sws_rgb_context,
-                    static_cast<uint8_t const* const*>(m_frame->data),
-                    m_frame->linesize, 0, m_codec_context->height,
-                    m_rgb_frame->data, m_rgb_frame->linesize);
+                // Use the spec dimensions, which are what m_rgb_buffer and
+                // the scaling context were sized for -- the decoder can move
+                // m_codec_context->width/height out from under us.
+                int fill_ret = avpicture_fill(m_rgb_frame, &m_rgb_buffer[0],
+                                              m_dst_pix_format, m_spec.width,
+                                              m_spec.height);
+                if (fill_ret < 0) {
+                    errorfmt("Error filling FFmpeg RGB frame");
+                    break;
+                }
+                int scale_ret = sws_scale(m_sws_rgb_context,
+                                          static_cast<uint8_t const* const*>(
+                                              m_frame->data),
+                                          m_frame->linesize, 0, m_spec.height,
+                                          m_rgb_frame->data,
+                                          m_rgb_frame->linesize);
                 if (scale_ret <= 0) {
                     errorfmt("Error converting FFmpeg frame");
-                    av_packet_unref(&pkt);
                     break;
                 }
                 m_last_decoded_pos = current_frame;
-                av_packet_unref(&pkt);
+                m_frame_valid      = true;
                 break;
             }
         }
-        av_packet_unref(&pkt);
+        av_packet_unref(pkt);
     }
-    m_read_frame = true;
+    av_packet_free(&pkt);
 }
 
 
@@ -772,7 +874,7 @@ FFmpegInput::seek(int frame)
     int64_t offset = time_stamp(frame);
     int flags      = AVSEEK_FLAG_BACKWARD;
     avcodec_flush_buffers(m_codec_context);
-    av_seek_frame(m_format_context, -1, offset, flags);
+    av_seek_frame(m_format_context, m_video_stream, offset, flags);
     return true;
 }
 
@@ -781,17 +883,16 @@ FFmpegInput::seek(int frame)
 int64_t
 FFmpegInput::time_stamp(int frame) const
 {
-    int64_t timestamp = static_cast<int64_t>(
-        (static_cast<double>(frame)
-         / (fps()
-            * av_q2d(m_format_context->streams[m_video_stream]->time_base))));
-    if (static_cast<int64_t>(m_format_context->start_time)
-        != int64_t(AV_NOPTS_VALUE)) {
-        timestamp += static_cast<int64_t>(
-            static_cast<double>(m_format_context->start_time) * AV_TIME_BASE
-            / av_q2d(m_format_context->streams[m_video_stream]->time_base));
-    }
-    return timestamp;
+    // The result is in the video stream's time base, which is the unit
+    // av_seek_frame() expects when seek() hands it m_video_stream.
+    // A corrupt header can give us a zero or degenerate time base, which
+    // would make the division below produce inf/NaN.
+    double time_base = av_q2d(
+        m_format_context->streams[m_video_stream]->time_base);
+    double scale = fps() * time_base;
+    if (!(scale > 0) || !(time_base > 0))
+        return m_start_time;
+    return safe_int64(static_cast<double>(frame) / scale) + m_start_time;
 }
 
 
