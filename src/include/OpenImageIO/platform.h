@@ -648,6 +648,18 @@ inline bool cpu_has_avx512cd() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<28)) 
 inline bool cpu_has_avx512bw() {int i[4]; cpuid(i,7,0); return (i[1] & (1<<30)) != 0; }
 inline bool cpu_has_avx512vl() {int i[4]; cpuid(i,7,0); return (i[1] & (0x80000000 /*1<<31*/)) != 0; }
 
+/// Is NEON (ARM AdvSIMD) available? Note that unlike the x86 queries above,
+/// this needs no runtime check: NEON is architecturally mandatory on
+/// ARMv8-A, so it is simply always present on any aarch64 target.
+inline bool cpu_has_neon() {
+#if defined(__ARM_NEON__) || defined(__ARM_NEON) || defined(__aarch64__) \
+    || defined(__aarch64) || defined(_M_ARM64) || defined(_M_ARM64EC)
+    return true;
+#else
+    return false;
+#endif
+}
+
 // portable aligned malloc
 OIIO_UTIL_API void* aligned_malloc(std::size_t size, std::size_t align);
 OIIO_UTIL_API void  aligned_free(void* ptr);
@@ -684,3 +696,39 @@ OIIO_NAMESPACE_3_1_END
 #ifndef OIIO_ENABLE_IF
 #   define OIIO_ENABLE_IF(...) std::enable_if_t<(__VA_ARGS__), int> = 0
 #endif
+
+
+
+// Compatibility
+OIIO_NAMESPACE_BEGIN
+#ifndef OIIO_DOXYGEN
+using v3_1::endian;
+using v3_1::littleendian;
+using v3_1::bigendian;
+using v3_1::aligned_delete;
+using v3_1::aligned_free;
+using v3_1::aligned_malloc;
+using v3_1::aligned_new;
+using v3_1::cpuid;
+using v3_1::cpu_has_sse2;
+using v3_1::cpu_has_sse3;
+using v3_1::cpu_has_ssse3;
+using v3_1::cpu_has_fma;
+using v3_1::cpu_has_sse41;
+using v3_1::cpu_has_sse42;
+using v3_1::cpu_has_popcnt;
+using v3_1::cpu_has_avx;
+using v3_1::cpu_has_f16c;
+using v3_1::cpu_has_rdrand;
+using v3_1::cpu_has_avx2;
+using v3_1::cpu_has_avx512f;
+using v3_1::cpu_has_avx512dq;
+using v3_1::cpu_has_avx512ifma;
+using v3_1::cpu_has_avx512pf;
+using v3_1::cpu_has_avx512er;
+using v3_1::cpu_has_avx512cd;
+using v3_1::cpu_has_avx512bw;
+using v3_1::cpu_has_avx512vl;
+using v3_1::cpu_has_neon;
+#endif
+OIIO_NAMESPACE_END
