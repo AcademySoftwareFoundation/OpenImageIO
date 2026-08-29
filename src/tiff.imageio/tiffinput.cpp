@@ -1317,6 +1317,8 @@ TIFFInput::readspec(bool read_meta)
         TIFFGetField(m_tif, TIFFTAG_ROWSPERSTRIP, &m_rowsperstrip);
         if (m_rowsperstrip > 0) {
             // Only set the attrib if a legit value was found in the file
+            if (m_rowsperstrip > 1)
+                m_spec.attribute("oiio:RowsPerChunk", m_rowsperstrip);
             m_spec.attribute("tiff:RowsPerStrip", m_rowsperstrip);
             m_rowsperstrip = std::min(m_rowsperstrip, m_spec.height);
         } else {

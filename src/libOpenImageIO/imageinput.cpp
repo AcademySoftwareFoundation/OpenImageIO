@@ -44,11 +44,16 @@ static thread_local InputErrorMessages input_error_messages;
 static std::atomic_int64_t input_next_id(0);
 
 
+// How many scanlines does this file want to be read at a time? Formats that
+// store scanlines in indivisible groups -- TIFF strips, OpenEXR compressed
+// chunks -- say so in "oiio:RowsPerChunk". Reading in whole multiples of
+// that keeps us from decompressing the same group more than once. Formats
+// that don't say don't care, so pick 64 and move on.
 static int
-safe_rows_per_strip(const ImageSpec& spec)
+safe_rows_per_chunk(const ImageSpec& spec)
 {
-    int rps = spec.get_int_attribute("tiff:RowsPerStrip", 64);
-    return rps > 0 ? rps : 64;
+    int rpc = spec.get_int_attribute("oiio:RowsPerChunk", 0);
+    return rpc > 0 ? rpc : 64;
 }
 
 
@@ -390,7 +395,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = safe_rows_per_strip(m_spec);
+            rps = safe_rows_per_chunk(m_spec);
         // FIXME: does the above search of metadata have a significant cost?
     }
     if (spec.image_bytes() < 1) {
@@ -438,7 +443,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     // No such luck.  Read scanlines in chunks.
 
     // Split into reasonable chunks -- try to use around 64 MB, but
-    // round up to a multiple of the TIFF rows per strip (or 64).
+    // round up to a multiple of the file's rows per chunk (or 64).
     int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
     chunk     = std::max(chunk, int(oiio_read_chunk));
     chunk     = round_to_multiple(chunk, rps);
@@ -1133,7 +1138,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = safe_rows_per_strip(m_spec);
+            rps = safe_rows_per_chunk(m_spec);
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
@@ -1183,7 +1188,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     } else {  // Scanline image -- rely on read_scanlines.
         // Split into reasonable chunks -- try to use around 64 MB or the
         // oiio_read_chunk value, which ever is bigger, but also round up to
-        // a multiple of the TIFF rows per strip (or 64).
+        // a multiple of the file's rows per chunk (or 64).
         int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
         chunk     = std::max(chunk, int(oiio_read_chunk));
         chunk     = round_to_multiple(chunk, rps);
@@ -1226,7 +1231,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = safe_rows_per_strip(m_spec);
+            rps = safe_rows_per_chunk(m_spec);
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
@@ -1267,7 +1272,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     } else {  // Scanline image -- rely on read_scanlines.
         // Split into reasonable chunks -- try to use around 64 MB or the
         // oiio_read_chunk value, which ever is bigger, but also round up to
-        // a multiple of the TIFF rows per strip (or 64).
+        // a multiple of the file's rows per chunk (or 64).
         int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
         chunk     = std::max(chunk, int(oiio_read_chunk));
         chunk     = round_to_multiple(chunk, rps);

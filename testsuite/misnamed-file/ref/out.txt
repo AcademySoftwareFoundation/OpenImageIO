@@ -12,6 +12,7 @@ misnamed.exr         : 1000 x 1000, 4 channel, uint8 tiff
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 8
     tiff:Compression: 8
     tiff:PageNumber: 0, 1
     tiff:PhotometricInterpretation: 2

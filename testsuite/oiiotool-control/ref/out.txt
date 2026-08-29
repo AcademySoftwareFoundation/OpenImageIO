@@ -320,6 +320,7 @@ Meta native:  128 x   96, 3 channel, uint8 tiff
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 32
     tiff:Compression: 5
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1

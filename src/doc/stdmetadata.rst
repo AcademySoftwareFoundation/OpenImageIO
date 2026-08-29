@@ -231,6 +231,22 @@ Disk file format info/hints
     unassociated with the color (i.e., color not "premultiplied" by the
     alpha coverage value).
 
+.. option:: "oiio:RowsPerChunk" : int
+
+    Some file formats containing scanlines are more efficient to read when a a
+    multiple of a certain number of scanlines are read at one time. TIFF and
+    OpenEXR are examples of this (TIFF RowsPerStrip or OpenEXR chunk size,
+    respectively), usually because they may compress groups of scanlines
+    together, making it impossible to decompress one individually without
+    reading and decompressing the whole group.
+
+    For file readers for which this performance difference is the case, the
+    reader will set this hint to convey the ideal number of scanlines to read
+    at a time for higher performance. Image file readers that have no such
+    preference will not set this hint.
+
+    This metadata was added in OpenImageIO 3.2.
+
 .. option:: "planarconfig" : string
 
     `contig` indicates that the file has contiguous pixels (RGB RGB RGB...),

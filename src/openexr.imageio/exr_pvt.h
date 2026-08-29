@@ -9,15 +9,19 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/memory.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/string_view.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/typedesc.h>
 
+#include <mutex>
+
 #include <ImathBox.h>
 #include <OpenEXR/IexThrowErrnoExc.h>
 #include <OpenEXR/ImfChannelList.h>
+#include <OpenEXR/ImfCompression.h>
 #include <OpenEXR/ImfIO.h>
 #include <OpenEXR/ImfRgbaFile.h>
 
@@ -54,6 +58,118 @@ void split_name(string_view fullname, string_view& layer, string_view& suffix);
 bool channels_are_rgb(const ImageSpec& spec);
 
 }  // namespace pvt
+
+
+
+// Scanlines packed into each compressed chunk of a scanline file, by
+// compression scheme. Fixed by the EXR file format. Imf::numLinesInBuffer()
+// reports the same thing, but it lives in ImfCompressor.h, which OpenEXR only
+// began installing as a public header in 3.3 -- OIIO still supports back to
+// 3.1. An unrecognized scheme returns 1, which just disables the chunk cache.
+inline int
+exr_scanlines_per_chunk(Imf::Compression c)
+{
+    switch (c) {
+    case Imf::ZIP_COMPRESSION:
+    case Imf::PXR24_COMPRESSION: return 16;
+    case Imf::PIZ_COMPRESSION:
+    case Imf::B44_COMPRESSION:
+    case Imf::B44A_COMPRESSION:
+    case Imf::DWAA_COMPRESSION: return 32;
+    case Imf::DWAB_COMPRESSION: return 256;
+#ifdef IMF_HTJ2K256_COMPRESSION
+    case Imf::HTJ2K256_COMPRESSION: return 256;
+#endif
+#ifdef IMF_HTJ2K32_COMPRESSION
+    case Imf::HTJ2K32_COMPRESSION: return 32;
+#endif
+    default: return 1;
+    }
+}
+
+
+
+// Cache of one decoded scanline chunk, used by both EXR readers.
+//
+// Compression schemes pack many scanlines into each chunk -- 16 for zip, 32
+// for piz and dwaa, 256 for dwab -- and a chunk can only be decompressed
+// whole. A client that asks for less than a chunk at a time (one scanline,
+// say) would otherwise make the reader decode the same chunk over and over,
+// once per call. Keeping the chunk we decoded most recently turns that back
+// into one decode per chunk.
+//
+// The chunk is identified by which subimage, miplevel, scanline range, and
+// channel range it holds. Bytes per scanline follow from those, so they
+// aren't part of the key.
+class ExrChunkCache {
+public:
+    // If we hold the chunk [cbegin,cend) of this subimage, miplevel, and
+    // channel range, copy scanlines [ybegin,yend) of it to data and return
+    // true. Otherwise return false, and the caller must decode the chunk.
+    bool fetch(int subimage, int miplevel, int cbegin, int cend, int chbegin,
+               int chend, int ybegin, int yend, size_t scanlinebytes,
+               void* data)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_subimage != subimage || m_miplevel != miplevel
+            || m_ybegin != cbegin || m_yend != cend || m_chbegin != chbegin
+            || m_chend != chend)
+            return false;
+        // The key implies the size, so this should never differ. Check it
+        // anyway rather than trust a caller's arithmetic with a memcpy.
+        if (scanlinebytes * size_t(cend - cbegin) != m_pixels.size())
+            return false;
+        memcpy(data, m_pixels.data() + scanlinebytes * size_t(ybegin - cbegin),
+               scanlinebytes * size_t(yend - ybegin));
+        return true;
+    }
+
+    // Take ownership of a freshly decoded chunk (leaving `pixels` holding
+    // whatever the cache used to have), to serve the calls that follow.
+    // Chunks bigger than the size limit are dropped rather than retained: for
+    // the outsized images where one chunk is that big, the memory isn't worth
+    // the time it saves.
+    void adopt(int subimage, int miplevel, int cbegin, int cend, int chbegin,
+               int chend, default_init_vector<uint8_t>& pixels)
+    {
+        if (pixels.size() > max_bytes)
+            return;
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_pixels.swap(pixels);
+        m_subimage = subimage;
+        m_miplevel = miplevel;
+        m_ybegin   = cbegin;
+        m_yend     = cend;
+        m_chbegin  = chbegin;
+        m_chend    = chend;
+    }
+
+    void clear()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_pixels.clear();
+        m_pixels.shrink_to_fit();
+        m_subimage = -1;
+        m_miplevel = -1;
+    }
+
+    // Largest chunk we will hold onto, in bytes. This is per open file, so
+    // it bounds what an application holding many files at once can accrue.
+    // In practice the ImageCache never populates this cache at all, because
+    // it reads whole chunks (see the autotile logic in ImageCacheFile::open),
+    // and only a partial-chunk read stores anything.
+    static constexpr size_t max_bytes = 32 * 1024 * 1024;
+
+private:
+    std::mutex m_mutex;
+    default_init_vector<uint8_t> m_pixels;  ///< The decoded chunk
+    int m_subimage = -1;                    ///< Which subimage it's from
+    int m_miplevel = -1;                    ///< Which miplevel it's from
+    int m_ybegin   = 0;                     ///< First scanline held
+    int m_yend     = 0;                     ///< One past the last scanline
+    int m_chbegin  = 0;                     ///< First channel held
+    int m_chend    = 0;                     ///< One past the last channel
+};
 
 
 
@@ -183,6 +299,7 @@ private:
         bool cubeface;          ///< It's a cubeface environment map
         bool luminance_chroma;  ///< It's a luminance chroma image
         int nmiplevels;         ///< How many MIP levels are there?
+        int scansperchunk = 1;  ///< Scanlines in each compressed chunk
         Imath::Box2i top_datawindow;
         Imath::Box2i top_displaywindow;
         std::vector<Imf::PixelType> pixeltype;  ///< Imf pixel type for each chan
@@ -202,6 +319,7 @@ private:
             , cubeface(p.cubeface)
             , luminance_chroma(p.luminance_chroma)
             , nmiplevels(p.nmiplevels)
+            , scansperchunk(p.scansperchunk)
             , top_datawindow(p.top_datawindow)
             , top_displaywindow(p.top_displaywindow)
             , pixeltype(p.pixeltype)
@@ -230,9 +348,11 @@ private:
     int m_miplevel;                     ///< What MIP level are we looking at?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
     std::string m_filename;             // filename, if known
+    ExrChunkCache m_chunkcache;
 
     void init()
     {
+        m_chunkcache.clear();
         m_input_stream             = NULL;
         m_input_multipart          = NULL;
         m_scanline_input_part      = NULL;
@@ -247,6 +367,12 @@ private:
         m_missingcolor.clear();
         m_filename.clear();
     }
+
+    // Read scanlines [ybegin,yend) out of the chunk [cbegin,cend), decoding
+    // that chunk if the cache doesn't already hold it.
+    bool read_cached_chunk(int subimage, int miplevel, int ybegin, int yend,
+                           int chbegin, int chend, int cbegin, int cend,
+                           size_t scanlinebytes, void* data);
 
     bool read_native_scanlines_individually(int subimage, int miplevel,
                                             int ybegin, int yend, int z,
