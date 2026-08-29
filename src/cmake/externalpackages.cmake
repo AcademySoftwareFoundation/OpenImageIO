@@ -82,7 +82,8 @@ if (TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
     set (JPEG_FOUND TRUE)
 else ()
     # Try to find the non-turbo version
-    checked_find_package (JPEG REQUIRED)
+    checked_find_package (JPEG REQUIRED
+                          VERSION_MIN 9.0)
 endif ()
 
 
