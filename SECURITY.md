@@ -8,9 +8,10 @@ security vulnerabilities.
 | Version / branch  | Supported                                            |
 | ----------------- | ---------------------------------------------------- |
 | main              | :white_check_mark: :construction: ALL fixes immediately, but this is a branch under development with a frequently unstable ABI and occasionally unstable API. |
-| 3.1.x             | :white_check_mark: All fixes that can be backported without breaking ABI compatibility. New tagged releases monthly. |
-| 3.0.x             | :warning: Important fixes that can be easily backported without breaking ABI compatibility. New tagged releases as needed, and becoming less frequent over time. |
-| <= 2.5.x         | :x: No longer receiving patches of any kind.        |
+| 3.2.x             | :white_check_mark: All fixes that can be backported without breaking ABI compatibility. New tagged releases monthly. |
+| 3.1.x             | :warning: All fixes that can be backported easily and without breaking ABI compatibility (less will be backported than to 3.2, because it has diverged for longer). New tagged releases monthly at first, but possibly becoming less frequent with time. |
+| 3.0.x             | :warning: :warning: Only the most critical bugs will be backported, only if it's very easy. Releases are sporadic now and support should be expected to end soon. |
+| <= 2.5.x          | :x: No longer receiving patches of any kind.        |
 
 
 ## Reporting a Vulnerability

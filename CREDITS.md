@@ -1,8 +1,8 @@
 This is a list of all the contributors to OpenImageIO, sorted alphabetically
 by first name.
 
-If you know of somebody that I missed or have corrections, please email:
-lg@openimageio.org
+If you know of somebody that I missed or have corrections, please contact
+the project.
 
 * Aamir Raza
 * Aaron Colwell
@@ -172,6 +172,7 @@ lg@openimageio.org
 * Matteo F. Vescovi
 * Matthew E. Levine
 * Max Liani
+* Mixie / Maxi741cv
 * Maxwell Iverson
 * Mel Massadian
 * Merwan Achibet
@@ -183,6 +184,7 @@ lg@openimageio.org
 * Mike Root
 * Morteza Ramezanali
 * Nandan Dubey
+* Nathan Gray
 * Nathan Rusch
 * Nicholas Yue
 * Nick Black
@@ -211,6 +213,7 @@ lg@openimageio.org
 * Pino Toscano
 * Povilas Kanapickas
 * Puneet Jain
+* Qi-fly
 * Radu Arjocu
 * Ramon Montoya
 * Ray Molenkamp
