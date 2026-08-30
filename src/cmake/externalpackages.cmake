@@ -139,6 +139,7 @@ if (USE_PYTHON AND OIIO_BUILD_PYTHON_NANOBIND)
     discover_nanobind_cmake_dir()
     checked_find_package (nanobind CONFIG REQUIRED
                           VERSION_MIN 2.8.0 VERSION_MAX 3.9
+                          NO_FP_RANGE_CHECK
                           BUILD_LOCAL missing)
 endif ()
 
