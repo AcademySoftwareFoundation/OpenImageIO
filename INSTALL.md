@@ -73,7 +73,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        1.17 required for monochrome HEIC support; tested through 1.23.1)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
-     * DCMTK >= 3.6.1 (tested through 3.7.0)
+     * **DCMTK >= 3.6.2** (tested through 3.7.0)
  * If you want support for WebP images:
      * WebP >= 1.1 (tested through 1.6)
  * If you want support for Ptex:
