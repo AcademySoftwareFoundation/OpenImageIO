@@ -1712,13 +1712,13 @@ TIFFInput::readspec_photometric()
     // to handle, we use libtiff's TIFFRGBA interface and have it give us 8
     // bit RGB values.
     bool is_jpeg         = (m_compression == COMPRESSION_JPEG
-                    || m_compression == COMPRESSION_OJPEG);
+                            || m_compression == COMPRESSION_OJPEG);
     bool is_nonspectral  = (m_photometric == PHOTOMETRIC_YCBCR
-                           || m_photometric == PHOTOMETRIC_CIELAB
-                           || m_photometric == PHOTOMETRIC_ICCLAB
-                           || m_photometric == PHOTOMETRIC_ITULAB
-                           || m_photometric == PHOTOMETRIC_LOGL
-                           || m_photometric == PHOTOMETRIC_LOGLUV);
+                            || m_photometric == PHOTOMETRIC_CIELAB
+                            || m_photometric == PHOTOMETRIC_ICCLAB
+                            || m_photometric == PHOTOMETRIC_ITULAB
+                            || m_photometric == PHOTOMETRIC_LOGL
+                            || m_photometric == PHOTOMETRIC_LOGLUV);
     m_use_rgba_interface = false;
     m_rgbadata.clear();
     if ((is_jpeg && m_spec.nchannels != 3)
@@ -2248,8 +2248,8 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     int planes     = m_separate ? m_spec.nchannels : 1;  // color planes
     // N.B. "separate" planarconfig stores only one channel in a strip
     // Be careful of 32 bit overflow.
-    imagesize_t stripvals = imagesize_t(m_spec.width) * stripchans
-                            * m_rowsperstrip;  // values in a strip
+    imagesize_t stripvals   = imagesize_t(m_spec.width) * stripchans
+                              * m_rowsperstrip;  // values in a strip
     imagesize_t strip_bytes = stripvals * m_spec.format.size();
     size_t cbound           = compressBound((uLong)strip_bytes);
     std::unique_ptr<char[]> compressed_scratch;
@@ -2305,10 +2305,10 @@ TIFFInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         int strips_in_file = (m_spec.height + m_rowsperstrip - 1)
                              / m_rowsperstrip;
         for (size_t stripidx = 0; y < yend; y += m_rowsperstrip, ++stripidx) {
-            int myrps               = std::min(yend - y, m_rowsperstrip);
-            int strip_endy          = std::min(y + m_rowsperstrip, yend);
-            imagesize_t mystripvals = imagesize_t(m_spec.width) * stripchans
-                                      * (strip_endy - y);
+            int myrps                 = std::min(yend - y, m_rowsperstrip);
+            int strip_endy            = std::min(y + m_rowsperstrip, yend);
+            imagesize_t mystripvals   = imagesize_t(m_spec.width) * stripchans
+                                        * (strip_endy - y);
             imagesize_t mystrip_bytes = mystripvals * m_spec.format.size();
             for (int c = 0; c < planes; ++c) {
                 tstrip_t stripnum = ((y - m_spec.y) / m_rowsperstrip)

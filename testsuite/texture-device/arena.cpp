@@ -80,7 +80,10 @@ namespace {
 
 }  // namespace
 
-Host::~Host() { report_leaks("Host", m_allocated); }
+Host::~Host()
+{
+    report_leaks("Host", m_allocated);
+}
 
 tagged_ptr<void>
 Host::alloc(tagged_ptr<void> mirror, size_t bytes, const char* purpose)
@@ -152,7 +155,10 @@ Host::copy_in(tagged_ptr<void> to, tagged_ptr<const void> from, size_t bytes)
     std::memcpy(to.get(), from.get(), bytes);
 }
 
-MockDevice::~MockDevice() { report_leaks("MockDevice", m_allocated); }
+MockDevice::~MockDevice()
+{
+    report_leaks("MockDevice", m_allocated);
+}
 
 tagged_ptr<void>
 MockDevice::alloc(size_t bytes, const char* purpose)

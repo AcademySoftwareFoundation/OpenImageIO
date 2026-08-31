@@ -483,8 +483,8 @@ IffInput::read_header()
                                                 return false;
 
                                             // set tile width and height
-                                            m_header.tile_width = xmax - xmin
-                                                                  + 1;
+                                            m_header.tile_width  = xmax - xmin
+                                                                   + 1;
                                             m_header.tile_height = ymax - ymin
                                                                    + 1;
 
@@ -728,9 +728,10 @@ IffInput::readimg()
                                     return false;
                                 }
 
-                                uint8_t* out_p
-                                    = out_dy + px * m_header.pixel_bytes() + c;
-                                *out_p = in_span[offset++];
+                                uint8_t* out_p = out_dy
+                                                 + px * m_header.pixel_bytes()
+                                                 + c;
+                                *out_p         = in_span[offset++];
                             }
                         }
                     }
@@ -788,15 +789,15 @@ IffInput::readimg()
                     if (littleendian()) {
                         uint8_t rgb16[]  = { 0, 2, 4, 1, 3, 5 };
                         uint8_t rgba16[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
-                        map              = (m_header.rgba_count == 3)
-                                               ? std::vector<uint8_t>(rgb16, rgb16 + 6)
-                                               : std::vector<uint8_t>(rgba16, rgba16 + 8);
+                        map = (m_header.rgba_count == 3)
+                                  ? std::vector<uint8_t>(rgb16, rgb16 + 6)
+                                  : std::vector<uint8_t>(rgba16, rgba16 + 8);
                     } else {
                         uint8_t rgb16[]  = { 1, 3, 5, 0, 2, 4 };
                         uint8_t rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
-                        map              = (m_header.rgba_count == 3)
-                                               ? std::vector<uint8_t>(rgb16, rgb16 + 6)
-                                               : std::vector<uint8_t>(rgba16, rgba16 + 8);
+                        map = (m_header.rgba_count == 3)
+                                  ? std::vector<uint8_t>(rgb16, rgb16 + 6)
+                                  : std::vector<uint8_t>(rgba16, rgba16 + 8);
                     }
 
                     for (int c = m_header.rgba_count * m_header.channel_bytes()
@@ -831,9 +832,10 @@ IffInput::readimg()
                                     return false;
                                 }
 
-                                uint8_t* out_p
-                                    = out_dy + px * m_header.pixel_bytes() + mc;
-                                *out_p = in_span[offset++];
+                                uint8_t* out_p = out_dy
+                                                 + px * m_header.pixel_bytes()
+                                                 + mc;
+                                *out_p         = in_span[offset++];
                             }
                         }
                     }

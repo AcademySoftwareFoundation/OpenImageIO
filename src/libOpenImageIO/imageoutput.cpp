@@ -475,7 +475,7 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
                        && supports("channelformats");
     // native_data is true if the user is passing data in the native format
     bool native_data           = (format == TypeDesc::UNKNOWN
-                        || (format == m_spec.format && !perchanfile));
+                                  || (format == m_spec.format && !perchanfile));
     stride_t input_pixel_bytes = native_data ? native_pixel_bytes
                                              : stride_t(format.size()
                                                         * m_spec.nchannels);
@@ -556,11 +556,11 @@ ImageOutput::to_native_rectangle(int xbegin, int xend, int ybegin, int yend,
                                      ? 0
                                      : rectangle_pixels * input_pixel_bytes;
     contiguoussize             = (contiguoussize + 3)
-                     & (~3);  // Round up to 4-byte boundary
+                                 & (~3);  // Round up to 4-byte boundary
     OIIO_DASSERT((contiguoussize & 3) == 0);
     imagesize_t floatsize = rectangle_values * sizeof(float);
     bool do_dither        = (dither && format.size() > 1
-                      && m_spec.format.basetype == TypeDesc::UINT8);
+                             && m_spec.format.basetype == TypeDesc::UINT8);
     scratch.resize(contiguoussize + floatsize + native_rectangle_bytes);
 
     // Force contiguity if not already present
@@ -702,12 +702,12 @@ ImageOutput::write_image(TypeDesc format, const void* data, stride_t xstride,
                                    && m_spec.get_string_attribute(
                                           "openexr:lineOrder")
                                           == "decreasingY";
-        const int numChunks  = m_spec.height > 0
-                                   ? 1 + ((m_spec.height - 1) / chunk)
-                                   : 0;
-        const int yLoopStart = isDecreasingY ? (numChunks - 1) * chunk : 0;
-        const int yDelta     = isDecreasingY ? -chunk : chunk;
-        const int yLoopEnd   = yLoopStart + numChunks * yDelta;
+        const int numChunks      = m_spec.height > 0
+                                       ? 1 + ((m_spec.height - 1) / chunk)
+                                       : 0;
+        const int yLoopStart     = isDecreasingY ? (numChunks - 1) * chunk : 0;
+        const int yDelta         = isDecreasingY ? -chunk : chunk;
+        const int yLoopEnd       = yLoopStart + numChunks * yDelta;
 
         for (int z = 0; z < m_spec.depth; ++z)
             for (int y = yLoopStart; y != yLoopEnd && ok; y += yDelta) {
@@ -833,8 +833,8 @@ ImageOutput::copy_to_image_buffer(int xbegin, int xend, int ybegin, int yend,
     stride_t buf_ystride = buf_xstride * spec.width;
     stride_t buf_zstride = buf_ystride * spec.height;
     stride_t offset      = (xbegin - spec.x) * buf_xstride
-                      + (ybegin - spec.y) * buf_ystride
-                      + (zbegin - spec.z) * buf_zstride;
+                           + (ybegin - spec.y) * buf_ystride
+                           + (zbegin - spec.z) * buf_zstride;
     int width = xend - xbegin, height = yend - ybegin, depth = zend - zbegin;
     imagesize_t npixels = imagesize_t(width) * imagesize_t(height)
                           * imagesize_t(depth);

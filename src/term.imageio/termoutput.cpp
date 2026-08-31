@@ -198,9 +198,7 @@ TermOutput::output()
         }
         OIIO::print(outfile, "\033]1337;File=inline=1;width=auto:{}\007\n",
                     Strutil::base64_encode(s.str()));
-    }
-
-    else if (method == "24bit") {
+    } else if (method == "24bit") {
         // OIIO::Print two vertical pixels per character cell using the Unicode
         // "upper half block" glyph U+2580, with fg color set to the 24 bit
         // RGB value of the upper pixel, and bg color set to the 24-bit RGB
@@ -218,9 +216,7 @@ TermOutput::output()
             }
             OIIO::print(outfile, "{}\n", term.ansi("default"));
         }
-    }
-
-    else if (method == "24bit-space") {
+    } else if (method == "24bit-space") {
         // OIIO::Print as space, with bg color set to the 24-bit RGB value of each
         // pixel.
         int z = m_buf.spec().z;
@@ -234,9 +230,7 @@ TermOutput::output()
             }
             OIIO::print(outfile, "{}\n", term.ansi("default"));
         }
-    }
-
-    else if (method == "dither") {
+    } else if (method == "dither") {
         // OIIO::Print as space, with bg color set to the 6x6x6 RGB value of each
         // pixels. Try to make it better with horizontal dithering. But...
         // it still looks bad. Room for future improvement?
@@ -258,9 +252,7 @@ TermOutput::output()
             }
             OIIO::print(outfile, "{}\n", term.ansi("default"));
         }
-    }
-
-    else {
+    } else {
         // OIIO::Print as space, with bg color set to the 6x6x6 RGB value of each
         // pixels. This looks awful!
         int z = m_buf.spec().z;

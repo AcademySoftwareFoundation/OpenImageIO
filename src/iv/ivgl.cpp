@@ -87,7 +87,9 @@ IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
 
 
 
-IvGL::~IvGL() {}
+IvGL::~IvGL()
+{
+}
 
 
 
@@ -875,10 +877,10 @@ IvGL::paint_pixelview()
     bool should_show_on_left = (x_mouse_viewport + closeup_window_size
                                 + follow_mouse_offset)
                                > width();
-    bool should_show_above = (y_mouse_viewport + closeup_window_size
-                              + follow_mouse_offset + total_text_height
-                              + status_bar_height)
-                             > height();
+    bool should_show_above   = (y_mouse_viewport + closeup_window_size
+                                + follow_mouse_offset + total_text_height
+                                + status_bar_height)
+                               > height();
 
     bool should_follow_mouse = m_viewer.pixelviewFollowsMouse();
 
@@ -1144,10 +1146,10 @@ IvGL::paint_pixelview()
 
             centerValue = format("{:<3}", int(p[channel]));
             normalized  = format("{:3.3f}", fpixel[channel])
-                         + center_value_separation_spaces;
-            min = format("{:<3}", stats.min_val);
-            max = format("{:<3}", stats.max_val);
-            avg = format("{:<3}", stats.avg_val);
+                          + center_value_separation_spaces;
+            min         = format("{:<3}", stats.min_val);
+            max         = format("{:<3}", stats.max_val);
+            avg         = format("{:<3}", stats.avg_val);
             break;
         }
         case TypeDesc::UINT16: {
@@ -1160,10 +1162,10 @@ IvGL::paint_pixelview()
 
             centerValue = format("{:<5}", int(p[channel]));
             normalized  = format("{:3.3f}", fpixel[channel])
-                         + center_value_separation_spaces;
-            min = format("{:<5}", stats.min_val);
-            max = format("{:<5}", stats.max_val);
-            avg = format("{:<5}", stats.avg_val);
+                          + center_value_separation_spaces;
+            min         = format("{:<5}", stats.min_val);
+            max         = format("{:<5}", stats.max_val);
+            avg         = format("{:<5}", stats.avg_val);
             break;
         }
         case TypeDesc::HALF: {
@@ -1401,12 +1403,12 @@ IvGL::paint_pixelview()
         short int px_to_right_edge     = spec.width - pixel_x;
         short int px_to_bottom_edge    = spec.height - pixel_y;
 
-        bool is_close_to_right_edge = px_to_right_edge
-                                      <= half_closeup_window_size;
+        bool is_close_to_right_edge  = px_to_right_edge
+                                       <= half_closeup_window_size;
         bool is_close_to_bottom_edge = px_to_bottom_edge
                                        <= half_closeup_window_size;
-        bool is_close_to_left_edge = pixel_x <= half_closeup_window_size;
-        bool is_close_to_top_edge  = pixel_y <= half_closeup_window_size;
+        bool is_close_to_left_edge   = pixel_x <= half_closeup_window_size;
+        bool is_close_to_top_edge    = pixel_y <= half_closeup_window_size;
 
         if (is_close_to_right_edge) {
             rect_x1 += +(half_closeup_window_size - px_to_right_edge + 1)

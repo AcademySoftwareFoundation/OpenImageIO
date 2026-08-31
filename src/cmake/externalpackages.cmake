@@ -82,7 +82,8 @@ if (TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
     set (JPEG_FOUND TRUE)
 else ()
     # Try to find the non-turbo version
-    checked_find_package (JPEG REQUIRED)
+    checked_find_package (JPEG REQUIRED
+                          VERSION_MIN 9.0)
 endif ()
 
 
@@ -137,7 +138,8 @@ endif ()
 if (USE_PYTHON AND OIIO_BUILD_PYTHON_NANOBIND)
     discover_nanobind_cmake_dir()
     checked_find_package (nanobind CONFIG REQUIRED
-                          VERSION_MIN 2.8.0
+                          VERSION_MIN 2.8.0 VERSION_MAX 3.9
+                          NO_FP_RANGE_CHECK
                           BUILD_LOCAL missing)
 endif ()
 
@@ -177,7 +179,7 @@ checked_find_package (TBB 2017
                       PREFER_CONFIG)
 
 # DCMTK is used to read DICOM images
-checked_find_package (DCMTK CONFIG VERSION_MIN 3.6.1)
+checked_find_package (DCMTK CONFIG VERSION_MIN 3.6.2)
 
 checked_find_package (FFmpeg VERSION_MIN 4.0)
 

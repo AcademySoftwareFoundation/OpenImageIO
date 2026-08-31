@@ -89,8 +89,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 // the extern "C" block below) so the linkage matches the definition in the
 // non-embedded (dynamic plugin) build where OIIO_PLUGIN_EXPORTS_BEGIN is
 // `extern "C"`. Use OIIO_EXPORT to ensure safe unity build on Windows.
-extern OIIO_EXPORT ImageInput*
-openexrcore_input_imageio_create();
+extern OIIO_EXPORT ImageInput* openexrcore_input_imageio_create();
 #endif
 
 
@@ -157,8 +156,7 @@ static std::map<std::string, std::string> exr_tag_to_oiio_std {
 
 namespace pvt {
 
-void
-set_exr_threads();
+void set_exr_threads();
 
 
 // Split a full channel name into layer and suffix.
@@ -198,7 +196,10 @@ channels_are_rgb(const ImageSpec& spec)
 
 
 
-OpenEXRInput::OpenEXRInput() { init(); }
+OpenEXRInput::OpenEXRInput()
+{
+    init();
+}
 
 
 
@@ -1276,7 +1277,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     size_t pixelbytes    = m_spec.pixel_bytes(chbegin, chend, true);
     size_t scanlinebytes = (size_t)m_spec.width * pixelbytes;
     char* buf            = (char*)data - m_spec.x * stride_t(pixelbytes)
-                - ybegin * stride_t(scanlinebytes);
+                           - ybegin * stride_t(scanlinebytes);
 
     try {
         if (part.luminance_chroma) {

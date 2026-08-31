@@ -395,7 +395,7 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     // alpha (i.e. colors are premultiplied).
     m_associated_alpha = m_himage.is_premultiplied_alpha();
     m_do_associate     = (!m_associated_alpha && m_spec.alpha_channel >= 0
-                      && !m_keep_unassociated_alpha);
+                          && !m_keep_unassociated_alpha);
     if (!m_associated_alpha && m_spec.nchannels >= 4) {
         // Indicate that file stored unassociated alpha data
         m_spec.attribute("heif:UnassociatedAlpha", 1);

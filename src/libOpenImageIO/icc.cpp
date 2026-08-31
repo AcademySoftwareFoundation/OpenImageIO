@@ -172,9 +172,10 @@ icc_primary_platform_name(const std::string& platform)
 static const char*
 icc_rendering_intent_name(uint32_t intent)
 {
-    static const char* rendering_intents[]
-        = { "Perceptual", "Media-relative colorimetric", "Saturation",
-            "ICC-absolute colorimetric" };
+    static const char* rendering_intents[] = { "Perceptual",
+                                               "Media-relative colorimetric",
+                                               "Saturation",
+                                               "ICC-absolute colorimetric" };
     return intent < 4 ? rendering_intents[intent] : "Unknown";
 }
 

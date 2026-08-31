@@ -23,6 +23,7 @@ on:
       - dev-3.*
       - "*wheel*"
       - "*python*"
+      - "*nanobind*"
   pull_request:
     # Workflow run on pull_request only when related files change, or when the
     # branch name itself contains the substrings 'wheel' or 'python'.
@@ -194,6 +195,7 @@ jobs:
     if: |
       github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
+        fail-fast: false
         matrix:
           include:
             # -------------------------------------------------------------------

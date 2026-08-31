@@ -125,7 +125,10 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-DPXOutput::DPXOutput() { init(); }
+DPXOutput::DPXOutput()
+{
+    init();
+}
 
 
 

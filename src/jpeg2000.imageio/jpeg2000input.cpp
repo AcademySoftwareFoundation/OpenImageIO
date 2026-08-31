@@ -338,8 +338,13 @@ Jpeg2000Input::ojph_read_header()
     int ch              = siz.get_num_components();
     const int w         = siz.get_recon_width(0);
     const int h         = siz.get_recon_height(0);
-    TypeDesc dtype;
+    TypeDesc dtype      = TypeDesc::UINT8;
 
+    if (ch < 1) {
+        errorfmt("No components in HTJ2K codestream");
+        close();
+        return false;
+    }
     if (ch > 4)
         ch = 4;  // Only do the first 4 channels.
     m_bpp.resize(ch);
@@ -347,14 +352,14 @@ Jpeg2000Input::ojph_read_header()
     for (int c = 0; c < ch; c++) {
         switch (siz.get_bit_depth(c)) {
         case 8:
-            dtype    = TypeDesc::UCHAR;
+            dtype    = TypeDesc::UINT8;
             m_bpp[c] = 1;
             break;
         case 10:
         case 12:
         case 16:
             m_bpp[c] = 2;
-            dtype    = TypeDesc::USHORT;
+            dtype    = TypeDesc::UINT16;
             break;
         case 32:
             m_bpp[c] = 4;
@@ -374,6 +379,17 @@ Jpeg2000Input::ojph_read_header()
     }
 
     m_spec = ImageSpec(w, h, ch, dtype);
+
+    // The dimensions come straight from the SIZ marker, and ojph_read_image()
+    // allocates the whole image up front, so the size has to be vetted here --
+    // the guards on the OpenJPEG path below do not run for HTJ2K files.
+    if (!check_open(m_spec, { 0, std::numeric_limits<int>::max(), 0,
+                              std::numeric_limits<int>::max(), 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, ioproxy() ? ioproxy()->size() : 0)) {
+        close();
+        return false;
+    }
+
     m_spec.default_channel_names();
     m_spec.attribute("oiio:BitsPerSample", siz.get_bit_depth(0));
     m_spec.set_colorspace("srgb_rec709_scene");
@@ -395,11 +411,12 @@ Jpeg2000Input::ojph_read_image()
     const size_t bufsize
         = clamped_mult64(clamped_mult64(uint64_t(w), uint64_t(h)),
                          clamped_mult64(uint64_t(ch), uint64_t(buffer_bpp)));
-    m_buf.resize(bufsize);
     try {
+        m_buf.resize(bufsize);
         codestream.create();
-    } catch (const std::runtime_error& e) {
+    } catch (const std::exception& e) {
         errorfmt("openjph exception {}", e.what());
+        return false;
     }
 
     int file_bit_depth = siz.get_bit_depth(0);  // Assuming RGBA are the same.
@@ -413,20 +430,25 @@ Jpeg2000Input::ojph_read_image()
                 ojph::line_buf* line = nullptr;
                 try {
                     line = codestream.pull(comp_num);
-                } catch (const std::runtime_error& e) {
+                } catch (const std::exception& e) {
                     errorfmt("openjph exception {}", e.what());
+                }
+                if (!line) {
+                    if (!has_error())
+                        errorfmt("Could not pull HTJ2K scanline");
+                    return false;
                 }
 
                 const ojph::si32* sp = line->i32;
                 OIIO_DASSERT(int(comp_num) == c);
-                if (m_spec.format == TypeDesc::UCHAR) {
+                if (m_spec.format == TypeDesc::UINT8) {
                     unsigned char* dout = &m_buf[i * w * ch];
                     dout += c;
                     for (int j = w; j > 0; j--, dout += ch) {
                         *dout = *sp++;
                     }
                 }
-                if (m_spec.format == TypeDesc::USHORT) {
+                if (m_spec.format == TypeDesc::UINT16) {
                     unsigned short* dout
                         = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
                     dout += c;
@@ -443,20 +465,25 @@ Jpeg2000Input::ojph_read_image()
                 ojph::line_buf* line = nullptr;
                 try {
                     line = codestream.pull(comp_num);
-                } catch (const std::runtime_error& e) {
+                } catch (const std::exception& e) {
                     errorfmt("openjph exception {}", e.what());
+                }
+                if (!line) {
+                    if (!has_error())
+                        errorfmt("Could not pull HTJ2K scanline");
+                    return false;
                 }
 
                 const ojph::si32* sp = line->i32;
                 OIIO_DASSERT(int(comp_num) == c);
-                if (m_spec.format == TypeDesc::UCHAR) {
+                if (m_spec.format == TypeDesc::UINT8) {
                     unsigned char* dout = &m_buf[i * w * ch];
                     dout += c;
                     for (int j = w; j > 0; j--, dout += ch) {
                         *dout = *sp++;
                     }
                 }
-                if (m_spec.format == TypeDesc::USHORT) {
+                if (m_spec.format == TypeDesc::UINT16) {
                     unsigned short* dout
                         = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
                     dout += c;
@@ -737,11 +764,19 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 #ifdef USE_OPENJPH
     if (ojph_reader) {
-        if (!ojph_image_read)
-            ojph_read_image();
-        unsigned char* start
-            = &m_buf[buffer_bpp * (y * m_spec.width * m_spec.nchannels)];
-        memcpy(data, start, buffer_bpp * m_spec.width * m_spec.nchannels);
+        if (!ojph_image_read && !ojph_read_image())
+            return false;
+        // The whole image is buffered up front, so a failed or short decode
+        // must not be copied out of regardless.
+        const int64_t scanline_size = int64_t(buffer_bpp) * m_spec.width
+                                      * m_spec.nchannels;
+        const int64_t offset        = scanline_size * y;
+        if (y < 0 || offset < 0
+            || offset + scanline_size > int64_t(m_buf.size())) {
+            errorfmt("Scanline {} is outside the decoded HTJ2K image", y);
+            return false;
+        }
+        memcpy(data, &m_buf[offset], scanline_size);
     } else {
 #endif  // USE_OPENJPH
 

@@ -26,7 +26,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * OpenEXR >= 3.1 (tested through 3.4 and main)
  * **libTIFF >= 4.1** (tested through 4.7 and master)
  * OpenColorIO >= 2.3 (tested through 2.5 and main)
- * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
+ * **libjpeg >= 9** (tested through jpeg-10), or libjpeg-turbo >= 2.1 (tested
    through 3.2)
  * zlib >= 1.2.7 (tested through 1.3.2)
  * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.2 and master).
@@ -47,7 +47,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        `nanobind` or `both`.  If not found at build time, nanobind will be
        automatically downloaded and built.
      * [pybind11](https://github.com/pybind/pybind11) >= 2.7 (tested through
-       3.0), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
+       3.1), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
        either `pybind11` or `both`.
      * NumPy (tested through 2.4.4)
  * If you want support for PNG files:
@@ -73,7 +73,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        1.17 required for monochrome HEIC support; tested through 1.23.1)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
-     * DCMTK >= 3.6.1 (tested through 3.7.0)
+     * **DCMTK >= 3.6.2** (tested through 3.7.0)
  * If you want support for WebP images:
      * WebP >= 1.1 (tested through 1.6)
  * If you want support for Ptex:
@@ -85,7 +85,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for JPEG XL images:
      * libjxl >= 0.10.1 (tested through 0.12.0)
  * If you want support for j2c files:
-     * OpenJPH >= 0.21.2 (tested through 0.30)
+     * OpenJPH >= 0.21.2 (tested through 0.31)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
@@ -165,11 +165,9 @@ Make wrapper (`make PkgName_ROOT=...`).
 
 `USE_PYTHON=0` : Omits building the Python bindings.
 
-`OIIO_PYTHON_BINDINGS_BACKEND=pybind11|nanobind|both` : Select which Python
-binding backend(s) to configure for source/CMake builds. `both` keeps the
-existing pybind11 module and also builds the nanobind (WIP) module. The
-Python packaging path driven by `pyproject.toml` still targets the production
-pybind11 bindings today.
+`OIIO_PYTHON_BINDINGS_BACKEND=nanobind|pybind11|both` : Select which Python
+binding backend(s) to configure for source/CMake builds.  The Python packaging
+path driven by `pyproject.toml` targets the nanobind bindings.
 
 `OIIO_BUILD_TESTS=0` : Omits building tests (you probably don't need them
 unless you are a developer of OIIO or want to verify that your build
@@ -191,6 +189,38 @@ FFmpeg, OpenVDB, Webp, etc.) -- even if the dependency is found on the
 system. This will obviously disable any functionality that requires the
 dependency. This works both as a CMake variable and
 also as an environment variable.
+
+**Selecting the SIMD instruction set**
+
+`USE_SIMD=...` : A comma-separated list of the machine / instruction set
+capabilities to generate code for, for example `USE_SIMD=avx2,f16c`. Like the
+options above, it works as a CMake variable, an environment variable, or a
+setting on the Make wrapper (`make USE_SIMD=avx2,f16c`).
+
+The recognized x86 tokens are `sse2`, `sse3`, `ssse3`, `sse4.1`, `sse4.2`,
+`avx`, `avx2`, `avx512f` (and the other `avx512*` subsets), `f16c`, `fma`,
+`aes`, and `popcnt`. On ARM you may pass `neon`, an architecture name such as
+`armv8.2-a+fp16`, or a CPU name such as `apple-m1`. Tokens naming an ISA that
+belongs to a different CPU family than the one being built for are ignored,
+so passing `avx2,f16c` on an ARM machine is harmless rather than fatal.
+
+The default depends on the target architecture:
+
+* x86_64 : `sse4.2`. OIIO defaults to SSE4.2 on x86_64 to enable newer fast
+  paths; if you need to run on older x86_64 CPUs, set `USE_SIMD` to a lower
+  level (e.g. `sse2`) or `0`. (Without this, gcc and clang would generate only
+  SSE2 code.)
+* arm64 / aarch64 : empty. NEON is architecturally mandatory on ARMv8-A, so
+  the compiler already enables it and there is nothing to request.
+
+`USE_SIMD=0` disables SIMD entirely, on any architecture.
+
+Beware that the resulting binaries will not run on a CPU that lacks the
+instructions you asked for. Also note that this only controls how OIIO itself
+is compiled. Because `simd.h` is a public header and gcc/clang only make the
+SSE4/AVX intrinsics available when the corresponding `-m` flag is present,
+downstream code that includes `simd.h` gets the SSE4 code paths only if it is
+compiled with `-msse4.2` (or better) itself.
 
 
 
@@ -261,7 +291,7 @@ Additionally, a few helpful modifiers alter some build-time options:
 | make USE_QT=0 ...             |  Skip anything that needs Qt                                              |
 | make MYCC=xx MYCXX=yy ...     |  Use custom compilers                                                     |
 | make USE_PYTHON=0 ...         |  Don't build the Python binding                                           |
-| make OIIO_PYTHON_BINDINGS_BACKEND=both ... | For source/CMake builds, build the existing pybind11 bindings and the nanobind (WIP) module |
+| make OIIO_PYTHON_BINDINGS_BACKEND=both ... | For source/CMake builds, choosing nanobind (current), pybind11 (legacy) or both modules. |
 | make BUILD_SHARED_LIBS=0      |  Build static library instead of shared                                   |
 | make IGNORE_HOMEBREWED_DEPS=1 |  Ignore homebrew-managed dependencies                                     |
 | make LINKSTATIC=1 ...         |  Link with static external libraries when possible                        |
@@ -361,7 +391,8 @@ On the other hand, if you would prefer to open the generated Visual Studio
 solution, the "cmake configure" will have produced
 `{OIIO_ROOT}/build/OpenImageIO.sln` that can be opened in Visual Studio IDE.
 Note that the solution will be only for the Intel x64 architecture only; and
-will only target "min-spec" (SSE2) SIMD instruction set.
+will target the default SSE4.2 SIMD instruction set (see `USE_SIMD` above if
+you want something else).
 
 Optional packages that OIIO can use (e.g. libpng, Qt) can be build and pointed to OIIO build process in a similar way.
 

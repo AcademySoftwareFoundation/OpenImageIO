@@ -94,10 +94,11 @@ ImageOutput_write_tile(ImageOutput& self, int x, int y, int z,
         self.errorfmt("Cannot write tiles to a scanline file.");
         return false;
     }
-    oiio_bufinfo buf
-        = oiio_bufinfo_from_object(buffer, spec.nchannels, spec.tile_width,
-                                   spec.tile_height, spec.tile_depth,
-                                   spec.tile_depth > 1 ? 3 : 2);
+    oiio_bufinfo buf = oiio_bufinfo_from_object(buffer, spec.nchannels,
+                                                spec.tile_width,
+                                                spec.tile_height,
+                                                spec.tile_depth,
+                                                spec.tile_depth > 1 ? 3 : 2);
     if (!buf.data || buf.error.size()) {
         self.errorfmt("Pixel data array error: {}",
                       buf.error.size() ? buf.error.c_str() : "unspecified");

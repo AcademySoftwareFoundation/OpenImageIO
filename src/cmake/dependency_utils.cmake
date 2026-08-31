@@ -18,7 +18,7 @@ set_cache (${PROJECT_NAME}_BUILD_LOCAL_DEPS ""
 set_cache (${PROJECT_NAME}_LOCAL_DEPS_ROOT "${PROJECT_BINARY_DIR}/deps"
            "Directory were we do local builds of dependencies")
 list (APPEND CMAKE_PREFIX_PATH ${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/dist)
-include_directories(BEFORE ${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/include)
+include_directories(BEFORE ${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/dist/include)
 
 # Build type for locally built dependencies. Default to the same build type
 # as the current project.
@@ -182,6 +182,47 @@ function (handle_package_notfound pkgname required)
 endfunction ()
 
 
+# Helper: called when a package we just built locally can't be refound. Dumps
+# the saved build log and install dir contents -- the only evidence of what
+# went wrong, since a successful sub-build's output is otherwise never
+# printed. Fatal only if required; an optional package just warns and falls
+# through to the normal handle_package_notfound() handling below.
+function (report_local_build_refind_failure pkgname required)
+    set (_installdir "${${pkgname}_LOCAL_INSTALL_DIR}")
+    if (IS_DIRECTORY "${_installdir}")
+        foreach (_sub IN ITEMS lib lib64 bin include)
+            if (IS_DIRECTORY "${_installdir}/${_sub}")
+                file (GLOB _entries RELATIVE "${_installdir}/${_sub}"
+                      "${_installdir}/${_sub}/*")
+                message (STATUS "    ${_installdir}/${_sub}: ${_entries}")
+            endif ()
+        endforeach ()
+    else ()
+        message (STATUS "    No install directory ${_installdir}")
+    endif ()
+    set (_log "${${pkgname}_LOCAL_BUILD_LOG}")
+    if (EXISTS "${_log}")
+        # Only the tail, since some dependencies produce enormous logs.
+        file (SIZE "${_log}" _logsize)
+        set (_logoffset 0)
+        if (_logsize GREATER 20000)
+            math (EXPR _logoffset "${_logsize} - 20000")
+        endif ()
+        file (READ "${_log}" _logtext OFFSET ${_logoffset})
+        message (STATUS "Local build log (${_log}):\n${_logtext}")
+    endif ()
+    if (required)
+        message (FATAL_ERROR
+                 "${pkgname} was built locally, but could not be found afterwards "
+                 "in ${_installdir}.")
+    else ()
+        message (WARNING
+                 "${pkgname} was built locally, but could not be found afterwards "
+                 "in ${_installdir}.")
+    endif ()
+endfunction ()
+
+
 # Check whether the package's version (in pkgversion) lies within versionmin
 # and versionmax (inclusive). Store TRUE result variable if the version was in
 # range, FALSE if it was out of range. If it did not match, clear a bunch of
@@ -307,7 +348,7 @@ macro (checked_find_package pkgname)
     #
     # Various setup logic
     #
-    cmake_parse_arguments(_pkg   # prefix
+    cmake_parse_arguments(_cfp   # prefix
         # noValueKeywords:
         "REQUIRED;OPTIONAL;CONFIG;PREFER_CONFIG;DEBUG;NO_RECORD_NOTFOUND;NO_FP_RANGE_CHECK"
         # singleValueKeywords:
@@ -318,103 +359,114 @@ macro (checked_find_package pkgname)
         ${ARGN})
     string (TOLOWER ${pkgname} pkgname_lower)
     string (TOUPPER ${pkgname} pkgname_upper)
-    set (_pkg_VERBOSE ${VERBOSE})
-    if (_pkg_DEBUG)
-        set (_pkg_VERBOSE ON)
+    set (_cfp_VERBOSE ${VERBOSE})
+    if (_cfp_DEBUG)
+        set (_cfp_VERBOSE ON)
     endif ()
-    if (NOT _pkg_VERBOSE)
+    if (NOT _cfp_VERBOSE)
         set (${pkgname}_FIND_QUIETLY true)
         set (${pkgname_upper}_FIND_QUIETLY true)
     endif ()
+    # Snapshot the parsed values we still need below, keyed by ${pkgname}. This
+    # macro has no scope of its own, and the local build about to run (which may
+    # itself call checked_find_package() for sub-deps, e.g. TIFF -> libdeflate)
+    # shares it and reuses this same "_cfp" prefix, so it would otherwise
+    # clobber these before we get back to them. ${pkgname}-keying is safe: a
+    # macro parameter is substituted per call, unlike a shared variable.
+    foreach (_v IN ITEMS UNPARSED_ARGUMENTS DEFINITIONS SETVARIABLES
+                         RECOMMEND_MIN RECOMMEND_MIN_REASON NO_RECORD_NOTFOUND
+                         VERBOSE DEBUG PRINT)
+        set (_cfp_${pkgname}_${_v} "${_cfp_${_v}}")
+    endforeach ()
     if ("${pkgname}" IN_LIST ${PROJECT_NAME}_REQUIRED_DEPS
         OR "ALL" IN_LIST ${PROJECT_NAME}_REQUIRED_DEPS
         OR "all" IN_LIST ${PROJECT_NAME}_REQUIRED_DEPS)
-        set (_pkg_REQUIRED 1)
+        set (_cfp_REQUIRED 1)
     endif ()
     if ("${pkgname}" IN_LIST ${PROJECT_NAME}_OPTIONAL_DEPS
         OR "ALL" IN_LIST ${PROJECT_NAME}_OPTIONAL_DEPS
         OR "all" IN_LIST ${PROJECT_NAME}_OPTIONAL_DEPS)
-        set (_pkg_REQUIRED 0)
-        set (_pkg_OPTIONAL 1)
+        set (_cfp_REQUIRED 0)
+        set (_cfp_OPTIONAL 1)
     endif ()
-    # string (TOLOWER "${_pkg_BUILD_LOCAL}" _pkg_BUILD_LOCAL)
+    # string (TOLOWER "${_cfp_BUILD_LOCAL}" _cfp_BUILD_LOCAL)
     if ("${pkgname}" IN_LIST ${PROJECT_NAME}_BUILD_LOCAL_DEPS
         OR ${PROJECT_NAME}_BUILD_LOCAL_DEPS STREQUAL "ALL"
         OR ${PROJECT_NAME}_BUILD_LOCAL_DEPS STREQUAL "all")
-        set (_pkg_BUILD_LOCAL "always")
+        set (_cfp_BUILD_LOCAL "always")
     elseif ("${pkgname}" IN_LIST ${PROJECT_NAME}_BUILD_MISSING_DEPS
             OR ${PROJECT_NAME}_BUILD_MISSING_DEPS STREQUAL "ALL"
             OR ${PROJECT_NAME}_BUILD_MISSING_DEPS STREQUAL "all"
             OR ("required" IN_LIST ${PROJECT_NAME}_BUILD_MISSING_DEPS
-                AND _pkg_REQUIRED))
-        set_if_not (_pkg_BUILD_LOCAL "missing")
+                AND _cfp_REQUIRED))
+        set_if_not (_cfp_BUILD_LOCAL "missing")
     endif ()
     set (${pkgname}_local_build_script "${PROJECT_SOURCE_DIR}/src/cmake/build_${pkgname}.cmake")
     if (EXISTS ${${pkgname}_local_build_script})
         set (${pkgname}_local_build_script_exists TRUE)
     endif ()
-    if (_pkg_BUILD_LOCAL AND NOT EXISTS "${${pkgname}_local_build_script}")
-        unset (_pkg_BUILD_LOCAL)
+    if (_cfp_BUILD_LOCAL AND NOT EXISTS "${${pkgname}_local_build_script}")
+        unset (_cfp_BUILD_LOCAL)
     endif ()
     set (_quietskip false)
     check_is_enabled (${pkgname} _enable)
     set (_disablereason "")
-    foreach (_dep ${_pkg_DEPS})
+    foreach (_dep ${_cfp_DEPS})
         if (_enable AND NOT ${_dep}_FOUND)
             set (_enable false)
             set (ENABLE_${pkgname} OFF PARENT_SCOPE)
             set (_disablereason "(because ${_dep} was not found)")
         endif ()
     endforeach ()
-    if (_pkg_ISDEPOF)
-        check_is_enabled (${_pkg_ISDEPOF} _dep_enabled)
+    if (_cfp_ISDEPOF)
+        check_is_enabled (${_cfp_ISDEPOF} _dep_enabled)
         if (NOT _dep_enabled)
             set (_enable false)
             set (_quietskip true)
         endif ()
     endif ()
     if (NOT _enable)
-        set (_pkg_OPTIONAL 1)
-        set (_pkg_REQUIRED 0)
+        set (_cfp_OPTIONAL 1)
+        set (_cfp_REQUIRED 0)
         message(STATUS "Forcing optional of disabled ${pkgname}")
     endif ()
-    set (${pkgname}_REQUIRED ${_pkg_REQUIRED})
+    set (${pkgname}_REQUIRED ${_cfp_REQUIRED})
     set (_config_status "")
     unset (_${pkgname}_version_range)
-    if (_pkg_BUILD_LOCAL AND NOT _pkg_NO_FP_RANGE_CHECK)
+    if (_cfp_BUILD_LOCAL AND NOT _cfp_NO_FP_RANGE_CHECK)
         # SKIP THIS -- I find it unreliable because the package's exported
         # PKGConfigVersion.cmake has might have arbitrary rules. Use our own
         # MIN_VERSION and MAX_VERSION parameters to manually check instead.
         #
-        if (_pkg_VERSION_MIN AND _pkg_VERSION_MAX)
-            set (_${pkgname}_version_range "${_pkg_VERSION_MIN}...<${_pkg_VERSION_MAX}")
-        elseif (_pkg_VERSION_MIN)
-            set (_${pkgname}_version_range "${_pkg_VERSION_MIN}")
+        if (_cfp_VERSION_MIN AND _cfp_VERSION_MAX)
+            set (_${pkgname}_version_range "${_cfp_VERSION_MIN}...<${_cfp_VERSION_MAX}")
+        elseif (_cfp_VERSION_MIN)
+            set (_${pkgname}_version_range "${_cfp_VERSION_MIN}")
         endif ()
     endif ()
-    set_if_not (_pkg_VERSION_MIN "0.0.1")
-    set_if_not (_pkg_VERSION_MAX "10000.0.0")
+    set_if_not (_cfp_VERSION_MIN "0.0.1")
+    set_if_not (_cfp_VERSION_MAX "10000.0.0")
     #
     # Now we try to find or build
     #
     set (${pkgname}_FOUND FALSE)
     set (${pkgname}_LOCAL_BUILD FALSE)
-    if (_enable OR (_pkg_REQUIRED AND NOT _pkg_OPTIONAL))
+    if (_enable OR (_cfp_REQUIRED AND NOT _cfp_OPTIONAL))
         # Unless instructed not to, try to find the package externally
         # installed.
-        if (${pkgname}_FOUND OR ${pkgname_upper}_FOUND OR _pkg_BUILD_LOCAL STREQUAL "always")
+        if (${pkgname}_FOUND OR ${pkgname_upper}_FOUND OR _cfp_BUILD_LOCAL STREQUAL "always")
             # was already found, or we're forcing a local build
-        elseif (_pkg_CONFIG OR _pkg_PREFER_CONFIG OR ${PROJECT_NAME}_ALWAYS_PREFER_CONFIG)
-            find_package (${pkgname} ${_${pkgname}_version_range} CONFIG ${_pkg_UNPARSED_ARGUMENTS})
+        elseif (_cfp_CONFIG OR _cfp_PREFER_CONFIG OR ${PROJECT_NAME}_ALWAYS_PREFER_CONFIG)
+            find_package (${pkgname} ${_${pkgname}_version_range} CONFIG ${_cfp_${pkgname}_UNPARSED_ARGUMENTS})
             reject_out_of_range_versions (${pkgname} "${${pkgname}_VERSION}"
-                                          ${_pkg_VERSION_MIN} ${_pkg_VERSION_MAX}
-                                          _pkg_version_in_range)
+                                          ${_cfp_VERSION_MIN} ${_cfp_VERSION_MAX}
+                                          _cfp_version_in_range)
             if (${pkgname}_FOUND OR ${pkgname_upper}_FOUND)
                 set (_config_status "from CONFIG")
             endif ()
         endif ()
-        if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND AND NOT _pkg_BUILD_LOCAL STREQUAL "always" AND NOT _pkg_CONFIG)
-            find_package (${pkgname} ${_${pkgname}_version_range} ${_pkg_UNPARSED_ARGUMENTS})
+        if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND AND NOT _cfp_BUILD_LOCAL STREQUAL "always" AND NOT _cfp_CONFIG)
+            find_package (${pkgname} ${_${pkgname}_version_range} ${_cfp_${pkgname}_UNPARSED_ARGUMENTS})
         endif()
         if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND)
             list (APPEND CFP_ALL_BUILD_DEPS_NOTFOUND ${pkgname})
@@ -433,12 +485,12 @@ macro (checked_find_package pkgname)
         # range, unset the relevant variables so that we can try again fresh.
         if ((${pkgname}_FOUND OR ${pkgname_upper}_FOUND) AND ${pkgname}_VERSION)
             reject_out_of_range_versions (${pkgname} ${${pkgname}_VERSION}
-                                          ${_pkg_VERSION_MIN} ${_pkg_VERSION_MAX}
-                                          _pkg_version_in_range)
-            if (_pkg_version_in_range)
+                                          ${_cfp_VERSION_MIN} ${_cfp_VERSION_MAX}
+                                          _cfp_version_in_range)
+            if (_cfp_version_in_range)
                 list (APPEND CFP_EXTERNAL_BUILD_DEPS_FOUND ${pkgname})
             else ()
-                message (STATUS "${ColorRed}${pkgname} ${${pkgname}_VERSION} is outside the required range ${_pkg_VERSION_MIN}...${_pkg_VERSION_MAX} ${ColorReset}")
+                message (STATUS "${ColorRed}${pkgname} ${${pkgname}_VERSION} is outside the required range ${_cfp_VERSION_MIN}...${_cfp_VERSION_MAX} ${ColorReset}")
                 list (APPEND CFP_ALL_BUILD_DEPS_BADVERSION ${pkgname})
                 if (${pkgname}_local_build_script_exists)
                     list (APPEND CFP_LOCALLY_BUILDABLE_DEPS_BADVERSION ${pkgname})
@@ -449,7 +501,7 @@ macro (checked_find_package pkgname)
         # version, and a build_<pkgname>.cmake exists, include it to build the
         # package locally.
         if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND
-            AND (_pkg_BUILD_LOCAL STREQUAL "always" OR _pkg_BUILD_LOCAL STREQUAL "missing")
+            AND (_cfp_BUILD_LOCAL STREQUAL "always" OR _cfp_BUILD_LOCAL STREQUAL "missing")
             AND EXISTS "${${pkgname}_local_build_script}")
             message (STATUS "${ColorMagenta}Building package ${pkgname} ${${pkgname}_VERSION} locally${ColorReset}")
             list(APPEND CMAKE_MESSAGE_INDENT "        ")
@@ -468,6 +520,10 @@ macro (checked_find_package pkgname)
         #                               to specifically find.
         #   ${pkgname}_REFIND_ARGS    : additional arguments to pass to find_package
         if (${pkgname}_REFIND)
+            # A local build script may itself have called checked_find_package
+            # for its own dependencies. Since this is a macro, those nested
+            # calls clobbered pkgname_upper, so recompute it.
+            string (TOUPPER ${pkgname} pkgname_upper)
             message (STATUS "Refinding ${pkgname} with ${pkgname}_ROOT=${${pkgname}_ROOT}")
             # A prior find_package() may have left a bunch of cruft from a
             # rejected, unsuitable system install in its Find module. Clear it
@@ -489,7 +545,12 @@ macro (checked_find_package pkgname)
             foreach (_v IN ITEMS ${pkgname}_DIR ${pkgname_upper}_DIR)
                 unset (${_v} CACHE)
             endforeach ()
-            find_package (${pkgname} ${${pkgname}_REFIND_VERSION} REQUIRED ${_pkg_UNPARSED_ARGUMENTS} ${${pkgname}_REFIND_ARGS})
+            # Deliberately not REQUIRED: we want to report what the local
+            # build left behind before aborting.
+            find_package (${pkgname} ${${pkgname}_REFIND_VERSION} ${_cfp_${pkgname}_UNPARSED_ARGUMENTS} ${${pkgname}_REFIND_ARGS})
+            if (NOT ${pkgname}_FOUND AND NOT ${pkgname_upper}_FOUND)
+                report_local_build_refind_failure (${pkgname} ${${pkgname}_REQUIRED})
+            endif ()
             unset (${pkgname}_REFIND)
         endif()
         # It's all downhill from here: if we found the package, follow the
@@ -503,32 +564,32 @@ macro (checked_find_package pkgname)
                 endif ()
             endforeach ()
             message (STATUS "${ColorGreen}Found ${pkgname} ${${pkgname}_VERSION} ${_config_status}${ColorReset}")
-            add_compile_definitions (${_pkg_DEFINITIONS})
-            foreach (_v IN LISTS _pkg_SETVARIABLES)
+            add_compile_definitions (${_cfp_${pkgname}_DEFINITIONS})
+            foreach (_v IN LISTS _cfp_${pkgname}_SETVARIABLES)
                 set (${_v} TRUE)
             endforeach ()
-            if (_pkg_RECOMMEND_MIN)
-                if ("${${pkgname}_VERSION}" VERSION_LESS ${_pkg_RECOMMEND_MIN})
-                    message (STATUS "${ColorYellow}Recommend ${pkgname} >= ${_pkg_RECOMMEND_MIN} ${_pkg_RECOMMEND_MIN_REASON} ${ColorReset}")
+            if (_cfp_${pkgname}_RECOMMEND_MIN)
+                if ("${${pkgname}_VERSION}" VERSION_LESS ${_cfp_${pkgname}_RECOMMEND_MIN})
+                    message (STATUS "${ColorYellow}Recommend ${pkgname} >= ${_cfp_${pkgname}_RECOMMEND_MIN} ${_cfp_${pkgname}_RECOMMEND_MIN_REASON} ${ColorReset}")
                 endif ()
             endif ()
             string (STRIP "${pkgname} ${${pkgname}_VERSION}" app_)
             list (APPEND CFP_ALL_BUILD_DEPS_FOUND "${app_}")
         else ()
-            handle_package_notfound (${pkgname} ${_pkg_REQUIRED})
-            if (NOT _pkg_NO_RECORD_NOTFOUND)
+            handle_package_notfound (${pkgname} ${${pkgname}_REQUIRED})
+            if (NOT _cfp_${pkgname}_NO_RECORD_NOTFOUND)
                 list (APPEND CFP_ALL_BUILD_DEPS_FOUND "${pkgname} NONE")
             endif ()
         endif()
-        if (_pkg_VERBOSE AND (${pkgname}_FOUND OR ${pkgname_upper}_FOUND OR _pkg_DEBUG))
-            if (_pkg_DEBUG)
+        if (_cfp_${pkgname}_VERBOSE AND (${pkgname}_FOUND OR ${pkgname_upper}_FOUND OR _cfp_${pkgname}_DEBUG))
+            if (_cfp_${pkgname}_DEBUG)
                 dump_matching_variables (${pkgname})
             endif ()
             set (_vars_to_print ${pkgname}_INCLUDES ${pkgname_upper}_INCLUDES
                                 ${pkgname}_INCLUDE_DIR ${pkgname_upper}_INCLUDE_DIR
                                 ${pkgname}_INCLUDE_DIRS ${pkgname_upper}_INCLUDE_DIRS
                                 ${pkgname}_LIBRARIES ${pkgname_upper}_LIBRARIES
-                                ${_pkg_PRINT})
+                                ${_cfp_${pkgname}_PRINT})
             list (REMOVE_DUPLICATES _vars_to_print)
             foreach (_v IN LISTS _vars_to_print)
                 if (NOT "${${_v}}" STREQUAL "")
@@ -649,6 +710,13 @@ macro (build_dependency_with_cmake pkgname)
     set (${pkgname}_LOCAL_SOURCE_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/${pkgname}")
     set (${pkgname}_LOCAL_BUILD_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/${pkgname}-build")
     set (${pkgname}_LOCAL_INSTALL_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/dist")
+    # The configure/build/install output is captured rather than printed, so
+    # keep a copy on disk. It is the only record of what the sub-build did if
+    # something downstream (such as the refind) fails after it "succeeded".
+    set (${pkgname}_LOCAL_BUILD_LOG
+         "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/${pkgname}-build.log")
+    file (WRITE "${${pkgname}_LOCAL_BUILD_LOG}"
+          "Local build of ${pkgname} ${_pkg_VERSION}\n")
     message (STATUS "Downloading local ${_pkg_GIT_REPOSITORY}")
 
     unset (${pkgname}_GIT_CLONE_ARGS)
@@ -658,7 +726,7 @@ macro (build_dependency_with_cmake pkgname)
         list (APPEND ${pkgname}_GIT_CLONE_ARGS -b ${_pkg_GIT_TAG} --depth 1)
     endif ()
     if (_pkg_QUIET OR "${_pkg_QUIET}" STREQUAL "")
-        list (APPEND ${pkgname}_GIT_CLONE_ARGS -q ERROR_VARIABLE ${pkgname}_clone_errors)
+        list (APPEND ${pkgname}_GIT_CLONE_ARGS -q)
         set (_pkg_exec_quiet OUTPUT_QUIET)
     endif ()
 
@@ -667,11 +735,11 @@ macro (build_dependency_with_cmake pkgname)
     if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
         message (STATUS "COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY} "
                                 "${${pkgname}_LOCAL_SOURCE_DIR} "
-                                "${${pkgname}_GIT_CLONE_ARGS} "
-                        "${_pkg_exec_quiet}")
+                                "${${pkgname}_GIT_CLONE_ARGS}")
         execute_process(COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY}
                                 ${${pkgname}_LOCAL_SOURCE_DIR}
                                 ${${pkgname}_GIT_CLONE_ARGS}
+                        ERROR_VARIABLE ${pkgname}_clone_errors
                         ${_pkg_exec_quiet})
         if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
             message (FATAL_ERROR "Could not download ${_pkg_GIT_REPOSITORY}: ${${pkgname}_clone_errors}")
@@ -773,15 +841,33 @@ macro (build_dependency_with_cmake pkgname)
                 ${_pkg_cmake_verbose}
             # Build args passed by caller
                 ${_pkg_CMAKE_ARGS}
-        ${_pkg_exec_quiet}
+        RESULT_VARIABLE _pkg_configure_result
+        OUTPUT_VARIABLE _pkg_configure_output
+        ERROR_VARIABLE _pkg_configure_output
         )
+    file (APPEND "${${pkgname}_LOCAL_BUILD_LOG}"
+          "\n==== configure (exit code ${_pkg_configure_result}) ====\n${_pkg_configure_output}")
+    if (NOT _pkg_configure_result EQUAL 0)
+        message (FATAL_ERROR
+            "Configuring local ${pkgname} failed (exit code ${_pkg_configure_result}):\n"
+            "${_pkg_configure_output}")
+    endif ()
 
     # Build the package
     execute_process (COMMAND ${CMAKE_COMMAND}
                         --build ${${pkgname}_LOCAL_BUILD_DIR}
                         --config ${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}
-                     ${_pkg_exec_quiet}
+                     RESULT_VARIABLE _pkg_build_result
+                     OUTPUT_VARIABLE _pkg_build_output
+                     ERROR_VARIABLE _pkg_build_output
                     )
+    file (APPEND "${${pkgname}_LOCAL_BUILD_LOG}"
+          "\n==== build (exit code ${_pkg_build_result}) ====\n${_pkg_build_output}")
+    if (NOT _pkg_build_result EQUAL 0)
+        message (FATAL_ERROR
+            "Building local ${pkgname} failed (exit code ${_pkg_build_result}):\n"
+            "${_pkg_build_output}")
+    endif ()
 
     # Install the project, unless instructed not to do so
     if (NOT _pkg_NOINSTALL)
@@ -789,8 +875,17 @@ macro (build_dependency_with_cmake pkgname)
                             --build ${${pkgname}_LOCAL_BUILD_DIR}
                             --config ${${PROJECT_NAME}_DEPENDENCY_BUILD_TYPE}
                             --target install
-                         ${_pkg_exec_quiet}
+                         RESULT_VARIABLE _pkg_install_result
+                         OUTPUT_VARIABLE _pkg_install_output
+                         ERROR_VARIABLE _pkg_install_output
                         )
+        file (APPEND "${${pkgname}_LOCAL_BUILD_LOG}"
+              "\n==== install (exit code ${_pkg_install_result}) ====\n${_pkg_install_output}")
+        if (NOT _pkg_install_result EQUAL 0)
+            message (FATAL_ERROR
+                "Installing local ${pkgname} failed (exit code ${_pkg_install_result}):\n"
+                "${_pkg_install_output}")
+        endif ()
         set (${pkgname}_ROOT ${${pkgname}_LOCAL_INSTALL_DIR})
         list (APPEND CMAKE_PREFIX_PATH ${${pkgname}_LOCAL_INSTALL_DIR})
     endif ()

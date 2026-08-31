@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-// clang-format off
-
 #pragma once
 
 #include <iostream>
@@ -15,12 +13,13 @@
 #include <OpenImageIO/timer.h>
 
 
-#if (((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_LLVM_COMPILER)) \
-      && (defined(__x86_64__) || defined(__i386__))) \
+#if (((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500            \
+      || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_LLVM_COMPILER)) \
+     && (defined(__x86_64__) || defined(__i386__)))                           \
     || defined(_MSC_VER)
-#define OIIO_DONOTOPT_FORECINLINE OIIO_FORCEINLINE
+#    define OIIO_DONOTOPT_FORECINLINE OIIO_FORCEINLINE
 #else
-#define OIIO_DONOTOPT_FORECINLINE inline
+#    define OIIO_DONOTOPT_FORECINLINE inline
 #endif
 
 
@@ -34,8 +33,8 @@ OIIO_NAMESPACE_3_1_BEGIN
 /// * Folly https://github.com/facebook/folly/blob/master/folly/Benchmark.h
 /// * Google Benchmark https://github.com/google/benchmark/blob/main/include/benchmark/benchmark.h
 
-template <class T>
-OIIO_DONOTOPT_FORECINLINE T const& DoNotOptimize (T const &val);
+template<class T>
+OIIO_DONOTOPT_FORECINLINE T const& DoNotOptimize(T const& val);
 
 
 /// clobber_all_memory() is a helper function for timing benchmarks that
@@ -54,21 +53,30 @@ OIIO_FORCEINLINE void clobber_all_memory();
 /// of what's in p. This is helpful for benchmarking, to help erase any
 /// preconceptions the optimizer has about what might be in a variable.
 
-void OIIO_UTIL_API clobber (void* p);
-OIIO_FORCEINLINE void clobber (const void* p) { clobber ((void*)p); }
+void OIIO_UTIL_API clobber(void* p);
+OIIO_FORCEINLINE void
+clobber(const void* p)
+{
+    clobber((void*)p);
+}
 
 template<typename T>
-OIIO_FORCEINLINE T& clobber (T& p) { clobber(&p); return p; }
+OIIO_FORCEINLINE T&
+clobber(T& p)
+{
+    clobber(&p);
+    return p;
+}
 
 // Multi-argument clobber, added in OIIO 2.2.2
-template<typename T, typename ...Ts>
-OIIO_FORCEINLINE void clobber (T& p, Ts&... ps)
+template<typename T, typename... Ts>
+OIIO_FORCEINLINE void
+clobber(T& p, Ts&... ps)
 {
     clobber(&p);
     if (sizeof...(Ts) > 0)
         clobber(ps...);
 }
-
 
 
 
@@ -274,9 +282,9 @@ private:
     {
         // We're shooting for a trial around 1/100s
         const double target_time = 0.01;
-        size_t i = 1;
+        size_t i                 = 1;
         while (1) {
-            double t = do_trial (i, func, args...);
+            double t = do_trial(i, func, args...);
             // std::cout << "Trying " << i << " iters = " << t << "\n";
             if (t > target_time * 1.5 && i > 2)
                 return i / 2;
@@ -305,7 +313,7 @@ private:
     double iteration_overhead();
 
     friend OIIO_UTIL_API std::ostream& operator<<(std::ostream& out,
-                                             const Benchmarker& bench);
+                                                  const Benchmarker& bench);
 };
 
 
@@ -321,8 +329,8 @@ template<typename FUNC>
 #ifndef OIIO_INTERNAL
 OIIO_DEPRECATED("use Benchmarker instead")
 #endif
-double
-time_trial(FUNC func, int ntrials = 1, int nrepeats = 1, double* range = NULL)
+double time_trial(FUNC func, int ntrials = 1, int nrepeats = 1,
+                  double* range = NULL)
 {
     double mintime = 1.0e30, maxtime = 0.0;
     while (ntrials-- > 0) {
@@ -365,23 +373,19 @@ time_trial(FUNC func, int ntrials = 1, int nrepeats = 1, double* range = NULL)
 // Return value:
 //     A vector<double> containing the best time (of the trials) for each
 //     thread count. This can be discarded.
-OIIO_UTIL_API std::vector<double>
-timed_thread_wedge (function_view<void(int)> task,
-                    function_view<void()> pretask,
-                    function_view<void()> posttask,
-                    std::ostream *out,
-                    int maxthreads,
-                    int total_iterations, int ntrials,
-                    cspan<int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
+OIIO_UTIL_API std::vector<double> timed_thread_wedge(
+    function_view<void(int)> task, function_view<void()> pretask,
+    function_view<void()> posttask, std::ostream* out, int maxthreads,
+    int total_iterations, int ntrials,
+    cspan<int> threadcounts = { 1, 2, 4, 8, 12, 16, 24, 32, 48, 64, 128 });
 
 // Simplified timed_thread_wedge without pre- and post-tasks, using
 // std::out for output, with a default set of thread counts, and not needing
 // to return the vector of times.
-OIIO_UTIL_API void
-timed_thread_wedge (function_view<void(int)> task,
-                    int maxthreads, int total_iterations, int ntrials,
-                    cspan<int> threadcounts = {1,2,4,8,12,16,24,32,48,64,128});
-
+OIIO_UTIL_API void timed_thread_wedge(
+    function_view<void(int)> task, int maxthreads, int total_iterations,
+    int ntrials,
+    cspan<int> threadcounts = { 1, 2, 4, 8, 12, 16, 24, 32, 48, 64, 128 });
 
 
 
@@ -392,56 +396,64 @@ timed_thread_wedge (function_view<void(int)> task,
 
 
 namespace pvt {
-void OIIO_UTIL_API use_char_ptr (char const volatile *);
+void OIIO_UTIL_API use_char_ptr(char const volatile*);
 }
 
 
-#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)  || defined(__INTEL_LLVM_COMPILER)) \
-     && (defined(__x86_64__) || defined(__i386__))
+#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500      \
+     || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER) \
+     || defined(__INTEL_LLVM_COMPILER))                                \
+    && (defined(__x86_64__) || defined(__i386__))
 
 // Major non-MS compilers on x86/x86_64: use asm trick to indicate that
 // the value is needed.
-template <class T>
+template<class T>
 OIIO_FORCEINLINE T const&
-DoNotOptimize (T const &val) {
-#if defined(__clang__)
+DoNotOptimize(T const& val)
+{
+#    if defined(__clang__)
     // asm volatile("" : "+rm" (const_cast<T&>(val)));
     // Clang doesn't like the 'X' constraint on `val` and certain GCC versions
     // don't like the 'g' constraint. Attempt to placate them both.
     asm volatile("" : : "g"(val) : "memory");
-#else
+#    else
     asm volatile("" : : "i,r,m"(val) : "memory");
-#endif
+#    endif
     return val;
 }
 
 #elif _MSC_VER
 
 // Microsoft of course has its own way of turning off optimizations.
-#pragma optimize("", off)
-template <class T>
-OIIO_FORCEINLINE T const & DoNotOptimize (T const &val) {
+#    pragma optimize("", off)
+template<class T>
+OIIO_FORCEINLINE T const&
+DoNotOptimize(T const& val)
+{
     pvt::use_char_ptr(&reinterpret_cast<char const volatile&>(val));
-    _ReadWriteBarrier ();
+    _ReadWriteBarrier();
     return val;
 }
-#pragma optimize("", on)
+#    pragma optimize("", on)
 
 #elif __has_attribute(__optnone__)
 
 // If __optnone__ attribute is available: make a null function with no
 // optimization, that's all we need.
-template <class T>
-inline T const & __attribute__((__optnone__))
-DoNotOptimize (T const &val) {
+template<class T>
+inline T const& __attribute__((__optnone__))
+DoNotOptimize(T const& val)
+{
     return val;
 }
 
 #else
 
 // Otherwise, it won't work, just make a stub.
-template <class T>
-OIIO_FORCEINLINE T const & DoNotOptimize (T const &val) {
+template<class T>
+OIIO_FORCEINLINE T const&
+DoNotOptimize(T const& val)
+{
     pvt::use_char_ptr(&reinterpret_cast<char const volatile&>(val));
     return val;
 }
@@ -450,23 +462,32 @@ OIIO_FORCEINLINE T const & DoNotOptimize (T const &val) {
 
 
 
-#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500 || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) && (defined(__x86_64__) || defined(__i386__))
+#if ((OIIO_GNUC_VERSION && NDEBUG) || OIIO_CLANG_VERSION >= 30500       \
+     || OIIO_APPLE_CLANG_VERSION >= 70000 || defined(__INTEL_COMPILER)) \
+    && (defined(__x86_64__) || defined(__i386__))
 
 // Special trick for x86/x86_64 and gcc-like compilers
-OIIO_FORCEINLINE void clobber_all_memory() {
-    asm volatile ("" : : : "memory");
+OIIO_FORCEINLINE void
+clobber_all_memory()
+{
+    asm volatile("" : : : "memory");
 }
 
 #elif _MSC_VER
 
-OIIO_FORCEINLINE void clobber_all_memory() {
-    _ReadWriteBarrier ();
+OIIO_FORCEINLINE void
+clobber_all_memory()
+{
+    _ReadWriteBarrier();
 }
 
 #else
 
 // No fallback for other CPUs or compilers. Suggestions?
-OIIO_FORCEINLINE void clobber_all_memory() { }
+OIIO_FORCEINLINE void
+clobber_all_memory()
+{
+}
 
 #endif
 

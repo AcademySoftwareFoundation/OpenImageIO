@@ -623,9 +623,9 @@ rangecompress_(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
             // Special case: operate in-place
             for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r) {
                 if (useluma) {
-                    float luma = 0.21264f * r[roi.chbegin]
-                                 + 0.71517f * r[roi.chbegin + 1]
-                                 + 0.07219f * r[roi.chbegin + 2];
+                    float luma  = 0.21264f * r[roi.chbegin]
+                                  + 0.71517f * r[roi.chbegin + 1]
+                                  + 0.07219f * r[roi.chbegin + 2];
                     float scale = luma > 0.0f ? rangecompress(luma) / luma
                                               : 0.0f;
                     for (int c = roi.chbegin; c < roi.chend; ++c) {
@@ -645,9 +645,9 @@ rangecompress_(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
             ImageBuf::ConstIterator<Atype> a(A, roi);
             for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r, ++a) {
                 if (useluma) {
-                    float luma = 0.21264f * a[roi.chbegin]
-                                 + 0.71517f * a[roi.chbegin + 1]
-                                 + 0.07219f * a[roi.chbegin + 2];
+                    float luma  = 0.21264f * a[roi.chbegin]
+                                  + 0.71517f * a[roi.chbegin + 1]
+                                  + 0.07219f * a[roi.chbegin + 2];
                     float scale = luma > 0.0f ? rangecompress(luma) / luma
                                               : 0.0f;
                     for (int c = roi.chbegin; c < roi.chend; ++c) {
@@ -691,9 +691,9 @@ rangeexpand_(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
             // Special case: operate in-place
             for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r) {
                 if (useluma) {
-                    float luma = 0.21264f * r[roi.chbegin]
-                                 + 0.71517f * r[roi.chbegin + 1]
-                                 + 0.07219f * r[roi.chbegin + 2];
+                    float luma  = 0.21264f * r[roi.chbegin]
+                                  + 0.71517f * r[roi.chbegin + 1]
+                                  + 0.07219f * r[roi.chbegin + 2];
                     float scale = luma > 0.0f ? rangeexpand(luma) / luma : 0.0f;
                     for (int c = roi.chbegin; c < roi.chend; ++c) {
                         if (c == alpha_channel || c == z_channel)
@@ -712,9 +712,9 @@ rangeexpand_(ImageBuf& R, const ImageBuf& A, bool useluma, ROI roi,
             ImageBuf::ConstIterator<Atype> a(A, roi);
             for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r, ++a) {
                 if (useluma) {
-                    float luma = 0.21264f * a[roi.chbegin]
-                                 + 0.71517f * a[roi.chbegin + 1]
-                                 + 0.07219f * a[roi.chbegin + 2];
+                    float luma  = 0.21264f * a[roi.chbegin]
+                                  + 0.71517f * a[roi.chbegin + 1]
+                                  + 0.07219f * a[roi.chbegin + 2];
                     float scale = luma > 0.0f ? rangeexpand(luma) / luma : 0.0f;
                     for (int c = roi.chbegin; c < roi.chend; ++c) {
                         if (c == alpha_channel || c == z_channel)
@@ -1039,7 +1039,7 @@ contrast_remap_(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
                 // Sorry about the lack of clarity, we're working hard to
                 // minimize computation.
                 for (int c = roi.chbegin; c < roi.chend; ++c) {
-                    y[c]     = 1.0f / (1.0f + expf(scontrast[c] * sthresh[c]));
+                    y[c] = 1.0f / (1.0f + expf(scontrast[c] * sthresh[c]));
                     denom[c] = 1.0f
                                    / (1.0f
                                       + expf(scontrast[c] * (sthresh[c] - 1.0f)))
@@ -1049,7 +1049,7 @@ contrast_remap_(ImageBuf& dst, const ImageBuf& src, cspan<float> black,
                     float x = 1.0f
                               / (1.0f
                                  + expf(scontrast[c] * (sthresh[c] - r[c])));
-                    r[c] = (x - y[c]) / denom[c];
+                    r[c]    = (x - y[c]) / denom[c];
                 }
             }
 

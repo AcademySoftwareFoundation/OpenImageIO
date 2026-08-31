@@ -375,9 +375,7 @@ private:
 
 
 /// heapsize specialization for `ParamValue`
-template<>
-OIIO_API size_t
-pvt::heapsize<ParamValue>(const ParamValue&);
+template<> OIIO_API size_t pvt::heapsize<ParamValue>(const ParamValue&);
 
 
 

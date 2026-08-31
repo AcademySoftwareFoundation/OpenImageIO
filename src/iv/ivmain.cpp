@@ -177,9 +177,9 @@ main(int argc, char* argv[])
                               extension)
                     != extensionsVector.end()) {
                     int exists = 0;
-                    bool ok    = imagecache->get_image_info(ustring(file), 0, 0,
-                                                            uexists, OIIO::TypeInt,
-                                                            &exists);
+                    bool ok = imagecache->get_image_info(ustring(file), 0, 0,
+                                                         uexists, OIIO::TypeInt,
+                                                         &exists);
                     if (ok && exists)
                         validImages.push_back(file);
                 }
