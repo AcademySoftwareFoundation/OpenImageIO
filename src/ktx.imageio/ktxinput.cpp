@@ -200,18 +200,31 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
+    // We don't support 3D texture arrays (tried to support them but they are
+    // simply too cumbersome to support through OIIO's API...). 3D textures
+    // arrays are rarely used anyway ...
     if (m_tex->isArray && m_tex->numDimensions == 3) {
         errorfmt("3D texture arrays are not supported");
         return false;
     }
 
-    if (m_tex->isArray && m_tex->numFaces > 1) {
+    //
+    // Cubemap textures are useful for efficient reflection probs, shadowing
+    // systems, etc. Since we are using `subimage` to refer to both layer index
+    // and face index, we can't use cubemap arrays (we can use the `z` parameter
+    // as face index but then the user-facing read_image(subimage ...) will not
+    // work and users have to use the pointer-based read_scanlines with the `z`
+    // parameter.)
+    //
+    // TODO: somehow support add Cubemap array textures
+    //
+    if (m_tex->isArray && m_tex->isCubemap) {
         errorfmt("Cubemap texture arrays are not supported");
         return false;
     }
 
     const bool is_hdr = ktxTexture2_IsHDR(m_tex.get());
-    DBG std::cout << "is_hdr: " << is_hdr << '\n';
+    DBG std::cout << "[ktxinput] is_hdr: " << is_hdr << '\n';
 
     m_spec       = ImageSpec(m_tex->baseWidth, m_tex->baseHeight,
                              4 /* dummy value - will be overwritten */,
@@ -224,7 +237,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
     // Set textureformat attribute
     if (m_tex->numDimensions == 2 || m_tex->numDimensions == 1) {
-        if (m_tex->numFaces > 1)
+        if (m_tex->isCubemap)
             m_spec.attribute("textureformat", "CubeFace Environment");
         else
             m_spec.attribute("textureformat", "Plain Texture");
@@ -264,7 +277,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // key/value metadata pairs as per the specification here:
     //  https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
     //
-    // KTX2 spec. defines a predifined set of key/value metadata at
+    // KTX2 specs defines a predifined set of key/value metadata at
     //  https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_predefined_keyvalue_pairs
     //
     // Predifined keys we care about:
@@ -285,8 +298,10 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             void* val { nullptr };
 
             if ((status = ktxHashListEntry_GetKey(kventry, &keylen, &key))
-                != KTX_SUCCESS)
+                != KTX_SUCCESS) {
+                DBG std::cerr << "ktxHashListEntry_GetKey failed" << std::endl;
                 continue;
+            }
 
             // Per KTX2 spec: "The key must be terminated by a NUL character"
             // We exit on any invalid key that is encountered
@@ -305,7 +320,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
             // vallen checks are done below depending on the attribute name
 
-            auto attr_name              = OIIO::string_view(key, keylen);
+            // keylen includes NUL termination char!
+            auto attr_name              = OIIO::string_view(key, keylen - 1);
             auto ktx_prefixed_attr_name = fmt::format("ktx:{}", attr_name);
 
             if (attr_name == KTX_WRITER_SCPARAMS_KEY) {
@@ -320,18 +336,83 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 auto cval = reinterpret_cast<const char*>(val);
                 if (vallen <= 1 || cval[vallen - 1] != '\0') {
                     errorfmt(
-                        "An empty or non-null terminated metadata value string for KTX_WRITER_SCPARAMS_KEY. This is an invalid KTX file");
+                        "Invalid KTX2 file: an empty or non-null "
+                        "terminated string for \"KTXwriterScParams\" metadata");
                     return false;
                 }
-                std::string_view val_str(cval, vallen);
-                m_spec.extra_attribs.attribute(ktx_prefixed_attr_name, val_str);
+                // vallen includes NUL char!
+                parse_ktx_sc_params_metadata(std::string(cval, vallen - 1));
             } else if (attr_name == "KTXcubemapIncomplete") {
+                //
+                // KTX supports incomplete cubemaps (i.e., cubemaps with less
+                // than 6 faces). These incomplete cubemaps are flattened into
+                // 2D arrays. Per the specs:
+                //  Applications wanting to store incomplete cubemaps should
+                //  flatten faces into a 2D array [...]
+                //
                 OIIO_ASSERT(vallen == 1);
-                // TODO: handle KTXcubemapIncomplete
+                errorfmt("Incomplete cubemaps are currently not supported");
             } else if (attr_name == KTX_ORIENTATION_KEY) {
                 // KTX may define a different orientation than the one used by OIIO. See:
                 //  https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_ktxorientation
-                // TODO: set orientation functions
+                OIIO_ASSERT(vallen <= 4);  // at most '[rl][du][oi]\0'
+                auto cval = reinterpret_cast<const char*>(val);
+                if (vallen <= 1 || cval[vallen - 1] != '\0') {
+                    errorfmt(
+                        "Invalid KTX2 file: an empty or non-null "
+                        "terminated string for \"KTXorientation\" metadata");
+                    return false;
+                }
+                OIIO::string_view val_str(cval, vallen - 1);
+                const auto error_msg = fmt::format(
+                    "Given KTX2 file does not comply with KTX2 specs."
+                    " Metadata \"KTXorientation\" {} is invalid.",
+                    val_str);
+                if (val_str.length() != m_tex->numDimensions) {
+                    errorfmt(error_msg.c_str());
+                    return false;
+                }
+                int orientation = 1;
+                switch (m_tex->numDimensions) {
+                case 1:
+                    if (val_str[0] == KTX_ORIENT_X_LEFT) {
+                        orientation = 2;
+                    } else if (val_str[0] == KTX_ORIENT_X_RIGHT) {
+                        orientation = 1;
+                    } else {
+                        errorfmt(error_msg.c_str());
+                        return false;
+                    }
+                    break;
+                case 2:
+                case 3:
+                    if (val_str[0] == KTX_ORIENT_X_LEFT
+                        && val_str[1] == KTX_ORIENT_Y_DOWN) {
+                        orientation = 2;
+                    } else if (val_str[0] == KTX_ORIENT_X_LEFT
+                               && val_str[1] == KTX_ORIENT_Y_UP) {
+                        orientation = 3;
+                    } else if (val_str[0] == KTX_ORIENT_X_RIGHT
+                               && val_str[1] == KTX_ORIENT_Y_UP) {
+                        orientation = 4;
+                    } else if (val_str[0] == KTX_ORIENT_X_RIGHT
+                               && val_str[1] == KTX_ORIENT_Y_DOWN) {
+                        orientation = 1;
+                    } else {
+                        errorfmt(error_msg.c_str());
+                        return false;
+                    }
+                    break;
+                default:  // should never occur
+                    OIIO_ASSERT(false);
+                    return false;
+                }
+
+                DBG std::cout << fmt::format(
+                    "[ktxinput] set OIIO orientation: {} from {}: {}\n",
+                    orientation, KTX_ORIENTATION_KEY, val_str);
+                if (orientation != 1)
+                    m_spec.attribute("Orientation", orientation);
             }
 
         } while ((kventry = ktxHashList_Next(kventry)));
@@ -578,10 +659,11 @@ KtxInput::check(int subimage, int miplevel) const
     // Before doing any calls, check if provided subimage and mip lvl are valid.
     // This is how OIIO figures out the number of subimages/miplevels.
     //
-    if (subimage < 0 || miplevel < 0 || (uint32_t)subimage >= m_tex->numLayers
+    if (subimage < 0 || miplevel < 0
+        || (m_tex->isCubemap ? (uint32_t)subimage >= m_tex->numFaces
+                             : (uint32_t)subimage >= m_tex->numLayers)
         || (uint32_t)miplevel >= m_tex->numLevels)
-        // don't errorfmt here
-        return false;
+        return false;  // don't errorfmt here
     return true;
 }
 
@@ -596,14 +678,15 @@ KtxInput::check(int subimage, int miplevel) const
 // are provided subimage and miplevel sane for the current texture kind).
 //
 // In the context of KTX:
-// - For 3D textures (i.e., depth > 1): `subimage` does NOT reflect the
-//   3D texture depth slice. subimage SHOULD be 0. TODO: how to read a 3D slice then?
-// - For Cubemaps (i.e., tile_width/tile_height > 1): `subimage` does NOT reflect
-//   the cubemap face. subimage SHOULD be 0. TODO: how to read a cubemap face tile?
+// - For 3D textures (i.e., depth > 1): `subimage` does NOT correspond to the
+//   3D texture depth slice (unlike how libktx 'considers' 3D slices and cubemap
+//   faces equivalent; from point of view of the API). `subimage` SHOULD be 0.
+// - For Cubemaps (i.e., tile_width/tile_height > 1): `subimage` corresponds to
+//   the cubemap face. subimage SHOULD be [0,tex->numFaces[.
 // - Arrays of 2D textures: `subimage` maps to layer in libktx (i.e., index in
 //   array). subimage SHOULD be [0, m_tex->numLayers[.
-// - Arrays of 3D textures: same as array of 2D textures except each `subimage`
-//   refer to 3D texture instead of a 2D one.
+// - Arrays of 3D textures: not supported.
+// - Arrays of Cubemap textures: not supported.
 //
 // For all kinds of textures, `miplevel` is ALWAYS interpreted as a mip level of
 // the above `subimage` (e.g., `miplevel` 0 of 3D texture refers to base-level
@@ -704,10 +787,18 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // 3D, cubemap, etc.) and incase of invalid input, KTX_INVALID_OPERATION is
     // returned.
     //
-    // TODO: face slice idx
+    // Face slices are indexed via the `subimage` OIIO parameter (and not `z`
+    // parameter which is exclusively used for 3D textures). Cubemap texture
+    // arrays are not supported hence why this it is not problematic to
+    // `subimage` both as layer index and face index.
     //
-    if (auto status = ktxTexture2_GetImageOffset(m_tex.get(), miplevel,
-                                                 subimage, z, &offset);
+    ktx_uint32_t layer     = m_tex->isArray ? subimage : 0u;
+    ktx_uint32_t faceSlice = m_tex->isCubemap            ? subimage
+                             : m_tex->numDimensions == 3 ? z
+                                                         : 0u;
+    OIIO_ASSERT(!(layer > 0 && faceSlice > 0));
+    if (auto status = ktxTexture2_GetImageOffset(m_tex.get(), miplevel, layer,
+                                                 faceSlice, &offset);
         status != KTX_SUCCESS) {
         errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
                  static_cast<uint32_t>(status));
@@ -772,8 +863,8 @@ KtxInput::get_colorspace() const
         = ktxTexture2_GetTransferFunction_e(m_tex.get());
     const khr_df_primaries_e primaries = ktxTexture2_GetPrimaries_e(
         m_tex.get());
-    DBG std::cout << "tf: " << transfer_function << "; primaries: " << primaries
-                  << '\n';
+    DBG std::cout << "[ktxinput] tf: " << transfer_function
+                  << "; primaries: " << primaries << '\n';
     switch (transfer_function) {
     case KHR_DF_TRANSFER_SRGB:
         switch (primaries) {

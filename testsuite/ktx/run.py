@@ -83,8 +83,8 @@ files = [
     "orient_up_metadata.ktx2",
 ]
 
+# Most basic testing; just test `oiiotool --info` on libktx main test files
 for f in files:
-    # Just test `oiiotool --info` on libktx main test files
     command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/" + f)
 
 # Create a simple checker pattern RGBA PNG (has to be RGBA because Basis
@@ -108,3 +108,10 @@ command += diff_command ("checker_original.png", "checker_etc1s.ktx2")
 # We do not test read-then-write of compressed-ktx2 files because any read-write
 # cycle worsens quality and is absolutely not the intended purpose of ktx usage
 # within OIIO (or in general).
+
+# Test that re-orientation metadata is handled correctly.
+# orient_[up|down]_metadata are essentially the same image with one flipped
+# vertically (orient_up_metadata)
+command += (oiio_app("oiiotool") + (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_up_metadata.ktx2")
+            + " --reorient -o orient_up_metadata.png >> out.txt ;\n")
+command += diff_command (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_down_metadata.ktx2", "orient_up_metadata.png")

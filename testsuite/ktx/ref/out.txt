@@ -152,6 +152,7 @@ Reading ../oiio-images/ktx2/Iron_Bars_001_normal_uastc_zstd_10.ktx2
     channel list: R, G, B, A
     textureformat: "Plain Texture"
     ktx:miplevels: 11
+    ktx:normalMap: 1
     ktx:supercompressionscheme: 2
     ktx:version: "2.0"
     oiio:ColorSpace: "lin_rec709_scene"
@@ -163,10 +164,13 @@ Reading ../oiio-images/ktx2/ktx_document_uastc_rdo_4_zstd_5.ktx2
     textureformat: "Plain Texture"
     ktx:miplevels: 11
     ktx:supercompressionscheme: 2
+    ktx:uastcRDO: 1
     ktx:version: "2.0"
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/cubemap_goldengate_uastc_rdo_4_zstd_5.ktx2
 ../oiio-images/ktx2/cubemap_goldengate_uastc_rdo_4_zstd_5.ktx2 : 1024 x 1024, 4 channel, uint8 ktx
+    6 subimages: 1024x1024 [u8,u8,u8,u8], 1024x1024 [u8,u8,u8,u8], 1024x1024 [u8,u8,u8,u8], 1024x1024 [u8,u8,u8,u8], 1024x1024 [u8,u8,u8,u8], 1024x1024 [u8,u8,u8,u8]
+ subimage  0: 1024 x 1024, 4 channel, uint8 ktx
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 730E2C2DABA5D591458C91C4D952638BC4EAADD6
     channel list: R, G, B, A
@@ -174,6 +178,62 @@ Reading ../oiio-images/ktx2/cubemap_goldengate_uastc_rdo_4_zstd_5.ktx2
     ktx:miplevels: 11
     ktx:nfaces: 6
     ktx:supercompressionscheme: 2
+    ktx:uastcRDO: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  1: 1024 x 1024, 4 channel, uint8 ktx
+    MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 4ED1D5868F31762C4B5C7B2ECF59B339671E1DC4
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 11
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 2
+    ktx:uastcRDO: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  2: 1024 x 1024, 4 channel, uint8 ktx
+    MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 5B06B005317C5310E95C3DDCA9421A381BD699D5
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 11
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 2
+    ktx:uastcRDO: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  3: 1024 x 1024, 4 channel, uint8 ktx
+    MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 4A5B5B85901E67559CEDB0B35C6139DF7B0F8128
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 11
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 2
+    ktx:uastcRDO: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  4: 1024 x 1024, 4 channel, uint8 ktx
+    MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 2694D111B45BF672EE96A7FBC395235DA575E4E7
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 11
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 2
+    ktx:uastcRDO: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  5: 1024 x 1024, 4 channel, uint8 ktx
+    MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: ED516BFF979429E3BA0F87D058FFD930C520B3B9
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 11
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 2
+    ktx:uastcRDO: 1
     ktx:version: "2.0"
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/Desk_small_zstd_15.ktx2
@@ -190,6 +250,7 @@ Reading ../oiio-images/ktx2/Desk_uastc_hdr4x4_zstd_15.ktx2
     channel list: R, G, B, A
     textureformat: "Plain Texture"
     ktx:supercompressionscheme: 2
+    ktx:uastcHDRUltraQuant: 1
     ktx:version: "2.0"
     oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/ktx2/Desk_uastc_hdr6x6i.ktx2
@@ -245,8 +306,60 @@ Reading ../oiio-images/ktx2/alpha_simple_blze.ktx2
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/cubemap_yokohama_blze.ktx2
 ../oiio-images/ktx2/cubemap_yokohama_blze.ktx2 : 2048 x 2048, 4 channel, uint8 ktx
+    6 subimages: 2048x2048 [u8,u8,u8,u8], 2048x2048 [u8,u8,u8,u8], 2048x2048 [u8,u8,u8,u8], 2048x2048 [u8,u8,u8,u8], 2048x2048 [u8,u8,u8,u8], 2048x2048 [u8,u8,u8,u8]
+ subimage  0: 2048 x 2048, 4 channel, uint8 ktx
     MIP-map levels: 2048x2048 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: E1D8635C6E17878F937840E2DA2E8F5A1F61F501
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 12
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  1: 2048 x 2048, 4 channel, uint8 ktx
+    MIP-map levels: 2048x2048 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 726FD3AFD2543C2CEF65AB23106772AF3407AD6D
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 12
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  2: 2048 x 2048, 4 channel, uint8 ktx
+    MIP-map levels: 2048x2048 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 26777A7863A5877D5B52308C4BAF2F74F6BE3ECD
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 12
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  3: 2048 x 2048, 4 channel, uint8 ktx
+    MIP-map levels: 2048x2048 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 4114F46FCDF96948641A9401D9888FFD98B7F309
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 12
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  4: 2048 x 2048, 4 channel, uint8 ktx
+    MIP-map levels: 2048x2048 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: CC984173AED6FE55775FB11FAED0E002093F696B
+    channel list: R, G, B, A
+    textureformat: "CubeFace Environment"
+    ktx:miplevels: 12
+    ktx:nfaces: 6
+    ktx:supercompressionscheme: 1
+    ktx:version: "2.0"
+    oiio:ColorSpace: "srgb_rec709_scene"
+ subimage  5: 2048 x 2048, 4 channel, uint8 ktx
+    MIP-map levels: 2048x2048 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
+    SHA-1: 63BC6D7718207B687FF6DDBAA3D8CCBCEBDA7229
     channel list: R, G, B, A
     textureformat: "CubeFace Environment"
     ktx:miplevels: 12
@@ -269,6 +382,7 @@ Reading ../oiio-images/ktx2/Iron_Bars_001_normal_blze.ktx2
     channel list: R, G, B, A
     textureformat: "Plain Texture"
     ktx:miplevels: 11
+    ktx:normalMap: 1
     ktx:supercompressionscheme: 1
     ktx:version: "2.0"
     oiio:ColorSpace: "lin_rec709_scene"
@@ -302,6 +416,7 @@ Reading ../oiio-images/ktx2/orient_up_metadata.ktx2
 ../oiio-images/ktx2/orient_up_metadata.ktx2 :  128 x  128, 4 channel, uint8 ktx
     SHA-1: A446B2FB2A0D391584A2FE45E9F24BE35D896CAA
     channel list: R, G, B, A
+    Orientation: 4 (flipped vertically)
     textureformat: "Plain Texture"
     ktx:supercompressionscheme: 0
     ktx:version: "2.0"
@@ -311,4 +426,6 @@ PASS
 Comparing "checker_original.png" and "checker_uastc.ktx2"
 PASS
 Comparing "checker_original.png" and "checker_etc1s.ktx2"
+PASS
+Comparing "../oiio-images/ktx2/orient_down_metadata.ktx2" and "orient_up_metadata.png"
 PASS

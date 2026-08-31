@@ -213,7 +213,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // Currently only two colorspaces are tested, linear or REC709 sRGB
         const auto colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
                                                             "srgb_rec709_scene");
-        bool is_srgb          = ColorConfig::default_colorconfig().equivalent(
+        bool is_srgb = ColorConfig::default_colorconfig().equivalent(
             colorspace, "srgb_rec709_scene");
         m_spec.set_colorspace(colorspace);
 
@@ -342,12 +342,12 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
 
-        uint32_t miplevel_width  = std::max(1u,
-                                            m_basewidth >> (m_miplevel_idx + 1));
+        uint32_t miplevel_width = std::max(1u,
+                                           m_basewidth >> (m_miplevel_idx + 1));
         uint32_t miplevel_height = std::max(1u, m_baseheight
                                                     >> (m_miplevel_idx + 1));
-        uint32_t miplevel_depth  = std::max(1u,
-                                            m_basedepth >> (m_miplevel_idx + 1));
+        uint32_t miplevel_depth = std::max(1u,
+                                           m_basedepth >> (m_miplevel_idx + 1));
 
         // Copy the new mip level size.  Keep everything else from the
         // original level.
@@ -688,8 +688,8 @@ KtxOutput::write_ktx2()
                   << std::endl;
 
     ktxTexture2* p_tex = nullptr;
-    auto result        = ktxTexture2_Create(&create_info,
-                                            KTX_TEXTURE_CREATE_ALLOC_STORAGE, &p_tex);
+    auto result = ktxTexture2_Create(&create_info,
+                                     KTX_TEXTURE_CREATE_ALLOC_STORAGE, &p_tex);
     tex.reset(p_tex);
 
     if (result != KTX_SUCCESS) {
@@ -754,9 +754,9 @@ KtxOutput::write_ktx2()
                         slice_idx, face_idx, level_idx, data_size)
                                   << std::endl;
                 }  // slices
-            }      // faces
-        }          // layers
-    }              // mip levels
+            }  // faces
+        }  // layers
+    }  // mip levels
 
 
     //
@@ -850,13 +850,70 @@ KtxOutput::write_ktx2()
 
     // Add/overwrite the KTXwriter metadata entry. The specs encourages us to do
     // so.
-    char writer[100];
-    snprintf(writer, sizeof(writer), "oiio version %d - plugin version %d",
-             OPENIMAGEIO_VERSION, OIIO_PLUGIN_VERSION);
-    ktxHashList_AddKVPair(&tex->kvDataHead, KTX_WRITER_KEY,
-                          (ktx_uint32_t)strlen(writer) + 1, writer);
-    // std::cout << "KTXwrite: " << writer << '\n';
+    {
+        char writer[100];
+        snprintf(writer, sizeof(writer), "oiio version %d - plugin version %d",
+                 OPENIMAGEIO_VERSION, OIIO_PLUGIN_VERSION);
+        if (auto status
+            = ktxHashList_AddKVPair(&tex->kvDataHead, KTX_WRITER_KEY,
+                                    (ktx_uint32_t)strlen(writer) + 1, writer);
+            status != KTX_SUCCESS) {
+            errorfmt("ktxHashList_AddKVPair returned KTX exit error code: {}",
+                     static_cast<uint32_t>(status));
+            return false;
+        }
+        DBG std::cout << "KTXwrite: " << writer << '\n';
+    }
 
+    //
+    // Write KTXorientation metadata if textures are not oriented as
+    // right-downwards (default orientation in OIIO)
+    // see: https://openimageio.readthedocs.io/en/latest/stdmetadata.html
+    //
+    if (auto Q = m_spec.find_attribute("Orientation", TypeDesc::INT);
+        Q != nullptr && Q->get_int() != 1 /* normal orientation */) {
+        auto orientation        = Q->get_int();
+        char orientation_str[4] = { KTX_ORIENT_X_RIGHT, KTX_ORIENT_Y_DOWN,
+                                    KTX_ORIENT_Z_IN, '\0' };  // "rdi"
+        switch (orientation) {
+        case 2 /* flipped horizontally (top to bottom, right to left) */:
+            snprintf(orientation_str, sizeof(orientation_str), "%c%c%c",
+                     KTX_ORIENT_X_LEFT, KTX_ORIENT_Y_DOWN, KTX_ORIENT_Z_OUT);
+            break;
+        case 3 /* rotated (bottom to top, right to left) */:
+            snprintf(orientation_str, sizeof(orientation_str), "%c%c%c",
+                     KTX_ORIENT_X_LEFT, KTX_ORIENT_Y_UP, KTX_ORIENT_Z_IN);
+            break;
+        case 4 /* flipped vertically (bottom to top, left to right) */:
+            snprintf(orientation_str, sizeof(orientation_str), "%c%c%c",
+                     KTX_ORIENT_X_RIGHT, KTX_ORIENT_Y_UP, KTX_ORIENT_Z_OUT);
+            break;
+            // Transposed images are not supported by KTX
+        case 5:
+        case 6:
+        case 7:
+        case 8: break;
+        default:  // should never occur
+            // OIIO_ASSERT(false);
+            // errorfmt("Unsupported \"Orientation\" attribute: {}", orientation);
+            break;
+        }
+        if (tex->numDimensions == 1)
+            // For 1D textures, we just need to write [rl]
+            orientation_str[1] = '\0';
+        else if (tex->numDimensions == 2)
+            // For 2D textures, we just need to write [rl][du]
+            orientation_str[2] = '\0';
+        if (auto status
+            = ktxHashList_AddKVPair(&tex->kvDataHead, KTX_ORIENTATION_KEY,
+                                    (ktx_uint32_t)strlen(orientation_str) + 1,
+                                    orientation_str);
+            status != KTX_SUCCESS) {
+            errorfmt("ktxHashList_AddKVPair returned KTX exit error code: {}",
+                     static_cast<uint32_t>(status));
+            return false;
+        }
+    }
 
     Filesystem::IOProxy* m_io = ioproxy();
     if (!strcmp(m_io->proxytype(), "file")) {
