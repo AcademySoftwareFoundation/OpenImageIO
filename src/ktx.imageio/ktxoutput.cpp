@@ -590,9 +590,8 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
         if (auto Q = m_spec.find_attribute("ktx:uastcRDODictSize",
                                            TypeDesc::UINT32))
             params.uastcRDODictSize = *(uint32_t*)Q->data();
-        if (auto Q
-            = m_spec.find_attribute("ktx:uastcRDOMaxSmoothBlockErrorScale",
-                                    TypeDesc::FLOAT))
+        if (auto Q = m_spec.find_attribute(
+                "ktx:uastcRDOMaxSmoothBlockErrorScale", TypeDesc::FLOAT))
             params.uastcRDOMaxSmoothBlockErrorScale = *(float*)Q->data();
         if (auto Q = m_spec.find_attribute("ktx:uastcRDOMaxSmoothBlockStdDev",
                                            TypeDesc::FLOAT))
