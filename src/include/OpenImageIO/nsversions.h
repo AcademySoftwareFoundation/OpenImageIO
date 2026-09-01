@@ -155,6 +155,10 @@
 #define OIIO_NAMESPACE_3_2_BEGIN OIIO_NS_BEGIN(v3_2)
 #define OIIO_NAMESPACE_3_2_END OIIO_NS_END
 
+// Specialty macro: Make something ABI compatible with 3.3
+#define OIIO_NAMESPACE_3_3_BEGIN OIIO_NS_BEGIN(v3_3)
+#define OIIO_NAMESPACE_3_3_END OIIO_NS_END
+
 
 
 // Forward declarations of important classes

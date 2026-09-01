@@ -255,8 +255,8 @@ jobs:
             pybind11_ver: v3.0.0
             simd: "avx2,f16c"
             skip_tests: 1
-            # abi_check: v3.1.6.0
-            abi_check: d4c8024633dba8bb3c01d22b65ce9bc7a1ae215e
+            # abi_check: v3.1.17.0
+            abi_check: 73bc189f7d8469a9760ce9c5099b686c77695074
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
             optional_deps_append: "Qt6"
