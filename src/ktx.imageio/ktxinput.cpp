@@ -226,7 +226,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     const bool is_hdr = ktxTexture2_IsHDR(m_tex.get());
     DBG std::cout << "[ktxinput] is_hdr: " << is_hdr << '\n';
 
-    m_spec       = ImageSpec(m_tex->baseWidth, m_tex->baseHeight,
+    // height can be 0 for 1D textures.
+    m_spec       = ImageSpec(m_tex->baseWidth, std::max(m_tex->baseHeight, 1u),
                              4 /* dummy value - will be overwritten */,
                              TypeDesc::UINT8);
     m_spec.depth = m_spec.full_depth = m_tex->baseDepth;
@@ -258,19 +259,35 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // store these now and NOT after libktx calls (e.g.,
     // ktxTexture2_TranscodeBasis).
     //
-    m_spec.extra_attribs.attribute("ktx:supercompressionscheme",
-                                   (uint32_t)m_tex->supercompressionScheme);
+    switch (m_tex->supercompressionScheme) {
+    case KTX_SS_ZSTD:
+        m_spec.attribute("ktx:supercompressionscheme", "zstd");
+        break;
+    case KTX_SS_ZLIB:
+        m_spec.attribute("ktx:supercompressionscheme", "zip" /* zlib */);
+        break;
+        // other schemes are applied automatically through libktx'
+        // `ktxTexture2_CompressBasisEx` function.
+    default: break;
+    }
     // save as string (for future use, in case KTX1 is added)
     m_spec.extra_attribs.attribute("ktx:version", "2.0");
+    // is this a 1D texture? If so, save that it is because we can't figure it
+    // just based on dimensions (a texture with height 1 can be either a 1D or
+    // 2D texture).
+    if (m_tex->numDimensions == 1)
+        m_spec.extra_attribs.attribute("ktx:1d", true);
     // Contrary to the specs' layerCount, numLayers is always >= 1
     if (m_tex->numLayers > 1)
-        m_spec.extra_attribs.attribute("ktx:nlayers", m_tex->numLayers);
+        m_spec.attribute("oiio:subimages", static_cast<int>(m_tex->numLayers));
     if (m_tex->numFaces > 1)
-        m_spec.extra_attribs.attribute("ktx:nfaces", m_tex->numFaces);
+        m_spec.attribute("oiio:subimages", static_cast<int>(m_tex->numLayers));
+    // Save number of miplevels to give the option to users to avoid having to
+    // figure it out by calling `seek_subimage` multiple times
     if (m_tex->numLevels > 1)
         m_spec.extra_attribs.attribute("ktx:miplevels", m_tex->numLevels);
     if (m_tex->generateMipmaps)
-        m_spec.extra_attribs.attribute("ktx:generatemipmaps", 1);
+        m_spec.extra_attribs.attribute("ktx:generatemipmaps", true);
 
     //
     // Save arbitrary metadata. KTX allows for the storage of arbitrary

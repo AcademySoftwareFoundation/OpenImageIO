@@ -72,6 +72,8 @@ private:
 
     uint32_t m_basedepth { 0 };  // MIP level 0 depth
 
+    bool m_is1D { false };  // is this a 1D texture?
+
     ktxSupercmpScheme m_superCmp { KTX_SS_NONE };
 
     // Whether to generate MIP maps when loading texture to graphics API. This
@@ -217,53 +219,20 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             colorspace, "srgb_rec709_scene");
         m_spec.set_colorspace(colorspace);
 
-        // TODO: get_int_attribute causes a segfault and I have no idea why ...
-        // Weirdly, calling find_attribute directly (and checking the resulting
-        // pointer) works, but not get_int_attribute ...
+        if (auto Q = m_spec.find_attribute("ktx:1d", TypeDesc::INT)) {
+            auto ndims = Q->get_int();
+            m_is1D     = ndims == 1;
+        }
 
-        //
-        // Use sensible default in case the input data did not originate from a KTX2
-        // file and the user did not provide a supercompression scheme. KTX2 usually
-        // uses Basis LZ supercompression scheme to benefit from both: smaller
-        // disk filesizes and on-the-fly transcoding to a supported native GPU
-        // format.
-        //
-        const auto& supercompression_str
-            = m_spec.get_string_attribute("ktx:supercompressionscheme", "NONE");
-        if (Strutil::iequals(supercompression_str, "none")) {
-            m_superCmp = ktxSupercmpScheme::KTX_SS_NONE;
-        } else if (Strutil::iequals(supercompression_str, "zstd")) {
-            m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
-        } else if (Strutil::iequals(supercompression_str, "zip" /* zlib */)) {
-            m_superCmp = ktxSupercmpScheme::KTX_SS_ZLIB;
-        } else {
-            close();
-            errorfmt("unsupported super compression scheme: {}",
-                     static_cast<uint32_t>(m_superCmp));
+        // For 1D textures, we expect the height to either be 0 or 1. Code
+        // handles "0" heights fine (because of std::max(height, 1))
+        if (m_is1D && m_baseheight > 1) {
+            errorfmt(
+                "1D textures expect a height of 0 or 1 but supplied height is {}",
+                m_baseheight);
             return false;
         }
-        if (auto Q = m_spec.find_attribute("", TypeDesc::STRING)) {
-            const auto& supercompression_str = Q->get_string();
 
-            m_superCmp = static_cast<ktxSupercmpScheme>(
-                *(uint32_t*)(Q->data()));
-            // Do an early check on supported supercompressionscheme values
-            if (m_superCmp != KTX_SS_BASIS_LZ && m_superCmp != KTX_SS_NONE) {
-                // doing an `errorfmt()` then `close()` causes a seg fault...
-            }
-            DBG std::cout << "[ktxoutput] supercompression scheme: "
-                          << m_superCmp << '\n';
-        }
-
-        if (auto Q = m_spec.find_attribute("ktx:generatemipmaps",
-                                           TypeDesc::INT)) {
-            m_generate_mipmaps = static_cast<bool>(Q->get_int());
-            DBG std::cout << "[ktxoutput] generate mipmaps: " << std::boolalpha
-                          << m_generate_mipmaps << '\n';
-        }
-
-        // We can check m_basis_params.codec != NONE but this won't work for
-        // libktx 4.3.2 which is why we just use a bool var
         m_use_basis_universal = false;
         if (auto Q = m_spec.find_attribute("ktx:codec", TypeDesc::STRING)) {
             const auto& codec = Q->get_string();
@@ -277,6 +246,35 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             DBG std::cout
                 << "[ktxoutput] basis universal codec (from \"ktx:codec\"): "
                 << codec << '\n';
+        }
+
+        //
+        // Use sensible default in case the input data did not originate from a
+        // KTX2 file and the user did not provide a supercompression scheme.
+        // KTX2 usually uses BasisLZ supercompression scheme to benefit from
+        // both: smaller disk filesizes and on-the-fly transcoding to a
+        // supported native GPU format.
+        //
+        const auto& supercompression_str
+            = m_spec.get_string_attribute("ktx:supercompressionscheme", "none");
+        if (Strutil::iequals(supercompression_str, "none")) {
+            m_superCmp = ktxSupercmpScheme::KTX_SS_NONE;
+        } else if (Strutil::iequals(supercompression_str, "zstd")) {
+            m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
+        } else if (Strutil::iequals(supercompression_str, "zip" /* zlib */)) {
+            m_superCmp = ktxSupercmpScheme::KTX_SS_ZLIB;
+        } else {
+            close();
+            errorfmt("Unsupported supercompression scheme: {}",
+                     supercompression_str);
+            return false;
+        }
+
+        if (auto Q = m_spec.find_attribute("ktx:generatemipmaps",
+                                           TypeDesc::INT)) {
+            m_generate_mipmaps = static_cast<bool>(Q->get_int());
+            DBG std::cout << "[ktxoutput] generate mipmaps: " << std::boolalpha
+                          << m_generate_mipmaps << '\n';
         }
 
         //
@@ -666,7 +664,7 @@ KtxOutput::write_ktx2()
     create_info.baseWidth        = m_basewidth;
     create_info.baseHeight       = m_baseheight;
     create_info.baseDepth        = m_basedepth;
-    create_info.numDimensions    = m_basedepth > 1 ? 3u : 2u;
+    create_info.numDimensions    = m_is1D ? 1 : m_basedepth > 1 ? 3u : 2u;
     create_info.numLevels        = m_miplevel_idx + 1;
     create_info.numLayers = 1;  // Can't support this with current OIIO API
     create_info.numFaces  = 1;  // TODO
