@@ -260,6 +260,22 @@ jobs:
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
             optional_deps_append: "Qt6"
+          - desc: ABI check 3.1
+            nametag: abi-check-3.1
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025.5
+            build_type: RelWithDebInfo
+            fmt_ver: 11.1.4
+            fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
+            python_ver: "3.11"
+            pybind11_ver: v3.0.0
+            simd: "avx2,f16c"
+            skip_tests: 1
+            # abi_check: v3.1.17.0 -- make sure we don't break versus 3.1
+            abi_check: 73bc189f7d8469a9760ce9c5099b686c77695074
+            setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
+                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
+            optional_deps_append: "Qt6"
 
 
   #
