@@ -4839,3 +4839,20 @@ FMT_BEGIN_NAMESPACE
 template<> struct formatter<OIIO::ROI> : ostream_formatter {};
 FMT_END_NAMESPACE
 #endif
+
+
+#ifdef OIIO_INTERNAL
+// A symbol is put in each namespace so that we can double check is in the
+// namespace we think it's in.
+OIIO_NAMESPACE_3_1_BEGIN
+extern OIIO_API const int oiio_3_1_namespace_canary;
+OIIO_NAMESPACE_3_1_END
+
+OIIO_NAMESPACE_3_2_BEGIN
+extern OIIO_API const int oiio_3_2_namespace_canary;
+OIIO_NAMESPACE_3_2_END
+
+OIIO_NAMESPACE_BEGIN
+extern OIIO_API const int oiio_current_namespace_canary;
+OIIO_NAMESPACE_END
+#endif

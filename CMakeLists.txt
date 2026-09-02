@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.23.0...4.0)
 
-set (OpenImageIO_VERSION "3.2.0.2")
+set (OpenImageIO_VERSION "3.3.0.0")
 set (OpenImageIO_VERSION_OVERRIDE "" CACHE STRING
      "Version override (use with caution)!")
 mark_as_advanced (OpenImageIO_VERSION_OVERRIDE)
