@@ -346,13 +346,9 @@ call signatures.
   - *docs*: Update description for dwaCompressionLevel [#5074](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5074) (by @Aamir-Raza / Aamir Raza) (3.2.0.1, 3.1.12.0)
   - *docs*: Fix formatting examples for version macros [#5073](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5073) (3.2.0.1, 3.1.12.0)
   - *docs*: Keep TextureSystem docs in sync with ImageCache [#5085](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5085) (3.2.0.1, 3.1.12.0, 3.0.17.0)
-  - *docs*: Fix typos and incorrect attribute name in a comment [#5093](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5093) (3.2.0.1, 3.1.12.0, 3.0.17.0)
+  - *docs*: Assorted typo fixes in code comments and documentation. [#5093](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5093) [#5255](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5255) [#5222](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5222) [#5238](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5238) (by @luna-y-kim / Luna Kim) [#5349](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5349) (by @jinhgkim / Jinnie Kim) (3.2.0.3)
   - *docs*: Fix misstatement about oiiotool `--if` [#5102](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5102) (3.2.0.1, 3.1.12.0, 3.0.17.0)
-  - *docs*: Fix typos in fmath.h comments. [#5222](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5222) (by @luna-y-kim / Luna Kim) (3.2.0.3, 3.1.15.0, 3.0.20.0)
   - *docs*: Clarify plugin.h explanations by noting their Unix-like equivalents. [#5226](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5226) (3.2.0.3, 3.1.15.0)
-  - *docs*: Fix typos and update a reference link in deepdata comments. [#5238](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5238) (by @luna-y-kim / Luna Kim) (3.2.0.3, 3.1.15.0)
-  - *docs*: Fix typo in bitcast docs. [#5255](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5255) (3.2.0.3, 3.1.15.0)
-  - *docs*: Fix typos. [#5349](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5349) (by @jinhgkim / Jinnie Kim) (3.2.0.3, 3.1.16.0)
   - *docs*: Update the ImageCache docs now that IC is fully de-virtualized, remove leftover docs for the old ImageBufAlgo header API, and fix minor typos found along the way. [#5352](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5352) (by @luna-y-kim / Luna Kim) (3.2.0.3, 3.1.16.0)
   - *docs*: Fix vcpkg install command syntax in INSTALL.md (`vcpkg install openimageio[tools]`, no space). [#5332](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5332) (by @BrianHanke / Brian R Hanke) (3.2.0.3, 3.1.16.0)
   - *docs*: Convert the ImageCache chapter's doc example from hardcoded text into compiling C++ and Python tests, referenced from the docs via `literalinclude`. [#5341](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5341) (by @FaisalXL / Faisal)
@@ -362,19 +358,36 @@ call signatures.
 
 ### 🏢  Project Administration
   - *admin*: Refinements to the issue and PR templates [#4982](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4982) [#4995](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/4995) (3.2.0.0)
-  - *admin*: Draft policy on use of AI coding assistants [#5072](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5072) [#5116](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5116) (3.2.0.1, 3.1.12.0, 3.0.17.0)
-  - *admin*: Update security instructions to prefer GitHub security advisory for vulnerability reports [#5149](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5149) (3.2.0.1, 3.1.13.0, 3.0.18.0)
-  - *admin*: Add CVE-2024-55194 (long since fixed) to security alerts. [#5216](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5216) (3.2.0.3, 3.1.14.0)
-  - *admin*: Update security alerts and clarify security policy to explain what qualifies as a vulnerability. [#5232](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5232) (3.2.0.3, 3.1.14.1, 3.0.19.1)
+  - *admin*: Policy on use of AI coding assistants [#5072](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5072) [#5116](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5116) (3.2.0.1, 3.1.12.0, 3.0.17.0)
+  - *admin*: Updates to SECURITY.md policies and vulnerability reports [#5149](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5149) (3.2.0.1, 3.1.13.0, 3.0.18.0) [#5216](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5216) (3.2.0.3, 3.1.14.0) [#5232](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5232) (3.2.0.3, 3.1.14.1, 3.0.19.1) [#5320](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5320) [#5329](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5329) (3.2.0.3, 3.1.16.0, 3.0.21.0)
   - *admin*: Misc administrative docs fixups. [#5233](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5233) (3.2.0.3, 3.1.14.1)
-  - *admin*: Minor fixes to README & SECURITY, and update SECURITY with new CVE assignments. [#5320](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5320) [#5329](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5329) (3.2.0.3, 3.1.16.0, 3.0.21.0)
 
 ### 🤝  Contributors
-  - First-time contributors since the 3.1 major release (3.2 will be the first
-    major release to credit them): Aamir Raza, Brad Smith, Brian R Hanke,
-    Dongju Lee, Faisal, Hannah Gulka, Hunter, Jackson Sun, Jinnie Kim, Lumina
-    Wang, Luna Kim, Mixie, Nathan Gray, Nathan Rusch, Nick D'Ademo, Qi-fly, Shane Smith, Valery
-    Angelique, Wayne Arnold.
+
+During the course of development of 3.2 (since splitting from the 3.1 branch),
+OpenImageIO has had 46 unique contributors, of which 21 (indicated by an
+asterisk) made their first contribution to the project after the 3.1 release
+(v3.1.6.1). Some of their patches also appear in 3.1.x or 3.0.x releases
+because they were backported from main.
+
+|                     |                     |                      |
+| ------------------- | ------------------- | -------------------- |
+| Aamir Raza (*)      | Alejandro Conty     | Aleksandr Motsjonov  |
+| Alex Fuller         | Anton Dukhovnikov   | Asish Kumar (*)      |
+| Brad Smith          | Brecht Van Lommel   | Brian R Hanke (*)    |
+| Carine Touraille    | Connie Chang        | Danny Greenstein     |
+| Dongju Lee (*)      | Faisal (*)          | Hannah Gulka (*)     |
+| Hunter (*)          | Jackson Sun (*)     | Jesse Yurkovich      |
+| Jinnie Kim (*)      | Jonathan Brown      | Larry Gritz          |
+| Li Ji               | Loïc Vital          | Lumina Wang (*)      |
+| Luna Kim (*)        | Marta Feriani (*)   | Matt Van Horn (*)    |
+| Maxwell Iverson (*) | Mixie (*)           | Nathan Gray (*)      |
+| Nathan Rusch        | Nick D'Ademo (*)    | Oktay Comu           |
+| omcaif              | Pascal Lecocq       | Pavan Madduri (*)    |
+| Peter Kovář         | Qi-fly (*)          | rose413 (*)          |
+| Shane Smith         | Todica Ionut        | Valery Angelique (*) |
+| Vanessa Valderrama  | Vlad (Kuzmin) Erium | Wayne Arnold         |
+| Zach Lewis          |                     |                      |
 
 ---
 ---
