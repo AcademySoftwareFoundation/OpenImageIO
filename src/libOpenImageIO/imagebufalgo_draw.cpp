@@ -1227,7 +1227,9 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
         // If the buffer doesn't have an alpha, but the text color passed
         // has 4 values, assume the last value is supposed to be alpha.
         textalpha = textcolor[3];
-    }
+        alpha_channel = 3;
+    } else
+        alpha_channel = -1;
 
     // Convert the UTF to 32 bit unicode
     std::vector<uint32_t> utext;
@@ -1316,8 +1318,14 @@ ImageBufAlgo::render_text(ImageBuf& R, int x, int y, string_view text,
         float val   = t[0];
         float alpha = a[0] * textalpha;
         R.getpixel(r.x(), r.y(), pixelcolor);
-        for (int c = 0; c < nchannels; ++c)
-            pixelcolor[c] = val * textcolor[c] + (1.0f - alpha) * pixelcolor[c];
+        if (alpha == 0.0)
+            continue;
+        for (int c = 0; c < nchannels; ++c) {
+            if (c == alpha_channel)
+                pixelcolor[c] = alpha + (1.0f - alpha) * pixelcolor[c];
+            else 
+                pixelcolor[c] = (val * alpha * textcolor[c]) + (1.0f - alpha) * pixelcolor[c];
+        }
         R.setpixel(r.x(), r.y(), pixelcolor);
     }
 
