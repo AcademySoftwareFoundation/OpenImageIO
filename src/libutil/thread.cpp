@@ -690,16 +690,16 @@ parallel_for_impl(Index begin, Index end, function_view<void(Index)>&& task,
 
 
 
-// DEPRECATED
-void
+// DEPRECATED(3.2) -- no longer declared in header, just for link compat
+OIIO_UTIL_API void
 parallel_for(int begin, int end, function_view<void(int)> task, paropt opt)
 {
     parallel_for_impl(begin, end, std::move(task), opt);
 }
 
 
-// DEPRECATED
-void
+// DEPRECATED(3.2) -- no longer declared in header, just for link compat
+OIIO_UTIL_API void
 parallel_for(uint32_t begin, uint32_t end, function_view<void(uint32_t)> task,
              paropt opt)
 {
@@ -707,8 +707,8 @@ parallel_for(uint32_t begin, uint32_t end, function_view<void(uint32_t)> task,
 }
 
 
-// DEPRECATED
-void
+// DEPRECATED(3.2) -- no longer declared in header, just for link compat
+OIIO_UTIL_API void
 parallel_for(int64_t begin, int64_t end, function_view<void(int64_t)> task,
              paropt opt)
 {
@@ -716,18 +716,15 @@ parallel_for(int64_t begin, int64_t end, function_view<void(int64_t)> task,
 }
 
 
-// DEPRECATED
-void
+// DEPRECATED(3.2) -- no longer declared in header, just for link compat
+OIIO_UTIL_API void
 parallel_for(uint64_t begin, uint64_t end, function_view<void(uint64_t)> task,
              paropt opt)
 {
     parallel_for_impl(begin, end, std::move(task), opt);
 }
 
-OIIO_NAMESPACE_3_1_END
 
-
-OIIO_NAMESPACE_BEGIN
 
 void
 parallel_for(int begin, int end, function_view<void(int)>&& task, paropt opt)
@@ -759,10 +756,7 @@ parallel_for(uint64_t begin, uint64_t end, function_view<void(uint64_t)>&& task,
     parallel_for_impl(begin, end, std::move(task), opt);
 }
 
-OIIO_NAMESPACE_END
 
-
-OIIO_NAMESPACE_3_1_BEGIN
 
 template<typename Index>
 inline void
