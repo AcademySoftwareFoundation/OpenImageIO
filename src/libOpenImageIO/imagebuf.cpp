@@ -871,6 +871,7 @@ ImageBufImpl::clear()
     m_name.clear();
     m_fileformat.clear();
     m_nsubimages       = 0;
+    m_nmiplevels       = 0;
     m_current_subimage = -1;
     m_current_miplevel = -1;
     m_spec             = ImageSpec();
@@ -1304,6 +1305,16 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_current_subimage = subimage;
         m_current_miplevel = miplevel;
         m_pixelaspect = m_spec.get_float_attribute("pixelaspectratio", 1.0f);
+
+        // Count MIP levels of this subimage until seek_subimage fails.
+        // Keep this as the last use of input because seek_subimage moves its
+        // current position. The count is 1 for files without MIP levels.
+        int nmip = 0;
+        while (input->seek_subimage(subimage, nmip)) {
+            ++nmip;
+        }
+        m_nmiplevels = nmip;
+
         atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
         // Set last, after every field above is written -- see the comment
         // on m_spec_valid's declaration.

@@ -250,6 +250,12 @@ Testing error handling for out-of-range subimage, miplevel
   tahoe-tiny.tif subimage 0 mip 0: True 
   tahoe-tiny.tif subimage 0 mip 1: False Could not seek to subimage=0 miplevel=1
 
+Testing the number of miplevels
+  ../common/bayer.png nmiplevels: 1
+  ../common/grid-small.exr nmiplevels: 1
+  ../common/textures/checker.tx nmiplevels: 10
+  ../common/textures/grid.tx nmiplevels: 11
+
 Done.
 Comparing "out.tif" and "ref/out.tif"
 PASS
