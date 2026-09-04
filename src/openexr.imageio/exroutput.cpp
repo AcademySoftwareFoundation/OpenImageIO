@@ -1053,6 +1053,19 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     for (const auto& p : spec.extra_attribs)
         put_parameter(p.name().string(), p.type(), p.data(), header);
 
+    // Now that the header's compression is settled, say how many scanlines
+    // are packed into each of the chunks we are about to write, so that
+    // ImageOutput::write_image can hand us whole chunks. A value carried in
+    // from some other file says nothing about this one, so erase it either
+    // way. This has to come after the loop above -- that is what would have
+    // written it into the file, and this is only a hint to our own caller.
+    spec.erase_attribute("oiio:RowsPerChunk");
+    if (spec.tile_width == 0) {
+        int scansperchunk = exr_scanlines_per_chunk(header.compression());
+        if (scansperchunk > 1)
+            spec.attribute("oiio:RowsPerChunk", scansperchunk);
+    }
+
     // Multi-part EXR files required to have a name. Make one up if not
     // supplied.
     if (m_nsubimages > 1 && !header.hasName()) {

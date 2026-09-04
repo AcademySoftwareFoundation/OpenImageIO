@@ -5,6 +5,7 @@ Reading ../oiio-images/libtiffpic/caspian.tif
     compression: "zip"
     planarconfig: "separate"
     oiio:BitsPerSample: 64
+    oiio:RowsPerChunk: 3
     tiff:Compression: 32946
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -22,6 +23,7 @@ Reading ../oiio-images/libtiffpic/cramps.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 12
     tiff:Compression: 32773
     tiff:PhotometricInterpretation: 0
     tiff:PlanarConfiguration: 1
@@ -87,6 +89,7 @@ Reading ../oiio-images/libtiffpic/dscf0013.tif
     Exif:YCbCrSubsampling: 2, 1
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:RowsPerChunk: 15
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 6
@@ -105,6 +108,7 @@ Reading ../oiio-images/libtiffpic/dscf0013.tif
     Exif:YCbCrPositioning: 2
     Exif:YCbCrSubsampling: 2, 1
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 120
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 6
@@ -158,6 +162,7 @@ Reading ../oiio-images/libtiffpic/jello.tif
     Orientation: 1 (normal)
     planarconfig: "contig"
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 32
     tiff:ColorSpace: "palette"
     tiff:Compression: 32773
     tiff:PhotometricInterpretation: 3
@@ -177,6 +182,7 @@ Reading ../oiio-images/libtiffpic/off_l16.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 16
+    oiio:RowsPerChunk: 8
     tiff:ColorSpace: "LOGL"
     tiff:Compression: 34676
     tiff:PhotometricInterpretation: 32844
@@ -196,6 +202,7 @@ Reading ../oiio-images/libtiffpic/off_luv24.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 16
+    oiio:RowsPerChunk: 8
     tiff:ColorSpace: "LOGLUV"
     tiff:Compression: 34677
     tiff:PhotometricInterpretation: 32845
@@ -215,6 +222,7 @@ Reading ../oiio-images/libtiffpic/off_luv32.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 16
+    oiio:RowsPerChunk: 8
     tiff:ColorSpace: "LOGLUV"
     tiff:Compression: 34676
     tiff:PhotometricInterpretation: 32845
@@ -264,6 +272,7 @@ Reading ../oiio-images/libtiffpic/pc260001.tif
     Exif:WhiteBalance: 0 (auto)
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:RowsPerChunk: 32
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -291,6 +300,7 @@ Reading ../oiio-images/libtiffpic/quad-jpeg.tif
     compression: "jpeg"
     planarconfig: "contig"
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 16
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 7
     tiff:PhotometricInterpretation: 6
@@ -309,6 +319,7 @@ Reading ../oiio-images/libtiffpic/strike.tif
     XResolution: 1
     YResolution: 1
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 8
     tiff:Compression: 5
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -326,6 +337,7 @@ Reading ../oiio-images/libtiffpic/ycbcr-cat.tif
     Exif:YCbCrPositioning: 1
     Exif:YCbCrSubsampling: 2, 2
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 10
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 5
     tiff:PhotometricInterpretation: 6
@@ -347,6 +359,7 @@ Reading ../oiio-images/libtiffpic/smallliz.tif
     Exif:YCbCrPositioning: 1
     Exif:YCbCrSubsampling: 2, 2
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 160
     tiff:ColorSpace: "YCbCr"
     tiff:Compression: 6
     tiff:PhotometricInterpretation: 6

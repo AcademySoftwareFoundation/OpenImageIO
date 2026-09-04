@@ -442,6 +442,11 @@ macro (oiio_add_all_tests)
         # OpenEXR 3.1.10 is the first release where the exr core library
         # properly supported all compression types (DWA in particular).
         list (APPEND all_openexr_tests openexr-compression)
+        # openexr-scanlines reads a DWA-compressed file, so it needs the same
+        # minimum as openexr-compression for the core-library test variant.
+        if (USE_PYTHON AND NOT SANITIZE)
+            list (APPEND all_openexr_tests openexr-scanlines)
+        endif ()
     endif ()
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.3)
         # OpenEXR 3.3 is when IDManifest was introduced

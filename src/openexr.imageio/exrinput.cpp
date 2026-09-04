@@ -456,6 +456,17 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
         }
         if (comp)
             spec.attribute("compression", comp);
+        if (spec.tile_width == 0 && !spec.deep) {
+            // Scanline file: advertise how many scanlines are packed into
+            // each compressed chunk, so that callers can align their reads
+            // to whole chunks (see ImageInput::read_image, read_scanlines).
+            // Must match what exrinput_c.cpp reports for the same file, and
+            // that comes from the library, which says 1 for a deep scanline
+            // file no matter what its compression attribute claims.
+            scansperchunk = exr_scanlines_per_chunk(compressattr->value());
+            if (scansperchunk > 1)
+                spec.attribute("oiio:RowsPerChunk", scansperchunk);
+        }
     }
 
     for (auto hit = header->begin(); hit != header->end(); ++hit) {
@@ -1256,6 +1267,33 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 }
 
 
+
+// Serve scanlines [ybegin,yend) out of the chunk [cbegin,cend), which is a
+// full chunk of the file, decoding that chunk if we don't already have it in
+// hand. Only called when the request is a proper subset of the chunk.
+bool
+OpenEXRInput::read_cached_chunk(int subimage, int miplevel, int ybegin,
+                                int yend, int chbegin, int chend, int cbegin,
+                                int cend, size_t scanlinebytes, void* data)
+{
+    if (m_chunkcache.fetch(subimage, miplevel, cbegin, cend, chbegin, chend,
+                           ybegin, yend, scanlinebytes, data))
+        return true;
+
+    // Cache miss. Decode the whole chunk. This recursive call asks for
+    // exactly one full chunk, so it won't come back here.
+    default_init_vector<uint8_t> chunk(scanlinebytes * size_t(cend - cbegin));
+    if (!read_native_scanlines(subimage, miplevel, cbegin, cend, 0, chbegin,
+                               chend, chunk.data()))
+        return false;
+    memcpy(data, chunk.data() + scanlinebytes * size_t(ybegin - cbegin),
+           scanlinebytes * size_t(yend - ybegin));
+    m_chunkcache.adopt(subimage, miplevel, cbegin, cend, chbegin, chend, chunk);
+    return true;
+}
+
+
+
 bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                     int yend, int z, int chbegin, int chend,
@@ -1278,6 +1316,65 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     size_t scanlinebytes = (size_t)m_spec.width * pixelbytes;
     char* buf            = (char*)data - m_spec.x * stride_t(pixelbytes)
                            - ybegin * stride_t(scanlinebytes);
+
+    int endy = m_spec.y + m_spec.height;
+    yend     = std::min(endy, yend);
+    if (ybegin >= yend)
+        return true;
+
+#if OPENEXR_CODED_VERSION >= 30302 && OPENEXR_CODED_VERSION < 30403
+    // These versions of the classic ScanLineInputFile keep one decoded
+    // ScanLineProcess alive across readPixels() calls, and only choose the
+    // pixel-unpack routine on the first of them. Later calls refresh the
+    // destination pointers but keep that routine, and the specialized
+    // routines write every channel through channels[0].decode_to_ptr. So
+    // after a full-channel read, a channel-subset read overruns the caller's
+    // buffer (or writes through a null pointer, if channel 0 was one of the
+    // ones dropped). Introduced in 3.3.2 and 3.4.0 by OpenEXR PR 1899, fixed
+    // in 3.4.3 by PR 2150, which resets the cached process in
+    // setFrameBuffer(); never fixed on the 3.3 branch. Work around it by
+    // reading every channel into a scratch buffer -- the layout the cached
+    // routine expects -- and copying out the range that was asked for.
+    if ((chbegin != 0 || chend != m_spec.nchannels) && !part.luminance_chroma) {
+        size_t fullpixelbytes = m_spec.pixel_bytes(true);
+        size_t fullscanbytes  = size_t(m_spec.width) * fullpixelbytes;
+        default_init_vector<uint8_t> scratch(fullscanbytes
+                                             * size_t(yend - ybegin));
+        if (!read_native_scanlines(subimage, miplevel, ybegin, yend, z, 0,
+                                   m_spec.nchannels, scratch.data()))
+            return false;
+        size_t choff = m_spec.pixel_bytes(0, chbegin, true);
+        for (int y = ybegin; y < yend; ++y) {
+            const uint8_t* src = scratch.data()
+                                 + size_t(y - ybegin) * fullscanbytes + choff;
+            char* dst = (char*)data + size_t(y - ybegin) * scanlinebytes;
+            for (int x = 0; x < m_spec.width; ++x) {
+                memcpy(dst, src, pixelbytes);
+                src += fullpixelbytes;
+                dst += pixelbytes;
+            }
+        }
+        return true;
+    }
+#endif
+
+    // If the request is only part of a single chunk, go through the chunk
+    // cache: decoding a whole chunk to hand back a few of its scanlines is
+    // expensive, and a client that reads a scanline (or any other sub-chunk
+    // swath) at a time will ask for the rest of that chunk next. (The
+    // library has a stash of its own, but it drops it every time we set the
+    // frame buffer, which we must do on every read.)
+    if (part.scansperchunk > 1 && !part.luminance_chroma
+        && ybegin >= m_spec.y) {
+        int ychunkstart = m_spec.y
+                          + round_down_to_multiple(ybegin - m_spec.y,
+                                                   part.scansperchunk);
+        int ychunkend   = std::min(ychunkstart + part.scansperchunk, endy);
+        if (yend <= ychunkend && (ybegin > ychunkstart || yend < ychunkend))
+            return read_cached_chunk(subimage, miplevel, ybegin, yend, chbegin,
+                                     chend, ychunkstart, ychunkend,
+                                     scanlinebytes, data);
+    }
 
     try {
         if (part.luminance_chroma) {
