@@ -21,17 +21,17 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        OIIO's public APIs only require C++17 features.
  * Compilers: gcc 9.3 - 16, clang 10 - 22, MSVS 2017 - 2026 (v19.14
    and up), Intel OneAPI C++ compiler 2022+.
- * **CMake >= 3.23.0** (tested through 4.4)
+ * CMake >= 3.23.0 (tested through 4.4)
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
- * **libTIFF >= 4.1** (tested through 4.7 and master)
+ * libTIFF >= 4.1 (tested through 4.7 and master)
  * OpenColorIO >= 2.3 (tested through 2.5 and main)
- * **libjpeg >= 9** (tested through jpeg-10), or libjpeg-turbo >= 2.1 (tested
+ * libjpeg >= 9 (tested through jpeg-10), or libjpeg-turbo >= 2.1 (tested
    through 3.2)
  * zlib >= 1.2.7 (tested through 1.3.2)
- * **[fmtlib](https://github.com/fmtlib/fmt) >= 9.0** (tested through 12.2 and master).
+ * [fmtlib](https://github.com/fmtlib/fmt) >= 9.0 (tested through 12.2 and master).
    If not found at build time, this will be automatically downloaded and built.
- * **[Robin-map](https://github.com/Tessil/robin-map) >= 1.3** (tested through
+ * [Robin-map](https://github.com/Tessil/robin-map) >= 1.3 (tested through
    1.4, which is the recommended version). If not found at build time, this
    will be automatically downloaded and built.
 
@@ -42,7 +42,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 3.9 (tested through 3.14).
-     * **[nanobind](https://github.com/wjakob/nanobind) >= 2.8** (tested through 2.13),
+     * [nanobind](https://github.com/wjakob/nanobind) >= 2.8 (tested through 2.13),
        if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to either
        `nanobind` or `both`.  If not found at build time, nanobind will be
        automatically downloaded and built.
@@ -53,7 +53,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for PNG files:
      * libPNG >= 1.6.0 (tested though 1.6.58)
  * If you want support for camera "RAW" formats:
-     * **LibRaw >= 0.21.0** (tested though 0.22.2 and master; minimum of 0.21.3 recommended for security reasons)
+     * LibRaw >= 0.21.0 (tested though 0.22.2 and master; minimum of 0.21.3 recommended for security reasons)
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 4.0 (tested through 8.1)
  * If you want support for jpeg 2000 images:
@@ -73,7 +73,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
        1.17 required for monochrome HEIC support; tested through 1.23.1)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
-     * **DCMTK >= 3.6.2** (tested through 3.7.0)
+     * DCMTK >= 3.6.2 (tested through 3.7.0)
  * If you want support for WebP images:
      * WebP >= 1.1 (tested through 1.6)
  * If you want support for Ptex:
