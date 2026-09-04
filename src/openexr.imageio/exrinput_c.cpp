@@ -212,6 +212,7 @@ private:
     int m_nsubimages;                   ///< How many subimages are there?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
     std::string m_filename;             // filename, if known
+    std::string m_file_color_interop_id;
 
     void init()
     {
@@ -221,6 +222,7 @@ private:
         m_local_io.reset();
         m_missingcolor.clear();
         m_filename.clear();
+        m_file_color_interop_id.clear();
     }
 
     bool valid_file_or_proxy(const std::string& filename,
@@ -343,6 +345,21 @@ OpenEXRCoreInput::valid_file_or_proxy(const std::string& filename,
 
 
 
+// Color space shared by all parts of the file, taken from the first part.
+static std::string
+file_color_interop_id(exr_context_t ctxt)
+{
+    int32_t length      = 0;
+    const char* interop = nullptr;
+    if (exr_attr_get_string(ctxt, 0, "colorInteropID", &length, &interop)
+            != EXR_ERR_SUCCESS
+        || !interop)
+        return std::string();
+
+    return std::string(interop, size_t(length));
+}
+
+
 bool
 OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
                        const ImageSpec& config)
@@ -441,6 +458,8 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
     m_parts.resize(m_nsubimages);
     m_subimage = -1;
     m_miplevel = -1;
+
+    m_file_color_interop_id = file_color_interop_id(m_exr_context);
 
     // Set up for the first subimage ("part"). This will trigger reading
     // information about all the parts.
@@ -828,8 +847,15 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     // Try to figure out the color space for some unambiguous cases
     if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
         spec.set_colorspace("lin_ap0_scene");
-    } else if (auto c = spec.find_attribute("colorInteropID", TypeString)) {
-        spec.set_colorspace(c->get_ustring());
+    } else {
+        // Follow the color interop forum recommendation for OpenEXR files,
+        // inheriting the colorInteropID from the first part.
+        string_view interop_id = spec.get_string_attribute("colorInteropID");
+        if (!interop_id.empty()) {
+            spec.set_colorspace(interop_id);
+        } else if (!in->m_file_color_interop_id.empty()) {
+            spec.set_colorspace(in->m_file_color_interop_id);
+        }
     }
 
     // Squash some problematic texture metadata if we suspect it's wrong
