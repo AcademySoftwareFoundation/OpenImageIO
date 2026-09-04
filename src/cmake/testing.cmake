@@ -387,6 +387,9 @@ macro (oiio_add_all_tests)
     oiio_add_tests (dpx
                     ENABLEVAR ENABLE_DPX
                     IMAGEDIR oiio-images/dpx URL "Recent checkout of OpenImageIO-images")
+    oiio_add_tests (ktx
+                    ENABLEVAR ENABLE_KTX
+                    IMAGEDIR oiio-images/ktx2)
     oiio_add_tests (dds
                     ENABLEVAR ENABLE_DDS
                     IMAGEDIR oiio-images/dds URL "Recent checkout of OpenImageIO-images")
@@ -608,9 +611,11 @@ function (oiio_get_test_data name)
 endfunction()
 
 function (oiio_setup_test_data)
+    # TODO: revert this to target dev branch before merging
     oiio_get_test_data (oiio-images
                         REPO https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git
-                        BRANCH dev-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR})
+                        BRANCH main)
+                        # BRANCH dev-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR})
     oiio_get_test_data (openexr-images
                         REPO https://github.com/AcademySoftwareFoundation/openexr-images.git
                         BRANCH main)
