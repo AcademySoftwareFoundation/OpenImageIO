@@ -724,12 +724,7 @@ if (PROJECT_IS_TOP_LEVEL)
     set_cache (CLANG_FORMAT_EXE_HINT "" "clang-format executable's directory (will search if not specified")
     set (CLANG_FORMAT_INCLUDES "src/*.h" "src/*.cpp" "testsuite/*.cpp" "testsuite/*.h"
         CACHE STRING "Glob patterns to include for clang-format")
-    set (CLANG_FORMAT_EXCLUDES "*pugixml*" "*SHA1*" "*/farmhash.cpp"
-                               "src/dpx.imageio/libdpx/*"
-                               "src/cineon.imageio/libcineon/*"
-                               "src/dds.imageio/bcdec.h"
-                               "src/gif.imageio/gif.h"
-                               "src/libutil/stb_sprintf.h"
+    set (CLANG_FORMAT_EXCLUDES ""
          CACHE STRING "Glob patterns to exclude for clang-format")
     find_program (CLANG_FORMAT_EXE
                   NAMES clang-format bin/clang-format
