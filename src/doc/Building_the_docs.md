@@ -14,7 +14,8 @@ The main docs as they appear on ReadTheDocs consist of two parts:
 
 - Individual class and function documentation that are in the comments
   in the various public header files of OpenImageIO.
-- All the explanatory text found in `src/doc/*.rst`, which is processed
+- All the explanatory text found in `src/doc/*.md` (authored in
+  [MyST Markdown](https://myst-parser.readthedocs.io)), which is processed
   by Sphinx to generate the final documentation, and which draw on the
   header documentation that was extracted by Doxygen.
 
@@ -55,6 +56,11 @@ install it is via Python PIP:
 - [Breathe](https://breathe.readthedocs.io) plugin for Sphinx for combining with Doxygen: `pip install breathe`
 - [Sphinx-tabs](https://sphinx-tabs.readthedocs.io) plugin: `pip install -U sphinx-tabs`
 - [Furo](https://github.com/pradyunsg/furo) theme: `pip install furo`
+- [MyST-Parser](https://myst-parser.readthedocs.io) plugin, for the Markdown
+  sources: `pip install -U myst-parser`
+
+Or simply `pip install -r requirements.txt` from this directory to get
+everything at once.
 
 
 
@@ -102,8 +108,8 @@ build system.
        build succeeded, 63 warnings.
 
    You need to redo this Sphinx step if you change any of the text
-   documentation in `src/doc/*.rst` is changed. Note that if you are only
-   changing the `.rst` files, there is no need to go all the way back to step
+   documentation in `src/doc/*.md` is changed. Note that if you are only
+   changing the `.md` files, there is no need to go all the way back to step
    3 to regenerate the Doxygen files.
 
 5. Where are my docs?

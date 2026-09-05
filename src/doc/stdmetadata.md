@@ -1,47 +1,49 @@
-..
-  Copyright Contributors to the OpenImageIO project.
-  SPDX-License-Identifier: CC-BY-4.0
+% Copyright Contributors to the OpenImageIO project.
+% SPDX-License-Identifier: CC-BY-4.0
 
+(chap-stdmetadata)=
 
-.. _chap-stdmetadata:
+# Metadata conventions
 
-Metadata conventions
-####################
-
-
-
-The ImageSpec class, described thoroughly in :ref:`sec-ImageSpec`, provides
+The ImageSpec class, described thoroughly in {ref}`sec-imagespec`, provides
 the basic description of an image that are essential across all formats ---
-resolution, number of channels, pixel data format, etc.  Individual images
+resolution, number of channels, pixel data format, etc. Individual images
 may have additional data, stored as name/value pairs in the `extra_attribs`
 field. Though literally *anything* can be stored in `extra_attribs` --- it's
 specifically designed for format- and user-extensibility --- this chapter
 establishes some guidelines and lays out all of the field names that
 OpenImageIO understands.
 
+## Description of the image
 
-Description of the image
-========================
-
+```{eval-rst}
 .. option:: "ImageDescription" : string
 
     The image description, title, caption, or comments.
+```
 
+```{eval-rst}
 .. option:: "Keywords" : string
 
     Semicolon-separated keywords describing the contents of the image.
     (Semicolons are used rather than commas because of the common case of a
     comma being part of a keyword itself, e.g., "Kurt Vonnegut, Jr." or
     "Washington, DC."")
+```
 
+```{eval-rst}
 .. option:: "Artist" : string
 
     The artist, creator, or owner of the image.
+```
 
+```{eval-rst}
 .. option:: "Copyright" : string
 
     Any copyright notice or owner of the image.
+```
 
+```{eval-rst}
 .. option:: "DateTime" : string
 
     The creation date of the image, in the following format: `YYYY:MM:DD HH:MM:SS` (exactly 19 characters long, not including a terminating
@@ -53,44 +55,35 @@ Description of the image
     `"Exif:DateTimeDigitized"` (see Section :ref:`sec-metadata-exif`) to
     further distinguish the original image and its conversion to digital
     media.
+```
 
+```{eval-rst}
 .. option:: "DocumentName" : string
 
     The name of an overall document that this image is a part of.
+```
 
+```{eval-rst}
 .. option:: "Software" : string
 
     The software that was used to create the image.
+```
 
+```{eval-rst}
 .. option:: "HostComputer" : string
 
     The name or identity of the computer that created the image.
 
 
+```
 
-.. _sec-metadata-displayhints:
-.. _sec-metadata-orientation:
+(sec-metadata-displayhints)=
 
-Display hints
-=============
+(sec-metadata-orientation)=
 
-.. |orient1img| image:: figures/orientation1.jpg
-    :height: 1 in
-.. |orient2img| image:: figures/orientation2.jpg
-    :height: 1 in
-.. |orient3img| image:: figures/orientation3.jpg
-    :height: 1 in
-.. |orient4img| image:: figures/orientation4.jpg
-    :height: 1 in
-.. |orient5img| image:: figures/orientation5.jpg
-    :width: 1 in
-.. |orient6img| image:: figures/orientation6.jpg
-    :width: 1 in
-.. |orient7img| image:: figures/orientation7.jpg
-    :width: 1 in
-.. |orient8img| image:: figures/orientation8.jpg
-    :width: 1 in
+## Display hints
 
+```{eval-rst}
 .. option:: "Orientation" : int
 
     By default, image pixels are ordered from the top of the display to the
@@ -99,22 +92,58 @@ Display hints
     `"Orientation"` field can suggest that it should be displayed with
     a different orientation, according to the TIFF/EXIF conventions:
 
-    ===  ============  ==========================================================================
-     1   |orient1img|  normal (top to bottom, left to right)
-     2   |orient2img|  flipped horizontally (top to bottom, right to left)
-     3   |orient3img|  rotated :math:`180^\circ` (bottom to top, right to left)
-     4   |orient4img|  flipped vertically (bottom to top, left to right)
-     5   |orient5img|  transposed (left to right, top to bottom)
-     6   |orient6img|  rotated :math:`90^\circ` clockwise (right to left, top to bottom)
-     7   |orient7img|  transverse (right to left, bottom to top)
-     8   |orient8img|  rotated :math:`90^\circ` counter-clockwise (left to right, bottom to top)
-    ===  ============  ==========================================================================
+    .. list-table::
 
+       * - 1
+         - .. image:: figures/orientation1.jpg
+              :height: 1 in
+              :alt: orient1img
+         - normal (top to bottom, left to right)
+       * - 2
+         - .. image:: figures/orientation2.jpg
+              :height: 1 in
+              :alt: orient2img
+         - flipped horizontally (top to bottom, right to left)
+       * - 3
+         - .. image:: figures/orientation3.jpg
+              :height: 1 in
+              :alt: orient3img
+         - rotated :math:`180^\circ` (bottom to top, right to left)
+       * - 4
+         - .. image:: figures/orientation4.jpg
+              :height: 1 in
+              :alt: orient4img
+         - flipped vertically (bottom to top, left to right)
+       * - 5
+         - .. image:: figures/orientation5.jpg
+              :width: 1 in
+              :alt: orient5img
+         - transposed (left to right, top to bottom)
+       * - 6
+         - .. image:: figures/orientation6.jpg
+              :width: 1 in
+              :alt: orient6img
+         - rotated :math:`90^\circ` clockwise (right to left, top to bottom)
+       * - 7
+         - .. image:: figures/orientation7.jpg
+              :width: 1 in
+              :alt: orient7img
+         - transverse (right to left, bottom to top)
+       * - 8
+         - .. image:: figures/orientation8.jpg
+              :width: 1 in
+              :alt: orient8img
+         - rotated :math:`90^\circ` counter-clockwise (left to right, bottom to top)
+```
+
+```{eval-rst}
 .. option:: "PixelAspectRatio" : float
 
     The aspect ratio (:math:`x/y`) of the size of individual pixels, with
     square pixels being 1.0 (the default).
+```
 
+```{eval-rst}
 .. option:: "XResolution" : float
             "YResolution" : float
             "ResolutionUnit" : string
@@ -125,12 +154,16 @@ Display hints
 
     Different file formats may dictate different resolution units. For
     example, the TIFF ImageIO plugin supports `none`, `in`, and `cm`.
+```
 
+```{eval-rst}
 .. option:: "oiio:Movie" : int
 
     If nonzero, a hint that a multi-image file is meant to be interpreted as
     an animation (i.e., that the subimages are a time sequence).
+```
 
+```{eval-rst}
 .. option:: "oiio:subimages" : int
 
     If nonzero, the number of subimages in the file. Not all image file
@@ -139,7 +172,9 @@ Display hints
     present and greater than zero, it can be trusted, but if not, nothing
     should be inferred and you will have to repeatedly seek to subimages
     to find out how many there are.
+```
 
+```{eval-rst}
 .. option:: "FramesPerSecond" : rational
 
     For a multi-image file intended to be played back as an animation, the
@@ -147,18 +182,19 @@ Display hints
     retrieved as a float also, if you are ok with imprecision.)
 
 
+```
 
-.. _sec-metadata-color:
+(sec-metadata-color)=
 
-Color information
-=================
+## Color information
 
+```{eval-rst}
 .. option:: "oiio:ColorSpace" : string
 
     The name of the color space of the color channels. This can be the name of
     any documented Color Interop Forum standard token, or any color space,
     alias, or role known to OpenColorIO. Common values include:
-    
+
     - `"lin_rec709_scene"`,  :  Color pixel values are known to be linear
       scene-referred and using sRGB/Rec709 color primaries. Note that
       `"lin_rec709"` is treated as a synonym.
@@ -177,13 +213,17 @@ Color information
     Additionally, `"scene_linear"` is a role that is appropriate for color
     pixel values are known to be scene-linear and using facility-default color
     primaries as defined by the OpenColorIO configuration.
+```
 
+```{eval-rst}
 .. option:: "oiio:BorderColor" : float[nchannels]
 
     The color presumed to be filling any parts of the display/full image
     window that are not overlapping the pixel data window.  If not supplied,
     the default is black (0 in all channels).
+```
 
+```{eval-rst}
 .. option:: "CICP" : int[4]
 
     The CICP color space information, as defined by
@@ -194,7 +234,9 @@ Color information
     - `[1]` : transfer characteristics
     - `[2]` : matrix coefficients
     - `[3]` : full range flag
+```
 
+```{eval-rst}
 .. option:: "ICCProfile" : uint8[]
             "ICCProfile:...various..." : ...various types...
 
@@ -211,26 +253,31 @@ Color information
     piece of durable ICC profile information.
 
 
+```
 
-Disk file format info/hints
-===========================
+## Disk file format info/hints
 
+```{eval-rst}
 .. option:: "oiio:BitsPerSample" : int
 
     Number of bits per sample *in the file*.
-    
+
     Note that this may not match the reported `ImageSpec::format`, if the
     plugin is translating from an unsupported format.  For example, if a
     file stores 4 bit grayscale per channel, the `"oiio:BitsPerSample"` may
     be 4 but the `format` field may be `TypeDesc::UINT8` (because the
     OpenImageIO APIs do not support fewer than 8 bits per sample).
+```
 
+```{eval-rst}
 .. option:: "oiio:UnassociatedAlpha" : int
 
     Whether the data in the file stored alpha channels (if any) that were
     unassociated with the color (i.e., color not "premultiplied" by the
     alpha coverage value).
+```
 
+```{eval-rst}
 .. option:: "planarconfig" : string
 
     `contig` indicates that the file has contiguous pixels (RGB RGB RGB...),
@@ -240,7 +287,9 @@ Disk file format info/hints
     Note that only contiguous pixels are transmitted through the OpenImageIO
     APIs, but this metadata indicates how it is (or should be) stored in the
     file, if possible.
+```
 
+```{eval-rst}
 .. option:: "compression" : string
 
     Indicates the type of compression the file uses.  Supported compression
@@ -256,7 +305,9 @@ Disk file format info/hints
     The quality value can vary between different file formats and compression
     modes, and some don't support quality values at all (it will be ignored if
     not supported, or if out of range).
+```
 
+```{eval-rst}
 .. option:: "CompressionQuality" : int
 
     DEPRECATED(2.1)
@@ -268,9 +319,9 @@ Disk file format info/hints
 
 
 
+```
 
-Substituting an `IOPRoxy` for custom I/O overrides
-======================================================
+## Substituting an `IOPRoxy` for custom I/O overrides
 
 Format readers and writers that respond positively to `supports("ioproxy")`
 have the ability to read or write using an *I/O proxy* object. Among other
@@ -278,12 +329,14 @@ things, this lets an ImageOutput write the file to a memory buffer rather
 than saving to disk, and for an ImageInput to read the file from a memory
 buffer. This behavior is controlled by a special attributes
 
+```{eval-rst}
 .. option:: "oiio:ioproxy" : pointer
 
     Pointer to a `Filesystem::IOProxy` that will handle the I/O.
+```
 
 An explanation of how this feature is used may be found in Sections
-:ref:`sec-imageinput-ioproxy` and :ref:`sec-imageoutput-ioproxy`.
+{ref}`sec-imageinput-ioproxy` and {ref}`sec-imageoutput-ioproxy`.
 
 In addition to communicating IOProxy information via this attribute, it
 is also allowed (and probably preferred) to directly supply the IOProxy
@@ -291,32 +344,36 @@ information via calls to `ImageInput::open()`, `create()`, and
 `set_ioproxy()`, `ImageOutput::create()` and `set_ioproxy()`, and
 `ImageBuf::ImageBuf()`, `reset()`, and `set_write_ioproxy()`.
 
-
-
-Photographs or scanned images
-=============================
+## Photographs or scanned images
 
 The following metadata items are specific to photos or captured images.
 
+```{eval-rst}
 .. option:: "Make" : string
 
     For captured or scanned image, the make of the camera or scanner.
+```
 
+```{eval-rst}
 .. option:: "Model" : string
 
     For captured or scanned image, the model of the camera or scanner.
+```
 
+```{eval-rst}
 .. option:: "ExposureTime" : float
 
     The exposure time (in seconds) of the captured image.
+```
 
+```{eval-rst}
 .. option:: "FNumber" : float
 
     The f/stop of the camera when it captured the image.
 
+```
 
-Thumbnails / postage stamps / preview images
-============================================
+## Thumbnails / postage stamps / preview images
 
 Some image file formats allow for storing a `thumbnail` -- a lower-resolution
 image suitable for an icon or other small preview. These are retrievable
@@ -324,27 +381,32 @@ separately via `ImageInput::get_thumbnail()`, `ImageBuf::thumbnail()`, or
 `ImageCache::get_thumbnail()`. In addition, if a thumbnail is available,
 the `ImageSpec` should also contain the following metadata:
 
-
+```{eval-rst}
 .. option:: "thumbnail_width" : int
 
     The thumbnail width, in pixels.
+```
 
+```{eval-rst}
 .. option:: "thumbnail_height" : int
 
     The thumbnail height, in pixels.
+```
 
+```{eval-rst}
 .. option:: "thumbnail_nchannels" : int
 
     The number of color channels in the thumbnail image.
 
 
+```
 
-Texture Information
-===================
+## Texture Information
 
 Several standard metadata are very helpful for images that are intended
 to be used as textures (especially for OpenImageIO's TextureSystem).
 
+```{eval-rst}
 .. option:: "textureformat" : string
 
     The kind of texture that this image is intended to be.  We suggest the
@@ -359,7 +421,9 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
     LatLong Environment     Latitude-longitude (rectangular) environment map
     CubeFace Environment    Cube-face environment map
     =====================   ================================================
+```
 
+```{eval-rst}
 .. option:: "wrapmodes" : string
 
     Give the intended texture *wrap mode* indicating what happens with
@@ -369,39 +433,51 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
     a comma.  For example, `black` means black wrap in both directions,
     whereas `clamp,periodic` means to clamp in :math:`u` and be periodic in
     :math:`v`.
+```
 
+```{eval-rst}
 .. option:: "fovcot" : float
 
     The cotangent (:math:`x/y`) of the field of view of the original image
     (which may not be the same as the aspect ratio of the pixels of the
     texture, which may have been resized).
+```
 
+```{eval-rst}
 .. option:: "worldtocamera" : matrix44
 
     For shadow maps or rendered images this item (of type
     `TypeDesc::PT_MATRIX`) is the world-to-camera matrix describing the
     camera position.
+```
 
+```{eval-rst}
 .. option:: "worldtoscreen" : matrix44
 
     For shadow maps or rendered images this item (of type
     `TypeDesc::PT_MATRIX`) is the world-to-screen matrix describing the full
     projection of the 3D view onto a :math:`[-1...1] \times [-1...1]` 2D
     domain.
+```
 
+```{eval-rst}
 .. option:: "worldtoNDC" : matrix44
 
     For shadow maps or rendered images this item (of type
     `TypeDesc::PT_MATRIX`) is the world-to-NDC matrix describing the full
     projection of the 3D view onto a :math:`[0...1] \times [0...1]` 2D
     domain.
+```
 
+```{eval-rst}
 .. option:: "oiio:updirection" : string
 
     For environment maps, indicates which direction is "up" (valid values
     are `y` or `z`), to disambiguate conventions for environment map
     orientation.
+```
 
+```{eval-rst}
 .. option:: "oiio:sampleborder" : int
 
     If not present or 0 (the default), the conversion from pixel integer
@@ -411,19 +487,25 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
     and nonzero, the first and last row/column of pixels lie exactly at the
     :math:`s` or :math:`t = 0` or :math:`1` boundaries, i.e.,
     :math:`s = i/(\mathit{xres}-1)` and :math:`t = j/(\mathit{yres}-1)`.
+```
 
+```{eval-rst}
 .. option:: "oiio:ConstantColor" : string
 
     If present, is a hint that the texture has the same value in all pixels,
     and the metadata value is a string containing the channel values as a
     comma-separated list (no spaces, for example: `0.73,0.9,0.11,1.0`).
+```
 
+```{eval-rst}
 .. option:: "oiio:AverageColor" : string
 
     If present, is a hint giving the *average* value of all pixels in the
     texture, as a string containing a comma-separated list of the channel
     values (no spaces, for example: `0.73,0.9,0.11,1.0`).
+```
 
+```{eval-rst}
 .. option:: "oiio:SHA-1" : string
 
     If present, is a 40-byte SHA-1 hash of the input image (possibly salted
@@ -434,37 +516,33 @@ to be used as textures (especially for OpenImageIO's TextureSystem).
     be rendering movies for centuries before finding a single match).
 
 
+```
 
-.. _sec-metadata-exif:
+(sec-metadata-exif)=
 
-Exif metadata
-=============
+## Exif metadata
 
-..
-    % FIXME -- unsupported/undocumented: ExifVersion, FlashpixVersion,
-    % ComponentsConfiguration, MakerNote, UserComment, RelatedSoundFile,
-    % OECF, SubjectArea, SpatialFrequencyResponse, 
-    % CFAPattern, DeviceSettingDescription
-    %
-    % SubjectLocation -- unsupported, but we could do it
+% % FIXME -- unsupported/undocumented: ExifVersion, FlashpixVersion,
+% % ComponentsConfiguration, MakerNote, UserComment, RelatedSoundFile,
+% % OECF, SubjectArea, SpatialFrequencyResponse,
+% % CFAPattern, DeviceSettingDescription
+% %
+% % SubjectLocation -- unsupported, but we could do it
 
 The following Exif metadata tags correspond to items in the "standard"
 set of metadata.
 
+| Exif tag     | OpenImageIO metadata convention  |
+| ------------ | -------------------------------- |
+| ColorSpace   | (reflected in "oiio:ColorSpace") |
+| ExposureTime | `ExposureTime`                   |
+| FNumber      | `FNumber`                        |
 
-==============  ==================================================
-Exif tag        OpenImageIO metadata convention
-==============  ==================================================
-ColorSpace      (reflected in "oiio:ColorSpace")
-ExposureTime    `ExposureTime`
-FNumber         `FNumber`
-==============  ==================================================
-
-
-The other remaining Exif metadata tags all include the ``Exif:`` prefix
+The other remaining Exif metadata tags all include the `Exif:` prefix
 to keep it from clashing with other names that may be used for other
 purposes.
 
+```{eval-rst}
 .. option:: "Exif:ExposureProgram" : int
 
     The exposure program used to set exposure when the picture was taken:
@@ -480,16 +558,22 @@ purposes.
      7   Portrait mode (closeup photo with background out of focus)
      8   Landscape mode (background in focus)
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:SpectralSensitivity" : string
 
     The camera's spectral sensitivity, using the ASTM conventions.
+```
 
+```{eval-rst}
 .. option:: "Exif:ISOSpeedRatings" : int
 
     The ISO speed and ISO latitude of the camera as specified in ISO 12232.
 
+```
 
+```{eval-rst}
 .. option:: "Exif:DateTimeOriginal" : string
             "Exif:DateTimeDigitized" : string
 
@@ -502,35 +586,51 @@ purposes.
     (`Exif:DateTimeOriginal`), which was scanned to a digital image in 2010
     (`Exif:DateTimeDigitized`), and had color corrections or other
     alterations performed in 2015 (`DateTime`).
+```
 
+```{eval-rst}
 .. option:: "Exif:CompressedBitsPerPixel" : float
 
     The compression mode used, measured in compressed bits per pixel.
+```
 
+```{eval-rst}
 .. option:: "Exif:ShutterSpeedValue" : float
 
     Shutter speed, in APEX units: :math:`-\log_2(\mathit{exposure time})`
+```
 
+```{eval-rst}
 .. option:: "Exif:ApertureValue" : float
 
     Aperture, in APEX units: :math:`2 \log_2 (\mathit{fnumber})`
+```
 
+```{eval-rst}
 .. option:: "Exif:BrightnessValue" : float
 
     Brightness value, assumed to be in the range of :math:`-99.99` -- :math:`99.99`.
+```
 
+```{eval-rst}
 .. option:: "Exif:ExposureBiasValue" : float
 
     Exposure bias, assumed to be in the range of :math:`-99.99` -- :math:`99.99`.
+```
 
+```{eval-rst}
 .. option:: "Exif:MaxApertureValue" : float
 
     Smallest F number of the lens, in APEX units: :math:`2 \log_2 (\mathit{fnumber})`
+```
 
+```{eval-rst}
 .. option:: "Exif:SubjectDistance" : float
 
     Distance to the subject, in meters.
+```
 
+```{eval-rst}
 .. option:: "Exif:MeteringMode" : int
 
     The metering mode:
@@ -545,91 +645,115 @@ purposes.
     6    partial
     255  other
     ===  ===============================================
+```
 
+```{eval-rst}
 .. option:: "Exif:LightSource" : int
+```
 
 The kind of light source:
 
-    ===  ===============================================
-    0    unknown
-    1    daylight
-    2    tungsten (incandescent light)
-    4    flash
-    9    fine weather
-    10   cloudy weather
-    11   shade
-    12   daylight fluorescent (D 5700-7100K)
-    13   day white fluorescent (N 4600-5400K)
-    14   cool white fluorescent (W 3900 - 4500K)
-    15   white fluorescent (WW 3200 - 3700K)
-    17   standard light A
-    18   standard light B
-    19   standard light C
-    20   D55
-    21   D65
-    22   D75
-    23   D50
-    24   ISO studio tungsten
-    255  other light source
-    ===  ===============================================
+> ```{eval-rst}
+> ===  ===============================================
+> 0    unknown
+> 1    daylight
+> 2    tungsten (incandescent light)
+> 4    flash
+> 9    fine weather
+> 10   cloudy weather
+> 11   shade
+> 12   daylight fluorescent (D 5700-7100K)
+> 13   day white fluorescent (N 4600-5400K)
+> 14   cool white fluorescent (W 3900 - 4500K)
+> 15   white fluorescent (WW 3200 - 3700K)
+> 17   standard light A
+> 18   standard light B
+> 19   standard light C
+> 20   D55
+> 21   D65
+> 22   D75
+> 23   D50
+> 24   ISO studio tungsten
+> 255  other light source
+> ===  ===============================================
+> ```
 
-
+```{eval-rst}
 .. option:: "Exif:Flash" int}
+```
 
 A sum of:
 
-    ===  ==============================================================
-    1    if the flash fired
-    0    no strobe return detection function
-    4    strobe return light was not detected
-    6    strobe return light was detected
-    8    compulsory flash firing
-    16   compulsory flash suppression
-    24   auto-flash mode
-    32   no flash function (0 if flash function present)
-    64   red-eye reduction supported (0 if no red-eye reduction mode)
-    ===  ==============================================================
+> ```{eval-rst}
+> ===  ==============================================================
+> 1    if the flash fired
+> 0    no strobe return detection function
+> 4    strobe return light was not detected
+> 6    strobe return light was detected
+> 8    compulsory flash firing
+> 16   compulsory flash suppression
+> 24   auto-flash mode
+> 32   no flash function (0 if flash function present)
+> 64   red-eye reduction supported (0 if no red-eye reduction mode)
+> ===  ==============================================================
+> ```
 
-
+```{eval-rst}
 .. option:: "Exif:FocalLength" : float
 
     Actual focal length of the lens, in mm.
+```
 
+```{eval-rst}
 .. option:: "Exif:SecurityClassification" : string
 
     Security classification of the image: `C` = confidential, `R` =
     restricted, `S` = secret, `T` = top secret, `U` = unclassified.
+```
 
+```{eval-rst}
 .. option:: "Exif:ImageHistory" : string
 
     Image history.
+```
 
+```{eval-rst}
 .. option:: "Exif:SubsecTime" : string
 
     Fractions of a second to augment the `"DateTime"` (expressed as text of
     the digits to the right of the decimal).
+```
 
+```{eval-rst}
 .. option:: "Exif:SubsecTimeOriginal" : string
 
     Fractions of a second to augment the `Exif:DateTimeOriginal` (expressed
     as text of the digits to the right of the decimal).
+```
 
+```{eval-rst}
 .. option:: "Exif:SubsecTimeDigitized" : string
 
     Fractions of a second to augment the `Exif:DateTimeDigital` (expressed
     as text of the digits to the right of the decimal).
 
+```
 
+```{eval-rst}
 .. option:: "Exif:PixelXDimension" : int
             "Exif:PixelYDimension" : int
 
     The *x* and *y* dimensions of the valid pixel area.
+```
 
+```{eval-rst}
 .. option:: "Exif:FlashEnergy" : float
 
     Strobe energy when the image was captured, measured in Beam Candle Power
     Seconds (BCPS).
+```
 
+```{eval-rst}
 .. option:: "Exif:FocalPlaneXResolution" : float
             "Exif:FocalPlaneYResolution" : float
             "Exif:FocalPlaneResolutionUnit" : int
@@ -646,15 +770,17 @@ A sum of:
     5    :math:`\mu m`
     ===  ==============================================================
 
+```
 
-..
-    option: "Exif:SubjectLocation" : int} // FIXME: short[2]
+% option: "Exif:SubjectLocation" : int} // FIXME: short[2]
 
-
+```{eval-rst}
 .. option:: "Exif:ExposureIndex" : float
 
     The exposure index selected on the camera.
+```
 
+```{eval-rst}
 .. option:: "Exif:SensingMethod" : int
 
     The image sensor type on the camera:
@@ -666,9 +792,11 @@ A sum of:
     4    three-chip color area sensor
     5    color sequential area sensor
     7    trilinear sensor
-    8    color trilinear sensor 
+    8    color trilinear sensor
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:FileSource" : int
 
     The source type of the scanned image, if known:
@@ -678,17 +806,23 @@ A sum of:
     2    reflection print scanner
     3    digital camera
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:SceneType" : int
 
     Set to 1, if a directly-photographed image, otherwise it should not be
     present.
+```
 
+```{eval-rst}
 .. option:: "Exif:CustomRendered" : int
 
     Set to 0 for a normal process, 1 if some custom processing has been
     performed on the image data.
+```
 
+```{eval-rst}
 .. option:: "Exif:ExposureMode" : int
 
     The exposure mode:
@@ -698,19 +832,27 @@ A sum of:
      1   manual
      2   auto-bracket
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:WhiteBalance" : int
 
     Set to 0 for auto white balance, 1 for manual white balance.
+```
 
+```{eval-rst}
 .. option:: "Exif:DigitalZoomRatio" : float
 
     The digital zoom ratio used when the image was shot.
+```
 
+```{eval-rst}
 .. option:: "Exif:FocalLengthIn35mmFilm" : int
 
     The equivalent focal length of a 35mm camera, in mm.
+```
 
+```{eval-rst}
 .. option:: "Exif:SceneCaptureType" : int
 
     The type of scene that was shot:
@@ -721,7 +863,9 @@ A sum of:
      2   portrait
      3   night scene
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:GainControl" : float
 
     The degree of overall gain adjustment:
@@ -733,7 +877,9 @@ A sum of:
      3   low gain down
      4   high gain down
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:Contrast" : int
 
     The direction of contrast processing applied by the camera:
@@ -743,7 +889,9 @@ A sum of:
      1   soft
      2   hard
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:Saturation" : int
 
     The direction of saturation processing applied by the camera:
@@ -753,7 +901,9 @@ A sum of:
      1   low saturation
      2   high saturation
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:Sharpness" : int
 
     The direction of sharpness processing applied by the camera:
@@ -763,7 +913,9 @@ A sum of:
      1   soft
      2   hard
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:SubjectDistanceRange" : int
 
     The distance to the subject:
@@ -774,43 +926,61 @@ A sum of:
      2   close
      3   distant
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:ImageUniqueID" : string
 
     A unique identifier for the image, as 16 ASCII hexadecimal digits
     representing a 128-bit number.
+```
 
+```{eval-rst}
 .. option:: "Exif:ImageTitle" : string
 
     Title of the image.
+```
 
+```{eval-rst}
 .. option:: "Exif:Photographer" : string
 
     The name of the photographer. This may be different from the "Artist"
     field.
+```
 
+```{eval-rst}
 .. option:: "Exif:ImageEdtor" : string
 
     The name of the main person who edited the image.
+```
 
+```{eval-rst}
 .. option:: "Exif:CameraFirmware" : string
 
     The name and version of the firmware of the camera that captured the image.
+```
 
+```{eval-rst}
 .. option:: "Exif:RAWDevelopingSoftware" : string
 
     The name and version of the software that developed the RAW image.
+```
 
+```{eval-rst}
 .. option:: "Exif:ImageEditingSoftware" : string
 
     The name and version of any image editing software that was used to
     process or edit the image.
+```
 
+```{eval-rst}
 .. option:: "Exif:MetadataEditingSoftware" : string
 
     The name and version of any image editing software that was used to
     edit the image metadata but not the pixels.
+```
 
+```{eval-rst}
 .. option:: "Exif:CompositeImage" : int
 
     Indicates whether the recorded image is a composite image (generated
@@ -822,168 +992,233 @@ A sum of:
      2   general composite image
      3   composite image captured when shooting
     ===  ==============================================================
+```
 
+```{eval-rst}
 .. option:: "Exif:SourceImageNumberOfCompositeImage" : ushort[2]
 
     If a composite image, the first value is the number of source images
     captured (at least 2) and the second value is the number of those
     source images ultimately used in the comopsite image.
+```
 
+```{eval-rst}
 .. option:: "Exif:SourceImageExposureTimesOfCompositeImage"
 
     This is currently unsupported by OpenImageIO.
 
 
+```
 
-GPS Exif metadata
-=================
+## GPS Exif metadata
 
 The following GPS-related Exif metadata tags correspond to items in the
 "standard" set of metadata.
 
+```{eval-rst}
 .. option:: "GPS:LatitudeRef" : string
 
     Whether the `GPS:Latitude` tag refers to north or south: `N` or `S`.
+```
 
+```{eval-rst}
 .. option:: "GPS:Latitude" : float[3]
 
     The degrees, minutes, and seconds of latitude (see also
     `GPS:LatitudeRef`).
+```
 
+```{eval-rst}
 .. option:: "GPS:LongitudeRef" : string
 
     Whether the `GPS:Longitude` tag refers to east or west: `E` or a `W`.
+```
 
+```{eval-rst}
 .. option:: "GPS:Longitude" : float[3]
 
     The degrees, minutes, and seconds of longitude (see also
     `GPS:LongitudeRef`).
+```
 
+```{eval-rst}
 .. option:: "GPS:AltitudeRef" : string
 
     A value of 0 indicates that the altitude is above sea level, 1 indicates
     below sea level.
+```
 
+```{eval-rst}
 .. option:: "GPS:Altitude" : float
 
     Absolute value of the altitude, in meters, relative to sea level (see
     `GPS:AltitudeRef` for whether it's above or below sea level).
+```
 
+```{eval-rst}
 .. option:: "GPS:TimeStamp" : float[3]
 
     Gives the hours, minutes, and seconds, in UTC.
+```
 
+```{eval-rst}
 .. option:: "GPS:Satellites" : string
 
     Information about what satellites were visible.
+```
 
+```{eval-rst}
 .. option:: "GPS:Status" : string
 
     `A` indicates a measurement in progress, `V` indicates
     measurement interoperability.
+```
 
+```{eval-rst}
 .. option:: "GPS:MeasureMode" : string
 
     `2` indicates a 2D measurement, `3` indicates a 3D measurement.
+```
 
+```{eval-rst}
 .. option:: "GPS:DOP" : float
 
     Data degree of precision.
+```
 
+```{eval-rst}
 .. option:: "GPS:SpeedRef" : string
 
     Indicates the units of the related `GPS:Speed` tag: `K` for km/h, `M`
     for miles/h, `N` for knots.
+```
 
+```{eval-rst}
 .. option:: "GPS:Speed" : float
 
     Speed of the GPS receiver (see `GPS:SpeedRef` for the units).
+```
 
+```{eval-rst}
 .. option:: "GPS:TrackRef" : string
 
     Describes the meaning of the `GPS:Track` field: `T` for true
     direction, `M` for magnetic direction.
+```
 
+```{eval-rst}
 .. option:: "GPS:Track" : float
 
     Direction of the GPS receiver movement (from 0--359.99).  The
     related `GPS:TrackRef` indicate whether it's true or magnetic.
+```
 
+```{eval-rst}
 .. option:: "GPS:ImgDirectionRef" : string
 
     Describes the meaning of the `GPS:ImgDirection` field: `T` for true
     direction, `M` for magnetic direction.
+```
 
+```{eval-rst}
 .. option:: "GPS:ImgDirection" : float
 
     Direction of the image when captured (from 0--359.99).  The
     related `GPS:ImgDirectionRef` indicate whether it's true or magnetic.
+```
 
+```{eval-rst}
 .. option:: "GPS:MapDatum" : string
 
     The geodetic survey data used by the GPS receiver.
+```
 
+```{eval-rst}
 .. option:: "GPS:DestLatitudeRef" : string
 
     Whether the `GPS:DestLatitude` tag refers to north or south: `N` or `S`.
+```
 
+```{eval-rst}
 .. option:: "GPS:DestLatitude" : float[3]
 
     The degrees, minutes, and seconds of latitude of the destination (see
     also `GPS:DestLatitudeRef`).
+```
 
+```{eval-rst}
 .. option:: "GPS:DestLongitudeRef" : string
 
     Whether the `GPS:DestLongitude` tag refers to east or west: `E` or `W`.
+```
 
+```{eval-rst}
 .. option:: "GPS:DestLongitude" : float[3]
 
     The degrees, minutes, and seconds of longitude of the destination (see
     also `GPS:DestLongitudeRef`).
+```
 
+```{eval-rst}
 .. option:: "GPS:DestBearingRef" : string
 
     Describes the meaning of the `GPS:DestBearing` field: `T` for true
     direction, `M` for magnetic direction.
+```
 
+```{eval-rst}
 .. option:: "GPS:DestBearing" : float
 
     Bearing to the destination point (from 0--359.99).  The
     related `GPS:DestBearingRef` indicate whether it's true or magnetic.
+```
 
+```{eval-rst}
 .. option:: "GPS:DestDistanceRef" : string
 
     Indicates the units of the related `GPS:DestDistance` tag: `K` for
     km, `M` for miles, `N` for knots.
+```
 
+```{eval-rst}
 .. option:: "GPS:DestDistance" : float
 
     Distance to the destination (see `GPS:DestDistanceRef` for the units).
+```
 
+```{eval-rst}
 .. option:: "GPS:ProcessingMethod" : string
 
     Processing method information.
+```
 
+```{eval-rst}
 .. option:: "GPS:AreaInformation" : string
 
     Name of the GPS area.
+```
 
+```{eval-rst}
 .. option:: "GPS:DateStamp" : string
 
     Date according to the GPS device, in format `YYYY:MM:DD`.
+```
 
+```{eval-rst}
 .. option:: "GPS:Differential" : int
 
     If 1, indicates that differential correction was applied.
+```
 
+```{eval-rst}
 .. option:: "GPS:HPositioningError" : float
 
     Positioning error.
 
 
+```
 
-IPTC metadata
-=============
+## IPTC metadata
 
 The IPTC (International Press Telecommunications Council) publishes
 conventions for storing image metadata, and this standard is growing in
@@ -993,88 +1228,127 @@ captions and keywords.
 IPTC metadata fields should use the following names, prefixed with `IPTC:` to
 avoid conflicts with other plugins or standards.
 
+```{eval-rst}
 .. option:: "IPTC:ObjecTypeReference" : string
 
     Object type reference.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ObjectAttributeReference" : string
 
     Object attribute reference.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ObjectName" : string
 
     The name of the object in the picture.
+```
 
+```{eval-rst}
 .. option:: "IPTC:EditStatus" : string
 
     Edit status.
+```
 
+```{eval-rst}
 .. option:: "IPTC:SubjectReference" : string
 
     Subject reference.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Category" : string
 
     Category.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Keywords" : string
 
     Semicolon-separated keywords describing the contents of the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ContentLocationCode" : string
 
     Code for content location.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ContentLocationName" : string
 
     Name of content location.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ReleaseDate" : string
             "IPTC:ReleaseTime" : string
 
     Release date and time.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ExpirationDate" : string
             "IPTC:ExpirationTime" : string
 
     Expiration date and time.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ExposureTime" : string
 
     The exposure time (in seconds) of the captured image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Instructions" : string
 
     Special instructions for handling the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ReferenceService" : string
             "IPTC:ReferenceDate" : string
             "IPTC:ReferenceNumber" : string
 
     Reference date, service, and number.
+```
 
+```{eval-rst}
 .. option:: "IPTC:DateCreated" : string
             "IPTC:TimeCreated" : string
 
     Date and time that the image was created.
+```
 
+```{eval-rst}
 .. option:: "IPTC:DigitalCreationDate" : string
             "IPTC:DigitalCreationTime" : string
 
     Date and time that the image was digitized.
+```
 
+```{eval-rst}
 .. option:: "IPTC:ProgramVersion" : string
 
     The version number of the creation software.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Creator" : string
 
     The artist, creator, or owner of the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:AuthorsPosition" : string
 
     The job title or position of the creator of the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:City" : string
             "IPTC:Sublocation" : string
             "IPTC:State" : string
@@ -1083,37 +1357,53 @@ avoid conflicts with other plugins or standards.
 
     The city, sublocation within the city, state, country, and country code
     of the location of the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Headline" : string
 
     Any headline that is meant to accompany the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Provider" : string
 
     The provider of the image, or credit line.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Source" : string
 
     The source of the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:CopyrightNotice" : string
 
     Any copyright notice for the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Contact" : string
 
     The contact information for the image (possibly including name, address,
     email, etc.).
+```
 
+```{eval-rst}
 .. option:: "IPTC:Caption" : string
 
     A caption for the image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:CaptionWriter" : string
 
     The name of the person who wrote the caption or description of the
     image.
+```
 
+```{eval-rst}
 .. option:: "IPTC:JobID" : string
             "IPTC:MasterDocumentID" : string
             "IPTC:ShortDocumentID" : string
@@ -1121,40 +1411,48 @@ avoid conflicts with other plugins or standards.
             "IPTC:OwnerID" : string
 
     Various identification tags.
+```
 
+```{eval-rst}
 .. option:: "IPTC:Prefs" : string
             "IPTC:ClassifyState" : string
             "IPTC:SimilarityIndex" : string
 
     Who knows what the heck these are?
+```
 
+```{eval-rst}
 .. option:: "IPTC:DocumentNotes" : string
 
     Notes about the image or document.
+```
 
+```{eval-rst}
 .. option:: "IPTC:DocumentHistory" : string
 
     The history of the image or document.
 
+```
 
 References for more information on IPTC metadata:
 
-* https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata
-* https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#iptc-core-schema-1-5-specifications
+- <https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata>
+- <https://www.iptc.org/std/photometadata/specification/IPTC-PhotoMetadata#iptc-core-schema-1-5-specifications>
   This is the one where you can find the length limits
-* ExifTool's documentation about IPTC tags (caveat: not a definitive
+- ExifTool's documentation about IPTC tags (caveat: not a definitive
   reference, could be outdated or incorrect):
-  https://exiftool.org/TagNames/IPTC.html
+  <https://exiftool.org/TagNames/IPTC.html>
 
+## SMPTE metadata
 
-SMPTE metadata
-==============
-
+```{eval-rst}
 .. option:: "smpte:TimeCode" : int[2]
 
     SMPTE time code, encoded as an array of 2 32-bit integers (as a
     `TypeDesc`, it will be tagged with vecsemantics `TIMECODE`).
+```
 
+```{eval-rst}
 .. option:: "smpte:KeyCode" : int[7]
 
     SMPTE key code, encoded as an array of 7 32-bit integers (as a
@@ -1162,9 +1460,9 @@ SMPTE metadata
 
 
 
+```
 
-Extension conventions
-=====================
+## Extension conventions
 
 To avoid conflicts with other plugins, or with any additional standard
 metadata names that may be added in future versions of OpenImageIO, it is
