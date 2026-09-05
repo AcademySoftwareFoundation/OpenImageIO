@@ -1,18 +1,13 @@
-..
-  Copyright Contributors to the OpenImageIO project.
-  SPDX-License-Identifier: CC-BY-4.0
+% Copyright Contributors to the OpenImageIO project.
+% SPDX-License-Identifier: CC-BY-4.0
 
+(chap-maketx)=
 
-.. _chap-maketx:
+# Making Tiled MIP-Map Texture Files With `maketx` or `oiiotool`
 
-Making Tiled MIP-Map Texture Files With `maketx` or `oiiotool`
-##############################################################
+## Overview
 
-
-Overview
-========
-
-The TextureSystem (Chapter :ref:`chap-texturesystem`) will exhibit much
+The TextureSystem (Chapter {ref}`chap-texturesystem`) will exhibit much
 higher performance if the image files it uses as textures are tiled (versus
 scanline) orientation, have multiple subimages at different resolutions
 (MIP-mapped), and include a variety of header or metadata fields
@@ -23,76 +18,87 @@ additional step, it will be drastically less efficient in terms of memory,
 disk or network I/O, and time.
 
 This can be accomplished programmatically using the ImageBufAlgo
-`make_texture()` function (see Section :ref:`sec-iba-importexport` for C++
-and Section :ref:`sec-iba-py-importexport` for Python).
+`make_texture()` function (see Section {ref}`sec-iba-importexport` for C++
+and Section {ref}`sec-iba-py-importexport` for Python).
 
 OpenImageIO includes two command-line utilities capable of converting
-ordinary images into texture files: :program:`maketx` and
-:program:`oiiotool`. [#]_
+ordinary images into texture files: {program}`maketx` and
+{program}`oiiotool`. [^1]
 
-.. [#] Why are there two programs? Historical artifact -- :program:`maketx`
-       existed first, and much later :program:`oiiotool` was extended to be
-       capable of directly writing texture files. If you are simply
-       converting an image into a texture, :program:`maketx` is more
-       straightforward and foolproof, in that you can't accidentally forget
-       to turn it into a texture, as you might do with and much later
-       :program:`oiiotool` was extended to be capable of directly writing
-       texture files.
+[^1]: Why are there two programs? Historical artifact -- {program}`maketx`
+    existed first, and much later {program}`oiiotool` was extended to be
+    capable of directly writing texture files. If you are simply
+    converting an image into a texture, {program}`maketx` is more
+    straightforward and foolproof, in that you can't accidentally forget
+    to turn it into a texture, as you might do with and much later
+    {program}`oiiotool` was extended to be capable of directly writing
+    texture files.
 
+% sec-maketx:
 
+## `maketx`
 
-.. sec-maketx:
+The {program}`maketx` program will convert ordinary images to efficient
+textures. The {program}`maketx` utility is invoked as follows:
 
-`maketx`
-========
-
-The :program:`maketx` program will convert ordinary images to efficient
-textures. The :program:`maketx` utility is invoked as follows:
-
-    ``maketx`` [*options*] *input*... ``-o`` *output*
-
+> `maketx` \[*options*\] *input*... `-o` *output*
 
 Where *input* and *output* name the input image and desired output filename.
 The input files may be of any image format recognized by OpenImageIO (i.e.,
-for which ImageInput plugins are available).  The file format of the output
+for which ImageInput plugins are available). The file format of the output
 image will be inferred from the file extension of the output filename (e.g.,
 `foo.tif` will write a TIFF file).
 
 Command-line arguments are:
 
+```{eval-rst}
 .. option:: --help
 
     Prints usage information to the terminal.
+```
 
+```{eval-rst}
 .. option:: --version
 
     Prints the version designation of the OIIO library.
+```
 
+```{eval-rst}
 .. option:: -v
 
     Verbose status messages, including runtime statistics and timing.
+```
 
+```{eval-rst}
 .. option:: --runstats
 
     Print runtime statistics and timing.
+```
 
+```{eval-rst}
 .. option:: -o outputname
 
     Sets the name of the output texture.
+```
 
+```{eval-rst}
 .. option:: --threads <n>
 
     Use *n* execution threads if it helps to speed up image operations. The
     default (also if n=0) is to use as many threads as there are cores
     present in the hardware.
+```
 
+```{eval-rst}
 .. option:: --format <formatname>
 
     Specifies the image format of the output file (e.g., "tiff", "OpenEXR",
     etc.).  If `--format` is not used, :program:`maketx` will guess based on
     the file extension of the output filename; if it is not a recognized
     format extension, TIFF will be used by default.
+```
 
+```{eval-rst}
 .. option:: -d <datatype>
 
     Attempt to sets the output pixel data type to one of: `UINT8`, `sint8`,
@@ -104,32 +110,40 @@ Command-line arguments are:
     In either case, the output file format itself (implied by the file
     extension of the output filename) may trump the request if the file
     format simply does not support the requested data type.
+```
 
+```{eval-rst}
 .. option:: --tile <x> <y>
 
     Specifies the tile size of the output texture.  If not specified,
     :program:`maketx` will make 64 x 64 tiles.
+```
 
+```{eval-rst}
 .. option:: --separate
 
     Forces "separate" (e.g., RRR...GGG...BBB) packing of channels in the
     output file.  Without this option specified, "contiguous" (e.g.,
     RGBRGBRGB...) packing of channels will be used for those file formats
     that support it.
+```
 
+```{eval-rst}
 .. option:: --compression <method>
             --compression <method:quality>
 
     Sets the compression method, and optionally a quality setting, for the
     output image (the default is to try to use "zip" compression, if it is
     available).
+```
 
+```{eval-rst}
 .. option:: -u
 
     Ordinarily, textures are created unconditionally (which could take
     several seconds for large input files if read over a network) and will
     be stamped with the current time.
-    
+
     The `-u` option enables *update mode*: if the output file already
     exists, and has the same time stamp as the input file, and the
     command-lie arguments that created it are identical to the current ones,
@@ -137,7 +151,9 @@ Command-line arguments are:
     file does not exist, or has a different time stamp than the input file,
     or was created using different command line arguments, then the texture
     will be created and given the time stamp of the input file.
+```
 
+```{eval-rst}
 .. option:: --wrap <wrapmode>
             --swrap <wrapmode>, --twrap <wrapmode>
 
@@ -148,11 +164,13 @@ Command-line arguments are:
     directions simultaneously, while the `--swrap` and `--twrap` may be used
     to set them individually in the *s* (horizontal) and *t* (vertical)
     diretions.
-    
+
     Although this sets the default wrap mode for a texture, note that the
     wrap mode may have an override specified in the texture lookup at
     runtime.
+```
 
+```{eval-rst}
 .. option:: --resize
 
     Causes the highest-resolution level of the MIP-map to be a power-of-two
@@ -161,13 +179,17 @@ Command-line arguments are:
     texture system, but some users may require it in order to create MIP-map
     images that are compatible with both OIIO and other texturing systems
     that require power-of-2 textures.
+```
 
+```{eval-rst}
 .. option:: --keepaspect
 
    Sets the `PixelAspectRatio` metadata to the input image aspect ratio,
    allowing compatible viewers to display the output in the original aspect
    ratio even if `--resize` is used.
+```
 
+```{eval-rst}
 .. option:: --filter <name>
 
     By default, the resizing step that generates successive MIP levels uses
@@ -176,20 +198,22 @@ Command-line arguments are:
     averages groups of 4 adjacent pixels).  This is fast, but for source
     images with high frequency content, can result in aliasing or other
     artifacts in the lower-resolution MIP levels.
-    
+
     The `--filter` option selects a high-quality filter to use when resizing
     to generate successive MIP levels.  Choices include `lanczos3` (our best
     recommendation for highest-quality filtering, a 3-lobe Lanczos filter),
     `box`, `triangle`, `catrom`, `blackman-harris`, `gaussian`, `mitchell`,
     `bspline`, `cubic`, `keys`, `simon`, `rifman`, `radial-lanczos3`,
     `disk`, `sinc`.
-    
+
     If you select a filter with negative lobes (including `lanczos3`,
     `sinc`, `lanczos3`, `keys`, `simon`, `rifman`, or `catrom`), and your
     source image is an HDR image with very high contrast regions that
     include pixels with values >1, you may also wish to use the
     `--rangecompress` option to avoid ringing artifacts.
+```
 
+```{eval-rst}
 .. option:: --hicomp
 
     Perform highlight compensation.  When HDR input data with high-contrast
@@ -203,7 +227,9 @@ Command-line arguments are:
     pixel values to be non-negative.  This can result in some loss of
     energy, but often this is a preferable alternative to ringing artifacts
     in your upper MIP levels.
+```
 
+```{eval-rst}
 .. option:: --sharpen <contrast>
 
     EXPERIMENTAL: USE AT YOUR OWN RISK!
@@ -219,33 +245,43 @@ Command-line arguments are:
     variant of unsharp masking will be used that employs a median filter to
     separate out the low-frequencies, this may tend to help emphasize small
     features while not over-emphasizing large edges.
+```
 
+```{eval-rst}
 .. option:: --nomipmap
 
     Causes the output to *not* be MIP-mapped, i.e., only will have the
     highest-resolution level.
+```
 
+```{eval-rst}
 .. option:: --nchannels <n>
 
     Sets the number of output channels.  If *n* is less than the number of
     channels in the input image, the extra channels will simply be ignored.
     If *n* is greater than the number of channels in the input image, the
     additional channels will be filled with 0 values.
+```
 
+```{eval-rst}
 .. option:: --chnames a,b,...
 
     Renames the channels of the output image.  All the channel names are
     concatenated together, separated by commas.  A "blank" entry will cause
     the channel to retain its previous value (for example, `--chnames ,,,A`
     will rename channel 3 to be "A" and leave channels 0-2 as they were.
+```
 
+```{eval-rst}
 .. option:: --checknan
 
     Checks every pixel of the input image to ensure that no `NaN` or `Inf`
     values are present.  If such non-finite pixel values are found, an error
     message will be printed and `maketx` will terminate without writing the
     output image (returning an error code).
+```
 
+```{eval-rst}
 .. option:: --fixnan streategy
 
     Repairs any pixels in the input image that contained `NaN` or `Inf`
@@ -253,14 +289,18 @@ Command-line arguments are:
     *strategy* is `black`, nonfinite values will be replaced with 0.  If
     *strategy* is `box3`, nonfinite values will be replaced by the average
     of all the finite values within a 3x3 region surrounding the pixel.
+```
 
+```{eval-rst}
 .. option:: --fullpixels
 
     Resets the "full" (or "display") pixel range to be the "data" range.
     This is used to deal with input images that appear, in their headers, to
     be crop windows or overscanned images, but you want to treat them as
     full 0--1 range images over just their defined pixel data.
+```
 
+```{eval-rst}
 .. option:: --Mcamera <...16 floats...>
             --Mscreen <...16 floats...>
 
@@ -268,43 +308,53 @@ Command-line arguments are:
     respectively, by some renderers) in the texture file, overriding any
     such matrices that may be in the input image (and would ordinarily be
     copied to the output texture).
+```
 
+```{eval-rst}
 .. option:: --prman-metadata
 
     Causes metadata "PixarTextureFormat" to be set, which is useful if you
     intend to create an OpenEXR texture or environment map that can be used
     with PRMan as well as OIIO.
+```
 
+```{eval-rst}
 .. option:: --attrib <name> <value>
 
     Adds or replaces metadata with the given *name* to have the
     specified *value*.
-    
+
     It will try to infer the type of the metadata from the value: if the
     value contains only numerals (with optional leading minus sign), it will
     be saved as `int` metadata; if it also contains a decimal point, it
     will be saved as `float` metadata; otherwise, it will be saved as
     a `string` metadata.
-    
+
     For example, you could explicitly set the IPTC location metadata fields
     with::
 
         oiiotool --attrib "IPTC:City" "Berkeley" in.jpg out.jpg
 
+```
 
+```{eval-rst}
 .. option:: --sattrib <name> <value>
 
     Adds or replaces metadata with the given *name* to have the specified
     *value*, forcing it to be interpreted as a `string`. This is helpful if
     you want to set a `string` metadata to a value that the `--attrib`
     command would normally interpret as a number.
+```
 
+```{eval-rst}
 .. option:: --sansattrib
 
     When set, this edits the command line inserted in the "Software" and
     "ImageHistory" metadata to omit any verbose `--attrib` and `--sattrib`
     commands.
+```
 
+```{eval-rst}
 .. option:: --constant-color-detect
 
     Detects images in which all pixels are identical, and outputs the
@@ -314,14 +364,18 @@ Command-line arguments are:
     color, you could save a lot of disk space, I/O, and texture cache
     size. It also sets the `"ImageDescription"` to contain a special message
     of the form `ConstantColor=[r,g,...]`.
+```
 
+```{eval-rst}
 .. option:: --monochrome-detect
 
     Detects multi-channel images in which all color components are
     identical, and outputs the texture as a single-channel image instead.
     That is, it changes RGB images that are gray into single-channel gray
     scale images.
+```
 
+```{eval-rst}
 .. option:: --opaque-detect
 
     Detects images that have a designated alpha channel for which the alpha
@@ -330,7 +384,9 @@ Command-line arguments are:
     A=1 for all pixels will be output just as RGB.  The purpose is to save
     disk space, texture I/O bandwidth, and texturing time for those textures
     where alpha was present in the input, but clearly not necessary.
+```
 
+```{eval-rst}
 .. option:: --ignore-unassoc
 
     Ignore any header tags in the input images that indicate that the input
@@ -339,7 +395,9 @@ Command-line arguments are:
     them into associated alpha. This is also a good way to fix input images
     that really are associated alpha, but whose headers incorrectly indicate
     that they are unassociated alpha.
+```
 
+```{eval-rst}
 .. option:: --prman
 
     PRMan is will crash in strange ways if given textures that don't have
@@ -348,7 +406,7 @@ Command-line arguments are:
     OpenImageIO or PRMan, you should use the `--prman` option, which will
     set several options to make PRMan happy, overriding any contradictory
     settings on the command line or in the input texture.
-    
+
     Specifically, this option sets the tile size (to 64x64 for 8 bit, 64x32
     for 16 bit integer, and 32x32 for `float` or `half` images), uses
     "separate" planar configuration (`--separate`), and sets PRMan-specific
@@ -357,22 +415,26 @@ Command-line arguments are:
     uint16 textures), and in the case of TIFF files will omit the Exif
     directory block which will not be recognized by the older version of
     libtiff used by PRMan versions <= 26.
-    
+
     OpenImageIO will happily accept textures that conform to PRMan's
     expectations, but not vice versa.  But OpenImageIO's TextureSystem has
     better performance with textures that use :program:`maketx`'s default
     settings rather than these oddball choices.  You have been warned!
+```
 
+```{eval-rst}
 .. option:: --oiio
 
     This sets several options that we have determined are the optimal values
     for OpenImageIO's TextureSystem, overriding any contradictory settings
     on the command line or in the input texture.
-    
+
     Specifically, this is the equivalent to using
 
         `--separate --tile 64 64`
+```
 
+```{eval-rst}
 .. option:: --colorconvert <inspace> <outspace>
 
     Convert the color space of the input image from *inspace* to *tospace*.
@@ -380,13 +442,17 @@ Command-line arguments are:
     used for the color conversion.  If OCIO is not enabled (or cannot find a
     valid configuration, OIIO will at least be able to convert among linear,
     sRGB, and Rec709.
+```
 
+```{eval-rst}
 .. option:: --colorconfig <name>
 
     Explicitly specify a custom OpenColorIO configuration file. Without this,
     the default is to use the `$OCIO` environment variable as a guide for
     the location of the OpenColorIO configuration file.
+```
 
+```{eval-rst}
 .. option:: --unpremult
 
     When undergoing some color conversions, it is helpful to
@@ -394,7 +460,9 @@ Command-line arguments are:
     re-multiplying by alpha.  Caveat emptor -- if you don't know exactly
     when to use this, you probably shouldn't be using it at all.
 
+```
 
+```{eval-rst}
 .. option:: --mipimage <filename>
 
     Specifies the name of an image file to use as a custom MIP-map level,
@@ -406,19 +474,25 @@ Command-line arguments are:
     This will make a texture with the first MIP level taken from `256.tif`,
     the second level from `128.tif`, the third from `64.tif`, and then
     subsequent levels will be the usual downsizings of `64.tif`.
+```
 
+```{eval-rst}
 .. option:: --envlatl
 
     Creates a latitude-longitude environment map, rather than an ordinary
     texture map.
+```
 
+```{eval-rst}
 .. option:: --lightprobe
 
     Creates a latitude-longitude environment map, but in contrast to
     `--envlatl`, the original input image is assumed to be formatted as a
     *light probe* image. (See http://www.pauldebevec.com/Probes/ for
     examples and an explanation of the geometric layout.)
+```
 
+```{eval-rst}
 .. option:: --bumpslopes
 
     For a single channel input image representing height (that you would
@@ -455,7 +529,9 @@ Command-line arguments are:
     Christophe Hery, Michael Kass, and Junhi Ling. "Geometry into Shading."
     Technical Memo 14-04, Pixar Animation Studios, 2014.
     https://graphics.pixar.com/library/BumpRoughness
+```
 
+```{eval-rst}
 .. option:: --bumpformat <bformat>
 
     In conjunction with `--bumpslopes`, this option can specify the strategy
@@ -466,7 +542,9 @@ Command-line arguments are:
     value, "auto", indicates that it should be interpreted as a height map
     if and only if the R, G, B channel values are identical in all pixels,
     otherwise it will be interpreted as a 3-channel normal map.
+```
 
+```{eval-rst}
 .. option:: --uvslopes_scale <scalefactor>
 
    Used in conjunction with `--bumpslopes`, this computes derivatives for
@@ -476,39 +554,51 @@ Command-line arguments are:
    a suggested value is 256.
 
    (This option was added for OpenImageIO 2.3.)
+```
 
+```{eval-rst}
 .. option:: --slopefilter <filtername>
 
    Used in conjunction with `--bumpslopes`, this sets the filter for computing
    the slopes when `--bumpformat` is set to "height". The default value is
    "sobel". The option "centraldiff" matches the behavior of `txmake` and is
    less prone to ring-shaped artifacting.
+```
 
+```{eval-rst}
 .. option:: --bumpinverts
 
-   Used in conjunction with `--bumpslopes`, this inverts the computed slopes 
+   Used in conjunction with `--bumpslopes`, this inverts the computed slopes
    on the s/u/x direction.
+```
 
+```{eval-rst}
 .. option:: --bumpinvertt
 
-   Used in conjunction with `--bumpslopes`, this inverts the computed slopes 
+   Used in conjunction with `--bumpslopes`, this inverts the computed slopes
    on the t/u/y direction.
+```
 
+```{eval-rst}
 .. option:: --bumpscale <strength>
 
-   Used in conjunction with `--bumpslopes`, this scales the strength of the 
+   Used in conjunction with `--bumpslopes`, this scales the strength of the
    resulting bumpslopes map.
+```
 
+```{eval-rst}
 .. option:: --bumprange <brange>
 
-   Used in conjunction with `--bumpslopes`, this sets the convention used for 
-   normal map data when `--bumpformat` is set to "normal". When set to 
-   "centered", the normals data is assumed to exist on the range 
-   :math:`[-1,1]`. When set to "positive", the normals data is assumed to 
-   exist on the range :math:`[0,1]`. When set to "auto", the default value, 
+   Used in conjunction with `--bumpslopes`, this sets the convention used for
+   normal map data when `--bumpformat` is set to "normal". When set to
+   "centered", the normals data is assumed to exist on the range
+   :math:`[-1,1]`. When set to "positive", the normals data is assumed to
+   exist on the range :math:`[0,1]`. When set to "auto", the default value,
    the range is inferred based on whether or not negative values are present
    in the input image.
+```
 
+```{eval-rst}
 .. option:: --cdf
             --cdfsigma <SIGMA>
             --cdfbits <BITS>
@@ -523,12 +613,12 @@ Command-line arguments are:
    used to specify the CDF sigma value (defaulting to 1.0/6.0), and
    `--cdfbits` specifies the number of bits to use for the size of the CDF
    table (defaulting to 8, which means 256 bins).
-   
+
    References:
 
    * Histogram-Preserving Blending for Randomized Texture Tiling," JCGT 8(4),
      2019.
-   
+
    * Heitz/Neyret, "High-Performance By-Example Noise using a
      Histogram-Preserving Blending Operator," ACM SIGGRAPH / Eurographics
      Symposium on High-Performance Graphics 2018.)
@@ -536,7 +626,9 @@ Command-line arguments are:
    * Benedikt Bitterli https://benedikt-bitterli.me/histogram-tiling/
 
    These options were first added in OpenImageIO 2.3.10.
+```
 
+```{eval-rst}
 .. option:: --handed <value>
 
    Adds a "handed" metadata to the resulting texture, which reveals the
@@ -545,52 +637,52 @@ Command-line arguments are:
 
    This option was first added in OpenImageIO 2.4.0.2.
 
+```
 
-.. sec-oiiotooltex:
+% sec-oiiotooltex:
 
-`oiiotool`
-==========
+## `oiiotool`
 
-The :program:`oiiotool` utility (Chapter :ref:`chap-oiiotool`) is capable of
+The {program}`oiiotool` utility (Chapter {ref}`chap-oiiotool`) is capable of
 writing textures using the `-otex` option, lat-long environment maps using the
 `-oenv` option, and bump/normal maps that include normal distribution moments.
 Roughly speaking,
 
-    `maketx` [*maketx-options*] *input* `-o` *output*
-
-    `maketx -envlatl` [*maketx-options*] *input* `-o` *output*
-
-    `maketx -bumpslopes` [*maketx-options*] *input* `-o` *output*
+> `maketx` \[*maketx-options*\] *input* `-o` *output*
+>
+> `maketx -envlatl` \[*maketx-options*\] *input* `-o` *output*
+>
+> `maketx -bumpslopes` \[*maketx-options*\] *input* `-o` *output*
 
 are equivalent to, respectively,
 
-    `oiiotool` *input* [*oiiotool-options*] `-otex` *output*
-
-    `oiiotool` *input* [*oiiotool-options*] `-oenv` *output*
-
-    `oiiotool` *input* [*oiiotool-options*] `-obump` *output*
+> `oiiotool` *input* \[*oiiotool-options*\] `-otex` *output*
+>
+> `oiiotool` *input* \[*oiiotool-options*\] `-oenv` *output*
+>
+> `oiiotool` *input* \[*oiiotool-options*\] `-obump` *output*
 
 However, the notation for the various options are not identical between the
 two programs, as will be explained by the remainder of this section.
 
-The most important difference between :program:`oiiotool` and
-:program:`maketx` is that :program:`oiiotool` can do so much more than
+The most important difference between {program}`oiiotool` and
+{program}`maketx` is that {program}`oiiotool` can do so much more than
 convert an existing input image to a texture -- literally any image
-creation or manipulation you can do via :program:`oiiotool` may be output
+creation or manipulation you can do via {program}`oiiotool` may be output
 directly as a full texture file using `-otex` (or as a lat-long environment
 map using `-oenv`).
 
 Note that it is vitally important that you use one of the texture output
-commands (`-otex` or `-oenv`) when creating textures with :program:`oiiotool`
+commands (`-otex` or `-oenv`) when creating textures with {program}`oiiotool`
 --- if you inadvertently forget and use an ordinary `-o`, you will end
 up with an output image that is much less efficient to use as a texture.
 
-Command line arguments useful when creating textures
-----------------------------------------------------
+### Command line arguments useful when creating textures
 
-As with any use of :program:`oiiotool`, you may use the following to control the
+As with any use of {program}`oiiotool`, you may use the following to control the
 run generally:
 
+```{eval-rst}
 .. option:: --help
             -v
             --runstats
@@ -601,109 +693,122 @@ run generally:
     (including those from `-otex` and `-oenv`, as well as `-o`). Only brief
     descriptions are given below, please consult Chapter :ref:`oiiotool` for
     detailed explanations.
+```
 
+```{eval-rst}
 .. option:: -d <datatype>
 
     Specify the pixel data type (`UINT8`, `uint16`, `half`, `float`, etc.)
     if you wish to override the default of writing the same data type as the
     first input file read.
+```
 
+```{eval-rst}
 .. option:: --tile <x> <y>
 
     Explicitly override the tile size (though you are strongly urged to use
     the default, and not use this command).
+```
 
+```{eval-rst}
 .. option:: --compression <method>
 
     Explicitly override the default compression methods when writing the
     texture file.
+```
 
+```{eval-rst}
 .. option:: --ch <channellist>
 
     Shuffle, add, delete, or rename channels (see :ref:`sec-oiiotool-ch`).
+```
 
+```{eval-rst}
 .. option:: --chnames a,b,...
 
     Renames the channels of the output image.
+```
 
+```{eval-rst}
 .. option:: --fixnan <stretegy>
 
     Repairs any pixels in the input image that contained `NaN` or `Inf`
     values (if the *strategy* is `box3` or `black`), or to simply abort with
     an error message (if the *strategy* is `error`).
+```
 
+```{eval-rst}
 .. option:: --fullpixels
 
     Resets the "full" (or "display") pixel range to be the "data" range.
+```
 
+```{eval-rst}
 .. option:: --planarconfig separate
 
     Forces "separate" (e.g., RRR...GGG...BBB) packing of channels in the
     output texture.  This is almost always a bad choice, unless you know
     that the texture file must be readable by PRMan, in which case it is
     required.
+```
 
+```{eval-rst}
 .. option:: --attrib <name> <value>
 
     :program:`oiiotool`'s `--attrib` command may be used to set attributes
     in the metadata of the output texture.
+```
 
+```{eval-rst}
 .. option:: --attrib:type=matrix worldtocam <...16 comma-separated floats...>
             --attrib:type=matrix screentocam <...16 comma-separated floats...>
 
     Set/override the camera and screen matrices.
 
+```
 
-Optional arguments to `-otex`, `-oenv`, `-obump`
-------------------------------------------------
+### Optional arguments to `-otex`, `-oenv`, `-obump`
 
-As with many :program:`oiiotool` commands, the `-otex` and `-oenv` may
+As with many {program}`oiiotool` commands, the `-otex` and `-oenv` may
 have various optional arguments appended, in the form `:name=value`
-(see Section :ref:`sec-oiiotooloptionalargs`).
+(see Section {ref}`sec-oiiotooloptionalargs`).
 
 Optional arguments supported by `-otex` and `-oenv` include all the same
-options as `-o` (Section :ref:`sec-oiiotool-o`) and also the following
-(explanations are brief, please consult Section :ref:`sec-maketx` for more
-detailed explanations of each, for the corresponding :program:`maketx`
+options as `-o` (Section {ref}`sec-oiiotool-o`) and also the following
+(explanations are brief, please consult Section {ref}`sec-maketx` for more
+detailed explanations of each, for the corresponding {program}`maketx`
 option):
 
+| Appended Option           | `maketx` equivalent   |
+| ------------------------- | --------------------- |
+| `wrap=` *string*          | `--wrap`              |
+| `swrap=` *string*         | `--swrap`             |
+| `twrap=` *string*         | `--twrap`             |
+| `resize=1`                | `--resize`            |
+| `nomipmap=1`              | `--nomipmap`          |
+| `updatemode=1`            | `-u`                  |
+| `monochrome_detect=1`     | `--monochrome-detect` |
+| `opaque_detect=1`         | `--opaque-detect`     |
+| `unpremult=1`             | `--unpremult`         |
+| `incolorspace=` *name*    | `--incolorspace`      |
+| `outcolorspace=` *name*   | `--outcolorspace`     |
+| `hilightcomp=1`           | `--hicomp`            |
+| `sharpen=` *float*        | `--sharpen`           |
+| `filter=` *string*        | `--filter`            |
+| `bumpformat=` *string*    | `--bumpformat`        |
+| `uvslopes_scale=` *float* | `--uvslopes-scale`    |
+| `prman_metadata=1`        | `--prman`             |
+| `prman_options=1`         | `--prman-metadata`    |
 
-=========================   ============================================
-Appended Option             `maketx` equivalent
-=========================   ============================================
-`wrap=` *string*            `--wrap`
-`swrap=` *string*           `--swrap`
-`twrap=` *string*           `--twrap`
-`resize=1`                  `--resize`
-`nomipmap=1`                `--nomipmap`
-`updatemode=1`              `-u`
-`monochrome_detect=1`       `--monochrome-detect`
-`opaque_detect=1`           `--opaque-detect`
-`unpremult=1`               `--unpremult`
-`incolorspace=` *name*      `--incolorspace`
-`outcolorspace=` *name*     `--outcolorspace`
-`hilightcomp=1`             `--hicomp`
-`sharpen=` *float*          `--sharpen`
-`filter=` *string*          `--filter`
-`bumpformat=` *string*      `--bumpformat`
-`uvslopes_scale=` *float*   `--uvslopes-scale`
-`prman_metadata=1`          `--prman`
-`prman_options=1`           `--prman-metadata`
-=========================   ============================================
+### Examples
 
+```
+oiiotool in.tif -otex out.tx
 
-Examples
---------
+oiiotool in.jpg --colorconvert sRGB linear -d uint16 -otex out.tx
 
-.. code-block::
+oiiotool --pattern:checker 512x512 3 -d uint8 -otex:wrap=periodic checker.tx
 
-    oiiotool in.tif -otex out.tx
-    
-    oiiotool in.jpg --colorconvert sRGB linear -d uint16 -otex out.tx
-    
-    oiiotool --pattern:checker 512x512 3 -d uint8 -otex:wrap=periodic checker.tx
-    
-    oiiotool in.exr -otex:hilightcomp=1:sharpen=0.5 out.exr
-
-
+oiiotool in.exr -otex:hilightcomp=1:sharpen=0.5 out.exr
+```
 

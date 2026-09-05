@@ -1,204 +1,201 @@
-..
-  Copyright Contributors to the OpenImageIO project.
-  SPDX-License-Identifier: CC-BY-4.0
+---
+substitutions:
+  nbsp: |-
+    ```{eval-rst}
+    .. unicode:: U+00A0 .. NO-BREAK SPACE
+    ```
+  spc: '{{ nbsp }} {{ nbsp }} {{ nbsp }}'
+---
 
+% Copyright Contributors to the OpenImageIO project.
+% SPDX-License-Identifier: CC-BY-4.0
 
-.. _chap-oiiotool:
+(chap-oiiotool)=
 
-`oiiotool`: the OIIO Swiss Army Knife
-#####################################
+# `oiiotool`: the OIIO Swiss Army Knife
 
-.. highlight:: bash
+```{highlight} bash
+```
 
-.. |nbsp| unicode:: U+00A0 .. NO-BREAK SPACE
+## Overview
 
-.. |spc| replace:: |nbsp| |nbsp| |nbsp|
-
-
-
-Overview
-========
-
-
-The :program:`oiiotool` program will read images (from any file format for
+The {program}`oiiotool` program will read images (from any file format for
 which an ImageInput plugin can be found), perform various operations on
 them, and write images (in any format for which an ImageOutput plugin can be
 found).
 
-The :program:`oiiotool` utility is invoked as follows:
+The {program}`oiiotool` utility is invoked as follows:
 
-    `oiiotool` *args*
+> `oiiotool` *args*
 
-:program:`oiiotool` maintains an *image stack*, with the top image in the
-stack also called the *current image*.  The stack begins containing no
+{program}`oiiotool` maintains an *image stack*, with the top image in the
+stack also called the *current image*. The stack begins containing no
 images.
 
-:program:`oiiotool` arguments consist of image names, actions, and flags.
+{program}`oiiotool` arguments consist of image names, actions, and flags.
 
-* Image names: When an image name is encountered, that image is pushed on the
+- Image names: When an image name is encountered, that image is pushed on the
   stack and becomes the new *current image*.
-
-* Actions: Alter the current image (replacing it with the alteration), or in
+- Actions: Alter the current image (replacing it with the alteration), or in
   some cases will pull more than one image off the stack (such as the current
   image and the next item on the stack) and then push a new result image onto
   the stack.
+- Flags: A small number of arguments are non-positional -- the order doesn't
+  matter and their effect applies to the entire {program}`oiiotool` execution.
 
-* Flags: A small number of arguments are non-positional -- the order doesn't
-  matter and their effect applies to the entire :program:`oiiotool` execution.
+### Argument order matters!
 
-Argument order matters!
------------------------
-
-:program:`oiiotool` processes actions and inputs *in order*. Thus, the order
+{program}`oiiotool` processes actions and inputs *in order*. Thus, the order
 of operations on the command line is extremely important. For example,
 
-.. code-block::
+```
+oiiotool in.tif -resize 640x480 -o out.tif
+```
 
-    oiiotool in.tif -resize 640x480 -o out.tif
-
-has the effect of reading :file:`in.tif` (thus making it the *current
+has the effect of reading {file}`in.tif` (thus making it the *current
 image*), resizing it (taking the original off the stack, and placing the
 resized result back on the stack), and then writing the new current image to
-the file :file:`out.tif`.  Contrast that with the following subtly-incorrect
-command::
+the file {file}`out.tif`. Contrast that with the following subtly-incorrect
+command:
 
-    oiiotool in.tif -o out.tif -resize 640x480
+```
+oiiotool in.tif -o out.tif -resize 640x480
+```
 
-has the effect of reading :file:`in.tif` (thus making it the *current
-image*), saving the current image to the file :file:`out.tif` (note that it
-will be an exact copy of :file:`in.tif`), resizing the current image, and
-then... exiting. Thus, the resized image is never saved, and :file:`out.tif`
-will be an unaltered copy of :file:`in.tif`.
+has the effect of reading {file}`in.tif` (thus making it the *current
+image*), saving the current image to the file {file}`out.tif` (note that it
+will be an exact copy of {file}`in.tif`), resizing the current image, and
+then... exiting. Thus, the resized image is never saved, and {file}`out.tif`
+will be an unaltered copy of {file}`in.tif`.
 
 The exceptions to this are non-positional flags, which affect the entire
-:program:`oiiotool` command regardless of where they appear on the command
+{program}`oiiotool` command regardless of where they appear on the command
 line.
 
-Optional modifiers
------------------------
+### Optional modifiers
 
 Some arguments stand completely on their own (like `--flip`), others take one
-or more subsequent command line arguments (like `--resize` or `-o`)::
+or more subsequent command line arguments (like `--resize` or `-o`):
 
-    oiiotool foo.jpg --flip --resize 640x480 -o out.tif
-
+```
+oiiotool foo.jpg --flip --resize 640x480 -o out.tif
+```
 
 A few arguments take optional modifiers for options that are so rarely-used
 or confusing that they should not be required arguments. In these cases,
 they are appended to the command name, after a colon (`:`), and with a
-*name=value* format.  Multiple optional modifiers can be chained together,
+*name=value* format. Multiple optional modifiers can be chained together,
 with colon separators. As an example:
 
-.. code-block:: none
-
-        oiiotool in.tif --text:x=400:y=600:color=1,0,0 "Hello" -o out.tif
-                        \____/\____/\____/\__________/ \____/
-                          |     |     |        |         |
-           command -------+     |     |        |         +----- required argument
-                                |     |        |
-    optional modifiers ---------+-----+--------+
-    (separated by ':')
+```none
+    oiiotool in.tif --text:x=400:y=600:color=1,0,0 "Hello" -o out.tif
+                    \____/\____/\____/\__________/ \____/
+                      |     |     |        |         |
+       command -------+     |     |        |         +----- required argument
+                            |     |        |
+optional modifiers ---------+-----+--------+
+(separated by ':')
+```
 
 The *value* itself may be a single- or double-quoted string, and this is how
 you would make a value that itself contains a `:` character (which would
 otherwise denote the beginning of the next modifier).
 
-Expression evaluation and substitution
-----------------------------------------------
+### Expression evaluation and substitution
 
-:program:`oiiotool` can perform *expression evaluation and substitution* on
+{program}`oiiotool` can perform *expression evaluation and substitution* on
 command-line arguments. As command-line arguments are needed, they are
 scanned for containing braces `{ }`. If found, the braces and any text they
 enclose will be evaluated as an expression and replaced by its result. The
 contents of an expression may be any of:
 
-* *number*
+- *number*
 
   A numerical value (e.g., 1 or 3.14159).
 
-* *imagename.metadata*
+- *imagename.metadata*
 
   The named metadata of an image.
-  
+
   If there is no metadata whose name matches, the expression will not have any
   substitution made and an error will be issued.
-  
+
   The *imagename* may be one of:
 
-  * `TOP` : the top or current image;
-  * `BOTTOM` : the image at the bottom of the stack;
-  * `IMG[index]` : if `index` evaluates to an integer `i`, the i-th image on
+  - `TOP` : the top or current image;
+  - `BOTTOM` : the image at the bottom of the stack;
+  - `IMG[index]` : if `index` evaluates to an integer `i`, the i-th image on
     the stack (thus `TOP` is a synonym for `IMG[0]`, the next image on the
     stack is `IMG[1]`, ..., and `BOTTOM` is a synonmym for `IMG[NIMAGES-1]`);
-  * `IMG[name]` : an image named by filename or by label name.
+  - `IMG[name]` : an image named by filename or by label name.
 
   Remember that the positions on the stack (including `TOP`) refer to *at that
   moment*, with successive commands changing the contents of the top image. If
   the
-  
+
   The *metadata* may be any of:
-  
-  * the name of any standard metadata of the specified image (e.g.,
+
+  - the name of any standard metadata of the specified image (e.g.,
     `ImageDescription`, or `width`)
-  * `filename` : the name of the file (e.g., `foo.tif`)
-  * `file_extension` : the extension of the file (e.g., `tif`)
-  * `full_geom` : the "full" or "display" size
-  * `geom` : the pixel data size in the form `640x480+0+0`
-  * `nativeformat` : the pixel data type from the file.
-  * `MINCOLOR` : the minimum value of each channel over the entire image
+  - `filename` : the name of the file (e.g., `foo.tif`)
+  - `file_extension` : the extension of the file (e.g., `tif`)
+  - `full_geom` : the "full" or "display" size
+  - `geom` : the pixel data size in the form `640x480+0+0`
+  - `nativeformat` : the pixel data type from the file.
+  - `MINCOLOR` : the minimum value of each channel over the entire image
     (channels are comma-separated)
-  * `MAXCOLOR` : the maximum value of each channel over the entire image
+  - `MAXCOLOR` : the maximum value of each channel over the entire image
     (channels are comma-separated)
-  * `AVGCOLOR` : the average pixel value of the image (channels are
+  - `AVGCOLOR` : the average pixel value of the image (channels are
     comma-separated)
-  * `NONFINITE_COUNT` : the number of pixel values in the image that are
+  - `NONFINITE_COUNT` : the number of pixel values in the image that are
     either NaN or Inf values. (Added in OIIO 2.5.10.)
-  * `META` : a multi-line string containing the full metadata of the image,
+  - `META` : a multi-line string containing the full metadata of the image,
     similar to what would be printed with `oiiotool -info -v`.
-  * `METABRIEF` : a string containing the brief one-line description,
+  - `METABRIEF` : a string containing the brief one-line description,
     similar to what would be printed that with `oiiotool -info`.
-  * `METANATIVE` : like `META`, but for the "native" original information from
+  - `METANATIVE` : like `META`, but for the "native" original information from
     when the file was read from disk.
-  * `METANATIVEBRIEF` : like `METABRIEF`, but for the "native" original
+  - `METANATIVEBRIEF` : like `METABRIEF`, but for the "native" original
     information from when the file was read from disk.
-  * `STATS` : a multi-line string containing the image statistics that would
+  - `STATS` : a multi-line string containing the image statistics that would
     be printed with `oiiotool -stats`.
-  * `IS_CONSTANT`: metadata to check if the image pixels are of constant color, returns 1 if true, and 0 if false.
-  * `IS_BLACK`: metadata to check if the image pixels are all black, a subset of IS_CONSTANT. Also returns 1 if true, and 0 if false.
-  * `SUBIMAGES`: the number of subimages in the file.
-  
-* *imagename.'metadata'*
+  - `IS_CONSTANT`: metadata to check if the image pixels are of constant color, returns 1 if true, and 0 if false.
+  - `IS_BLACK`: metadata to check if the image pixels are all black, a subset of IS_CONSTANT. Also returns 1 if true, and 0 if false.
+  - `SUBIMAGES`: the number of subimages in the file.
+
+- *imagename.'metadata'*
 
   If the metadata name is not a "C identifier" (initial letter followed by
   any number of letter, number, or underscore), it is permissible to use
   single or double quotes to enclose the metadata name. For example, suppose
   you want to retrieve metadata named "foo/bar", you could say
 
-  .. code-block::
-
-      {TOP.'foo/bar'}
+  ```
+  {TOP.'foo/bar'}
+  ```
 
   Without the quotes, it might try to retrieve `TOP.foo` (which doesn't
   exist) and divide it by `bar`.
 
-* *imagename[metadata]*
+- *imagename[metadata]*
 
   Another way to retrieve metadata, but with this notation, the result will
   be the empty string if the metadata does not exist (that is not an error).
 
-  .. code-block::
+  ```
+  {TOP[foo]}
+  {TOP['bar:baz']}
+  ```
 
-      {TOP[foo]}
-      {TOP['bar:baz']}
-
-* Arithmetic
+- Arithmetic
 
   Sub-expressions may be joined by `+`, `-`, `*`, `/`, `//`, and `%` for
   arithmetic operations. (Note that like in Python 3, `/` is floating point
   division, while `//` signifies integer division.) Parentheses are
   supported, and standard operator precedence applies.
 
-* Numeric and logical comparisons
+- Numeric and logical comparisons
 
   Comparisons between numbers may be made with `<`, `<=`, `>`, `>=`, `==`, and
   `!=`. In each case, the result will be 0 if the comparison is false, 1 if
@@ -212,110 +209,112 @@ contents of an expression may be any of:
   are nonzero, otherwise 0. And `||` has a result of 1 if either the left or
   right are nonzero, 0 if both evaluate to 0.
 
-* User variables
+- User variables
 
   User variables are set by the `--set` command. A reference to a user
   variable in an expression will be replaced by the value of the variable.
 
-* Special variables
+- Special variables
 
-  * `FRAME_NUMBER` : the number of the frame in this iteration of
+  - `FRAME_NUMBER` : the number of the frame in this iteration of
     wildcard expansion.
-  * `FRAME_NUMBER_PAD` : like `FRAME_NUMBER`, but 0-padded based
+  - `FRAME_NUMBER_PAD` : like `FRAME_NUMBER`, but 0-padded based
     on the value set on the command line by `--framepadding`.
-  * `NIMAGES` : the number of images currently on the stack. (Added in OIIO
-     2.4.11.)
+  - `NIMAGES` : the number of images currently on the stack. (Added in OIIO
+    2.4.11.)
 
-* Functions
+- Functions
 
-  * `getattribute(name)` : returns the global attribute that would be
+  - `getattribute(name)` : returns the global attribute that would be
     retrieved by `OIIO::getattribute(name, ...)`. The `name` may be enclosed
     in single or double quotes or be a single unquoted sequence of characters.
     (Added in OIIO 2.3.)
-  * `var(name)` : returns the user variable of the give name. (Added in OIIO
+  - `var(name)` : returns the user variable of the give name. (Added in OIIO
     2.4.)
-  * `eq(a,b)` : returns 1 if `a` is equal to `b`, 0 otherwise. (Added in OIIO
+  - `eq(a,b)` : returns 1 if `a` is equal to `b`, 0 otherwise. (Added in OIIO
     2.4.)
-  * `neq(a,b)` : returns 1 if `a` is not equal to `b`, 0 otherwise. (Added in
+  - `neq(a,b)` : returns 1 if `a` is not equal to `b`, 0 otherwise. (Added in
     OIIO 2.4.)
-  * `not(val)` : returns 1 if `val` is a false value, 0 if `val` evaluates
-     to a true value. (Added in OIIO 2.4.)
-
+  - `not(val)` : returns 1 if `val` is a false value, 0 if `val` evaluates
+    to a true value. (Added in OIIO 2.4.)
 
 To illustrate how this works, consider the following command, which trims
 a four-pixel border from all sides and outputs a new image prefixed with
 "`cropped_`", without needing to know the resolution or filename of the
-original image::
+original image:
 
-    oiiotool input.exr -cut "{TOP.width-2*4}x{TOP.height-2*4}+{TOP.x+4}+{TOP.y+4}" \
-        -o cropped_{TOP.filename}
+```
+oiiotool input.exr -cut "{TOP.width-2*4}x{TOP.height-2*4}+{TOP.x+4}+{TOP.y+4}" \
+    -o cropped_{TOP.filename}
+```
 
 If you should come across filenames that contain curly braces (these are very
 rare, but have been known to happen), you temporarily disable expression
-evaluation with the `--evaloff` end `--evalon` flags. For example::
+evaluation with the `--evaloff` end `--evalon` flags. For example:
 
-    $ oiiotool --info "{weird}.exr"
-    > oiiotool ERROR: expression : syntax error at char 1 of `weird'
+```
+$ oiiotool --info "{weird}.exr"
+> oiiotool ERROR: expression : syntax error at char 1 of `weird'
 
-    $ oiiotool --info --evaloff "{weird}.exr"
-    > {weird.exr}          : 2048 x 1536, 3 channel, half openexr
+$ oiiotool --info --evaloff "{weird}.exr"
+> {weird.exr}          : 2048 x 1536, 3 channel, half openexr
+```
 
+(sec-oiiotool-control-flow-explanation)=
 
-.. _sec-oiiotool-control-flow-explanation:
-
-Control flow
-----------------------------------------------
+### Control flow
 
 Scriptability is provided by the use of control flow statements.
 The usual programming constructs are supported:
 
-* Conditionals : `--if` *condition* *commands...* `--else` *commands...* `--endif`
+- Conditionals : `--if` *condition* *commands...* `--else` *commands...* `--endif`
 
-* General looping: `--while` *condition* *commands...* `--endwhile`
+- General looping: `--while` *condition* *commands...* `--endwhile`
 
-* Iteration : `--for` *variable* *range* *commands...* `--endfor`
+- Iteration : `--for` *variable* *range* *commands...* `--endfor`
 
   The range is a sequence of one to three comma-separated numbers: *begin*,
   *end*, and *step*; *begin* and *end* (step is assumed to be 1 if *begin*
-  `<`` *end*, or -1 if *begin* `>` *end); or just *end* (begin assumed to be
+  `` <` `` *end*, or -1 if *begin* `>` *end); or just \*end* (begin assumed to be
   0, step assumed to be 1 or -1, depending on the relationship between *begin*
   and *end*). As in Python, the range has an "exclusive end" -- when the
   *variable* is equal to *end*, the loop will terminate, without actually
   running the commands for the *end* value itself.
 
-Section :ref:`sec-oiiotool-control-flow-commands` contains more detailed
+Section {ref}`sec-oiiotool-control-flow-commands` contains more detailed
 descriptions of these commands and some examples to more clearly illustrate
 their behavior.
 
+### Frame sequences
 
-
-Frame sequences
------------------------
-
-It is also possible to have :program:`oiiotool` operate on numbered
-sequences of images.  In effect, this will execute the :program:`oiiotool`
+It is also possible to have {program}`oiiotool` operate on numbered
+sequences of images. In effect, this will execute the {program}`oiiotool`
 command several times, making substitutions to the sequence arguments in
 turn.
 
 Image sequences are specified by having filename arguments to oiiotool use
 either a numeric range wildcard (designated such as `1-10#` or a
 `printf`-like notation `1-10%d`), or spelling out a more complex pattern
-with `--frames`.  For example::
+with `--frames`. For example:
 
-    oiiotool big.1-3#.tif --resize 100x100 -o small.1-3#.tif
+```
+oiiotool big.1-3#.tif --resize 100x100 -o small.1-3#.tif
 
-    oiiotool big.1-3%04d.tif --resize 100x100 -o small.1-3%04d.tif
+oiiotool big.1-3%04d.tif --resize 100x100 -o small.1-3%04d.tif
 
-    oiiotool --frames 1-3 big.#.tif --resize 100x100 -o small.#.tif
+oiiotool --frames 1-3 big.#.tif --resize 100x100 -o small.#.tif
 
-    oiiotool --frames 1-3 big.%04d.tif --resize 100x100 -o small.%04d.tif
+oiiotool --frames 1-3 big.%04d.tif --resize 100x100 -o small.%04d.tif
+```
 
 Any of those will be the equivalent of having issued the following sequence
-of commands::
+of commands:
 
-    oiiotool big.0001.tif --resize 100x100 -o small.0001.tif
-    oiiotool big.0002.tif --resize 100x100 -o small.0002.tif
-    oiiotool big.0003.tif --resize 100x100 -o small.0003.tif
+```
+oiiotool big.0001.tif --resize 100x100 -o small.0001.tif
+oiiotool big.0002.tif --resize 100x100 -o small.0002.tif
+oiiotool big.0003.tif --resize 100x100 -o small.0003.tif
+```
 
 The frame range may be forwards (`1-5`) or backwards (`5-1`), and may give a
 step size to skip frames (`1-5x2` means 1, 3, 5) or take the complement of
@@ -326,16 +325,20 @@ If you are using the `#` or `@` wildcards, then the wildcard characters
 themselves specify how many digits to pad with leading zeroes, with `#`
 indicating 4 digits and `@` indicating one digit (these may be combined:
 `#@@` means 6 digits). An optional `--framepadding` can also be used to
-override the number of padding digits. For example::
+override the number of padding digits. For example:
 
-    oiiotool --framepadding 3 --frames 3,4,10-20x2 blah.#.tif
+```
+oiiotool --framepadding 3 --frames 3,4,10-20x2 blah.#.tif
+```
 
 would match `blah.003.tif`, `blah.004.tif`, `blah.010.tif`, `blah.012.tif`,
 `blah.014.tif`, `blah.016.tif`, `blah.018.tif`, `blah.020.tif`.
 
-Alternately, you can use the `printf` notation, such as::
+Alternately, you can use the `printf` notation, such as:
 
-    oiiotool --frames 3,4,10-20x2 blah.%03d.tif
+```
+oiiotool --frames 3,4,10-20x2 blah.%03d.tif
+```
 
 When using frame ranges, keep in mind that by default, any error (such as an
 input file not being found) on any frame will exit oiiotool right away.
@@ -348,150 +351,162 @@ expansion: `--wildcardoff` disables numeric wildcard expansion for
 subsequent command line arguments, until `--wildcardon` re-enables it for
 subsequent command line arguments. Turning wildcard expansion off for
 selected arguments can be helpful if you have arguments that must contain
-the wildcard characters themselves. For example::
+the wildcard characters themselves. For example:
 
-    oiiotool input.@@@.tif --wildcardoff --sattrib Caption "lg@openimageio.org" \
-        --wildcardon -o output.@@@.tif
-
+```
+oiiotool input.@@@.tif --wildcardoff --sattrib Caption "lg@openimageio.org" \
+    --wildcardon -o output.@@@.tif
+```
 
 In this example, the `@` characters in the filenames should be expanded into
 numeric file sequence wildcards, but the `@` in the caption (denoting an
 email address) should not.
 
-Stereo wildcards
------------------------
+### Stereo wildcards
 
-:program:`oiiotool` can also handle image sequences with separate left and
+{program}`oiiotool` can also handle image sequences with separate left and
 right images per frame using `views`. The `%V` wildcard will match the full
 name of all views and `%v` will match the first character of each view. View
 names default to "left" and "right", but may be overridden using the
-`--views` option. For example::
+`--views` option. For example:
 
-    oiiotool --frames 1-5 blah_%V.#.tif
+```
+oiiotool --frames 1-5 blah_%V.#.tif
+```
 
 would match `blah_left.0001.tif`, `blah_right.0001.tif`,
 `blah_left.0002.tif`, `blah_right.0002.tif`, `blah_left.0003.tif`,
 `blah_right.0003.tif`, `blah_left.0004.tif`, `blah_right.0004.tif`,
 `blah_left.0005.tif`, `blah_right.0005.tif`, and
 
-.. code-block::
-
-    oiiotool --frames 1-5 blah_%v.#.tif
+```
+oiiotool --frames 1-5 blah_%v.#.tif
+```
 
 would match `blah_l.0001.tif`, `blah_r.0001.tif`, `blah_l.0002.tif`,
 `blah_r.0002.tif`, `blah_l.0003.tif`, `blah_r.0003.tif`, `blah_l.0004.tif`,
 `blah_r.0004.tif`, `blah_l.0005.tif`, `blah_r.0005.tif`, but
 
-.. code-block::
-
-    oiiotool --views left --frames 1-5 blah_%v.#.tif
+```
+oiiotool --views left --frames 1-5 blah_%v.#.tif
+```
 
 would only match `blah_l.0001.tif`, `blah_l.0002.tif`, `blah_l.0003.tif`,
 `blah_l.0004.tif`, `blah_l.0005.tif`.
 
+(sec-oiiotool-subimage-modifier)=
 
-
-.. _sec-oiiotool-subimage-modifier:
-
-Dealing with multi-subimage/multi-part files
-----------------------------------------------
+### Dealing with multi-subimage/multi-part files
 
 Some file formats allow storing multiple images in one file (notably
 OpenEXR, which calls them "multi-part"). There are some special behaviors to
 be aware of for multi-subimage files.
 
-Using :program:`oiiotool` for a simple input-to-output copy will preserve
+Using {program}`oiiotool` for a simple input-to-output copy will preserve
 all of the subimages (assuming that the output format can accommodate
-multiple subimages)::
+multiple subimages):
 
-    oiiotool multipart.exr -o another.exr
+```
+oiiotool multipart.exr -o another.exr
+```
 
-Most :program:`oiiotool` commands by default work on just the *first*
-subimage of their input, discarding the others. For example::
+Most {program}`oiiotool` commands by default work on just the *first*
+subimage of their input, discarding the others. For example:
 
-    oiiotool multipart.exr --colorconvert lnf aces -o out.exr
+```
+oiiotool multipart.exr --colorconvert lnf aces -o out.exr
+```
 
 In this example, only the first subimage in `multipart.exr` will be color
 transformed and output to `out.exr`. Any other subimages in the input will
 not be used or copied.
 
-Using the `-a` command tells :program:`oiiotool` to try to preserve all
-subimages from the inputs and apply all computations to all subimages::
+Using the `-a` command tells {program}`oiiotool` to try to preserve all
+subimages from the inputs and apply all computations to all subimages:
 
-    oiiotool -a multipart.exr --colorconvert lnf aces -o out.exr
+```
+oiiotool -a multipart.exr --colorconvert lnf aces -o out.exr
+```
 
 Now all subimages of `multipart.exr` will be transformed and output.
 
 But that might not be enough. Perhaps there are some subimages that need the
-color conversion, and others that do not. Many :program:`oiiotool` commands
+color conversion, and others that do not. Many {program}`oiiotool` commands
 take an optional modifier `:subimages=...` that can restrict the operation
 to certain subimages. The argument is a comma-separated list of any of the
 following: (a) an integer index of a subimage to include, or a minus sign
 (`-`) followed by an integer index of a subimage to exclude; (b) the name
 (as returned by the metadata "oiio:subimagename") of a subimage to include,
 or to exclude if preceded by a `-`; (c) the special string "all", meaning all
-subimages. Examples::
+subimages. Examples:
 
-    # Color convert only subimages 0, 3, and 4, leave the rest as-is
-    oiiotool -a multipart.exr --colorconvert:subimages=0,3,4 lnf aces -o out.exr
+```
+# Color convert only subimages 0, 3, and 4, leave the rest as-is
+oiiotool -a multipart.exr --colorconvert:subimages=0,3,4 lnf aces -o out.exr
 
-    # Color convert all subimages EXCEPT the one named "normal"
-    oiiotool -a multipart.exr --colorconvert:subimages=-normal lnf aces -o out.exr
+# Color convert all subimages EXCEPT the one named "normal"
+oiiotool -a multipart.exr --colorconvert:subimages=-normal lnf aces -o out.exr
+```
 
+## {program}`oiiotool` Tutorial / Recipes
 
-
-:program:`oiiotool` Tutorial / Recipes
-======================================
-
-This section will give quick examples of common uses of :program:`oiiotool`
-to get you started.  They should be fairly intuitive, but you can read the
+This section will give quick examples of common uses of {program}`oiiotool`
+to get you started. They should be fairly intuitive, but you can read the
 subsequent sections of this chapter for all the details on every command.
 
-Printing information about images
----------------------------------
+### Printing information about images
 
 To print the name, format, resolution, and data type of an image (or many
-images)::
+images):
 
-    oiiotool --info *.tif
-
+```
+oiiotool --info *.tif
+```
 
 To also print the full metadata about each input image, use both
-`--info` and `-v`::
+`--info` and `-v`:
 
-    oiiotool --info -v *.tif
+```
+oiiotool --info -v *.tif
+```
 
-or::
+or:
 
-    oiiotool --info:verbose=1 *.tif
+```
+oiiotool --info:verbose=1 *.tif
+```
 
 To print info about all subimages and/or MIP-map levels of each input image,
-use the `-a` flag::
+use the `-a` flag:
 
-    oiiotool --info -v -a mipmap.exr
+```
+oiiotool --info -v -a mipmap.exr
+```
 
 To print statistics giving the minimum, maximum, average, and standard
 deviation of each channel of an image, as well as other information about
-the pixels::
+the pixels:
 
-    oiiotool --stats img_2012.jpg
+```
+oiiotool --stats img_2012.jpg
+```
 
 The `--info`, `--stats`, `-v`, and `-a` flags may be used in any
 combination.
 
-
-Converting between file formats
--------------------------------
+### Converting between file formats
 
 It's a snap to convert among image formats supported by OpenImageIO (i.e.,
 for which ImageInput and ImageOutput plugins can be found). The
-:program:`oiiotool` utility will simply infer the file format from the file
-extension. The following example converts a PNG image to JPEG::
+{program}`oiiotool` utility will simply infer the file format from the file
+extension. The following example converts a PNG image to JPEG:
 
-    oiiotool lena.png -o lena.jpg
+```
+oiiotool lena.png -o lena.jpg
+```
 
-The first argument (`lena.png`) is a filename, causing :program:`oiiotool` to
-read the file and makes it the current image.  The `-o` command
+The first argument (`lena.png`) is a filename, causing {program}`oiiotool` to
+read the file and makes it the current image. The `-o` command
 outputs the current image to the filename specified by the next
 argument.
 
@@ -499,23 +514,20 @@ Thus, the above command should be read to mean, "Read `lena.png` into the
 current image, then output the current image as `lena.jpg` (using whatever
 file format is traditionally associated with the `.jpg` extension)."
 
-
-Comparing two images
---------------------
+### Comparing two images
 
 To print a report of the differences between two images of the same
 resolution:
 
-.. code-block:: bash
-
-    oiiotool old.tif new.tif --diff
+```bash
+oiiotool old.tif new.tif --diff
+```
 
 If you also want to save an image showing just the differences:
 
-.. code-block:: bash
-
-    oiiotool old.tif new.tif --diff --absdiff -o diff.tif
-
+```bash
+oiiotool old.tif new.tif --diff --absdiff -o diff.tif
+```
 
 This looks complicated, but it's really simple: read `old.tif`, read
 `new.tif` (pushing `old.tif` down on the image stack), report the
@@ -526,386 +538,438 @@ save that image to `diff.tif`.
 Sometimes you want to compare images but allow a certain number of small
 difference, say allowing the comparison to pass as long as no more than
 1% of pixels differs by more than 1/255, and as long as no single pixel
-differs by more than 2/255. You can do this with thresholds::
+differs by more than 2/255. You can do this with thresholds:
 
+```
+oiiotool old.tif new.tif --fail 0.004 -failpercent 1 --hardfail 0.008 --diff
+```
 
-    oiiotool old.tif new.tif --fail 0.004 -failpercent 1 --hardfail 0.008 --diff
-
-
-
-Changing the data format or bit depth
--------------------------------------
+### Changing the data format or bit depth
 
 Just use the `-d` option to specify a pixel data format for all subsequent
-outputs.  For example, assuming that `in.tif` uses 16-bit unsigned integer
-pixels, the following will convert it to an 8-bit unsigned pixels::
+outputs. For example, assuming that `in.tif` uses 16-bit unsigned integer
+pixels, the following will convert it to an 8-bit unsigned pixels:
 
-    oiiotool in.tif -d uint8 -o out.tif
+```
+oiiotool in.tif -d uint8 -o out.tif
+```
 
 For formats that support per-channel data formats, you can override the
 format for one particular channel using `-d CHNAME=TYPE`. For example,
 assuming `rgbaz.exr` is a `float` RGBAZ file, and we wish to convert it to
-be `half` for RGBA, and `float` for Z.  That can be accomplished with the
-following command::
+be `half` for RGBA, and `float` for Z. That can be accomplished with the
+following command:
 
-    oiiotool rgbaz.tif -d half -d Z=float -o rgbaz2.exr
+```
+oiiotool rgbaz.tif -d half -d Z=float -o rgbaz2.exr
+```
 
 When converting from a high bit depth data type (like float or half) to a very
 low bit depth data type (such as uint8), you may notice "banding" artifacts in
 smooth gradients. To combat this, you can use the `--dither` option to add
 random dither before the low bit depth quantization, which has the effect of
-masking the banding::
+masking the banding:
 
-    oiiotool half.exr -d uint8 --dither -o out8.tif
+```
+oiiotool half.exr -d uint8 --dither -o out8.tif
+```
 
 Note that `--dither` turns dither on for all 8 bit (or fewer) output
 files. Alternately, you can enable dither for individual outputs using
 a modifier to `-o` (the value of the dither modifier is the random seed
-that will be used)::
+that will be used):
 
-    oiiotool half.exr -d uint8 -o:dither=1 out8.tif
+```
+oiiotool half.exr -d uint8 -o:dither=1 out8.tif
+```
 
-
-Changing the compression
-------------------------
+### Changing the compression
 
 The following command converts writes a TIFF file, specifically using LZW
-compression::
+compression:
 
-    oiiotool in.tif --compression lzw -o compressed.tif
+```
+oiiotool in.tif --compression lzw -o compressed.tif
+```
 
 The following command writes its results as a JPEG file at a compression
 quality of 50 (pretty severe compression), illustrating how some compression
-methods allow a quality metric to be optionally appended to the name::
+methods allow a quality metric to be optionally appended to the name:
 
-    oiiotool big.jpg --compression jpeg:50 -o small.jpg
+```
+oiiotool big.jpg --compression jpeg:50 -o small.jpg
+```
 
+### Converting between scanline and tiled images
 
-Converting between scanline and tiled images
---------------------------------------------
+Convert a scanline file to a tiled file with 16x16 tiles:
 
-Convert a scanline file to a tiled file with 16x16 tiles::
+```
+oiiotool s.tif --tile 16 16 -o t.tif
+```
 
-    oiiotool s.tif --tile 16 16 -o t.tif
+Convert a tiled file to scanline:
 
-Convert a tiled file to scanline::
+```
+oiiotool t.tif --scanline -o s.tif
+```
 
-    oiiotool t.tif --scanline -o s.tif
+### Adding captions or metadata
 
+Add a caption to the metadata:
 
+```
+oiiotool foo.jpg --caption "Hawaii vacation" -o bar.jpg
+```
 
+Add keywords to the metadata:
 
-Adding captions or metadata
----------------------------
+```
+oiiotool foo.jpg --keyword "volcano,lava" -o bar.jpg
+```
 
-Add a caption to the metadata::
+Add other arbitrary metadata:
 
-    oiiotool foo.jpg --caption "Hawaii vacation" -o bar.jpg
+```
+oiiotool in.exr --attrib "FStop" 22.0 \
+        --attrib "IPTC:City" "Berkeley" -o out.exr
 
-Add keywords to the metadata::
+oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" \
+        -o out.exr
 
-    oiiotool foo.jpg --keyword "volcano,lava" -o bar.jpg
+oiiotool in.exr --attrib:type=int[4] FaceBBox "140,300,219,460" \
+        -o out.exr
+```
 
-Add other arbitrary metadata::
+### Changing image boundaries and borders
 
-    oiiotool in.exr --attrib "FStop" 22.0 \
-            --attrib "IPTC:City" "Berkeley" -o out.exr
+Change the origin of the pixel data window:
 
-    oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" \
-            -o out.exr
+```
+oiiotool in.exr --origin +256+80 -o offset.exr
+```
 
-    oiiotool in.exr --attrib:type=int[4] FaceBBox "140,300,219,460" \
-            -o out.exr
+Change the display window:
 
+```
+oiiotool in.exr --fullsize 1024x768+16+16 -o out.exr
+```
 
+Change the display window to match the data window:
 
-Changing image boundaries and borders
--------------------------------------
-
-Change the origin of the pixel data window::
-
-    oiiotool in.exr --origin +256+80 -o offset.exr
-
-Change the display window::
-
-    oiiotool in.exr --fullsize 1024x768+16+16 -o out.exr
-
-Change the display window to match the data window::
-
-    oiiotool in.exr --fullpixels -o out.exr
+```
+oiiotool in.exr --fullpixels -o out.exr
+```
 
 Crop (trim) an image to a 128x128 region whose upper left corner is at
 location (900,300), leaving the remaining pixels in their original positions
 on the image plane (i.e., the resulting image will have origin at 900,300),
-and retaining its original display window::
+and retaining its original display window:
 
-    oiiotool in.exr --crop 128x128+900+300 -o out.exr
+```
+oiiotool in.exr --crop 128x128+900+300 -o out.exr
+```
 
 Cut (trim and extract) a 128x128 region whose upper left corner is at
 location (900,300), moving the result to the origin (0,0) of the image plane
-and setting the display window to the new pixel data window::
+and setting the display window to the new pixel data window:
 
-    oiiotool in.exr --cut 128x128+900+300 -o out.exr
+```
+oiiotool in.exr --cut 128x128+900+300 -o out.exr
+```
 
 Put a constant-color border around all sides of an image, without needing to
-know the resolution of the input image::
+know the resolution of the input image:
 
-    # BW: Border width
-    BW=40
-    COLOR=.2,.2,.2,1.0
-    oiiotool in.tif \
-        --pattern constant:color=$COLOR "{TOP.width+2*$BW}x{TOP.height+2*$BW}" "{TOP.nchannels}" --paste "+$BW+$BW" \
-        -o out.tif
+```
+# BW: Border width
+BW=40
+COLOR=.2,.2,.2,1.0
+oiiotool in.tif \
+    --pattern constant:color=$COLOR "{TOP.width+2*$BW}x{TOP.height+2*$BW}" "{TOP.nchannels}" --paste "+$BW+$BW" \
+    -o out.tif
+```
 
-
-Scale the values in an image
-----------------------------
+### Scale the values in an image
 
 Reduce the brightness of the R, G, and B channels by 10%,
-but leave the A channel at its original value::
+but leave the A channel at its original value:
 
-    oiiotool original.exr --mulc 0.9,0.9,0.9,1.0 -o out.exr
+```
+oiiotool original.exr --mulc 0.9,0.9,0.9,1.0 -o out.exr
+```
 
+### Remove gamma-correction from an image
 
-Remove gamma-correction from an image
--------------------------------------
+Convert a gamma-corrected image (with gamma = 2.2) to linear values:
 
-Convert a gamma-corrected image (with gamma = 2.2) to linear values::
+```
+oiiotool corrected.exr --powc 2.2,2.2,2.2,1.0 -o linear.exr
+```
 
-    oiiotool corrected.exr --powc 2.2,2.2,2.2,1.0 -o linear.exr
+### Resize an image
 
-Resize an image
----------------
+Resize to a specific resolution:
 
-Resize to a specific resolution::
+```
+oiiotool original.tif --resize 1024x768 -o specific.tif
+```
 
-    oiiotool original.tif --resize 1024x768 -o specific.tif
+Resize both dimensions by a known scale factor:
 
-Resize both dimensions by a known scale factor::
+```
+oiiotool original.tif --resize 200% -o big.tif
+oiiotool original.tif --resize 25% -o small.tif
+```
 
-    oiiotool original.tif --resize 200% -o big.tif
-    oiiotool original.tif --resize 25% -o small.tif
+Resize each dimension, independently, by known scale factors:
 
-Resize each dimension, independently, by known scale factors::
-
-    oiiotool original.tif --resize 300%x200% -o big.tif
-    oiiotool original.tif --resize 100%x25% -o small.tif
+```
+oiiotool original.tif --resize 300%x200% -o big.tif
+oiiotool original.tif --resize 100%x25% -o small.tif
+```
 
 Resize to a known resolution in one dimension, with the other dimension
 automatically computed to preserve aspect ratio (just specify 0 as the
-resolution in the dimension to be automatically computed)::
+resolution in the dimension to be automatically computed):
 
-    oiiotool original.tif --resize 200x0 -o out.tif
-    oiiotool original.tif --resize 0x1024 -o out.tif
+```
+oiiotool original.tif --resize 200x0 -o out.tif
+oiiotool original.tif --resize 0x1024 -o out.tif
+```
 
 Resize to fit into a given resolution, keeping the original aspect ratio and
-padding with black where necessary to fit into the specified resolution::
+padding with black where necessary to fit into the specified resolution:
 
-    oiiotool original.tif --fit 640x480 -o fit.tif
+```
+oiiotool original.tif --fit 640x480 -o fit.tif
+```
 
-
-
-Color convert an image
-----------------------
+### Color convert an image
 
 This command linearizes a JPEG assumed to be in sRGB, saving as an HDRI
-OpenEXR file in ACEScg color space::
+OpenEXR file in ACEScg color space:
 
-    oiiotool photo.jpg --colorconvert srgb acescg -o output.exr
+```
+oiiotool photo.jpg --colorconvert srgb acescg -o output.exr
+```
 
-And the other direction::
+And the other direction:
 
-    oiiotool render.exr --colorconvert acescg srgb -o fortheweb.png
+```
+oiiotool render.exr --colorconvert acescg srgb -o fortheweb.png
+```
 
 Above, we're using the short aliases "srgb" and "acescg", but it's also fine
-to use the canonical Color Interop Forum names::
+to use the canonical Color Interop Forum names:
 
-    oiiotool photo.jpg --colorconvert srgb_rec709_scene lin_ap1_scene -o output.exr
-    oiiotool render.exr --colorconvert lin_ap1_scene srgb_rec709_scene -o fortheweb.png
+```
+oiiotool photo.jpg --colorconvert srgb_rec709_scene lin_ap1_scene -o output.exr
+oiiotool render.exr --colorconvert lin_ap1_scene srgb_rec709_scene -o fortheweb.png
+```
 
 This converts between two named color spaces (presumably defined by your
-facility's OpenColorIO configuration)::
+facility's OpenColorIO configuration):
 
-    oiiotool in.dpx --colorconvert lg10 lnf -o out.exr
+```
+oiiotool in.dpx --colorconvert lg10 lnf -o out.exr
+```
 
+### Grayscale and RGB
 
+Turn a single channel image into a 3-channel gray RGB:
 
-Grayscale and RGB
------------------
+```
+oiiotool gray.tif --ch 0,0,0 -o rgb.tif
+```
 
-Turn a single channel image into a 3-channel gray RGB::
+Convert a color image to luminance grayscale:
 
-    oiiotool gray.tif --ch 0,0,0 -o rgb.tif
+```
+oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
+```
 
-Convert a color image to luminance grayscale::
+### Channel reordering and padding
 
-    oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
+Copy just the color from an RGBA file, truncating the A, yielding RGB only:
 
+```
+oiiotool rgba.tif --ch R,G,B -o rgb.tif
+```
 
-Channel reordering and padding
-------------------------------
+Zero out the red and green channels:
 
-Copy just the color from an RGBA file, truncating the A, yielding RGB only::
+```
+oiiotool rgb.tif --ch R=0,G=0,B -o justblue.tif
+```
 
-    oiiotool rgba.tif --ch R,G,B -o rgb.tif
+Swap the red and blue channels from an RGBA image:
 
-Zero out the red and green channels::
-
-    oiiotool rgb.tif --ch R=0,G=0,B -o justblue.tif
-
-Swap the red and blue channels from an RGBA image::
-
-    oiiotool rgba.tif --ch R=B,G,B=R,A -o bgra.tif
+```
+oiiotool rgba.tif --ch R=B,G,B=R,A -o bgra.tif
+```
 
 Extract just the named channels from a many-channel image, as efficiently as
-possible (avoiding memory and I/O for the unused channels)::
+possible (avoiding memory and I/O for the unused channels):
 
-    oiiotool -i:ch=R,G,B manychannels.exr -o rgb.exr
+```
+oiiotool -i:ch=R,G,B manychannels.exr -o rgb.exr
+```
 
 Add an alpha channel to an RGB image, setting it to 1.0 everywhere, and
-naming it "A" so it will be recognized as an alpha channel::
+naming it "A" so it will be recognized as an alpha channel:
 
-    oiiotool rgb.tif --ch R,G,B,A=1.0 -o rgba.tif
-
+```
+oiiotool rgb.tif --ch R,G,B,A=1.0 -o rgba.tif
+```
 
 Add an alpha channel to an RGB image, setting it to be the same as the R
-channel and naming it "A" so it will be recognized as an alpha channel::
+channel and naming it "A" so it will be recognized as an alpha channel:
 
-    oiiotool rgb.tif --ch R,G,B,A=R -o rgba.tif
+```
+oiiotool rgb.tif --ch R,G,B,A=R -o rgba.tif
+```
 
 Add a *z* channel to an RGBA image, setting it to 3.0 everywhere, and naming
-it "Z" so it will be recognized as a depth channel::
+it "Z" so it will be recognized as a depth channel:
 
-    oiiotool rgba.exr --ch R,G,B,A,Z=3.0 -o rgbaz.exr
+```
+oiiotool rgba.exr --ch R,G,B,A,Z=3.0 -o rgbaz.exr
+```
 
-
-
-Copy metadata from one image to another
----------------------------------------
+### Copy metadata from one image to another
 
 Suppose you have a (non-OIIO) application that consumes input Exr files and
 produces output Exr files, but along the way loses crucial metadata from
 the input files that you want carried along. This command will add all the
-metadata from the first image to the pixels of the second image::
+metadata from the first image to the pixels of the second image:
 
-    oiiotool metaonly.exr pixelsonly.exr --pastemeta -o combined.exr
+```
+oiiotool metaonly.exr pixelsonly.exr --pastemeta -o combined.exr
+```
 
+### Fade between two images
 
-Fade between two images
------------------------
+Fade 30% of the way from A to B:
 
-Fade 30% of the way from A to B::
+```
+oiiotool A.exr --mulc 0.7 B.exr --mulc 0.3 --add -o fade.exr
+```
 
-    oiiotool A.exr --mulc 0.7 B.exr --mulc 0.3 --add -o fade.exr
+### Simple compositing
 
+Simple "over" composite of aligned foreground and background:
 
+```
+oiiotool fg.exr bg.exr --over -o composite.exr
+```
 
-Simple compositing
-------------------
+Composite of small foreground over background, with offset:
 
-Simple "over" composite of aligned foreground and background::
+```
+oiiotool fg.exr --origin +512+89 bg.exr --over -o composite.exr
+```
 
-    oiiotool fg.exr bg.exr --over -o composite.exr
-
-Composite of small foreground over background, with offset::
-
-    oiiotool fg.exr --origin +512+89 bg.exr --over -o composite.exr
-
-
-
-Creating an animated GIF from still images
-------------------------------------------
+### Creating an animated GIF from still images
 
 Combine several separate JPEG images into an animated GIF with a frame rate
-of 8 frames per second::
+of 8 frames per second:
 
-    oiiotool foo??.jpg --siappendall --attrib FramesPerSecond 10.0 -o anim.gif
+```
+oiiotool foo??.jpg --siappendall --attrib FramesPerSecond 10.0 -o anim.gif
+```
 
-
-
-Frame sequences: composite a sequence of images
------------------------------------------------
+### Frame sequences: composite a sequence of images
 
 Composite foreground images over background images for a series of files
-with frame numbers in their names::
+with frame numbers in their names:
 
-    oiiotool fg.1-50%04d.exr bg.1-50%04d.exr --over -o comp.1-50%04d.exr
+```
+oiiotool fg.1-50%04d.exr bg.1-50%04d.exr --over -o comp.1-50%04d.exr
+```
 
+Or:
 
-Or::
+```
+oiiotool --frames 1-50 fg.%04d.exr bg.%04d.exr --over -o comp.%04d.exr
+```
 
-    oiiotool --frames 1-50 fg.%04d.exr bg.%04d.exr --over -o comp.%04d.exr
-
-
-
-Expression example: annotate the image with its caption
--------------------------------------------------------
+### Expression example: annotate the image with its caption
 
 This command reads a file, and draws any text in the "ImageDescription"
-metadata, 30 pixels from the bottom of the image::
+metadata, 30 pixels from the bottom of the image:
 
-    oiiotool input.exr --text:x=30:y={TOP.height-30} {TOP.ImageDescription} -o out.exr
+```
+oiiotool input.exr --text:x=30:y={TOP.height-30} {TOP.ImageDescription} -o out.exr
+```
 
 Note that this works without needing to know the caption ahead of time, and
 will always put the text 30 pixels from the bottom of the image without
 requiring you to know the resolution.
 
-
-Contrast enhancement: stretch pixel value range to exactly fit [0-1]
---------------------------------------------------------------------
+### Contrast enhancement: stretch pixel value range to exactly fit [0-1]
 
 This command reads a file, subtracts the minimum pixel value and then
 divides by the (new) maximum value, per channel, thus expanding its pixel
-values to the full [0-1] range::
+values to the full [0-1] range:
 
-    oiiotool input.tif -subc {TOP.MINCOLOR} -divc {TOP.MAXCOLOR} -o out.tif
+```
+oiiotool input.tif -subc {TOP.MINCOLOR} -divc {TOP.MAXCOLOR} -o out.tif
+```
 
 Note that this is a naive way to improve contrast and because each channel
 is handled independently, it may result in color hue shifts.
 
-
-Split a multi-image file into separate files
---------------------------------------------
+### Split a multi-image file into separate files
 
 Take a multi-image TIFF file, split into its constituent subimages and
 output each one to a different file, with names `sub.0001.tif`,
-`sub.0002.tif`, etc.::
+`sub.0002.tif`, etc.:
 
-    oiiotool multi.tif -sisplit -o:all=1 sub.%04d.tif
+```
+oiiotool multi.tif -sisplit -o:all=1 sub.%04d.tif
+```
 
 Take a multi-image OpenEXR file (called "multi-part" in OpenEXR parlance),
 split into its constituent subimages and output each one to a different file,
 with names `sub.beauty.exr`, `sub.albedo.exr`, etc., using the name of each
-subimage according to its metadata::
+subimage according to its metadata:
 
-    oiiotool multi.exr -sisplit -o:all=1 "sub.{TOP.'oiio:subimagename'}.exr"
+```
+oiiotool multi.exr -sisplit -o:all=1 "sub.{TOP.'oiio:subimagename'}.exr"
+```
 
+## {program}`oiiotool` commands: general flags
 
-|
-
-:program:`oiiotool` commands: general flags
-===========================================================
-
+```{eval-rst}
 .. option:: --help
 
     Prints full usage information to the terminal, as well as information
     about image formats supported, known color spaces, filters, OIIO build
     options and library dependencies.
+```
 
+```{eval-rst}
 .. option:: --version
 
     Prints the version designation of the OIIO library.
+```
 
+```{eval-rst}
 .. option:: -v
 
     Verbose status messages --- print out more information about what
     :program:`oiiotool` is doing at every step.
+```
 
+```{eval-rst}
 .. option:: -q
 
     Quiet mode --- print out less information about what :program:`oiiotool`
     is doing (only errors).
+```
 
+```{eval-rst}
 .. option:: -n
 
     No saved output --- do not save any image files. This is helpful for
@@ -913,61 +977,83 @@ subimage according to its metadata::
     `--debug`, for getting detailed information about what a command
     sequence will do and what it costs, but without producing any saved
     output files.
+```
 
+```{eval-rst}
 .. option:: --no-error-exit
 
     If an error is encountered, try to continue executing any remaining
     commands, rather than exiting immediately. Use with caution!
+```
 
+```{eval-rst}
 .. option:: --debug
 
     Debug mode --- print lots of information about what operations are being
     performed.
+```
 
+```{eval-rst}
 .. option:: --runstats
 
     Print timing and memory statistics about the work done by
     :program:`oiiotool`.
+```
 
+```{eval-rst}
 .. option:: --buildinfo
 
     Print information about OIIO build-time options and dependencies.
     This can be useful when reporting issues.
+```
 
+```{eval-rst}
 .. option:: -a
 
     Performs all operations on all subimages and/or MIPmap levels of each
     input image.  Without `-a`, generally each input image will really
     only read the top-level MIPmap of the first subimage of the file.
+```
 
+```{eval-rst}
 .. option:: --no-clobber
 
     Sets "no clobber" mode, in which existing images on disk will never be
     overridden, even if the `-o` command specifies that file.
+```
 
+```{eval-rst}
 .. option:: --create-dir
 
     Create output directories if they don't exist already
     during the `-o` output action.
+```
 
+```{eval-rst}
 .. option:: --threads <n>
 
     Use *n* execution threads if it helps to speed up image operations. The
     default (also if n=0) is to use as many threads as there are cores
     present in the hardware.
+```
 
+```{eval-rst}
 .. option:: --gpu <n>
 
     EXPERIMENTAL: Enable a GPU or other compute acceleration device, if
     available.
 
     This was added in OIIO 3.0.
+```
 
+```{eval-rst}
 .. option:: --cache <size>
 
     Causes images to be read through an ImageCache and set the underlying
     cache size (in MB). See Section :ref:`sec-imagecache-api`.
+```
 
+```{eval-rst}
 .. option:: --oiioattrib <name> <value>
 
     Adds or replaces a global OpenImageIO attribute with the given *name* to
@@ -987,19 +1073,22 @@ subimage according to its metadata::
     Examples::
 
         oiiotool --oiioattrib debug 1 in.jpg -o out.jpg
+```
 
+```{eval-rst}
 .. option:: --experimental
 
     Enables experimental features. Use at your own risk.
 
     This was added in OIIO 3.1.13.
 
+```
 
-.. _sec-oiiotool-control-flow-commands:
+(sec-oiiotool-control-flow-commands)=
 
-:program:`oiiotool` commands for control flow
-=============================================
+## {program}`oiiotool` commands for control flow
 
+```{eval-rst}
 .. option:: --set <name> <value>
 
     Adds or replaces a "user variable". User variables may be
@@ -1025,7 +1114,9 @@ subimage according to its metadata::
 
         $ oiiotool --set i 42 --echo "i = {i}"
         i = 42
+```
 
+```{eval-rst}
 .. option:: --if <condition> true-cmds... --endif
             --if <condition> true-cmds... --else false-cmds... --endif
 
@@ -1043,7 +1134,9 @@ subimage according to its metadata::
         # that is 1.0 everywhere, but if it already has 4 channels, leave
         # it alone. Then output the result to out.exr.
         $ oiiotool in.exr --if "{TOP.nchannels == 3}" --ch ,,,A=1.0 --endif -o rgba.exr
+```
 
+```{eval-rst}
 .. option:: --for <variable> <range> commands... --endfor
 
     Iterate a *variable* over a *range*, executing the *commands*
@@ -1088,7 +1181,9 @@ subimage according to its metadata::
         3
         2
         1
+```
 
+```{eval-rst}
 .. option:: --while <condition> commands... --endwhile
 
     If the *condition* is true, execute *commands*, and keep doing that
@@ -1107,7 +1202,9 @@ subimage according to its metadata::
         2
         3
         4
-    
+```
+
+```{eval-rst}
 .. option:: --frames <seq>
             --framepadding <n>
 
@@ -1127,19 +1224,25 @@ subimage according to its metadata::
     would match `blah.003.tif`, `blah.004.tif`, `blah.010.tif`,
     `blah.012.tif`, `blah.014.tif`, `blah.016.tif`, `blah.018.tif`,
     `blah.020.tif`.
+```
 
+```{eval-rst}
 .. option:: --views <name1,name2,...>
 
     Supplies a comma-separated list of view names (substituted for `%V`
     and `%v`). If not supplied, the view list will be `left,right`.
+```
 
+```{eval-rst}
 .. option:: --skip-bad-frames
 
     When iterating over a frame range, if this option is used, any errors
     will cease processing that frame, but continue iterating with the next
     frame (rather than the default behavior of exiting immediately and not
     even attempting the other frames in the range).
+```
 
+```{eval-rst}
 .. option:: --parallel-frames
 
     When iterating over a frame range or views, if this option is used, the
@@ -1163,13 +1266,17 @@ subimage according to its metadata::
     even if there are order or data dependencies between your frames, and it
 
     This feature was added to OpenImageIO 2.5.1.
+```
 
+```{eval-rst}
 .. option:: --wildcardoff, --wildcardon
 
     These *positional* options turn off (or on) numeric wildcard expansion
     for subsequent command line arguments. This can be useful in selectively
     disabling numeric wildcard expansion for a subset of the command line.
+```
 
+```{eval-rst}
 .. option:: --evaloff, --evalon
 
     These *positional* options turn off (or on) expression evaluation (things
@@ -1180,18 +1287,18 @@ subimage according to its metadata::
 
 
 
+```
 
-:program:`oiiotool` commands: reading and writing images
-========================================================
+## {program}`oiiotool` commands: reading and writing images
 
 The commands described in this section read images, write images, or control
 the way that subsequent images will be written upon output.
 
-.. _sec-oiiotool-i:
+(sec-oiiotool-i)=
 
-Reading images
---------------
+### Reading images
 
+```{eval-rst}
 .. option:: <filename>
             -i <filename>
 
@@ -1244,7 +1351,9 @@ Reading images
 
             # Extract just the thumbnail from a large image
             oiiotool -i:get_thumbnail=1 input.psd -o thumb.jpg
+```
 
+```{eval-rst}
 .. option:: --iconfig <name> <value>
 
     Sets configuration hint metadata that will apply to the next input file
@@ -1267,13 +1376,14 @@ Reading images
 
         oiiotool --iconfig "oiio:UnassociatedAlpha" 1 in.png -o out.tif
 
+```
 
-Options that control the reading of all images
-----------------------------------------------
+### Options that control the reading of all images
 
 These are all non-positional flags that affect how all images are read in the
-:program:`oiiotool` command.
+{program}`oiiotool` command.
 
+```{eval-rst}
 .. option:: --autocc
 
     Turns on automatic color space conversion: Every input image file will
@@ -1283,10 +1393,10 @@ These are all non-positional flags that affect how all images are read in the
     of an output file contains a color space and that color space is
     associated with a particular data format, it will output that data
     format (akin to `-d`).
-    
+
     The rules for deducing color spaces are as follows, in order of
     priority:
-    
+
     1. If the filename (input or output) contains as a substring the name of
        a color space from the current OpenColorIO configuration, that will
        be assumed to be the color space of input data (or be the requested
@@ -1298,7 +1408,7 @@ These are all non-positional flags that affect how all images are read in the
     3. When outputting to JPEG files, assume that sRGB is the desired output
        color space (since JPEG requires sRGB), but still this only occurs if
        the filename does not specify something different.
-    
+
     If the implied color transformation is unknown (for example, involving a
     color space that is not recognized), a warning will be printed, but it
     the rest of `oiiotool` processing will proceed (but without having
@@ -1330,7 +1440,9 @@ These are all non-positional flags that affect how all images are read in the
         names and use automatic conversion::
 
             oiiotool --autocc in_lg10.dpx --mulc 1.1 -o out_vd16.tif
+```
 
+```{eval-rst}
 .. option:: --autopremult (default), -no-autopremult
 
     By default, OpenImageIO's format readers convert any "unassociated
@@ -1338,14 +1450,18 @@ These are all non-positional flags that affect how all images are read in the
     associated/premultiplied convention.  If the `--no-autopremult` flag is
     found, subsequent inputs will not do this premultiplication. It can be
     turned on again via `--autopremult`.
+```
 
+```{eval-rst}
 .. option:: --autoorient
 
     Automatically do the equivalent of `--reorient` on every image as it is
     read in, if it has a nonstandard orientation. This is generally a good idea
     to use if you are using oiiotool to combine images that may have different
     orientations.
+```
 
+```{eval-rst}
 .. option:: --native
 
     Normally, all images read by :program:`oiiotool` are automatically
@@ -1372,14 +1488,18 @@ These are all non-positional flags that affect how all images are read in the
     in memory). (c) If you know the file has unusual pixel data types that
     might lose precision if converted to `float` (for example, if you have
     images with `uint32` or `double` pixels).
+```
 
+```{eval-rst}
 .. option:: --autotile <tilesize>
 
     For the underlying ImageCache, turn on auto-tiling with the given tile
     size. Setting *tilesize* to 0 turns off auto-tiling (the default is
     off). If auto-tile is turned on, The ImageCache "autoscanline" feature
     will also be enabled. See Section :ref:`sec-imagecache-api` for details.
+```
 
+```{eval-rst}
 .. option:: --missingfile <value>
 
     Determines the behavior when an input file is not found, and no file of
@@ -1401,7 +1521,9 @@ These are all non-positional flags that affect how all images are read in the
     first image that was successfully read. If the first image requested is
     missing (thus, nothing had been successfully read when the missing image
     is needed), it will be HD resolution, 1920x1080, RGBA.
+```
 
+```{eval-rst}
 .. option:: --info
 
     Print metadata information about each input image as it is read.  If
@@ -1420,7 +1542,9 @@ These are all non-positional flags that affect how all images are read in the
     printed for every input file. There is a separate `--printinfo` action
     that immediately prints metadata about the current image at the top of
     the stack (see :ref:`sec-oiiotool-printinfo`).
+```
 
+```{eval-rst}
 .. option:: --metamatch <regex>, --no-metamatch <regex>
 
     Regular expressions to restrict which metadata are output when using
@@ -1430,7 +1554,9 @@ These are all non-positional flags that affect how all images are read in the
     suppressed; others (non-matches) are printed.  It is not advised to use
     both of these options at the same time (probably nothing bad will
     happen, but it's hard to reason about the behavior in that case).
+```
 
+```{eval-rst}
 .. option:: --stats
 
     Print detailed statistical information about each input image as it is
@@ -1440,11 +1566,15 @@ These are all non-positional flags that affect how all images are read in the
     printed for every input file. There is a separate `--printstats` action
     that immediately prints statistics about the current image at the top of
     the stack (see :ref:`sec-oiiotool-printinfo`).
+```
 
+```{eval-rst}
 .. option:: --hash
 
     Print the SHA-1 hash of the pixels of each input image as it is read.
+```
 
+```{eval-rst}
 .. option:: --dumpdata
 
     Print to the console the numerical values of every pixel, for each input
@@ -1475,19 +1605,20 @@ These are all non-positional flags that affect how all images are read in the
             /* (1, 0): */ { 0.653315008, 0.527794302, 0.359594107, 0.277836263 },
             ...
         };
+```
 
-.. _sec-oiiotool-o:
+(sec-oiiotool-o)=
 
-Writing images
---------------
+### Writing images
 
+```{eval-rst}
 .. option:: -o <filename>
 
     Outputs the current image to the named file.  This does not remove the
     current image from the image stack, it merely saves a copy of it.
 
     Optional appended modifiers include:
-    
+
       `:type=` *name*
         Set the pixel data type (like `-d`) for this output image (e.g.,
         `uint8`, `uint16`, `half`, `float`, etc.).
@@ -1529,19 +1660,21 @@ Writing images
     index of the image (beginning with *n*). For example, to take a
     multi-image TIFF and extract all the subimages and save them as separate
     files::
-    
+
         oiiotool multi.tif -sisplit -o:all=1 sub%04d.tif
-    
+
     This will output the subimges as separate files `sub0001.tif`,
     `sub0002.tif`, and so on.
 
     Expression substitution can be used to insert the subimage name
     into each filename::
-    
+
         oiiotool multi.tif -sisplit -o:all=1 "sub.{TOP.'oiio:subimagename'}.tif"
-    
 
 
+```
+
+```{eval-rst}
 .. option:: -otex <filename>
             -oenv <filename>
             -obump <filename>
@@ -1553,10 +1686,10 @@ Writing images
     :program:`oiiotool` command line sequence of image operations, culminating
     in a direct saving of the results as a texture map, rather than saving to a
     temporary file and then separately invoking `maketx`.
-    
+
     In addition to all the optional arguments of `-o`, optional appended
     arguments for `-otex`, `-oenv`, and `-obump` also include:
-    
+
       `:wrap=` *string*
         Set the default $s$ and $t$ wrap modes of the texture, to one of:
         `:black`, `clamp`, `periodic`, `mirror`.
@@ -1621,11 +1754,11 @@ Writing images
       `:bumpinvertt=` *int*
         For `-obump` only, inverts slopes on the t/v/y direction. (default: 0)
       `:bumpscale=` *float*
-        For `-obump` only, scales the strength of the resulting map. (default: 
+        For `-obump` only, scales the strength of the resulting map. (default:
         1.0)
       `:bumprange=` *string*
-        For `obump` only, specifies the normal data convention when 
-        `bumpformat=normal` as one of `centered`, `positive`, `auto`. 
+        For `obump` only, specifies the normal data convention when
+        `bumpformat=normal` as one of `centered`, `positive`, `auto`.
         (default: auto)
       `:cdf=` *int*
         If nonzero, will add to the texture metadata the forward and inverse
@@ -1645,14 +1778,16 @@ Writing images
     Examples::
 
         oiiotool in.tif -otex out.tx
-    
+
         oiiotool in.jpg --colorconvert srgb_rec709_scene lin_rec709_scene -d uint16 -otex out.tx
-    
+
         oiiotool --pattern:checker 512x512 3 -d uint8 -otex:wrap=periodic checker.tx
-    
+
         oiiotool in.exr -otex:hilightcomp=1:sharpen=0.5 out.exr
 
+```
 
+```{eval-rst}
 .. option:: -d <datatype>
             -d <channelname>=<datatype>
             -d <subimagename>.*=<datatype>
@@ -1666,44 +1801,52 @@ Writing images
     is only for the named channel when encountered in a named subimage. And
     if the specification is of the form `subimagename.*=type`, then all
     channels of that subimage will be output with the given type.
-    
+
     Valid types are: `uint8`, `sint8`, `uint16`, `sint16`, `half`, `float`,
     `double`. The types `uint10` and `uint12` may be used to request 10- or
     12-bit unsigned integers.  If the output file format does not support
     them, `uint16` will be substituted.
-    
+
     If the `-d` option is not supplied, the output data type will be
     deduced from the data format of the input files, if possible.
-    
+
     In any case, if the output file type does not support the requested data
     type, it will instead use whichever supported data type results in the
     least amount of precision lost.
+```
 
+```{eval-rst}
 .. option:: --scanline
 
     Requests that subsequent output files be scanline-oriented, if scanline
     orientation is supported by the output file format.  By default, the
     output file will be scanline if the input is scanline, or tiled if the
     input is tiled.
+```
 
+```{eval-rst}
 .. option:: --tile <x> <y>
 
     Requests that subsequent output files be tiled, with the given
     :math:`x \times y` tile size, if tiled images are supported by the
     output format. By default, the output file will take on the tiledness
     and tile size of the input file.
+```
 
+```{eval-rst}
 .. option:: --compression <method>
             --compression <method:quality>
 
     Sets the compression method, and optionally a quality setting, for the
     output image.  Each ImageOutput plugin will have its own set of methods
     that it supports.
-    
+
     Sets the compression method, and optionally a quality setting, for the
     output image.  Each ImageOutput plugin will have its own set of methods
     that it supports.
+```
 
+```{eval-rst}
 .. option:: --quality <q>
 
     Sets the compression quality, on a 1-100 floating-point scale.
@@ -1714,7 +1857,9 @@ Writing images
 
     This is considered deprecated, and in general we now recommend just
     appending the quality metric to the `--compression name:qual`.
+```
 
+```{eval-rst}
 .. option:: --dither
 
     Turns on *dither* when outputting to 8-bit or less image files (does not
@@ -1724,7 +1869,9 @@ Writing images
     pattern for different files. It only has an effect when outputting to
     a file of 8 or fewer bits per sample, and only when the data being
     saved starts off with higher than 8 bit precision.
+```
 
+```{eval-rst}
 .. option:: --planarconfig <config>
 
     Sets the planar configuration of subsequent outputs (if supported by
@@ -1734,7 +1881,9 @@ Writing images
     `default` for the default choice for the given format.  This command
     will be ignored for output files whose file format does not support the
     given choice.
+```
 
+```{eval-rst}
 .. option:: --adjust-time
 
     When this flag is present, after writing each output, the resulting
@@ -1743,7 +1892,9 @@ Writing images
     file times that match when the original image was created or captured,
     rather than simply when :program:`oiiotool` was run.  This has no effect
     on image files that don't contain any `"DateTime"` metadata.
+```
 
+```{eval-rst}
 .. option:: --noautocrop
 
     For subsequent outputs, do *not* automatically crop images whose formats
@@ -1752,7 +1903,9 @@ Writing images
     as necessary when written to formats that don't support the concepts of
     pixel data windows and full/display windows.  This is a non-issue for
     file formats that support these concepts, such as OpenEXR.
+```
 
+```{eval-rst}
 .. option:: --autotrim
 
     For subsequent outputs, if the output format supports separate pixel
@@ -1760,7 +1913,9 @@ Writing images
     it writes the minimal data window that contains all the non-zero valued
     pixels.  In other words, trim off any all-black border rows and columns
     before writing the file.
+```
 
+```{eval-rst}
 .. option:: --metamerge
 
     When this flag is used, most image operations will try to merge the
@@ -1771,12 +1926,13 @@ Writing images
     (This was added for OpenImageIO 2.1.)
 
 
+```
 
-.. _sec-oiiotool-printinfo:
+(sec-oiiotool-printinfo)=
 
-:program:`oiiotool` commands that print information about the current image
-===========================================================================
+## {program}`oiiotool` commands that print information about the current image
 
+```{eval-rst}
 .. option:: --echo <message>
 
     Prints the message to the console, at that point in the left-to-right
@@ -1792,17 +1948,21 @@ Writing images
     Examples::
 
         oiiotool test.tif --resize 256x0 --echo "result is {TOP.width}x{TOP.height}"
-    
+
     This will resize the input to be 256 pixels wide and automatically size
     it vertically to preserve the original aspect ratio, and then print a
     message to the console revealing the resolution of the resulting image.
+```
 
+```{eval-rst}
 .. option:: --list-formats
 
     Prints the complete list of file formats supported by this build of
     OpenImageIO, and for each one, the list of file extensions that it
     presumes are associated with the file format. (Added in OIIO 2.2.13.)
+```
 
+```{eval-rst}
 .. option:: --printinfo
 
     Prints information and all metadata about the current (top) image. This
@@ -1831,7 +1991,9 @@ Writing images
     - `:verbose=0`
         Overrides the default verbosity (1, on) with a less verbose output.
 
+```
 
+```{eval-rst}
 .. option:: --printstats
 
     Prints detailed statistical information about the current image. This
@@ -1860,7 +2022,9 @@ Writing images
         If nonzero, stats will be printed about all subimages of the current
         image. (The default is given by whether or not the `-a` option was
         used.)
+```
 
+```{eval-rst}
 .. option:: --colorcount r1,g1,b1,...:r2,g2,b2,...:...
 
     Given a list of colors separated by colons or semicolons, where each
@@ -1899,7 +2063,9 @@ Writing images
     by setting the epsilon to 1000 for the alpha channel, it effectively
     ensures that alpha will not be considered in the matching of pixels to
     the color value.
+```
 
+```{eval-rst}
 .. option:: --rangecheck Rlow,Glow,Blow,...  Rhi,Bhi,Ghi,...
 
     Given a two colors (each a comma-separated list of values for each
@@ -1917,10 +2083,11 @@ Writing images
           221  > 1,1,1
         65315  within range
 
+```
 
-:program:`oiiotool` commands that compare images
-================================================
+## {program}`oiiotool` commands that compare images
 
+```{eval-rst}
 .. option:: --diff
             --fail <A> --failpercent <B> --hardfail <C>
             --warn <A> --warnpercent <B> --hardwarn <C>
@@ -1929,26 +2096,30 @@ Writing images
     image on the stack, and prints a report of those differences (how
     many pixels differed, the maximum amount, etc.).  This command does not
     alter the image stack.
-    
+
     The `--fail`, `--failpercent`, and `--hardfail` options set thresholds
     for `FAILURE`: if more than *B* % of pixels (on a 0-100 floating point
     scale) are greater than *A* different, or if *any* pixels are more than
     *C* different.  The defaults are to fail if more than 0% (any) pixels
     differ by more than 0.00001 (1e-6), and *C* is infinite.
-    
+
     The `--warn`, `--warnpercent`, and `hardwarn` options set thresholds for
     `WARNING`: if more than *B* % of pixels (on a 0-100 floating point scale)
     are greater than *A* different, or if *any* pixels are more than *C*
     different.  The defaults are to warn if more than 0% (any) pixels differ
     by more than 0.00001 (1e-6), and *C* is infinite.
+```
 
+```{eval-rst}
 .. option:: --pdiff
 
     This command computes the difference of the current image and the next
     image on the stack using the Yee perceptual metric, and prints whether or
     not they match according to that metric.  This command does not alter the
     image stack.
+```
 
+```{eval-rst}
 .. option:: --flipdiff
 
     Compute the FLIP perceptual difference of the top two images on the stack
@@ -2030,20 +2201,21 @@ Writing images
 
     This command was added in OIIO 3.2.
 
+```
 
-:program:`oiiotool` commands that change the current image metadata
-===================================================================
+## {program}`oiiotool` commands that change the current image metadata
 
-This section describes :program:`oiiotool` commands that alter the metadata
-of the current image, but do not alter its pixel values.  Only the current
+This section describes {program}`oiiotool` commands that alter the metadata
+of the current image, but do not alter its pixel values. Only the current
 (i.e., top of stack) image is affected, not any images further down the
 stack.
 
 If the `-a` flag has previously been set, these commands apply to all
-subimages or MIPmap levels of the current top image.  Otherwise, they only
+subimages or MIPmap levels of the current top image. Otherwise, they only
 apply to the highest-resolution MIPmap level of the first subimage of the
 current top image.
 
+```{eval-rst}
 .. option:: --attrib <name> <value>
             --sattrib <name> <value>
 
@@ -2066,25 +2238,25 @@ current top image.
     optional leading minus sign), it will be saved as `int` metadata; if it
     also contains a decimal point, it will be saved as `float` metadata;
     otherwise, it will be saved as a `string` metadata.
-    
+
     The `--sattrib` command is equivalent to `--attrib:type=string`.
 
     Examples::
 
         # Set the IPTC:City attribute to "Berkeley"
         oiiotool in.jpg --attrib "IPTC:City" "Berkeley" -o out.jpg
-    
+
         # Set a name attribute to "0", but force it to be a string
         oiiotool in.jpg --attrib:type=string "Name" "0" -o out.jpg
-    
+
         # Another way to force a string attribute using --sattrib:
         oiiotool in.jpg --sattrib "Name" "0" -o out.jpg
-    
+
         # Set the worldcam attribute to be a matrix
         oiiotool in.exr --attrib:type=matrix worldtocam \
                 "1,0,0,0,0,1,0,0,0,0,1,0,2.3,2.1,0,1" -o out.exr
 
-        # Set an attribute to be a timecode    
+        # Set an attribute to be a timecode
         oiiotool in.exr --attrib:type=timecode smpte:TimeCode "11:34:04:00" -o out.exr
 
         # Set an attribute in all subimages
@@ -2092,7 +2264,9 @@ current top image.
 
         # Set an attribute just in subimages 0 and 3
         oiiotool multipart.exr --attrib:subimages=0,3 "Foo" "bar" -o out.exr
+```
 
+```{eval-rst}
 .. option:: --caption <text>
 
     Sets the image metadata `"ImageDescription"`. This has no effect if the
@@ -2107,7 +2281,9 @@ current top image.
         Only included subimages will have the attribute changed. If subimages
         are not set, only the first subimage will be changed, or all subimages
         if the `-a` command line flag was used.
+```
 
+```{eval-rst}
 .. option:: --keyword <text>
 
     Adds a keyword to the image metadata `"Keywords"`.  Any existing
@@ -2121,7 +2297,9 @@ current top image.
     a single field for keywords, OpenImageIO will concatenate the keywords,
     separated by semicolon (`;`), so don't use semicolons within your
     keywords.
+```
 
+```{eval-rst}
 .. option:: --clear-keywords
 
     Clears all existing keywords in the current image.
@@ -2133,20 +2311,22 @@ current top image.
         Only included subimages will have the attribute changed. If subimages
         are not set, only the first subimage will be changed, or all subimages
         if the `-a` command line flag was used.
+```
 
+```{eval-rst}
 .. option:: --history
             --no-history
             --nosoftwareattrib
 
     By default, oiiotool writes "OpenImageIO <version>" and a SHA-1 hash of
     the command line as the "Software" metadata in output images.
-    
+
     The `--history` option appends the full command line arguments and appends
     that information to the "ImageHistory" metadata as well. This behavior is
     "opt-in" because some users may find it undesirable for metadata in the
     image to potentially reveal any proprietary information that might have
     been present in the command line arguments.
-    
+
     If the `OPENIMAGEIO_METADATA_HISTORY` environment variable is set to a
     nonzero integer value, the `--history` option will be enabled by default,
     but can be disabled on the command line with `--no-history`.
@@ -2161,13 +2341,17 @@ current top image.
     `OPENIMAGEIO_METADATA_HISTORY` environment variable is set), and require the
     new `--history` option to cause the command line arguments to be written
     as metadata.
+```
 
+```{eval-rst}
 .. option:: --sansattrib
 
     When set, this edits the command line inserted in the "Software" and
     "ImageHistory" metadata to omit any verbose `--attrib` and `--sattrib`
     commands.
+```
 
+```{eval-rst}
 .. option:: --eraseattrib <pattern>
 
     Removes any metadata whose name matches the regular expression *pattern*.
@@ -2180,7 +2364,7 @@ current top image.
         Only included subimages will have the attribute changed. If subimages
         are not set, only the first subimage will be changed, or all subimages
         if the `-a` command line flag was used.
-      
+
       `:fromfile=` *int*
         When set to 1, the next argument will be interpreted as
         the name of a file containing a list of patterns to erase, for example:
@@ -2192,10 +2376,10 @@ current top image.
 
         # Remove one item only
         oiiotool in.jpg --eraseattrib "smpte:TimeCode" -o no_timecode.jpg
-    
+
         # Remove all GPS tags
         oiiotool in.jpg --eraseattrib "GPS:.*" -o no_gps_metadata.jpg
-    
+
         # Remove all metadata
         oiiotool in.exr --eraseattrib:subimages=all ".*" -o no_metadata.exr
 
@@ -2206,7 +2390,9 @@ current top image.
             Make
             GPS:.*
 
+```
 
+```{eval-rst}
 .. option:: --orientation <orient>
 
     Explicitly sets the image's `"Orientation"` metadata to a numeric value
@@ -2222,7 +2408,9 @@ current top image.
         Only included subimages will have the attribute changed. If subimages
         are not set, only the first subimage will be changed, or all subimages
         if the `-a` command line flag was used.
+```
 
+```{eval-rst}
 .. option:: --orientcw
             --orientccw
             --orient180
@@ -2234,16 +2422,18 @@ current top image.
     how the image should be displayed, it does NOT alter the pixels
     themselves, and so has no effect for image formats that don't support
     some kind of orientation metadata.
-    
+
     See the `--rotate90`, `--rotate180`, `--rotate270`, and `--reorient`
     commands for true rotation of the pixels (not just the metadata).
+```
 
+```{eval-rst}
 .. option:: --origin <neworigin>
 
     Set the pixel data window origin, essentially translating the existing
     pixel data window to a different position on the image plane.
     The new data origin is in either of these forms::
-    
+
          [+-]x[+-]y
 
          x,y
@@ -2254,15 +2444,17 @@ current top image.
         --origin +0-40            x=0, y=-40
         --origin 0,-40            x=0, y=-40   using comma notation
 
+```
 
+```{eval-rst}
 .. option:: --originoffset <offset>
 
     Alter the data window origin, translating the existing pixel data window
     by this relative amount.
     The offset is in the form::
-    
+
          [+-]x[+-]y
-         
+
          x,y
 
     Examples::
@@ -2272,7 +2464,9 @@ current top image.
         --originoffset +0-40            # new x=100, y=-20
         --originoffset 0,-40            # new x=100, y=-20   comma notation
 
+```
 
+```{eval-rst}
 .. option:: --fullsize <size>
 
     Set the display/full window size and/or offset.  The size is in the
@@ -2297,12 +2491,16 @@ current top image.
     `--fullsize 1024x768,100,0`   resolution w=1024, h=768, offset x=100, y=0
     ============================  ============================================
 
+```
 
+```{eval-rst}
 .. option:: --fullpixels
 
     Set the full/display window range to exactly cover the pixel data
     window.
+```
 
+```{eval-rst}
 .. option:: --chnames <name-list>
 
     Rename some or all of the channels of the top image to the given
@@ -2320,26 +2518,31 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
         Only included subimages will have their channels renamed.
 
+```
 
-.. _sec-oiiotool-shuffle-channels-or-subimages:
+(sec-oiiotool-shuffle-channels-or-subimages)=
 
-:program:`oiiotool` commands that shuffle channels or subimages
-===============================================================
+## {program}`oiiotool` commands that shuffle channels or subimages
 
+```{eval-rst}
 .. option:: --selectmip <level>
 
     If the current image is MIP-mapped, replace the current image with a new
     image consisting of only the given *level* of the MIPmap. Level 0 is the
     highest resolution version, level 1 is the next-lower resolution
     version, etc.
+```
 
+```{eval-rst}
 .. option:: --unmip
 
     If the current image is MIP-mapped, discard all but the top level (i.e.,
     replacing the current image with a new image consisting of only the
     highest-resolution level).  Note that this is equivalent to `--selectmip
     0`.
+```
 
+```{eval-rst}
 .. option:: --subimage <n>
 
     If the current image has multiple subimages, replace it with just the
@@ -2350,7 +2553,9 @@ current top image.
 
     Additionally, this command can be used to remove one subimage (leaving
     the others) by using the optional modifier `--subimage:delete=1`.
+```
 
+```{eval-rst}
 .. option:: --thumbnail-get
 
     Replace the top image on the stack with its embedded thumbnail.
@@ -2381,7 +2586,9 @@ current top image.
 
         # Fall back to a generated thumbnail if the file has none
         oiiotool input.psd --thumbnail-get:fail=0 -o thumb.jpg
+```
 
+```{eval-rst}
 .. option:: --thumbnail-set
 
     Remove the top image from the stack and attach it as the thumbnail of the
@@ -2394,12 +2601,16 @@ current top image.
 
         # Attach a 128x128 box-filtered copy of the image as its thumbnail
         oiiotool input.exr --dup --resize:filter=box 128x128 --thumbnail-set -o out_with_thumb.tga
+```
 
+```{eval-rst}
 .. option:: --sisplit
 
     Remove the top image from the stack, split it into its constituent
     subimages, and push them all onto the stack (first to last).
+```
 
+```{eval-rst}
 .. option:: --siappend
 
     Replaces the top two (or more) images on the stack with a single new
@@ -2412,13 +2623,17 @@ current top image.
         Specify the number (if more than 2) of images to combine into a
         single multi-subimage image. This will be clamped between 2 and the
         total number of images on the stack.
+```
 
+```{eval-rst}
 .. option:: --siappendall
 
     Replace *all* of the individual images on the stack with a single new
     image comprised of the subimages of all original images appended
     together.
+```
 
+```{eval-rst}
 .. option:: --layersplit
 
     Remove the top image from the stack, split it into a separate image for
@@ -2430,7 +2645,9 @@ current top image.
     name. Channels that do not contain a dot in their name are considered
     to be part of an anonymous layer, and thus are all gathered into a
     single image (the first one pushed on the stack).
+```
 
+```{eval-rst}
 .. option:: --ch <channellist>
 
     Replaces the top image with a new image whose channels have been
@@ -2456,7 +2673,9 @@ current top image.
     If the channel list does not specify any changes (neither order, nor
     name, nor value), then this will just leave the images as-is, without
     any unnecessary expense or pointless copying of images in memory.
+```
 
+```{eval-rst}
 .. option:: --nchannels <n>
 
     Replaces the top image with a new image whose channels are the first *n*
@@ -2464,7 +2683,9 @@ current top image.
     channels in the input image, the extra channels will simply be ignored.
     If *n* is greater than the number of channels in the input image, the
     additional channels will be filled with 0 values.
+```
 
+```{eval-rst}
 .. option:: --chappend
 
     Replaces the top two (or more) images on the stack with a single new
@@ -2481,10 +2702,11 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
 
+```
 
-:program:`oiiotool` commands that adjust the image stack
-========================================================
+## {program}`oiiotool` commands that adjust the image stack
 
+```{eval-rst}
 .. option:: --label <name>
 
     Gives a name to (and saves) the current image at the top of the stack.
@@ -2495,54 +2717,69 @@ current top image.
     The name of the label must be in the form of an "identifier" (a sequence
     of alphanumeric characters and underscores, starting with a letter or
     underscore).
+```
 
+```{eval-rst}
 .. option:: --dup
 
     Duplicate the current image and push the duplicate on the stack. Note
     that this results in both the current and the next image on the stack
     being identical copies.
+```
 
+```{eval-rst}
 .. option:: --swap
 
     Swap the current image and the next one on the stack.
+```
 
+```{eval-rst}
 .. option:: --pop
 
     Pop the image stack, discarding the current image and thereby making the
     next image on the stack into the new current image.
+```
 
+```{eval-rst}
 .. option:: --popbottom
 
     Remove and discard the bottom image from the image stack.
     (Added in OIIO 3.0.)
+```
 
+```{eval-rst}
 .. option:: --stackreverse
 
     Reverse the order of the entire stack, i.e. making the top be the new
     bottom and the old bottom be the new top. (Added in OIIO 3.0.)
+```
 
+```{eval-rst}
 .. option:: --stackextract <index>
 
     Move the indexed item (0 for the top of the stack, 1 for the next item
     down, etc.) to the top of the stack, preserving the relative order of all
     other items. (Added in OIIO 3.0.)
+```
 
+```{eval-rst}
 .. option:: --stackclear <index>
 
     Remove all items from the stack, leaving it empty and with no "current"
     image. (Added in OIIO 3.0.)
 
+```
 
-:program:`oiiotool` commands that make entirely new images
-==========================================================
+## {program}`oiiotool` commands that make entirely new images
 
+```{eval-rst}
 .. option:: --create <size> <channels>
 
     Create new black image with the given size and number of channels,
     pushing it onto the image stack and making it the new current image.
-    
+
     The *size* is in the form
-    
+
         *width* x *height*
 
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
@@ -2562,11 +2799,13 @@ current top image.
         --create 1024x768,100,0 4    # same, using comma notation
         --create:type=uint8 1920x1080 3  # RGB, store internally as uint8
 
+```
 
+```{eval-rst}
 .. option:: --pattern <patternname> <size> <channels>
 
     Create new image with the given size and number of channels,
-    initialize its pixels to the named pattern, and push it onto 
+    initialize its pixels to the named pattern, and push it onto
     the image stack to make it the new current image.
 
     The *size* is in the form
@@ -2615,9 +2854,9 @@ current top image.
       0). For any of these noise types, the option `seed=` can be used to
       change the random number seed and `mono=1` can be used to make
       monochromatic noise (same value in all channels).
-    
+
     Examples:
-    
+
         A constant 4-channel, 640x480 image with all pixels (0.5, 0.5, 0.1, 1)::
 
             --pattern constant:color=0.3,0.5,0.1,1.0 640x480 4
@@ -2669,7 +2908,9 @@ current top image.
             .. image:: figures/gaussnoise.jpg
                :height: 2.0 in
 
+```
 
+```{eval-rst}
 .. option:: --kernel <name> <size>
 
     Create new 1-channel `float` image big enough to hold the named kernel
@@ -2678,7 +2919,7 @@ current top image.
     kernel image will have its origin offset so that the kernel center is at
     (0,0), and and will be normalized (the sum of all pixel values will be
     1.0).
-    
+
     Kernel names can be: `gaussian`, `sharp-gaussian`, `box`, `triangle`,
     `blackman-harris`, `mitchell`, `b-spline`, `cubic`, `keys`, `simon`,
     `rifman`, `disk`. There are also `catmull-rom` and `lanczos3` (and its
@@ -2691,13 +2932,15 @@ current top image.
         oiiotool --kernel gaussian 11x11 -o gaussian.exr
 
 
+```
 
+```{eval-rst}
 .. option:: --capture
 
     Capture a frame from a camera device, pushing it onto the image stack
     and making it the new current image.  Optional appended arguments
     include:
-    
+
     - `camera=` *num* : Select which camera number to capture (default: 0).
 
     Examples::
@@ -2705,10 +2948,11 @@ current top image.
         --capture               # Capture from the default camera
         --capture:camera=1      # Capture from camera #1
 
+```
 
-:program:`oiiotool` commands that do image processing
-=====================================================
+## {program}`oiiotool` commands that do image processing
 
+```{eval-rst}
 .. option:: --add
             --addc <value>
             --addc <value0,value1,value2...>
@@ -2716,7 +2960,7 @@ current top image.
     Replace the *two* top images with a new image that is the pixel-by-pixel
     sum of those images (`--add`), or add a constant color value to all
     pixels in the top image (`--addc`).
-    
+
     For `--addc`, if a single constant value is given, it will be added to
     all color channels. Alternatively, a series of comma-separated constant
     values (with no spaces!) may be used to specify a different value to
@@ -2742,7 +2986,9 @@ current top image.
             :width: 2.0 in
     |
 
+```
 
+```{eval-rst}
 .. option:: --sub
             --subc <value>
             --subc <value0,value1,value2...>
@@ -2750,7 +2996,7 @@ current top image.
     Replace the *two* top images with a new image that is the pixel-by-pixel
     difference between the first and second images (`--sub`), or subtract a
     constant color value from all pixels in the top image (`--subc`).
-    
+
     For `--subc`, if a single constant value is given, it will be subtracted
     from all color channels. Alternatively, a series of comma-separated
     constant values (with no spaces!) may be used to specify a different
@@ -2761,7 +3007,9 @@ current top image.
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
+```
 
+```{eval-rst}
 .. option:: --scale
 
     Replace the *two* top images with a new image that is the pixel-by-pixel
@@ -2782,7 +3030,9 @@ current top image.
             :width: 2.0 in
         |
 
+```
 
+```{eval-rst}
 .. option:: --mul
             --mulc <value>
             --mulc <value0,value1,value2...>
@@ -2790,19 +3040,19 @@ current top image.
     Replace the *two* top images with a new image that is the pixel-by-pixel
     multiplicative product of those images (`--mul`), or multiply all pixels
     in the top image by a constant value (`--mulc`).
-    
+
     For `--mulc`, if a single constant value is given, it will be multiplied
     to all color channels. Alternatively, a series of comma-separated
     constant values (with no spaces!) may be used to specify a different
     value to multiply with each channel in the image.
-    
+
     Optional appended modifiers include:
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         # Scale image brightness to 20% of its original
         oiiotool tahoe.jpg --mulc 0.2 -o mulc.jpg
     ..
@@ -2813,7 +3063,9 @@ current top image.
             :width: 2.0 in
         |
 
+```
 
+```{eval-rst}
 .. option:: --div
             --divc <value>
             --divc <value0,value1,value2...>
@@ -2823,7 +3075,7 @@ current top image.
     the second image (`--div`), or divide all pixels in the top image by a
     constant value (`--divc`). Division by zero is defined as resulting in
     0.
-    
+
     For `--divc`, if a single constant value is given, all color channels
     will have their values divided by the same value.  Alternatively, a
     series of comma-separated constant values (with no spaces!) may be used
@@ -2835,7 +3087,9 @@ current top image.
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
+```
 
+```{eval-rst}
 .. option:: --mad
 
     Replace the *three* top images A, B, and C (C being the top of stack, B
@@ -2848,7 +3102,9 @@ current top image.
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
+```
 
+```{eval-rst}
 .. option:: --invert
 
     Replace the top image with its color inverse. By default, it only
@@ -2872,7 +3128,7 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
        oiiotool tahoe.jpg --inverse -o inverse.jpg
     ..
 
@@ -2882,7 +3138,9 @@ current top image.
             :width: 2.0 in
 
 
+```
 
+```{eval-rst}
 .. option:: --absdiff
             --absdiffc <value>
             --absdiffc <value0,value1,value2...>
@@ -2897,7 +3155,9 @@ current top image.
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
+```
 
+```{eval-rst}
 .. option:: --abs
 
     Replace the current image with a new image that has each pixel
@@ -2907,7 +3167,9 @@ current top image.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
+```{eval-rst}
 .. option:: --powc <value>
             --powc <value0,value1,value2...>
 
@@ -2922,7 +3184,9 @@ current top image.
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
+```
 
+```{eval-rst}
 .. option:: --normalize
 
     Normalize the top image. Assuming the first three channels represent a 3D
@@ -2954,7 +3218,9 @@ current top image.
         # are encoded on [0,1] for both input and output:
         oiiotool xyzvectors.tif --normalize:incenter=0.5:outcenter=0.5:scale=0.5 -o normalized.tif
 
+```
 
+```{eval-rst}
 .. option:: --noise
 
     Alter the top image to introduce noise, with the option `:type=`
@@ -2968,7 +3234,7 @@ current top image.
     are suppressed; (4) `salt` for "salt and pepper" noise where a portion of
     pixels given by  option `portion=` (default: 0.1) is replaced with value
     given by option `value=` (default: 0).
-    
+
     Optional appended modifiers include:
 
       `:seed=` *int*
@@ -2984,35 +3250,43 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         # Add color gaussian noise to an image
         oiiotool tahoe.jpg --noise:type=gaussian:stddev=0.1 -o noisy.jpg
-    
+
         # Simulate bad pixels by turning 1% of pixels black, but only in RGB
         # channels (leave A alone)
         oiiotool tahoe-rgba.tif --noise:type=salt:value=0:portion=0.01:mono=1:nchannels=3 \
             -o dropouts.tif
-    
+
     ..
+```
 
-        .. |noiseimg1| image:: figures/unifnoise1.jpg
-           :height: 1.25 in
-        .. |noiseimg2| image:: figures/bluenoise.jpg
-           :height: 1.25 in
-        .. |noiseimg3| image:: figures/tahoe-gauss.jpg
-           :width: 1.75 in
-        .. |noiseimg4| image:: figures/tahoe-pepper.jpg
-           :width: 1.75 in
+::::{list-table}
 
+* - ```{image} figures/unifnoise1.jpg
+    :height: 1.25 in
+    :alt: noiseimg1
+    ```
+  - ```{image} figures/bluenoise.jpg
+    :height: 1.25 in
+    :alt: noiseimg2
+    ```
+  - ```{image} figures/tahoe-gauss.jpg
+    :width: 1.75 in
+    :alt: noiseimg3
+    ```
+  - ```{image} figures/tahoe-pepper.jpg
+    :width: 1.75 in
+    :alt: noiseimg4
+    ```
+* - white noise
+  - blue noise
+  - gaussian noise added
+  - salt & pepper dropouts
+::::
 
-    +------------------------+------------------------+------------------------+------------------------+
-    | |noiseimg1|            | |noiseimg2|            | |noiseimg3|            | |noiseimg4|            |
-    +------------------------+------------------------+------------------------+------------------------+
-    | white noise            | blue noise             | gaussian noise added   | salt & pepper dropouts |
-    +------------------------+------------------------+------------------------+------------------------+
-
-|
-
+```{eval-rst}
 .. option:: --chsum
 
     Replaces the top image by a copy that contains only 1 color channel,
@@ -3038,9 +3312,9 @@ current top image.
            :width: 2.0 in
         .. image:: figures/luma.jpg
            :width: 2.0 in
+```
 
-|
-
+```{eval-rst}
 .. option:: --contrast
 
     Remap pixel values from [black, white] to [min, max], with an optional
@@ -3075,24 +3349,33 @@ current top image.
         oiiotool tahoe.tif --contrast:black=0.1:white=0.75 -o linstretch.tif
         oiiotool tahoe.tif --contrast:black=1.0:white=0.0:clamp=0 -o inverse.tif
         oiiotool tahoe.tif --contrast:scontrast=5 -o sigmoid.tif
+```
 
-    .. |crimage1| image:: figures/tahoe-small.jpg
-       :width: 1.5 in
-    .. |crimage2| image:: figures/tahoe-lincontrast.jpg
-       :width: 1.5 in
-    .. |crimage3| image:: figures/tahoe-inverse.jpg
-       :width: 1.5 in
-    .. |crimage4| image:: figures/tahoe-sigmoid.jpg
-       :width: 1.5 in
-    ..
+::::{list-table}
 
-      +-------------+-------------+-------------+-------------+
-      | |crimage1|  | |crimage2|  | |crimage3|  | |crimage4|  |
-      +-------------+-------------+-------------+-------------+
-      | original    | linstretch  | inverse     | sigmoid     |
-      +-------------+-------------+-------------+-------------+
+* - ```{image} figures/tahoe-small.jpg
+    :width: 1.5 in
+    :alt: crimage1
+    ```
+  - ```{image} figures/tahoe-lincontrast.jpg
+    :width: 1.5 in
+    :alt: crimage2
+    ```
+  - ```{image} figures/tahoe-inverse.jpg
+    :width: 1.5 in
+    :alt: crimage3
+    ```
+  - ```{image} figures/tahoe-sigmoid.jpg
+    :width: 1.5 in
+    :alt: crimage4
+    ```
+* - original
+  - linstretch
+  - inverse
+  - sigmoid
+::::
 
-
+```{eval-rst}
 .. option:: --saturate <scale>
 
     Scale the saturation of the first three color channels of the image by
@@ -3110,32 +3393,37 @@ current top image.
 
         oiiotool tahoe.exr --saturate 0 -o grey.exr
         oiiotool tahoe.exr --saturate 2 -o colorful.exr
+```
 
-    .. |sat1| image:: figures/tahoe-small.jpg
-       :width: 1.5 in
-    .. |sat0| image:: figures/tahoe-sat0.jpg
-       :width: 1.5 in
-    .. |sat2| image:: figures/tahoe-sat2.jpg
-       :width: 1.5 in
-    ..
+::::{list-table}
 
-      +-----------------+-----------------+-----------------+
-      | |sat1|          | |sat2|          | |sat2|          |
-      +-----------------+-----------------+-----------------+
-      | original        | sat scale = 0   | sat scale = 2   |
-      +-----------------+-----------------+-----------------+
+* - ```{image} figures/tahoe-small.jpg
+    :width: 1.5 in
+    :alt: sat1
+    ```
+  - ```{image} figures/tahoe-sat2.jpg
+    :width: 1.5 in
+    :alt: sat2
+    ```
+  - ```{image} figures/tahoe-sat2.jpg
+    :width: 1.5 in
+    :alt: sat2
+    ```
+* - original
+  - sat scale = 0
+  - sat scale = 2
+::::
 
-    This command was added in OIIO 2.4.
+> This command was added in OIIO 2.4.
 
-
-
+```{eval-rst}
 .. option:: --colormap <mapname>
 
     Creates an RGB color map based on the luminance of the input image. The
     `mapname` may be one of: "magma", "inferno", "plasma", "viridis", "turbo",
     "blue-red", "spectrum", and "heat". Or, `mapname` may also be a
     comma-separated list of RGB triples, to form a custom color map curve.
-    
+
     Note that "magma", "inferno", "plasma", "viridis" are perceptually
     uniform, strictly increasing in luminance, look good when converted to
     grayscale, and work for people with all types of colorblindness. The
@@ -3145,38 +3433,50 @@ current top image.
     crappier maps (blue-red, spectrum, and heat). Don't be fooled by the
     flashy "spectrum" colors --- it is an empirically bad color map compared
     to the preferred ones.
-    
+
     Optional appended modifiers include:
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         oiiotool tahoe.jpg --colormap inferno -o inferno.jpg
         oiiotool tahoe.jpg --colormap viridis -o viridis.jpg
         oiiotool tahoe.jpg --colormap turbo -o turbo.jpg
         oiiotool tahoe.jpg --colormap .25,.25,.25,0,.5,0,1,0,0 -o custom.jpg
-    
-    .. |cmimage1| image:: figures/tahoe-small.jpg
-       :width: 1.25 in
-    .. |cmimage2| image:: figures/colormap-inferno.jpg
-       :width: 1.25 in
-    .. |cmimage3| image:: figures/colormap-viridis.jpg
-       :width: 1.25 in
-    .. |cmimage4| image:: figures/colormap-turbo.jpg
-       :width: 1.25 in
-    .. |cmimage5| image:: figures/colormap-custom.jpg
-       :width: 1.25 in
-    ..
-    
-    +-----------------+-----------------+-----------------+-----------------+---------------+
-    | |cmimage1|      | |cmimage2|      | |cmimage3|      | |cmimage4|      | |cmimage5|    |
-    +-----------------+-----------------+-----------------+-----------------+---------------+
-    | original        | inferno         | viridis         | turbo           | custom values |
-    +-----------------+-----------------+-----------------+-----------------+---------------+
+```
 
+::::{list-table}
 
+* - ```{image} figures/tahoe-small.jpg
+    :width: 1.25 in
+    :alt: cmimage1
+    ```
+  - ```{image} figures/colormap-inferno.jpg
+    :width: 1.25 in
+    :alt: cmimage2
+    ```
+  - ```{image} figures/colormap-viridis.jpg
+    :width: 1.25 in
+    :alt: cmimage3
+    ```
+  - ```{image} figures/colormap-turbo.jpg
+    :width: 1.25 in
+    :alt: cmimage4
+    ```
+  - ```{image} figures/colormap-custom.jpg
+    :width: 1.25 in
+    :alt: cmimage5
+    ```
+* - original
+  - inferno
+  - viridis
+  - turbo
+  - custom values
+::::
+
+```{eval-rst}
 .. option:: --cryptomatte-colors <name>
 
     Creates an RGB image from the input image that contains Cryptomatte
@@ -3186,12 +3486,14 @@ current top image.
     unique color in the output image.
 
     This command was added in OpenImageIO 2.6.
-    
+
     Example::
-    
+
         oiiotool crypto.exr --cryptomatte-colors "CryptoAsset" -o matte.exr
 
+```
 
+```{eval-rst}
 .. option:: --paste <location>
 
     Takes two images -- the first is the "foreground" and the second is the
@@ -3237,7 +3539,9 @@ current top image.
         # Comma-separated notation is fine also
         oiiotool fg.exr bg.exr -paste 100,100 -o out.exr
 
+```
 
+```{eval-rst}
 .. option:: --pastemeta <location>
 
     Takes two images -- the first image will be a source of metadata only, and the
@@ -3274,7 +3578,9 @@ current top image.
         # others as they were, and write the combined image to out.exr.
         oiiotool meta.exr pixels.exr --pastemeta:merge=2:pattern="^camera:override=1" -o out.exr
 
+```
 
+```{eval-rst}
 .. option:: --mosaic <size>
 
     Removes :math:`w \times h` images from the stack, dictated by the *size*,
@@ -3306,7 +3612,9 @@ current top image.
 
     .. image:: figures/mosaic.jpg
             :width: 2.0in
+```
 
+```{eval-rst}
 .. option:: --over
 
     Replace the *two* top images with a new image that is the Porter/Duff
@@ -3318,7 +3626,9 @@ current top image.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
+```{eval-rst}
 .. option:: --zover
 
     Replace the *two* top images with a new image that is a *depth
@@ -3328,7 +3638,7 @@ current top image.
     channel values for that pixel (larger Z means farther away). Both input
     images must have the same number and order of channels and must contain
     both depth/Z and alpha channels. Optional appended modifiers include:
-    
+
       `zeroisinf=` *num*
         If nonzero, indicates that z=0 pixels should be treated as if they
         were infinitely far away. (The default is 0, meaning that "zero
@@ -3336,7 +3646,9 @@ current top image.
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
+```
 
+```{eval-rst}
 .. option:: --rotate90
 
     Replace the current image with a new image that is rotated 90 degrees
@@ -3348,9 +3660,9 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         oiiotool grid.jpg --rotate90 -o rotate90.jpg
-    
+
     ..
 
     .. image:: figures/grid-small.jpg
@@ -3358,7 +3670,9 @@ current top image.
     .. image:: figures/rotate90.jpg
        :width: 1.5 in
 
+```
 
+```{eval-rst}
 .. option:: --rotate180
 
     Replace the current image with a new image that is rotated by
@@ -3370,16 +3684,18 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         oiiotool grid.jpg --rotate180 -o rotate180.jpg
-    
+
     ..
 
     .. image:: figures/grid-small.jpg
        :width: 1.5 in
     .. image:: figures/rotate180.jpg
        :width: 1.5 in
+```
 
+```{eval-rst}
 .. option:: --rotate270
 
     Replace the current image with a new image that is rotated 270 degrees
@@ -3391,9 +3707,9 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         oiiotool grid.jpg --rotate270 -o rotate270.jpg
-    
+
     ..
 
     .. image:: figures/grid-small.jpg
@@ -3401,7 +3717,9 @@ current top image.
     .. image:: figures/rotate270.jpg
        :width: 1.5 in
 
+```
 
+```{eval-rst}
 .. option:: --flip
 
     Replace the current image with a new image that is flipped vertically,
@@ -3413,16 +3731,18 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         oiiotool grid.jpg --flip -o flip.jpg
-    
+
     ..
 
     .. image:: figures/grid-small.jpg
        :width: 1.5 in
     .. image:: figures/flip.jpg
        :width: 1.5 in
-    
+```
+
+```{eval-rst}
 .. option:: --flop
 
     Replace the current image with a new image that is flopped horizontally,
@@ -3434,9 +3754,9 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         oiiotool grid.jpg --flop -o flop.jpg
-    
+
     ..
 
     .. image:: figures/grid-small.jpg
@@ -3444,18 +3764,22 @@ current top image.
     .. image:: figures/flop.jpg
        :width: 1.5 in
 
+```
 
+```{eval-rst}
 .. option:: --reorient
 
     Replace the current image with a new image that is rotated and/or flipped
     as necessary to move the pixels to match the Orientation metadata
     that describes the desired display orientation.
-    
-    Example::
-    
-        oiiotool tahoe.jpg --reorient -o oriented.jpg
-    
 
+    Example::
+
+        oiiotool tahoe.jpg --reorient -o oriented.jpg
+
+```
+
+```{eval-rst}
 .. option:: --transpose
 
     Replace the current image with a new image that is reflected about
@@ -3476,7 +3800,9 @@ current top image.
        :width: 1.5 in
     .. image:: figures/transpose.jpg
        :width: 1.5 in
+```
 
+```{eval-rst}
 .. option:: --cshift <offset>
 
     Circularly shift the pixels of the image by the given offset (expressed
@@ -3484,29 +3810,31 @@ current top image.
     vertically, or `+50-30` to move by 50 pixels horizontally and -30
     pixels vertically.  *Circular* shifting means that the pixels wrap to
     the other side as they shift.
-    
+
     Optional appended modifiers include:
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Example::
-    
+
         oiiotool grid.jpg --cshift +70+30 -o cshift.jpg
-    
+
     .. image:: figures/grid-small.jpg
        :width: 1.5 in
     .. image:: figures/cshift.jpg
        :width: 1.5 in
+```
 
+```{eval-rst}
 .. option:: --crop <size>
 
     Replace the current image with a new copy with the given *size*,
     cropping old pixels no longer needed, padding black pixels where they
     previously did not exist in the old image, and adjusting the offsets
     if requested.
-    
-    The size is in the form 
+
+    The size is in the form
 
         *width* x *height* [+-] *xoffset* [+-] *yoffset*
 
@@ -3518,7 +3846,7 @@ current top image.
 
     Note that `crop` does not *reposition* pixels, it only trims or pads to
     reset the image's pixel data window to the specified region.
-    
+
     If :program:`oiiotool`'s global `-a` flag is used (**all** subimages),
     or if the optional `--crop:allsubimages=1` is employed, the crop will be
     applied identically to all subimages.
@@ -3528,18 +3856,22 @@ current top image.
         # Both of these crop to a 100x120 region that begins at x=35,y=40
         oiiotool tahoe.exr --crop 100x120+35+40 -o crop.exr
         oiiotool tahoe.exr --crop 35,40,134,159 -o crop.exr
-    
+
     .. image:: figures/tahoe-small.jpg
        :width: 1.5 in
     .. image:: figures/crop.jpg
        :width: 1.5 in
+```
 
+```{eval-rst}
 .. option:: --croptofull
 
     Replace the current image with a new image that is cropped or padded
     as necessary to make the pixel data window exactly cover
     the full/display window.
+```
 
+```{eval-rst}
 .. option:: --trim
 
     Replace the current image with a new image that is cropped to contain the
@@ -3549,12 +3881,14 @@ current top image.
     Examples::
 
         oiiotool greenrect.exr -trim -o trimmed.jpg
-    
+
         .. image:: figures/pretrim.jpg
            :width: 1.5 in
         .. image:: figures/trim.jpg
            :width: 1.5 in
+```
 
+```{eval-rst}
 .. option:: --cut <size>
 
     Replace the current image with a new copy with the given *size*,
@@ -3575,25 +3909,25 @@ current top image.
         *xmin,ymin,xmax,ymax*
 
     Examples::
-    
+
         # Both of these crop to a 100x120 region that begins at x=35,y=40
         oiiotool tahoe.exr --cut 100x120+35+40 -o cut.exr
         oiiotool tahoe.exr --cut 35,40,134,159 -o cut.exr
-    
+
     .. image:: figures/tahoe-small.jpg
        :width: 1.5 in
     .. image:: figures/cut.jpg
        :width: 0.5 in
+```
 
-|
-
+```{eval-rst}
 .. option:: --resample <size>
 
     Replace the current image with a new image that is resampled to the
     given pixel data resolution rapidly, but at a low quality, either by
     simple bilinear interpolation or by just copying the "closest" pixel.
     The size is in the form of any of these:
-    
+
             *width* x *height*
 
             *width* x *height* [+-] *xoffset* [+-] *yoffset*
@@ -3603,7 +3937,7 @@ current top image.
             *xmin,ymin,xmax,ymax*
 
             *wscale% x hscale%*
-    
+
     if `width` or `height` is 0, that dimension will be automatically
     computed so as to preserve the original aspect ratio.
 
@@ -3617,13 +3951,15 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Examples (suppose that the original image is 640x480)::
-    
+
         --resample 1024x768         # new resolution w=1024, h=768
         --resample 50%              # reduce resolution to 320x240
         --resample 300%             # increase resolution to 1920x1440
         --resample 400x0            # new resolution will be 400x300
-    
 
+```
+
+```{eval-rst}
 .. option:: --resize <size>
 
     Replace the current image with a new image whose display (full) size is
@@ -3683,7 +4019,7 @@ current top image.
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
     Examples (suppose that the original image is 640x480)::
-    
+
         --resize 1024x768         # new resolution w=1024, h=768
         --resize 50%              # reduce resolution to 320x240
         --resize 300%             # increase resolution to 1920x1440
@@ -3698,7 +4034,9 @@ current top image.
        # Resize to 320x240, but with an additional 1/2 pixel shift in
        # each direction.
        --resize:offset=+0.5+0.5 320x240
+```
 
+```{eval-rst}
 .. option:: --fit <size>
 
     Replace the current image with a new image that is resized to fit
@@ -3778,7 +4116,9 @@ current top image.
     original aspect ratio with fill mode: (a) original, (b) "width", (c)
     "height", (d) "letterbox".
 
+```
 
+```{eval-rst}
 .. option:: --pixelaspect <aspect>
 
     Replace the current image with a new image that scales up the width or
@@ -3787,7 +4127,7 @@ current top image.
     but it will have different pixel dimensions than the original. It will
     always be the same or higher resolution, so it does not lose any detail
     present in the original.
-    
+
     As an example, if you have a 512x512 image with pixel aspect ratio 1.0,
     `--pixelaspect 2.0` will result in a 512x1024 image that has
     "PixelAspectRatio" metadata set to 2.0.
@@ -3805,8 +4145,10 @@ current top image.
     Examples::
 
         oiiotool mandrill.tif --pixelaspect 2.0 -o widepixels.tif
-    
 
+```
+
+```{eval-rst}
 .. option:: --rotate <angle>
 
     Replace the current image with a new image that is rotated by the given
@@ -3839,7 +4181,7 @@ current top image.
     Examples::
 
         oiiotool mandrill.tif --rotate 45 -o rotated.tif
-    
+
         oiiotool mandrill.tif --rotate:center=80,91.5:filter=lanczos3 45 -o rotated.tif
 
     .. image:: figures/grid-small.jpg
@@ -3847,7 +4189,9 @@ current top image.
     .. image:: figures/rotate45.jpg
        :width: 2.0 in
 
+```
 
+```{eval-rst}
 .. option:: --warp <M33>
 
     Replace the current image with a new image that is warped by the given
@@ -3880,7 +4224,9 @@ current top image.
 
         oiiotool mandrill.tif --warp "0.707,0.707,0,-0.707,0.707,0,128,-53.02,1" -o warped.tif
 
+```
 
+```{eval-rst}
 .. option:: --st_warp
 
     Use the top image as a set of normalized `st` image coordinates to warp the
@@ -3915,7 +4261,9 @@ current top image.
         # Nuke), so flip the vertical (`t`) coordinate.
         oiiotool mandrill.tif st_from_nuke.tif --st_warp:filter=triangle:flip_t=1 -o mandrill_distorted.tif
 
+```
 
+```{eval-rst}
 .. option:: --convolve
 
     Use the top image as a kernel to convolve the next image farther down
@@ -3930,11 +4278,13 @@ current top image.
 
         # Use a kernel image already prepared
         oiiotool image.exr kernel.exr --convolve -o output.exr
-    
+
         # Construct a kernel image on the fly with --kernel
         oiiotool image.exr --kernel gaussian 5x5 --convolve -o blurred.exr
 
+```
 
+```{eval-rst}
 .. option:: --blur <size>
 
     Blur the top image with a blur kernel of the given size expressed as *width*
@@ -3951,22 +4301,25 @@ current top image.
     Examples::
 
         oiiotool image.jpg --blur 5x5 -o blurred.jpg
-    
+
         oiiotool image.jpg --blur:kernel=bspline 7x7 -o blurred.jpg
+```
 
-    .. |convimage1| image:: figures/tahoe-small.jpg
-       :width: 2.0 in
-    .. |convimage2| image:: figures/tahoe-blur.jpg
-       :width: 2.0 in
-    ..
+::::{list-table}
 
-      +-----------------+-----------------+
-      | |convimage1|    | |convimage2|    |
-      +-----------------+-----------------+
-      | original        | blurred         |
-      +-----------------+-----------------+
+* - ```{image} figures/tahoe-small.jpg
+    :width: 2.0 in
+    :alt: convimage1
+    ```
+  - ```{image} figures/tahoe-blur.jpg
+    :width: 2.0 in
+    :alt: convimage2
+    ```
+* - original
+  - blurred
+::::
 
-
+```{eval-rst}
 .. option:: --median <size>
 
     Perform a median filter on the top image with a window of the given size
@@ -3982,23 +4335,28 @@ current top image.
     Examples::
 
         oiiotool noisy.jpg --median 3x3 -o smoothed.jpg
+```
 
-    .. |medimage1| image:: figures/tahoe-small.jpg
-       :width: 2.0 in
-    .. |medimage2| image:: figures/tahoe-pepper.jpg
-       :width: 2.0 in
-    .. |medimage3| image:: figures/tahoe-pepper-median.jpg
-       :width: 2.0 in
-    ..
+::::{list-table}
 
-      +-----------------+-----------------+-----------------+
-      | |medimage1|     | |medimage2|     | |medimage3|     |
-      +-----------------+-----------------+-----------------+
-      | original        | with dropouts   | median filtered |
-      +-----------------+-----------------+-----------------+
+* - ```{image} figures/tahoe-small.jpg
+    :width: 2.0 in
+    :alt: medimage1
+    ```
+  - ```{image} figures/tahoe-pepper.jpg
+    :width: 2.0 in
+    :alt: medimage2
+    ```
+  - ```{image} figures/tahoe-pepper-median.jpg
+    :width: 2.0 in
+    :alt: medimage3
+    ```
+* - original
+  - with dropouts
+  - median filtered
+::::
 
-
-
+```{eval-rst}
 .. option:: --dilate <size>
             --erode <size>
 
@@ -4024,37 +4382,53 @@ current top image.
         oiiotool orig.tif --dilate 3x3 --erode 3x3 -sub -o gradient.tif
         oiiotool orig.tif open.tif -o tophat.tif
         oiiotool close.tif orig.tif -o bottomhat.tif
-    
-    .. |morph1| image:: figures/morphsource.jpg
-       :width: 1.0 in
-    .. |morph2| image:: figures/dilate.jpg
-       :width: 1.0 in
-    .. |morph3| image:: figures/erode.jpg
-       :width: 1.0 in
-    .. |morph4| image:: figures/morphopen.jpg
-       :width: 1.0 in
-    .. |morph5| image:: figures/morphclose.jpg
-       :width: 1.0 in
-    .. |morph6| image:: figures/morphgradient.jpg
-       :width: 1.0 in
-    .. |morph7| image:: figures/tophat.jpg
-       :width: 1.0 in
-    .. |morph8| image:: figures/bottomhat.jpg
-       :width: 1.0 in
-    ..
+```
 
-      +-----------------+-----------------+-----------------+-----------------+
-      | |morph1|        | |morph2|        | |morph3|        | |morph4|        |
-      +-----------------+-----------------+-----------------+-----------------+
-      | original        | dilate          | erode           | open            |
-      +-----------------+-----------------+-----------------+-----------------+
-      |                 |                 |                 |                 |
-      | |morph5|        | |morph6|        | |morph7|        | |morph8|        |
-      +-----------------+-----------------+-----------------+-----------------+
-      | close           | gradient        | tophat          | bottomhat       |
-      +-----------------+-----------------+-----------------+-----------------+
+::::{list-table}
 
+* - ```{image} figures/morphsource.jpg
+    :width: 1.0 in
+    :alt: morph1
+    ```
+  - ```{image} figures/dilate.jpg
+    :width: 1.0 in
+    :alt: morph2
+    ```
+  - ```{image} figures/erode.jpg
+    :width: 1.0 in
+    :alt: morph3
+    ```
+  - ```{image} figures/morphopen.jpg
+    :width: 1.0 in
+    :alt: morph4
+    ```
+* - original
+  - dilate
+  - erode
+  - open
+* - ```{image} figures/morphclose.jpg
+    :width: 1.0 in
+    :alt: morph5
+    ```
+  - ```{image} figures/morphgradient.jpg
+    :width: 1.0 in
+    :alt: morph6
+    ```
+  - ```{image} figures/tophat.jpg
+    :width: 1.0 in
+    :alt: morph7
+    ```
+  - ```{image} figures/bottomhat.jpg
+    :width: 1.0 in
+    :alt: morph8
+    ```
+* - close
+  - gradient
+  - tophat
+  - bottomhat
+::::
 
+```{eval-rst}
 .. option:: --laplacian
 
     Calculates the Laplacian of the top image.
@@ -4067,27 +4441,29 @@ current top image.
     Examples::
 
         oiiotool tahoe.jpg --laplacian tahoe-laplacian.exr
-    
-    .. |lapimage1| image:: figures/tahoe-small.jpg
-       :width: 2.0 in
-    .. |lapimage2| image:: figures/tahoe-laplacian.jpg
-       :width: 2.0 in
-    ..
+```
 
-      +-----------------+-----------------+
-      | |lapimage1|     | |lapimage2|     |
-      +-----------------+-----------------+
-      | original        | Laplacian image |
-      +-----------------+-----------------+
+::::{list-table}
 
+* - ```{image} figures/tahoe-small.jpg
+    :width: 2.0 in
+    :alt: lapimage1
+    ```
+  - ```{image} figures/tahoe-laplacian.jpg
+    :width: 2.0 in
+    :alt: lapimage2
+    ```
+* - original
+  - Laplacian image
+::::
 
-
+```{eval-rst}
 .. option:: --unsharp
 
     Unblur the top image using an "unsharp mask.""
 
     Optional appended modifiers include:
-    
+
       `kernel=` *name*
         Name of the blur kernel (default: `gaussian`). If the kernel name is
         `median`, the unsarp mask algorithm will use a median filter rather
@@ -4104,16 +4480,18 @@ current top image.
     Examples::
 
         oiiotool image.jpg --unsharp -o sharper.jpg
-    
+
         oiiotool image.jpg --unsharp:width=5:contrast=1.5 -o sharper.jpg
-    
+
         oiiotool image.jpg --unsharp:kernel=median -o sharper.jpg
         # Note: median filter helps emphasize compact high-frequency details
         # without over-sharpening long edges as the default unsharp filter
         # sometimes does.
 
 
+```
 
+```{eval-rst}
 .. option:: --fft
             --ifft
 
@@ -4134,15 +4512,17 @@ current top image.
 
         # Select the blue channel and take its DCT
         oiiotool image.jpg --ch 2 --fft -o fft.exr
-    
+
         # Reconstruct from the FFT
         oiiotool fft.exr --ifft -o reconstructed.exr
-    
+
         # Output the power spectrum: real^2 + imag^2
         oiiotool fft.exr --dup --mul --chsum -o powerspectrum.exr
 
 
+```
 
+```{eval-rst}
 .. option:: --polar
             --unpolar
 
@@ -4150,7 +4530,7 @@ current top image.
     as complex values (real and imaginary components) into the equivalent
     values expressed in polar form of amplitude and phase (with phase
     between 0 and :math:`2\pi`).
-    
+
     The `unpolar` performs the reverse transformation, converting from polar
     values (amplitude and phase) to complex (real and imaginary).
 
@@ -4165,7 +4545,9 @@ current top image.
         oiiotool polar.exr --unpolar -o complex.exr
 
 
+```
 
+```{eval-rst}
 .. option:: --fixnan <streategy>
 
     Replace the top image with a copy in which any pixels that contained
@@ -4177,7 +4559,9 @@ current top image.
     be left alone, but it will result in an error that will terminate
     :program:`oiiotool`.
 
+```
 
+```{eval-rst}
 .. option:: --max
             --maxc <value>
             --maxc <value0,value1,value2...>
@@ -4208,7 +4592,9 @@ current top image.
         # changed to 0).
         oiiotool input.exr --minc 0.0 -o nonegatives.exr
 
+```
 
+```{eval-rst}
 .. option:: --clamp
 
     Replace the top image with a copy in which pixel values have been
@@ -4224,14 +4610,14 @@ current top image.
       individually.
     - `clampalpha=` *val* : If *val* is nonzero, will additionally clamp the
       alpha channel to [0,1].  (Default: 0, no additional alpha clamp.)
-    
+
     If no value is given for either the minimum or maximum, it will NOT
     clamp in that direction.  For the variety of minimum and maximum that
     specify per-channel values, a missing value indicates that the
     corresponding channel should not be clamped.
-    
+
     Examples:
-    
+
     - `--clamp:min=0` : Clamp all channels to a minimum of 0 (all negative
       values are changed to 0).
     - `--clamp:min=0:max=1` : Clamp all channels to [0,1].
@@ -4239,7 +4625,9 @@ current top image.
     - `--clamp:min=,,0:max=,,3.0` : Clamp the third channel to [0,3], do not
       clamp & other channels.
 
+```
 
+```{eval-rst}
 .. option:: --maxchan
             --minchan
 
@@ -4260,7 +4648,9 @@ current top image.
         oiiotool RGB.tif --maxchan -o max_of_RGB.tif
 
 
+```
 
+```{eval-rst}
 .. option:: --rangecompress
             --rangeexpand
 
@@ -4268,7 +4658,7 @@ current top image.
     Range expansion is the inverse mapping back to a linear scale.
     Range compression and expansion only applies to color
     channels; alpha or z channels will not be modified.
-    
+
     By default, this transformation will happen to each color channel
     independently.  But if the optional `luma` argument is nonzero and the
     image has at least 3 channels and the first three channels are not alpha
@@ -4290,9 +4680,11 @@ current top image.
     if you resize an HDR image using a filter with negative lobes -- which
     could result in objectionable ringing or even negative result pixel
     values.  For example::
-    
-        oiiotool hdr.exr --rangecompress --resize 512x512 --rangeexpand -o resized.exr
 
+        oiiotool hdr.exr --rangecompress --resize 512x512 --rangeexpand -o resized.exr
+```
+
+```{eval-rst}
 .. option:: --fillholes
 
     Replace the top image with a copy in which any pixels that had
@@ -4301,12 +4693,14 @@ current top image.
     :math:`\alpha = 1` and plausible color everywhere. This can be used both
     to fill internal "holes" as well as to extend an image out.
 
+```
 
+```{eval-rst}
 .. option:: --box <x1,y1,x2,y2>
 
     Draw (rasterize) a filled or unfilled a box with opposite corners
     `(x1,y1)` and `(x2,y2)`. Additional optional arguments include:
-    
+
       `color=` *r,g,b,...*
         specify the color of the lines
       `fill=` *bool*
@@ -4320,12 +4714,14 @@ current top image.
 
         oiiotool checker.exr --box:color=0,1,1,1 150,100,240,180 \
                      --box:color=0.5,0.5,0,0.5:fill=1 100,50,180,140 -o out.exr
-    
+
     .. image:: figures/box.png
         :align: center
         :width: 2.0 in
 
+```
 
+```{eval-rst}
 .. option:: --line <x1,y1,x2,y2,...>
 
     Draw (rasterize) an open polyline connecting the list of pixel
@@ -4347,7 +4743,9 @@ current top image.
     :align: center
     :width: 2.0 in
 
+```
 
+```{eval-rst}
 .. option:: --point <x1,y1,x2,y2,...>
 
     Draw single points at the list of pixel positions, as a comma-separated
@@ -4369,32 +4767,34 @@ current top image.
     :align: center
     :width: 2.0 in
 
+```
 
+```{eval-rst}
 .. option:: --fill <size>
 
     Alter the top image by filling the ROI specified by *size*. The fill can
     be a constant color, vertical gradient, horizontal gradient, or
     four-corner gradient.
-    
+
     Optional modifiers for constant color:
 
        `color=` *r,g,b,...*
          the color of the constant
-    
+
     Optional modifiers for vertical gradient:
 
        `top=` *r,g,b,...*
          the color for the top edge of the region
        `bottom=` *r,g,b,...*
          the color for the bottom edge of the region
-    
+
     Optional modifiers for horizontal gradient:
 
        `left=` *r,g,b,...*
          the color for the left edge of the region
        `right=` *r,g,b,...*
          the color for the right edge of the region
-    
+
     Optional modifiers for 4-corner gradient:
 
        `topleft=` *r,g,b,...*
@@ -4430,7 +4830,9 @@ current top image.
     ..
 
 
+```
 
+```{eval-rst}
 .. option:: --text <words>
 
     Draw (rasterize) text overtop of the current image.
@@ -4473,22 +4875,22 @@ current top image.
     The default positions the text starting at the center of the image,
     drawn 16 pixels high in opaque white in all channels (1,1,1,...), and
     using a default font (which may be system dependent).
-    
+
     Examples::
-    
+
         oiiotool --create 320x240 3 --text:x=10:y=400:size=40 "Hello world" \
             --text:x=100:y=200:font="Arial Bold":color=1,0,0:size=60 "Go Big Red!" \
             --tocolorspace sRGB -o text.jpg
-    
+
         oiiotool --create 320x240 3 --text:x=160:y=120:xalign=center "Centered" \
             --tocolorspace sRGB -o textcentered.jpg
-    
+
         oiiotool tahoe-small.jpg \
                 --text:x=160:y=40:xalign=center:size=40:shadow=0 "shadow = 0" \
                 --text:x=160:y=80:xalign=center:size=40:shadow=1 "shadow = 1" \
                 --text:x=160:y=120:xalign=center:size=40:shadow=2 "shadow = 2" \
                 --tocolorspace sRGB -o textshadowed.jpg
-    
+
     .. |textimg1| image:: figures/text.jpg
        :width: 2.0 in
     .. |textimg2| image:: figures/textcentered.jpg
@@ -4496,13 +4898,15 @@ current top image.
     .. |textimg3| image:: figures/textshadowed.jpg
        :width: 2.0 in
     ..
-    
+
     Note that because of slightly differing fonts and versions of Freetype
     available, we do not expect drawn text to be pixel-for-pixel identical
     on different platforms supported by OpenImageIO.
 
 
+```
 
+```{eval-rst}
 .. option:: --demosaic
 
     Demosaic a raw digital camera image.
@@ -4557,25 +4961,26 @@ current top image.
             --output out.exr
 
 
+```
 
-:program:`oiiotool` commands for color management
-=================================================
+## {program}`oiiotool` commands for color management
 
 Many of the color management commands depend on an installation of
-OpenColorIO (http://opencolorio.org).
+OpenColorIO (<http://opencolorio.org>).
 
 If the environment variable `$OCIO` is set to point to a valid OpenColorIO
 configuration file, you will have access to all the color spaces that are
-known by that OCIO configuration.  Alternately, you can use the
+known by that OCIO configuration. Alternately, you can use the
 `--colorconfig` option to explicitly point to a configuration file. If no
 valid configuration file is found (either in `$OCIO` or specified by
 `--colorconfig`), then the built-in OCIO "default" config will be used.
 
-If you ask for :program:`oiiotool` help (`oiiotool --help`), at the very
+If you ask for {program}`oiiotool` help (`oiiotool --help`), at the very
 bottom you will see the list of all color spaces, looks, and displays that
-:program:`oiiotool` knows about. That information (including even more detail)
+{program}`oiiotool` knows about. That information (including even more detail)
 will be printed with the command `oiiotool --colorconfiginfo`.
 
+```{eval-rst}
 .. option:: --colorconfiginfo
 
     Print to the console extensive information about the color management
@@ -4584,20 +4989,26 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     of OpenColorIO is being used, and the path to the configuration file.
 
     This command was added in OIIO 2.4.6.
+```
 
+```{eval-rst}
 .. option:: --colorconfig <filename>
 
     Instruct :program:`oiiotool` to read an OCIO configuration from a custom
     location. Without this, the default is to use the `$OCIO` environment
     variable as a guide for the location of the configuration file.
+```
 
+```{eval-rst}
 .. option:: --iscolorspace <colorspace>
 
     Alter the metadata of the current image so that it thinks its pixels are
     in the named color space.  This does not alter the pixels of the image,
     it only changes :program:`oiiotool`'s understanding of what color space
     those those pixels are in.
+```
 
+```{eval-rst}
 .. option:: --colorconvert <fromspace> <tospace>
 
     Replace the current image with a new image whose pixels are transformed
@@ -4628,7 +5039,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
+```{eval-rst}
 .. option:: --tocolorspace <tospace>
 
     Replace the current image with a new image whose pixels are transformed
@@ -4640,7 +5053,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
+```{eval-rst}
 .. option:: --ccmatrix <m00,m01,...>
 
     **NEW 2.1**
@@ -4650,7 +5065,7 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     comma-separated floating-point values in the subsequent argument (spaces
     are allowed only if the whole collection of values is enclosed in quotes
     so that they are a single command-line argument).
-    
+
     The values fill in the matrix left to right, first row, then second row,
     etc. This means that colors are treated as "row vectors" that are
     post-multiplied by the matrix (`C*M`).
@@ -4685,7 +5100,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       oiiotool aces.exr --ccmatrix:transpose=1 \
           "1.454,-0.237,-0.215,-0.077,1.176,-0.010,0.008,-0.006, 0.998" \
           -o acescg.exr
+```
 
+```{eval-rst}
 .. option:: --ociolook <lookname>
 
     Replace the current image with a new image whose pixels are transformed
@@ -4716,13 +5133,13 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       making each one a comma-separated list.
 
     - `unpremult=` *val* :
-    
+
       If the numeric *val* is nonzero, the pixel values will be
       "un-premultiplied" (divided by alpha) prior to the actual color
       conversion, and then re-multiplied by alpha afterwards. The default is
       0, meaning the color transformation will not be automatically
       bracketed by divide-by-alpha / mult-by-alpha operations.
-    
+
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
@@ -4737,7 +5154,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       oiiotool in.jpg --ociolook:from=vd8:to=vd8:key=SHOT:value=pe0012 match -o cc.jpg
 
 
+```
 
+```{eval-rst}
 .. option:: --ociodisplay <displayname> <viewname>
 
     Replace the current image with a new image whose pixels are transformed
@@ -4747,26 +5166,26 @@ will be printed with the command `oiiotool --colorconfiginfo`.
     or `""` for *viewname* means to use the default view on that display.
 
     Optional appended modifiers include:
-    
+
       `from=` *name*
         Assume the image is in the named color space. If no `from=` is
         supplied, it will try to deduce it from the image's metadata or
         previous `--iscolorspace` directives. If no such hints are
         available, it will assume the pixel data are in the default linear
         scene-referred color space.
-    
+
       `key=` *name*, `value=` *str*
         Adds a key/value pair to the "context" that OpenColorIO will use
         when applying the look. Multiple key/value pairs may be specified by
         making each one a comma-separated list.
-    
+
       `unpremult=` *val* :
         If the numeric *val* is nonzero, the pixel values will be
         "un-premultiplied" (divided by alpha) prior to the actual color
         conversion, and then re-multiplied by alpha afterwards. The default
         is 0, meaning the color transformation will not be automatically
         bracketed by divide-by-alpha / mult-by-alpha operations.
-    
+
       `inverse=` *val* :
         If *val* is nonzero, inverts the color transformation.
 
@@ -4783,7 +5202,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
         oiiotool in.exr --ociodisplay:from=lnf:key=SHOT:value=pe0012 sRGB Film -o cc.jpg
 
+```
 
+```{eval-rst}
 .. option:: --ociofiletransform <name>
 
     Replace the current image with a new image whose pixels are transformed
@@ -4809,7 +5230,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
         oiiotool in.jpg --ociofiletransform footransform.csp -o out.jpg
 
+```
 
+```{eval-rst}
 .. option:: --ocionamedtransform <name>
 
     Replace the current image with a new image whose pixels are transformed
@@ -4821,7 +5244,7 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       Adds a key/value pair to the "context" that OpenColorIO will use
       when applying the look. Multiple key/value pairs may be specified by
       making each one a comma-separated list.
-    
+
     - `inverse=` *val* :
 
       If *val* is nonzero, inverts the color transformation.
@@ -4841,7 +5264,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
         oiiotool in.exr --ocionamedtransform:inverse=1 srgb_crv -o out.jpg
 
+```
 
+```{eval-rst}
 .. option:: --unpremult
 
     Divide all color channels (those not alpha or z) of the current image by
@@ -4855,7 +5280,9 @@ will be printed with the command `oiiotool --colorconfiginfo`.
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
+```{eval-rst}
 .. option:: --premult
 
     Multiply all color channels (those not alpha or z) of the current image
@@ -4867,43 +5294,47 @@ will be printed with the command `oiiotool --colorconfiginfo`.
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
 
+```
 
+```{eval-rst}
 .. option:: --iccread <filename>
 
     The `--iccread` command adds an `"ICCProfile"` attribute to the top image,
     as a byte array consisting of the entire contents of the named file.
 
     This was added to OpenImageIO 2.5.
+```
 
+```{eval-rst}
 .. option:: --iccwrite <filename>
 
     Extract the `"ICCProfile"` attribute from the top image and writing it to
     the named file.
 
     This was added to OpenImageIO 2.5.
+```
 
+```{eval-rst}
 .. option:: --cicp <pri>,<trc>,<mtx>,<vfr>
-    
-    The `--cicp` command adds, modifies, or removes a `"CICP"` attribute 
-    belonging to the top image, stored as an array of four integers.  
-    The integers represent, in order, the color primaries, transfer 
-    function, color matrix (for YUV colorspaces), and 
+
+    The `--cicp` command adds, modifies, or removes a `"CICP"` attribute
+    belonging to the top image, stored as an array of four integers.
+    The integers represent, in order, the color primaries, transfer
+    function, color matrix (for YUV colorspaces), and
     video-full-range-flag.
 
     This was added to OpenImageIO 3.1.
+```
 
-|
+## {program}`oiiotool` commands for deep images
 
-:program:`oiiotool` commands for deep images
-============================================
-
-A number of :program:`oiiotool` operations are designed to work with "deep"
+A number of {program}`oiiotool` operations are designed to work with "deep"
 images. These are detailed below. In general, operations not listed in this
 section should not be expected to work with deep images.
 
-Commands specific to deep images
---------------------------------
+### Commands specific to deep images
 
+```{eval-rst}
 .. option:: --deepen
 
     If the top image is not deep, then turn it into the equivalent "deep"
@@ -4921,7 +5352,9 @@ Commands specific to deep images
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
+```{eval-rst}
 .. option:: --flatten
 
     If the top image is "deep," then "flatten" it by compositing the depth
@@ -4931,7 +5364,9 @@ Commands specific to deep images
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
+```{eval-rst}
 .. option:: --deepmerge
 
     Replace the *two* top images with a new deep image that is the "deep
@@ -4943,7 +5378,9 @@ Commands specific to deep images
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
+```{eval-rst}
 .. option:: --deepholdout
 
     Replace the *two* top images with a new deep image that is the ``deep
@@ -4955,89 +5392,113 @@ Commands specific to deep images
 
       `:subimages=` *indices-or-names*
         Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+```
 
-|
+### General commands that also work for deep images
 
-General commands that also work for deep images
------------------------------------------------
-
-
+```{eval-rst}
 .. option:: --addc, --subc, --mulc, --divc
 
     Adding, subtracting, multiplying, or dividing a per-channel constant
     will work for deep images, performing the operation for every sample in
     the image.
+```
 
+```{eval-rst}
 .. option:: --autotrim
 
     For subsequent outputs, automatically `--trim` before writing the file.
+```
 
+```{eval-rst}
 .. option:: --ch <channellist>
 
     Reorder, rename, remove, or add channels to a deep image.
     See Section :ref:`sec-oiiotool-shuffle-channels-or-subimages`
 
+```
 
+```{eval-rst}
 .. option:: --crop <size>
 
     Crop (adjust the pixel data window), removing pixels or adding empty
     pixels as needed.
+```
 
+```{eval-rst}
 .. option:: --paste <position>
 
     Replace one image's pixels with another's (at an arbitrary offset).
 
     (This functionality was extended to deep images in OIIO 2.1.)
+```
 
+```{eval-rst}
 .. option:: --resample <size>
 
     Resampling (resize without filtering or interpolation, just choosing the
     closest deep pixel to copy for each output pixel).
 
     Optional appended modifiers include:
-    
+
     - `interp=` *val* :  If 0, the "closest" single pixel will be copied
       for each sample. If 1, the nearest 4 pixels will be interpolated to
       produce each sample. (Default: 1)
+```
 
+```{eval-rst}
 .. option:: --diff
 
     Report on the difference of the top two images.
+```
 
+```{eval-rst}
 .. option:: --dumpdata
 
     Print to the console detailed information about the values in every pixel.
 
     Optional appended modifiers include:
-    
+
     - `empty=` *val* :  If 0, will cause deep images to skip printing of
       information about pixels with no samples, and cause non-deep images to
       skip printing information about pixels that are entirely 0.0 value in
       all channels.
+```
 
+```{eval-rst}
 .. option:: --info
 
     Prints information about each input image as it is read.
+```
 
+```{eval-rst}
 .. option:: --trim
 
     Replace the current image with a new image that is cropped to contain
     the minimal rectangular ROI that contains all of the non-empty pixels of
     the original image.
+```
 
+```{eval-rst}
 .. option:: --scanline
             --tile <x> <y>
 
     Convert to scanline or to tiled representations upon output.
+```
 
+```{eval-rst}
 .. option:: --stats
 
     Prints detailed statistical information about each input image as it is
     read.
+```
 
+```{eval-rst}
 .. option:: --fixnan <streategy>
 
     Replace the top image with a copy in which any pixels that contained
     `NaN` or `Inf` values (hereafter referred to collectively as
     "nonfinite") are repaired.  The *strategy* may be either `black` or
     `error`.
+```
+

@@ -2,3 +2,4 @@ sphinx >= 8.0
 breathe == 4.36.0
 sphinx-tabs
 furo==2024.8.6
+myst-parser >= 3.0
