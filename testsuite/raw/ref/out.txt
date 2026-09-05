@@ -638,12 +638,32 @@ src/truncated.dng    :   32 x   32, 1 channel, uint16 raw
 oiiotool ERROR: stats : Could not unpack "src/truncated.dng", Input/output error
 Full command line was:
 > oiiotool -iconfig raw:Demosaic none --stats src/truncated.dng
-oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 208 byte file; probably a corrupt or malicious header
+oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 252 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool --info src/bomb-32000x32000.dng
-oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 208 byte file; probably a corrupt or malicious header
+oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 252 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool -iconfig raw:Demosaic none --stats src/bomb-32000x32000.dng
+rotation 0
+  24 x   22, 3 channel, float raw
+    channel list: R, G, B
+    full/display size: 14 x 12
+    full/display origin: 4, 2
+rotation 3
+  24 x   22, 3 channel, float raw
+    channel list: R, G, B
+    full/display size: 14 x 12
+    full/display origin: 6, 8
+rotation 5
+  22 x   24, 3 channel, float raw
+    channel list: R, G, B
+    full/display size: 12 x 14
+    full/display origin: 2, 6
+rotation 6
+  22 x   24, 3 channel, float raw
+    channel list: R, G, B
+    full/display size: 12 x 14
+    full/display origin: 8, 4
 Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
 PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"

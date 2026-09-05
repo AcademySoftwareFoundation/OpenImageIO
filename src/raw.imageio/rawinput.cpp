@@ -815,8 +815,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         ushort crop_top    = 0;
         ushort crop_width  = 0;
         ushort crop_height = 0;
-        ushort left_margin = 0;
-        ushort top_margin  = 0;
+        ushort left_margin = m_processor->imgdata.sizes.left_margin;
+        ushort top_margin  = m_processor->imgdata.sizes.top_margin;
 
         auto p = config.find_attribute("raw:cropbox");
         if (p) {
@@ -828,54 +828,75 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                 crop_top    = p->get<int>(1);
                 crop_width  = p->get<int>(2);
                 crop_height = p->get<int>(3);
+
+                // The crop offsets in
+                // m_processor->imgdata.sizes.raw_inset_crops are inclusive of
+                // the image margins. Apply the same to the user-provided crop
+                // to simplify the following logic.
+                if (crop_left != 65535)
+                    crop_left += left_margin;
+                if (crop_top != 65535)
+                    crop_top += top_margin;
             }
-        } else if (m_processor->imgdata.sizes.raw_inset_crops[0].cwidth != 0) {
-            crop_left   = m_processor->imgdata.sizes.raw_inset_crops[0].cleft;
-            crop_top    = m_processor->imgdata.sizes.raw_inset_crops[0].ctop;
-            crop_width  = m_processor->imgdata.sizes.raw_inset_crops[0].cwidth;
-            crop_height = m_processor->imgdata.sizes.raw_inset_crops[0].cheight;
-            left_margin = m_processor->imgdata.sizes.left_margin;
-            top_margin  = m_processor->imgdata.sizes.top_margin;
         }
+
+        if (crop_width == 0 || crop_height == 0) {
+            const auto& raw_inset_crops
+                = m_processor->imgdata.sizes.raw_inset_crops[0];
+            if (raw_inset_crops.cwidth != 0) {
+                crop_left   = raw_inset_crops.cleft;
+                crop_top    = raw_inset_crops.ctop;
+                crop_width  = raw_inset_crops.cwidth;
+                crop_height = raw_inset_crops.cheight;
+            }
+        }
+
         if (crop_width > 0 && crop_height > 0) {
-            ushort image_width  = m_processor->imgdata.sizes.width;
-            ushort image_height = m_processor->imgdata.sizes.height;
+            const auto S         = m_processor->imgdata.sizes;
+            ushort raw_width     = S.raw_width;
+            ushort raw_height    = S.raw_height;
+            ushort image_width   = S.width;
+            ushort image_height  = S.height;
+            ushort right_margin  = raw_width - image_width - left_margin;
+            ushort bottom_margin = raw_height - image_height - top_margin;
 
             // If crop_left is undefined, assume central crop.
             if (crop_left == 65535) {
-                crop_left = (image_width - crop_width) / 2;
+                crop_left = (image_width - crop_width) / 2 + left_margin;
             }
 
             // If crop_top is undefined, assume central crop.
             if (crop_top == 65535) {
-                crop_top = (image_height - crop_height) / 2;
+                crop_top = (image_height - crop_height) / 2 + top_margin;
             }
 
             if (m_processor->imgdata.sizes.flip & 1) {
-                crop_left = image_width - crop_width - crop_left;
+                crop_left   = raw_width - crop_width - crop_left;
+                left_margin = right_margin;
             }
 
             if (m_processor->imgdata.sizes.flip & 2) {
-                crop_top = image_height - crop_height - crop_top;
+                crop_top   = raw_height - crop_height - crop_top;
+                top_margin = bottom_margin;
             }
 
             if (crop_top >= top_margin && crop_left >= left_margin) {
                 crop_top -= top_margin;
                 crop_left -= left_margin;
+            }
 
-                if (m_processor->imgdata.sizes.flip & 4) {
-                    std::swap(crop_left, crop_top);
-                    std::swap(crop_width, crop_height);
-                    std::swap(image_width, image_height);
-                }
+            if (m_processor->imgdata.sizes.flip & 4) {
+                std::swap(crop_left, crop_top);
+                std::swap(crop_width, crop_height);
+                std::swap(raw_width, raw_height);
+            }
 
-                if ((crop_left + crop_width <= image_width)
-                    && (crop_top + crop_height <= image_height)) {
-                    m_spec.full_x      = crop_left;
-                    m_spec.full_y      = crop_top;
-                    m_spec.full_width  = crop_width;
-                    m_spec.full_height = crop_height;
-                }
+            if ((crop_left + crop_width <= raw_width)
+                && (crop_top + crop_height <= raw_height)) {
+                m_spec.full_x      = crop_left;
+                m_spec.full_y      = crop_top;
+                m_spec.full_width  = crop_width;
+                m_spec.full_height = crop_height;
             }
         }
     }
