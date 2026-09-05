@@ -1,27 +1,20 @@
-..
-  Copyright Contributors to the OpenImageIO project.
-  SPDX-License-Identifier: CC-BY-4.0
+% Copyright Contributors to the OpenImageIO project.
+% SPDX-License-Identifier: CC-BY-4.0
 
-.. _chap-bundledplugins:
+(chap-bundledplugins)=
 
-Bundled ImageIO Plugins
-#######################
+# Bundled ImageIO Plugins
 
 This chapter lists all the image format plugins that are bundled with
-OpenImageIO.  For each plugin, we delineate any limitations, custom
-attributes, etc.  The plugins are listed alphabetically by format name.
+OpenImageIO. For each plugin, we delineate any limitations, custom
+attributes, etc. The plugins are listed alphabetically by format name.
 
+(sec-bundledplugins-bmp)=
 
-
-|
-
-.. _sec-bundledplugins-bmp:
-
-BMP
-===============================================
+## BMP
 
 BMP is a bitmap image file format used mostly on Windows systems.
-BMP files use the file extension :file:`.bmp`.
+BMP files use the file extension {file}`.bmp`.
 
 BMP is not a nice format for high-quality or high-performance images.
 It only supports unsigned integer 1-, 2-, 4-, and 8- bits per channel; only
@@ -30,6 +23,7 @@ tiles.
 
 **BMP Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -62,13 +56,15 @@ tiles.
      - string
      - currently, it is always ``"srgb_rec709_display"`` or
        ``"srgb_rec709_scene"`` (we presume all BMP files are sRGB)
+```
 
 **Configuration settings for BMP input**
 
 When opening a BMP ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -87,12 +83,14 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Configuration settings for BMP output**
 
 When opening an BMP ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -109,49 +107,42 @@ control aspects of the writing itself:
      - If nonzero and outputting UINT8 values in the file from a source of
        higher bit depth, will add a small amount of random dither to combat
        the appearance of banding.
+```
 
 **Custom I/O Overrides**
 
 BMP input and output both support the "custom I/O" feature via the special
-``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
-:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+`"oiio:ioproxy"` attributes (see Sections {ref}`sec-imageoutput-ioproxy` and
+{ref}`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
 **BMP Limitations**
 
-* OIIO's current implementation will only write uncompressed 8bpp (from a
+- OIIO's current implementation will only write uncompressed 8bpp (from a
   1-channel source), 24bpp (if 3 channel), or 32bpp (if 4 channel). Reads,
   however, can handle RLE compression as well as 1, 4, or 16 bpp input.
-* Only 1, 3, and 4-channel images are supported with BMP due to limitations
+- Only 1, 3, and 4-channel images are supported with BMP due to limitations
   of the file format itself.
-* BMP only supports uint8 pixel data types. Requests for other pixel data
+- BMP only supports uint8 pixel data types. Requests for other pixel data
   types will automatically be converted to uint8.
-* OIIO's current implementation only supports RGB BMP files and presumes that
-  the pixel data are in sRGB color space.  It does not currently support CMYK
+- OIIO's current implementation only supports RGB BMP files and presumes that
+  the pixel data are in sRGB color space. It does not currently support CMYK
   files or the color primary header information. (Though if this is important
   to anyone, support can be added in the future.)
 
-|
+(sec-bundledplugins-cineon)=
 
-.. _sec-bundledplugins-cineon:
-
-Cineon
-===============================================
+## Cineon
 
 Cineon is an image file format developed by Kodak that is commonly
 used for scanned motion picture film and digital intermediates.
-Cineon files use the file extension :file:`.cin`.
+Cineon files use the file extension {file}`.cin`.
 
+(sec-bundledplugins-dds)=
 
-
-|
-
-.. _sec-bundledplugins-dds:
-
-DDS
-===============================================
+## DDS
 
 DDS (Direct Draw Surface) is an image file format designed by Microsoft
-for use in Direct3D graphics.  DDS files use the extension :file:`.dds`.
+for use in Direct3D graphics. DDS files use the extension {file}`.dds`.
 
 DDS is primarily meant for images that are directly usable by the GPU.
 It supports 2D, cube and volume images with or without MIPmaps; using
@@ -171,6 +162,7 @@ red & green channels).
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -193,13 +185,15 @@ red & green channels).
      - For environment maps, which cube faces are present (e.g., ``"+x -x
        +y -y"`` if *x* & *y* faces are present, but not *z*).
 
+```
 
 **Configuration settings for DDS input**
 
 When opening an DDS ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -210,9 +204,10 @@ attributes are supported:
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
-       example by reading from memory rather than the file system.    
+       example by reading from memory rather than the file system.
+```
 
-Additionally, an integer ``dds:bc5normal`` global attribute is supported
+Additionally, an integer `dds:bc5normal` global attribute is supported
 to control behavior of images compressed in BC5/ATI2 compression format.
 When the attribute value is set to non-zero (default is zero), any input
 image using BC5/ATI2 compression format is assumed to be a normal map,
@@ -221,25 +216,21 @@ even if pixel format "normal map" flag is not set.
 **Custom I/O Overrides**
 
 DDS input supports the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
+(sec-bundledplugins-dicom)=
 
-|
-
-.. _sec-bundledplugins-dicom:
-
-DICOM
-===============================================
+## DICOM
 
 DICOM (Digital Imaging and Communications in Medicine) is the standard
 format used for medical images. DICOM files usually have the extension
-:file:`.dcm`.
+{file}`.dcm`.
 
 OpenImageIO currently only supports reading DICOM files, not writing them.
 
-
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -256,26 +247,25 @@ OpenImageIO currently only supports reading DICOM files, not writing them.
        preceded by the ``dicom:`` prefix.
 
 
+```
 
-|
+(sec-bundledplugins-dpx)=
 
-.. _sec-bundledplugins-dpx:
-
-DPX
-===============================================
+## DPX
 
 DPX (Digital Picture Exchange) is an image file format used for
 motion picture film scanning, output, and digital intermediates.
-DPX files use the file extension :file:`.dpx`.
+DPX files use the file extension {file}`.dpx`.
 
-Full specs can be found at https://pub.smpte.org/doc/268/
+Full specs can be found at <https://pub.smpte.org/doc/268/>
 
 **Configuration settings for DPX input**
 
 When opening a DPX ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -296,12 +286,14 @@ options are supported:
      - int
      - The number of "image elements" (subimages) in the file.
 
+```
 
 **Configuration settings for DPX output**
 
 When opening a DPX ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -324,16 +316,18 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to memory rather than the file system.
+```
 
 **Custom I/O Overrides**
 
 DPX input and output both support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
 **DPX Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -507,52 +501,49 @@ the `set_ioproxy()` methods.
      - int
      - Padded bytes at the end of each image
 
+```
 
-|
+(sec-bundledplugins-fits)=
 
-.. _sec-bundledplugins-fits:
-
-FITS
-===============================================
+## FITS
 
 FITS (Flexible Image Transport System) is an image file format used for
 scientific applications, particularly professional astronomy. FITS files use
-the file extension :file:`.fits`. Official FITS specs and other info may be
-found at: http://fits.gsfc.nasa.gov/
+the file extension {file}`.fits`. Official FITS specs and other info may be
+found at: <http://fits.gsfc.nasa.gov/>
 
 OpenImageIO supports multiple images in FITS files, and supports the
 following pixel data types: UINT8, UINT16, UINT32, FLOAT, DOUBLE.
 
 **Inferring dimensions and color channels**
 
-FITS files can store arbitrary N-dimensional data arrays (``NAXIS`` /
-``NAXISn``), but say nothing about which axes, if any, are "color."
-OpenImageIO infers a role for each axis from ``NAXIS`` (trailing axes of
+FITS files can store arbitrary N-dimensional data arrays (`NAXIS` /
+`NAXISn`), but say nothing about which axes, if any, are "color."
+OpenImageIO infers a role for each axis from `NAXIS` (trailing axes of
 length 1 are dropped first):
 
-* ``NAXIS`` = 1: a single row (width = NAXIS1, height = 1).
-* ``NAXIS`` = 2: an ordinary 2D grayscale image (width = NAXIS1, height = NAXIS2).
-* ``NAXIS`` = 3: if NAXIS3 <= 4, a color image, stored as one full-resolution
+- `NAXIS` = 1: a single row (width = NAXIS1, height = 1).
+- `NAXIS` = 2: an ordinary 2D grayscale image (width = NAXIS1, height = NAXIS2).
+- `NAXIS` = 3: if NAXIS3 \<= 4, a color image, stored as one full-resolution
   plane per channel (width = NAXIS1, height = NAXIS2, nchannels = NAXIS3).
   Otherwise, if NAXIS3 is more than 4, the file is interpreted as a grayscale
   volume (width = NAXIS1, height = NAXIS2, depth = NAXIS3).
-* ``NAXIS`` = 4: a color volume (width = NAXIS1, height = NAXIS2, depth =
+- `NAXIS` = 4: a color volume (width = NAXIS1, height = NAXIS2, depth =
   NAXIS3, nchannels = NAXIS4, again one full-resolution volume per channel).
 
 This is only a heuristic -- FITS has no way to formally declare an axis as
-"color" -- so a genuinely non-color NAXIS3 that happens to be <= 4 long can be
+"color" -- so a genuinely non-color NAXIS3 that happens to be \<= 4 long can be
 misclassified as color.
 
-Channel names default to the usual OpenImageIO conventions (``R,G,B``,
-``R,G,B,A``, ``Y``, etc.), improved when the header says more: if the
-channel axis is a FITS WCS ``STOKES`` axis, channels are named from the
-standard Stokes codes (``I``, ``Q``, ``U``, ``V``, ``RR``, ``LL``, ``RL``,
-``LR``, ``XX``, ``YY``, ``XY``, ``YX``); otherwise, if every plane has a
-``FILTERn`` or ``BANDn`` keyword (an informal convention, not part of the
+Channel names default to the usual OpenImageIO conventions (`R,G,B`,
+`R,G,B,A`, `Y`, etc.), improved when the header says more: if the
+channel axis is a FITS WCS `STOKES` axis, channels are named from the
+standard Stokes codes (`I`, `Q`, `U`, `V`, `RR`, `LL`, `RL`,
+`LR`, `XX`, `YY`, `XY`, `YX`); otherwise, if every plane has a
+`FILTERn` or `BANDn` keyword (an informal convention, not part of the
 FITS standard), those values are used instead.
 
-
-
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -579,26 +570,26 @@ FITS standard), those values are used instead.
      - int
      - The number of subimages in the file.
    * - *other*
-     - 
+     -
      - all other FITS keywords will be added to the ImageSpec as arbitrary
        named metadata.
+```
 
-.. note:: If the file contains multiple COMMENT, HISTORY, or HIERARCH
-  fields, their text will be appended to form a single attribute (of
-  each) in OpenImageIO's ImageSpec.
+:::{note}
+If the file contains multiple COMMENT, HISTORY, or HIERARCH
+fields, their text will be appended to form a single attribute (of
+each) in OpenImageIO's ImageSpec.
+:::
 
+(sec-bundledplugins-gif)=
 
-|
-
-.. _sec-bundledplugins-gif:
-
-GIF
-===============================================
+## GIF
 
 GIF (Graphics Interchange Format) is an image file format developed by
-CompuServe in 1987.  Nowadays it is widely used to display basic animations
+CompuServe in 1987. Nowadays it is widely used to display basic animations
 despite its technical limitations.
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -624,13 +615,15 @@ despite its technical limitations.
    * - ``ImageDescription``
      - string
      - The GIF comment field.
+```
 
 **Configuration settings for GIF input**
 
 When opening a GIF ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -642,12 +635,14 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Configuration settings for GIF output**
 
 When opening a GIF ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -659,36 +654,34 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to memory rather than the file system.
+```
 
 **Custom I/O Overrides**
 
 GIF input and output support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
 **Limitations**
 
-* GIF only supports 3-channel (RGB) images and at most 8 bits per channel.
-* Each subimage can include its own palette or use global palette. Palettes
+- GIF only supports 3-channel (RGB) images and at most 8 bits per channel.
+- Each subimage can include its own palette or use global palette. Palettes
   contain up to 256 colors of which one can be used as background color. It
   is then emulated with additional Alpha channel by OpenImageIO's reader.
 
-|
+(sec-bundledplugins-hdr)=
 
-.. _sec-bundledplugins-hdr:
-
-HDR/RGBE
-===============================================
+## HDR/RGBE
 
 HDR (High Dynamic Range), also known as RGBE (rgb with extended range),
 is a simple format developed for the Radiance renderer to store high
-dynamic range images.  HDR/RGBE files commonly use the file extensions
-:file:`.hdr`.  The format is described in this section of the Radiance
-documentation: http://radsite.lbl.gov/radiance/refer/filefmts.pdf
+dynamic range images. HDR/RGBE files commonly use the file extensions
+{file}`.hdr`. The format is described in this section of the Radiance
+documentation: <http://radsite.lbl.gov/radiance/refer/filefmts.pdf>
 
 RGBE does not support tiles, multiple subimages, mipmapping, true half or
-float pixel values, or arbitrary metadata.  Only RGB (3 channel) files are
+float pixel values, or arbitrary metadata. Only RGB (3 channel) files are
 supported.
 
 RGBE became important because it was developed at a time when no standard
@@ -699,6 +692,7 @@ preferred except when legacy file access is required.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -725,13 +719,15 @@ preferred except when legacy file access is required.
        reorientation was performed, this will be set to the original
        orientation in the file.
 
+```
 
 **Configuration settings for HDR input**
 
 When opening an HDR ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -751,12 +747,14 @@ options are supported:
        orientation of the image). If this hint is set to 0, the pixels will be
        left in their orientation as stored in the file, and the "Orientation"
        metadata will reflect that.
+```
 
 **Configuration settings for HDR output**
 
 When opening a HDR ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -768,30 +766,28 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to memory rather than the file system.
+```
 
 **Custom I/O Overrides**
 
 HDR input and output support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
-|
+(sec-bundledplugins-heif)=
 
-.. _sec-bundledplugins-heif:
-
-HEIF/HEIC/AVIF
-===============================================
+## HEIF/HEIC/AVIF
 
 HEIF is a container format for images compressed with various compression
 standards (HEIC is based on HEVC/H.265, AVIF is based on AV1). HEIC is used
 commonly for iPhone camera pictures, but it is not Apple-specific and will
 probably become more popular on other platforms in coming years. HEIF files
-usually use the file extension :file:`.HEIC` or :file:`.AVIF` depending on their
+usually use the file extension {file}`.HEIC` or {file}`.AVIF` depending on their
 main compression type.
 
 HEIC and AVIF compression formats are lossy, but are higher visual quality than
-JPEG while taking <= half the file size. Currently, OIIO's HEIF reader supports
+JPEG while taking \<= half the file size. Currently, OIIO's HEIF reader supports
 reading files as RGB or RGBA, uint8 pixel values. Multi-image files are
 currently supported for reading, but not yet writing. All pixel data is
 uint8, though we hope to add support for HDR (more than 8 bits) in the
@@ -809,9 +805,10 @@ metadata will reflect that.
 **Configuration settings for HEIF input**
 
 When opening an HEIF ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -835,12 +832,14 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Configuration settings for HEIF output**
 
 When opening an HEIF ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -859,26 +858,25 @@ control aspects of the writing itself:
        example by writing to memory rather than the file system.
 
 
-
-|
+```
 
 **Additional notes and limitations**
 
-* The underlying libheif dependency must be 1.16 or newer to support the
+- The underlying libheif dependency must be 1.16 or newer to support the
   "oiio:reorient" configuration option and the "heif:Orientation" metadata.
-* The underlying libheif dependency must be 1.17 or newer to support
+- The underlying libheif dependency must be 1.17 or newer to support
   monochrome HEIC images.
 
-.. _sec-bundledplugins-ico:
+(sec-bundledplugins-ico)=
 
-ICO
-===============================================
+## ICO
 
 ICO is an image file format used for small images (usually icons) on
-Windows.  ICO files use the file extension :file:`.ico`.
+Windows. ICO files use the file extension {file}`.ico`.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -892,13 +890,15 @@ Windows.  ICO files use the file extension :file:`.ico`.
    * - ``ico:PNG``
      - int
      - if nonzero, will cause the ICO to be written out using PNG format.
+```
 
 **Configuration settings for ICO input**
 
 When opening an ICO ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -909,13 +909,15 @@ attributes are supported:
    * - ``oiio:ioproxy``
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
-       example by reading from memory rather than the file system.    
+       example by reading from memory rather than the file system.
+```
 
 **Configuration settings for ICO output**
 
 When opening an ICO ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -928,27 +930,24 @@ control aspects of the writing itself:
      - If nonzero and outputting UINT8 values in the file from a source of
        higher bit depth, will add a small amount of random dither to combat
        the appearance of banding.
+```
 
 **Limitations**
 
-* ICO only supports UINT8 and UINT16 formats; all output images will
+- ICO only supports UINT8 and UINT16 formats; all output images will
   be silently converted to one of these.
-* ICO only supports *small* images, up to 256 x 256.
-  Requests to write larger images will fail their ``open()`` call.
+- ICO only supports *small* images, up to 256 x 256.
+  Requests to write larger images will fail their `open()` call.
 
+(sec-bundledplugins-iff)=
 
+## IFF
 
-|
-
-.. _sec-bundledplugins-iff:
-
-IFF
-===============================================
-
-IFF files are used by Autodesk Maya and use the file extension :file:`.iff`.
+IFF files are used by Autodesk Maya and use the file extension {file}`.iff`.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -968,13 +967,15 @@ IFF files are used by Autodesk Maya and use the file extension :file:`.iff`.
    * - ``oiio:BitsPerSample``
      - int
      - the true bits per sample of the IFF file.
+```
 
 **Configuration settings for IFF input**
 
 When opening a IFF ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -986,12 +987,14 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Configuration settings for IFF output**
 
 When opening an IFF ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1008,43 +1011,40 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Custom I/O Overrides**
 
 RLA input and output support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
+(sec-bundledplugins-jpeg)=
 
-
-|
-
-.. _sec-bundledplugins-jpeg:
-
-JPEG
-===============================================
+## JPEG
 
 JPEG (Joint Photographic Experts Group), or more properly the JFIF file
 format containing JPEG-compressed pixel data, is one of the most popular
 file formats on the Internet, with applications, and from digital
-cameras, scanners, and other image acquisition devices.  JPEG/JFIF files
-usually have the file extension :file:`.jpg`, :file:`.jpe`, :file:`.jpeg`,
-:file:`.jif`, :file:`.jfif`, or :file:`.jfi`.  The JFIF file format is
-described by http://www.w3.org/Graphics/JPEG/jfif3.pdf.
+cameras, scanners, and other image acquisition devices. JPEG/JFIF files
+usually have the file extension {file}`.jpg`, {file}`.jpe`, {file}`.jpeg`,
+{file}`.jif`, {file}`.jfif`, or {file}`.jfi`. The JFIF file format is
+described by <http://www.w3.org/Graphics/JPEG/jfif3.pdf>.
 
 Although we strive to support JPEG/JFIF because it is so widely used, we
 acknowledge that it is a poor format for high-end work: it supports only
 1- and 3-channel images, has no support for alpha channels, no support
 for high dynamic range or even 16 bit integer pixel data, by convention
 stores sRGB data and is ill-suited to linear color spaces, and does not
-support multiple subimages or MIPmap levels.  There are newer formats
+support multiple subimages or MIPmap levels. There are newer formats
 also blessed by the Joint Photographic Experts Group that attempt to
 address some of these issues, such as JPEG-2000, but these do not have
 anywhere near the acceptance of the original JPEG/JFIF format.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1075,7 +1075,7 @@ anywhere near the acceptance of the original JPEG/JFIF format.
      - Describes the chroma subsampling, e.g., ``"4:2:0"`` (the default),
        ``"4:4:4"``, ``"4:2:2"``, ``"4:2:1"``.
    * - ``Exif:*``, ``IPTC:*``, ``XMP:*``, ``GPS:*``
-     - 
+     -
      - Extensive Exif, IPTC, XMP, and GPS data are supported by the
        reader/writer, and you should assume that nearly everything described
        Appendix :ref:`chap-stdmetadata` is properly translated when using
@@ -1084,13 +1084,15 @@ anywhere near the acceptance of the original JPEG/JFIF format.
      -
      - Extra attributes will be read from comment blocks in the JPEG file,
        and can optionally be written if ``jpeg:com_attributes`` is enabled.
+```
 
 **Configuration settings for JPEG input**
 
 When opening a JPEG ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1102,12 +1104,14 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Configuration settings for JPEG output**
 
 When opening a JPEG ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1140,25 +1144,25 @@ control aspects of the writing itself:
      - If nonzero, the image will be written as an Ultra HDR image, if the
        image spec allows it (see below), or as a regular JPEG image otherwise.
 
+```
 
 **Custom I/O Overrides**
 
 JPEG input and output support the "custom I/O" feature
 via the `ImageInput::set_ioproxy()` method and the special
-``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
+`"oiio:ioproxy"` attributes (see Section {ref}`sec-imageinput-ioproxy`).
 
 **Limitations**
 
-* JPEG/JFIF only supports 1- (grayscale) and 3-channel (RGB) images. As a
+- JPEG/JFIF only supports 1- (grayscale) and 3-channel (RGB) images. As a
   special case, OpenImageIO's JPEG writer will accept n-channel image
   data, but will only output the first 3 channels (if n >= 3) or the first
-  channel (if n <= 2), silently drop any extra channels from the output.
-* Since JPEG/JFIF only supports 8 bits per channel, OpenImageIO's
+  channel (if n \<= 2), silently drop any extra channels from the output.
+- Since JPEG/JFIF only supports 8 bits per channel, OpenImageIO's
   JPEG/JFIF writer will silently convert to UINT8 upon output,
   regardless of requests to the contrary from the calling program.
-* OpenImageIO's JPEG/JFIF reader and writer always operate in scanline
+- OpenImageIO's JPEG/JFIF reader and writer always operate in scanline
   mode and do not support tiled image input or output.
-
 
 **Ultra HDR**
 
@@ -1166,58 +1170,54 @@ JPEG input and output support Ultra HDR images.
 Ultra HDR is an image format that encodes a high dynamic range image
 in a JPEG image file by including a gain map in addition to the
 primary image.
-See https://developer.android.com/media/platform/hdr-image-format for
+See <https://developer.android.com/media/platform/hdr-image-format> for
 a complete reference on the Ultra HDR image format.
 In the specific case of reading an Ultra HDR image, JPEG input will also
 support alpha channels and high dynamic range imagery (`half` pixels).
 
-Ultra HDR *output* is enabled by setting the ``jpeg:ultrahdr`` attribute to a
+Ultra HDR *output* is enabled by setting the `jpeg:ultrahdr` attribute to a
 nonzero value. This makes it possible, for example, to convert a linear HDR
 OpenEXR image into a widely shareable Ultra HDR JPEG.
 When writing Ultra HDR, the following requirements apply:
 
-* The pixel data type must be ``half`` or ``float`` (an HDR-capable, linear
+- The pixel data type must be `half` or `float` (an HDR-capable, linear
   data type).
-* The image must have at least 3 channels. If a 4th channel is present it is preserved;
+- The image must have at least 3 channels. If a 4th channel is present it is preserved;
   RGB images are written with an opaque alpha.
-* The image's ``oiio:ColorSpace`` must be a linear scene-referred space whose
-  primaries are Rec.709, Display-P3, or Rec.2020 (i.e. ``lin_rec709_scene``,
-  ``lin_p3d65_scene``, or ``lin_rec2020_scene``). The color gamut written to
+- The image's `oiio:ColorSpace` must be a linear scene-referred space whose
+  primaries are Rec.709, Display-P3, or Rec.2020 (i.e. `lin_rec709_scene`,
+  `lin_p3d65_scene`, or `lin_rec2020_scene`). The color gamut written to
   the file is inferred from this.
-* The base image JPEG quality is taken from the ``compression`` attribute
-  (e.g. ``compression="jpeg:90"``), defaulting to 95.
+- The base image JPEG quality is taken from the `compression` attribute
+  (e.g. `compression="jpeg:90"`), defaulting to 95.
 
 If any of these requirements is not met, the write does *not* fail: the
 Ultra HDR request is silently ignored and the image is written as a regular
 JPEG (and therefore converted to UINT8 and at most 3 channels, as described
 in the limitations above).
 
+(sec-bundledplugins-jpeg2000)=
 
-
-|
-
-.. _sec-bundledplugins-jpeg2000:
-
-JPEG-2000
-===============================================
+## JPEG-2000
 
 JPEG-2000 is a successor to the popular JPEG/JFIF format, that supports
-better (wavelet) compression and a number of other extensions.  It's geared
-toward photography. JPEG-2000 files use the file extensions :file:`.jp2` or
-:file:`.j2k`. The official JPEG-2000 format specification and other helpful
-info may be found at: http://www.jpeg.org/JPEG2000.htm
+better (wavelet) compression and a number of other extensions. It's geared
+toward photography. JPEG-2000 files use the file extensions {file}`.jp2` or
+{file}`.j2k`. The official JPEG-2000 format specification and other helpful
+info may be found at: <http://www.jpeg.org/JPEG2000.htm>
 
 JPEG-2000 is not yet widely used, so OpenImageIO's support of it is
-preliminary.  In particular, we are not yet very good at handling the
+preliminary. In particular, we are not yet very good at handling the
 metadata robustly.
 
 Optionally this plugin can be built with OpenJPH support, which is a
 JPEG-2000 encoder/decoder that is faster than OpenJPEG, and supports the
 High Throughput JPEG2000 (HTJ2K) format (Jpeg2000 Part 15). If OpenJPH is not available, the
-OpenJPEG library will be used instead but only for decoding. OpenJPH is available at  https://github.com/aous72/OpenJPH .
+OpenJPEG library will be used instead but only for decoding. OpenJPH is available at <https://github.com/aous72/OpenJPH> .
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1236,13 +1236,15 @@ OpenJPEG library will be used instead but only for decoding. OpenJPH is availabl
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
        may also be present, extracted from the main profile.
 
+```
 
 **Configuration settings for JPEG-2000 input**
 
 When opening an JPEG-2000 ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1259,8 +1261,9 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
-  
-If OpenJPH is installed, the reader will attempt to read the file first with 
+```
+
+If OpenJPH is installed, the reader will attempt to read the file first with
 the OpenJPH library, and if that fails, it will fall back to the OpenJPEG library.
 
 **Configuration settings for JPEG-2000 output**
@@ -1268,6 +1271,7 @@ the OpenJPH library, and if that fails, it will fall back to the OpenJPEG librar
 When opening a JPEG-2000 ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1290,10 +1294,12 @@ control aspects of the writing itself:
        unassociated form (non-premultiplied colors) and should stay that way
        for output rather than being assumed to be associated and get automatic
        un-association to store in the file.
+```
 
-If OpenJPH is installed, and the file extension is :file:`.j2c`, or if the -``compression`` flag is set to ``"htj2k"``, the
+If OpenJPH is installed, and the file extension is {file}`.j2c`, or if the -`compression` flag is set to `"htj2k"`, the
 writer will attempt to write the file with the OpenJPH library, and the following flags will be available:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1309,7 +1315,7 @@ writer will attempt to write the file with the OpenJPH library, and the followin
      - (5) number of decompositions.
    * - ``jph:block_size``
      - string
-     - The output block size, defaults to 64,64   
+     - The output block size, defaults to 64,64
    * - ``jph:prog_order``
      - string
      - (RPCL) is the progression order, and can be one of:
@@ -1326,35 +1332,36 @@ writer will attempt to write the file with the OpenJPH library, and the followin
                is repeated for all finer resolutions
    * - ``jph:qstep``
      - float
-     - If supplied, is the quantization step size for lossy compression; 
+     - If supplied, is the quantization step size for lossy compression;
        quantization steps size for all subbands are derived from this value. Valid values can be from 0.00001 to 0.5.
        If not used, the encoder will be lossless.
 
+```
 
 **Custom I/O Overrides**
 
 JPEG-2000 input and output both support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 |
 
-.. _sec-bundledplugins-jpegxl:
+(sec-bundledplugins-jpegxl)=
 
-JPEG XL
-===============================================
+## JPEG XL
 
 JPEG XL is a new image format that is designed to be a successor to JPEG
 and to provide better compression and quality. JPEG XL files use the file
-extension :file:`.jxl`. The official JPEG XL format specification and other
-helpful info may be found at: https://jpeg.org/jpegxl/
+extension {file}`.jxl`. The official JPEG XL format specification and other
+helpful info may be found at: <https://jpeg.org/jpegxl/>
 
 **Configuration settings for JPEG XL input**
 
 When opening a JPEG XL ImageInput with a *configuration* (see
-Section :ref:`sec-input with-config`), the following special configuration
+Section {ref}`sec-input with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1366,12 +1373,14 @@ attributes are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
-       
+```
+
 **Configuration settings for JPEG XL output**
 
 When opening a JPEG XL ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+````{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1403,7 +1412,7 @@ control aspects of the writing itself:
      - float
      - Target visual distance in JND units, lower = higher quality.
        0.0 = mathematically lossless. 1.0 = visually lossless.
-       Recommended range: 0.5 .. 3.0. Allowed range: 0.0 ... 25.0. 
+       Recommended range: 0.5 .. 3.0. Allowed range: 0.0 ... 25.0.
        Mutually exclusive with ``*compression jpegxl:*```.
    * - ``jpegxl:effort``
      - int
@@ -1449,42 +1458,39 @@ control aspects of the writing itself:
        Default is 0.
        (Does not work as expected at this moment. Box is written but content
        unreadable in exif readers.)
+````
 
-.. _sec-bundledplugins-ffmpeg:
+(sec-bundledplugins-ffmpeg)=
 
-Movie formats (using ffmpeg)
-===============================================
+## Movie formats (using ffmpeg)
 
-The :program:`ffmpeg`-based reader is capable of reading the individual
+The {program}`ffmpeg`-based reader is capable of reading the individual
 frames from a variety of movie file formats, including:
 
-
-=====================   ====================================================
-Format                  Extensions
-=====================   ====================================================
-AVI                     :file:`.avi`
-QuickTime               :file:`.qt`, :file:`.mov`
-MPEG-4                  :file:`.mp4`, :file:`.m4a`, :file:`.m4v`
-3GPP files              :file:`.3gp`, :file:`.3g2`
-Motion JPEG-2000        :file:`.mj2`
-Apple M4V               :file:`.m4v`
-MPEG-1/MPEG-2           :file:`.mpg`
-=====================   ====================================================
+| Format           | Extensions                               |
+| ---------------- | ---------------------------------------- |
+| AVI              | {file}`.avi`                             |
+| QuickTime        | {file}`.qt`, {file}`.mov`                |
+| MPEG-4           | {file}`.mp4`, {file}`.m4a`, {file}`.m4v` |
+| 3GPP files       | {file}`.3gp`, {file}`.3g2`               |
+| Motion JPEG-2000 | {file}`.mj2`                             |
+| Apple M4V        | {file}`.m4v`                             |
+| MPEG-1/MPEG-2    | {file}`.mpg`                             |
 
 The format list include may other file types as well. We rely on the
-:program:`ffmpeg` library to read these files, so the actual list of supported
-formats may vary depending on the version of :program:`ffmpeg` that was linked
+{program}`ffmpeg` library to read these files, so the actual list of supported
+formats may vary depending on the version of {program}`ffmpeg` that was linked
 into OpenImageIO.
 
 Currently, these files may only be read. Write support may be added in a
-future release.  Also, currently, these files simply look to OIIO like
+future release. Also, currently, these files simply look to OIIO like
 simple multi-image files and not much support is given to the fact that they
 are technically *movies* (for example, there is no support for reading audio
 information).
 
 Some special attributes are used for movie files:
 
-
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1509,37 +1515,36 @@ Some special attributes are used for movie files:
      - Coding-independent code points to describe the color profile.
 
 
+```
 
-|
+(sec-bundledplugins-null)=
 
-.. _sec-bundledplugins-null:
+## Null format
 
-Null format
-===============================================
-
-The ``nullptr`` reader/writer is a mock-up that does not perform any actual
+The `nullptr` reader/writer is a mock-up that does not perform any actual
 I/O. The reader just returns constant-colored pixels, and the writer just
 returns directly without saving any data. This has several uses:
 
-* Benchmarking, if you want to have OIIO's input or output truly take as
+- Benchmarking, if you want to have OIIO's input or output truly take as
   close to no time whatsoever.
-
-* "Dry run" of applications where you don't want it to produce any real
+- "Dry run" of applications where you don't want it to produce any real
   output (akin to a Unix command that you redirect output to
-  :file:`/dev/null`).
-
-* Make "fake" input that looks like a file, but the file doesn't exist (if
+  {file}`/dev/null`).
+- Make "fake" input that looks like a file, but the file doesn't exist (if
   you are happy with constant-colored pixels).
 
 The filename allows a REST-ful syntax, where you can append modifiers
 that specify things like resolution (of the non-existent file), etc.
-For example::
+For example:
 
-    foo.null?RES=640x480&CHANNELS=3
+```
+foo.null?RES=640x480&CHANNELS=3
+```
 
 would specify a null file with resolution 640x480 and 3 channels.
 Token/value pairs accepted are:
 
+```{eval-rst}
 =====================   ====================================================
 ``RES=1024x1024``       Set resolution (3D example: 256x256x100)
 ``CHANNELS=4``          Set number of channels
@@ -1549,27 +1554,23 @@ Token/value pairs accepted are:
 ``TEX=1``               Make it look like a full MIP-mapped texture
 ``attrib=value``        Anything else will set metadata
 =====================   ====================================================
+```
 
+(sec-bundledplugins-openexr)=
 
-
-
-|
-
-.. _sec-bundledplugins-openexr:
-
-OpenEXR
-===============================================
+## OpenEXR
 
 OpenEXR is an image file format developed by Industrial Light & Magic,
-and subsequently open-sourced.  OpenEXR's strengths include support of
-high dynamic range imagery (``half`` and `float` pixels), tiled
+and subsequently open-sourced. OpenEXR's strengths include support of
+high dynamic range imagery (`half` and `float` pixels), tiled
 images, explicit support of MIPmaps and cubic environment maps,
-arbitrary metadata, and arbitrary numbers of color channels.  OpenEXR
-files use the file extension :file:`.exr`.
-The official OpenEXR site is http://www.openexr.com/.
+arbitrary metadata, and arbitrary numbers of color channels. OpenEXR
+files use the file extension {file}`.exr`.
+The official OpenEXR site is <http://www.openexr.com/>.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1663,8 +1664,8 @@ The official OpenEXR site is http://www.openexr.com/.
      - the MIPmap rounding mode of the file.
    * - ``openexr:dwaCompressionLevel``
      - float
-     - compression level for dwaa or dwab compression (default: 45.0). 
-       Reflects the level used when reading an existing file. To set 
+     - compression level for dwaa or dwab compression (default: 45.0).
+       Reflects the level used when reading an existing file. To set
        the compression level, use the ``compression`` attribute.
    * - ``openexr::luminancechroma``
      - int
@@ -1685,17 +1686,19 @@ The official OpenEXR site is http://www.openexr.com/.
        This metadata was added in OpenImageIO 3.1, and is only supported when
        OIIO is built against OpenEXR 3.1 or newer.
    * - *other*
-     - 
+     -
      - All other attributes will be added to the ImageSpec by their name and
        apparent type.
 
+```
 
 **Configuration settings for OpenEXR input**
 
 When opening an OpenEXR ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1715,12 +1718,14 @@ attributes are supported:
        tile/scanline read failure to be an error. This can be helpful when
        intentionally reading partially-written or incomplete files (such as
        an in-progress render).
+```
 
 **Configuration settings for OpenEXR output**
 
 When opening an OpenEXR ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1732,7 +1737,7 @@ control aspects of the writing itself:
      - string
      - One of `none` (default), `strict`, or `relaxed`.
        If not `none`, the spec will be checked to see if it is compliant
-       with the ACES Container format defined in `ST 2065-4`_. If it is,
+       with the ACES Container format defined in `ST 2065-4 <https://pub.smpte.org/pub/st2065-4/>`_. If it is,
        `chromaticities` will be set to the ACES AP0 ones, `colorInteropID`
        will be set to 'lin_ap0_scene' and the `acesImageContainerFlag`
        attribute will be set to 1.
@@ -1751,19 +1756,18 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
-
-.. _ST 2065-4: https://pub.smpte.org/pub/st2065-4/
+```
 
 **Custom I/O Overrides**
 
 OpenEXR input and output both support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
 **A note on channel names**
 
-The underlying OpenEXR library (:file:`libIlmImf`) always saves channels
+The underlying OpenEXR library ({file}`libIlmImf`) always saves channels
 into lexicographic order, so the channel order on disk (and thus when read!)
 will NOT match the order when the image was created.
 
@@ -1771,41 +1775,37 @@ But in order to adhere to OIIO's convention that RGBAZ will always be the
 first channels (if they exist), OIIO's OpenEXR reader will automatically
 reorder just those channels to appear at the front and in that order. All
 other channel names will remain in their relative order as presented to OIIO
-by :file:`libIlmImf`.
+by {file}`libIlmImf`.
 
 **Limitations**
 
-* The OpenEXR format only supports HALF, FLOAT, and UINT32 pixel
-  data.  OpenImageIO's OpenEXR writer will silently convert data in formats
+- The OpenEXR format only supports HALF, FLOAT, and UINT32 pixel
+  data. OpenImageIO's OpenEXR writer will silently convert data in formats
   (including the common UINT8 and UINT16 cases) to HALF data for output.
-
-* Subsampled channels are not supported with the exception of reading
+- Subsampled channels are not supported with the exception of reading
   luminance-chroma images with vertical and horizontal sampling rates of 2.
   This limited support does not work when OpenEXR's C Core API in used, only
   when OpenEXR's C++ API is used. Furthermore, it does not work in
   combination with tiles, multiple subimages, mipmapping, or deep pixels.
 
+(sec-bundledplugins-openvdb)=
 
-|
+## OpenVDB
 
-.. _sec-bundledplugins-openvdb:
-
-OpenVDB
-===============================================
-
-OpenVDB is an open-source volume data file format.  OpenVDB files commonly
-use the extension :file:`.vdb`. The official OpenVDB site is:
-http://www.openvdb.org/ Currently, OpenImageIO only reads OpenVDB files, and
+OpenVDB is an open-source volume data file format. OpenVDB files commonly
+use the extension {file}`.vdb`. The official OpenVDB site is:
+<http://www.openvdb.org/> Currently, OpenImageIO only reads OpenVDB files, and
 does not write them.
 
 Volumes are comprised of multiple *layers* (which appear to OpenImageIO as
-subimages).  Each layer/subimage may have a different name, resolution, and
-coordinate mapping.  Layers may be scalar (1 channel) or vector (3 channel)
+subimages). Each layer/subimage may have a different name, resolution, and
+coordinate mapping. Layers may be scalar (1 channel) or vector (3 channel)
 fields, and the voxel data are always `float`. OpenVDB files always
 report as tiled, using the leaf dimension size.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1833,21 +1833,20 @@ report as tiled, using the leaf dimension size.
      - World-to-local coordinate mapping.
 
 
+```
 
-|
+(sec-bundledplugins-png)=
 
-.. _sec-bundledplugins-png:
-
-PNG
-===============================================
+## PNG
 
 PNG (Portable Network Graphics) is an image file format developed by the
 open source community as an alternative to the GIF, after Unisys started
 enforcing patents allegedly covering techniques necessary to use GIF. PNG
-files use the file extension :file:`.png`.
+files use the file extension {file}`.png`.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1871,7 +1870,7 @@ files use the file extension :file:`.png`.
      - float
      - pixel aspect ratio
    * - ``XResolution``, ``YResolution``, ``ResolutionUnit``
-     - 
+     -
      - resolution and units from the PNG header.
    * - ``oiio:ColorSpace``
      - string
@@ -1885,13 +1884,15 @@ files use the file extension :file:`.png`.
      - uint8[]
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
        may also be present, extracted from the main profile.
+```
 
 **Configuration settings for PNG input**
 
 When opening an PNG ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1914,12 +1915,14 @@ attributes are supported:
        space for any premultiplication-by-alpha step done by the PNG reader.
        If zero (the default), any needed premultiplication will happen directly
        to the encoded values.
+```
 
 **Configuration settings for PNG output**
 
 When opening an PNG ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -1963,12 +1966,13 @@ control aspects of the writing itself:
        space for any unpremultiplication-by-alpha step done by the PNG writer.
        If zero (the default), any needed unpremultiplication will happen
        directly to the encoded sRGB or gamma-corrected values.
+```
 
 **Custom I/O Overrides**
 
 PNG input and output both support the "custom I/O" feature via the special
-``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy`
-and :ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+`"oiio:ioproxy"` attributes (see Sections {ref}`sec-imageoutput-ioproxy`
+and {ref}`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
 **Note on premultiplication**
 
@@ -1981,11 +1985,11 @@ performed directly on the encoded values, so that is the default behavior for
 OpenImageIO's PNG reader and writer will. If you want to force the reader or
 writer to linearize the values for premultiplication, you can set either the
 reader/writer configuration hint or the global OIIO attribute
-``png:linear_premult`` to 1.
+`png:linear_premult` to 1.
 
 **Limitations**
 
-* PNG stupidly specifies that any alpha channel is "unassociated" (i.e.,
+- PNG stupidly specifies that any alpha channel is "unassociated" (i.e.,
   that the color channels are not "premultiplied" by alpha). This is a
   disaster, since it results in bad loss of precision for alpha image
   compositing, and even makes it impossible to properly represent certain
@@ -1994,30 +1998,24 @@ reader/writer configuration hint or the global OIIO attribute
   deassociates alpha (divides colors by alpha) upon output in order to
   properly conform to the OIIO convention (and common sense) that all pixel
   values passed through the OIIO APIs should use associated alpha.
-
-* PNG only supports UINT8 and UINT16 output; other requested formats will be
+- PNG only supports UINT8 and UINT16 output; other requested formats will be
   automatically converted to one of these.
 
+(sec-bundledplugins-pnm)=
 
-
-|
-
-.. _sec-bundledplugins-pnm:
-
-PNM / Netpbm
-===============================================
+## PNM / Netpbm
 
 The Netpbm project, a.k.a. PNM (portable "any" map) defines PBM, PGM, PPM
 and later added PFM (portable float map) as a set of simple image formats
 (portable bitmap, portable graymap, portable pixmap) files.
 Without loss of generality, we will refer to these all collectively as
-"PNM."  These files have extensions :file:`.pbm`, :file:`.pgm`,
-:file:`.ppm`, :file:`.pfm` and customarily correspond to bi-level bitmaps,
-1-channel grayscale, and 3-channel RGB files, respectively, or :file:`.pnm`
+"PNM." These files have extensions {file}`.pbm`, {file}`.pgm`,
+{file}`.ppm`, {file}`.pfm` and customarily correspond to bi-level bitmaps,
+1-channel grayscale, and 3-channel RGB files, respectively, or {file}`.pnm`
 for those who reject the nonsense about naming the files depending on the
 number of channels and bitdepth.
 
-PNM files are widely used in the Unix world as simple ASCII or binary image 
+PNM files are widely used in the Unix world as simple ASCII or binary image
 files that are easy to read and write. They are not compressed, and are
 not particularly efficient for large images. They are not widely used in
 the professional graphics world, but because of their historical
@@ -2042,6 +2040,7 @@ or ppm varieties.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2058,13 +2057,15 @@ or ppm varieties.
      - nonzero if the file itself used the PNM binary format, 0 if it used
        ASCII.  The PNM writer honors this attribute in the ImageSpec to
        determine whether to write an ASCII or binary file.
+```
 
 **Configuration settings for PNM input**
 
 When opening a PNM ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2078,7 +2079,7 @@ attributes are supported:
        example by reading from memory rather than the file system.
    * - ``pnm:bigendian``
      - int
-     - If nonzero, the PNM file is big-endian (the default is little-endian).  
+     - If nonzero, the PNM file is big-endian (the default is little-endian).
    * - ``pnm:pfmflip``
      - int
      - If this configuration hint is present and is zero, the automatic
@@ -2086,12 +2087,14 @@ attributes are supported:
        really be the first one stored in the file). If nonzero (the default),
        float PFM files will store scanline 0 as the last scanline in the file
        (i.e. the visual "top" of the image).
+```
 
 **Configuration settings for PNM output**
 
 When opening a PNM ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2125,20 +2128,18 @@ control aspects of the writing itself:
        being stored in bottom-to-top order. If nonzero (the default), float
        PFM files will store scanline 0 as the last scanline in the file (i.e.
        the visual "top" of the image).
+```
 
 **Custom I/O Overrides**
 
 PNM input and output both support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
-|
+(sec-bundledplugins-psd)=
 
-.. _sec-bundledplugins-psd:
-
-PSD
-===============================================
+## PSD
 
 PSD is the file format used for storing Adobe PhotoShop images. OpenImageIO
 provides limited read abilities for PSD, but not currently the ability to
@@ -2146,6 +2147,7 @@ write PSD files.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2157,13 +2159,15 @@ write PSD files.
      - uint8[]
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
        may also be present, extracted from the main profile.
+```
 
 **Configuration settings for PSD input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2185,6 +2189,7 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 Currently, the PSD format reader supports color modes RGB, CMYK,
 multichannel, grayscale, indexed, and bitmap. It does NOT currently support
@@ -2192,29 +2197,27 @@ Lab or duotone modes.
 
 **Custom I/O Overrides**
 
-PSD input supports the "custom I/O" feature via the special ``"oiio:ioproxy"``
-attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
-:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+PSD input supports the "custom I/O" feature via the special `"oiio:ioproxy"`
+attributes (see Sections {ref}`sec-imageoutput-ioproxy` and
+{ref}`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
-|
+(sec-bundledplugins-ptex)=
 
-.. _sec-bundledplugins-ptex:
-
-Ptex
-===============================================
+## Ptex
 
 Ptex is a special per-face texture format developed by Walt Disney
-Feature Animation.  The format and software to read/write it are open
-source, and available from http://ptex.us/.  Ptex files commonly
-use the file extension :file:`.ptex`.
+Feature Animation. The format and software to read/write it are open
+source, and available from <http://ptex.us/>. Ptex files commonly
+use the file extension {file}`.ptex`.
 
-OpenImageIO's support of Ptex is still incomplete.  We can read pixels from
+OpenImageIO's support of Ptex is still incomplete. We can read pixels from
 Ptex files, but the TextureSystem doesn't properly filter across face
-boundaries when using it as a texture.  OpenImageIO currently does not write
+boundaries when using it as a texture. OpenImageIO currently does not write
 Ptex files at all.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2237,23 +2240,22 @@ Ptex files at all.
        as attributes in the ImageSpec.
 
 
+```
 
-|
+(sec-bundledplugins-raw)=
 
-.. _sec-bundledplugins-raw:
-
-RAW digital camera files
-===============================================
+## RAW digital camera files
 
 A variety of digital camera "raw" formats are supported via this
-plugin that is based on the LibRaw library (http://www.libraw.org/).
+plugin that is based on the LibRaw library (<http://www.libraw.org/>).
 
 **Configuration settings for RAW input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2267,20 +2269,20 @@ options are supported:
    * - ``raw:use_camera_wb``
      - int
      - If 1, use libraw's camera white balance adjustment. Takes precedence
-       over ``raw:use_auto_wb``, ``raw:greybox``, ``raw:user_mul``. 
+       over ``raw:use_auto_wb``, ``raw:greybox``, ``raw:user_mul``.
        (Default: 1)
    * - ``raw:use_auto_wb``
      - int
      - If 1, white balance automatically by averaging over the entire image.
-       Only applies if ``raw:use_camera_wb`` is not equal to 0. Takes 
+       Only applies if ``raw:use_camera_wb`` is not equal to 0. Takes
        precedence over ``raw:greybox``, ``raw:user_mul``.
        (Default: 0)
    * - ``raw:greybox``
      - int[4] or int2[2]
      - White balance by averaging over the given box. The four values are the
        X and Y coordinate of the top-left corner, the width and the height.
-       Only applies if the size is non-zero, and ``raw:use_camera_wb`` is not 
-       equal to 0, ``raw:use_auto_wb`` is not equal to 0. Takes 
+       Only applies if the size is non-zero, and ``raw:use_camera_wb`` is not
+       equal to 0, ``raw:use_auto_wb`` is not equal to 0. Takes
        precedence over ``raw:user_mul``.
        (Default: 0, 0, 0, 0; meaning no correction.)
    * - ``raw:cropbox``
@@ -2319,7 +2321,7 @@ options are supported:
    * - ``raw:user_mul``
      - float[4] or float4
      - Sets user white balance coefficients. Only applies if ``raw:use_camera_wb``
-       is not equal to 0, ``raw:use_auto_wb`` is not equal to 0, and the 
+       is not equal to 0, ``raw:use_auto_wb`` is not equal to 0, and the
        ``raw:greybox`` box is zero size.
    * - ``raw:ColorSpace``
      - string
@@ -2364,7 +2366,7 @@ options are supported:
        (Default: 2.2222222222222223 (1.0/0.45))
    * - ``raw:user_flip``
      - int
-     - Set libraw user flip value : -1 ignored, other values are between [0; 8] with the same 
+     - Set libraw user flip value : -1 ignored, other values are between [0; 8] with the same
        definition than the Exif orientation code.
    * - ``raw:threshold``
      - float
@@ -2401,24 +2403,24 @@ options are supported:
        (Default: -1)
    * - ``raw:thumbnail_sort``
      - int
-     - Controls the sort order of the list the thumbnail gets picked from. 
+     - Controls the sort order of the list the thumbnail gets picked from.
        -1 - sort small-to-large, 0 - don't sort, use the original file order,
        1 - sort large-to-small.
        (Default: 0)
-|
+```
 
-.. _sec-bundledplugins-rla:
+(sec-bundledplugins-rla)=
 
-RLA
-===============================================
+## RLA
 
 RLA (Run-Length encoded, version A) is an early CGI renderer output format,
 originating from Wavefront Advanced Visualizer and used primarily by
-software developed at Wavefront.  RLA files commonly use the file extension
-:file:`.rla`.
+software developed at Wavefront. RLA files commonly use the file extension
+{file}`.rla`.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2493,13 +2495,15 @@ software developed at Wavefront.  RLA files commonly use the file extension
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
+```
 
 **Configuration settings for RLA input**
 
 When opening a RLA ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2511,12 +2515,14 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Configuration settings for RLA output**
 
 When opening a RLA ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2533,32 +2539,28 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Custom I/O Overrides**
 
 RLA input and output support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
 **Limitations**
 
-* OpenImageIO will only write a single image to each file, multiple
+- OpenImageIO will only write a single image to each file, multiple
   subimages are not supported by the writer (but are supported by the
   reader).
 
+(sec-bundledplugins-sgi)=
 
-
-|
-
-.. _sec-bundledplugins-sgi:
-
-SGI
-===============================================
+## SGI
 
 The SGI image format was a simple raster format used long ago on SGI
-machines.  SGI files use the file extensions ``sgi``, ``rgb``, ``rgba``,
-``bw``, `int`, and ``inta``.
+machines. SGI files use the file extensions `sgi`, `rgb`, `rgba`,
+`bw`, `int`, and `inta`.
 
 The SGI format is sometimes used for legacy apps, but has little merit
 otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and
@@ -2566,6 +2568,7 @@ otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2579,13 +2582,15 @@ otherwise: no support for tiles, no MIPmaps, no multi-subimage, only 8- and
    * - ``ImageDescription``
      - string
      - Image name.
+```
 
 **Configuration settings for SGI input**
 
 When opening a SGI ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2597,12 +2602,14 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Configuration settings for SGI output**
 
 When opening an SGI ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2620,24 +2627,22 @@ control aspects of the writing itself:
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
 
+```
 
 **Custom I/O Overrides**
 
 SGI input and output support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
-|
+(sec-bundledplugins-pic)=
 
-.. _sec-bundledplugins-pic:
-
-Softimage PIC
-===============================================
+## Softimage PIC
 
 Softimage PIC is an image file format used by the SoftImage 3D application,
-and some other programs that needed to be compatible with it.  Softimage
-files use the file extension :file:`.pic`.
+and some other programs that needed to be compatible with it. Softimage
+files use the file extension {file}`.pic`.
 
 The Softimage PIC format is sometimes used for legacy apps, but has little
 merit otherwise, so currently OpenImageIO only reads Softimage files and is
@@ -2645,6 +2650,7 @@ unable to write them.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2663,22 +2669,21 @@ unable to write them.
      - the true bits per sample of the PIC file.
 
 
+```
 
-|
+(sec-bundledplugins-targa)=
 
-.. _sec-bundledplugins-targa:
-
-Targa
-===============================================
+## Targa
 
 Targa (a.k.a. Truevision TGA) is an image file format with little merit
 except that it is very simple and is used by many legacy applications. Targa
-files use the file extension :file:`.tga`, or, much more rarely,
-:file:`.tpic`. The official Targa format specification may be found at:
-http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
+files use the file extension {file}`.tga`, or, much more rarely,
+{file}`.tpic`. The official Targa format specification may be found at:
+<http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf>
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2731,19 +2736,21 @@ http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
    * - ``oiio:ColorSpace``
      - string
      - Color space (see Section :ref:`sec-metadata-color`).
+```
 
 If the TGA file contains a thumbnail, its dimensions will be stored in the
-attributes ``"thumbnail_width"``, ``"thumbnail_height"``, and
-``"thumbnail_nchannels"``, and the thumbnail pixels themselves will be
+attributes `"thumbnail_width"`, `"thumbnail_height"`, and
+`"thumbnail_nchannels"`, and the thumbnail pixels themselves will be
 retrievable via `ImageInput::get_thumbnail()` or `ImageBuf::thumbnail()` or
 `ImageCache::get_thumbnail()`.
 
 **Configuration settings for Targa input**
 
 When opening an Targa ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2761,12 +2768,14 @@ attributes are supported:
        cause the reader to leave alpha unassociated (versus the default of
        premultiplying color channels by alpha if the alpha channel is
        unassociated).
+```
 
 **Configuration settings for Targa output**
 
 When opening a Targa ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2783,34 +2792,31 @@ control aspects of the writing itself:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
+```
 
 **Custom I/O Overrides**
 
 Targa input and output support the "custom I/O" feature via the
-special ``"oiio:ioproxy"`` attributes (see Sections
-:ref:`sec-imageoutput-ioproxy` and :ref:`sec-imageinput-ioproxy`) as well as
+special `"oiio:ioproxy"` attributes (see Sections
+{ref}`sec-imageoutput-ioproxy` and {ref}`sec-imageinput-ioproxy`) as well as
 the `set_ioproxy()` methods.
 
 **Limitations**
 
-* The Targa reader reserves enough memory for the entire image. Therefore it
+- The Targa reader reserves enough memory for the entire image. Therefore it
   is not a good choice for high-performance image use such as would be used
   for ImageCache or TextureSystem.
-* Targa files only support 8- and 16-bit unsigned integers (no signed,
+- Targa files only support 8- and 16-bit unsigned integers (no signed,
   floating point, or HDR capabilities); the OpenImageIO TGA writer will
   silently convert all output images to UINT8 (except if UINT16 is
   explicitly requested).
-* Targa only supports grayscale, RGB, and RGBA; the OpenImageIO TGA writer
-  will fail its call to ``open()`` if it is asked to create a file with more
+- Targa only supports grayscale, RGB, and RGBA; the OpenImageIO TGA writer
+  will fail its call to `open()` if it is asked to create a file with more
   than 4 color channels.
 
+(sec-bundledplugins-term)=
 
-|
-
-.. _sec-bundledplugins-term:
-
-Term (Terminal)
-===============================================
+## Term (Terminal)
 
 This *experimental* output-only "format" is actually a procedural output
 that writes a low-res representation of the image to the console output. It
@@ -2820,6 +2826,7 @@ extensions.
 The `term` ImageOutput supports the following special metadata tokens to
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2837,6 +2844,7 @@ control aspects of the writing itself:
        window.
 
 
+```
 
 The `iterm2` mode is the best quality and is the default mode when actually
 running on a Mac and launching using iTerm2 as the terminal. This mode uses
@@ -2845,7 +2853,7 @@ visible in the terminal.
 
 The default in other circumstances is the `24bit` mode, which displays two
 approximately square pixels vertically in each character cell, by outputting
-the Unicode "upper half block" glyph (`\u2508`) with the foreground color
+the Unicode "upper half block" glyph (`u2508`) with the foreground color
 set to the top pixel's color and the background color set to the bottom
 pixel's color.
 
@@ -2863,36 +2871,33 @@ In all cases, the image will automatically be resized to fit in the terminal
 and keep approximately the correct aspect ratio, as well as converted to
 sRGB so it looks kinda ok.
 
-|
+(sec-bundledplugins-tiff)=
 
-.. _sec-bundledplugins-tiff:
-
-TIFF
-===============================================
+## TIFF
 
 TIFF (Tagged Image File Format) is a flexible file format created by Aldus,
-now controlled by Adobe.  TIFF supports nearly everything anybody could want
+now controlled by Adobe. TIFF supports nearly everything anybody could want
 in an image format (and has exactly the complexity you would expect from
 such a requirement). TIFF files commonly use the file extensions
-:file:`.tif` or, :file:`.tiff`. Additionally, OpenImageIO associates the
-following extensions with TIFF files by default: :file:`.tx`, :file:`.env`,
-:file:`.sm`, :file:`.vsm`.
+{file}`.tif` or, {file}`.tiff`. Additionally, OpenImageIO associates the
+following extensions with TIFF files by default: {file}`.tx`, {file}`.env`,
+{file}`.sm`, {file}`.vsm`.
 
 The official TIFF format specification may be found here:
-http://partners.adobe.com/public/developer/tiff/index.html The most popular
-library for reading TIFF directly is :file:`libtiff`, available here:
-http://www.remotesensing.org/libtiff/  OpenImageIO uses :file:`libtiff` for
+<http://partners.adobe.com/public/developer/tiff/index.html> The most popular
+library for reading TIFF directly is {file}`libtiff`, available here:
+<http://www.remotesensing.org/libtiff/> OpenImageIO uses {file}`libtiff` for
 its TIFF reading/writing.
 
 We like TIFF a lot, especially since its complexity can be nicely hidden
-behind OIIO's simple APIs.  It supports a wide variety of data formats
-(though unfortunately not ``half``), an arbitrary number of channels, tiles
+behind OIIO's simple APIs. It supports a wide variety of data formats
+(though unfortunately not `half`), an arbitrary number of channels, tiles
 and multiple subimages (which makes it our preferred texture format), and a
 rich set of metadata.
 
 OpenImageIO supports the vast majority of TIFF features, including: tiled
-images (``tiled``) as well as scanline images; multiple subimages per file
-(``multiimage``); MIPmapping (using multi-subimage; that means you can't use
+images (`tiled`) as well as scanline images; multiple subimages per file
+(`multiimage`); MIPmapping (using multi-subimage; that means you can't use
 multiimage and MIPmaps simultaneously); data formats 8- 16, and 32 bit
 integer (both signed and unsigned), and 32- and 64-bit floating point;
 palette images (will convert to RGB); "miniswhite" photometric mode (will
@@ -2904,9 +2909,10 @@ metadata if present.
 **Configuration settings for TIFF input**
 
 When opening an ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 options are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -2929,13 +2935,14 @@ options are supported:
      - ptr
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by reading from memory rather than the file system.
+```
 
 **Configuration settings for TIFF output**
 
 When opening an ImageOutput, the following special metadata tokens control
 aspects of the writing itself:
 
-
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -3002,42 +3009,43 @@ aspects of the writing itself:
      - If nonzero, write an IPTC data block to the TIFF file.
        (The default is 0, which means not to write an IPTC block.)
 
+```
 
 **TIFF compression modes**
 
 The full list of possible TIFF compression mode values are as
 follows.
 
-    ``none`` :sup:`*`
-    ``lzw`` :sup:`*`
-    ``zip`` :sup:`*`
-    ``ccitt_t4``
-    ``ccitt_t6``
-    ``ccittfax3``
-    ``ccittfax4``
-    ``ccittrle2``
-    ``ccittrle`` :sup:`*`
-    ``dcs``
-    ``isojbig``
-    ``IT8BL``
-    ``IT8CTPAD``
-    ``IT8LW``
-    ``IT8MP``
-    ``jp2000``
-    ``jpeg`` :sup:`*`
-    ``lzma``
-    ``next``
-    ``ojpeg``
-    ``packbits`` :sup:`*`
-    ``pixarfilm``
-    ``pixarlog``
-    ``sgilog24``
-    ``sgilog``
-    ``T43``
-    ``T85``
-    ``thunderscan``
+> `none` {sup}`*`
+> `lzw` {sup}`*`
+> `zip` {sup}`*`
+> `ccitt_t4`
+> `ccitt_t6`
+> `ccittfax3`
+> `ccittfax4`
+> `ccittrle2`
+> `ccittrle` {sup}`*`
+> `dcs`
+> `isojbig`
+> `IT8BL`
+> `IT8CTPAD`
+> `IT8LW`
+> `IT8MP`
+> `jp2000`
+> `jpeg` {sup}`*`
+> `lzma`
+> `next`
+> `ojpeg`
+> `packbits` {sup}`*`
+> `pixarfilm`
+> `pixarlog`
+> `sgilog24`
+> `sgilog`
+> `T43`
+> `T85`
+> `thunderscan`
 
-:sup:`*` indicates that OpenImageIO can write that format, and is not
+{sup}`*` indicates that OpenImageIO can write that format, and is not
 part of the format name. The compression types without the asterisk are
 supported for reading but not for writing.
 
@@ -3045,28 +3053,28 @@ supported for reading but not for writing.
 
 TIFF input and output support the "custom I/O" feature
 via the `ImageInput::set_ioproxy()` method and the special
-``"oiio:ioproxy"`` attributes (see Section :ref:`sec-imageinput-ioproxy`).
+`"oiio:ioproxy"` attributes (see Section {ref}`sec-imageinput-ioproxy`).
 
 **Limitations**
 
 OpenImageIO's TIFF reader and writer have some limitations you should be
 aware of:
 
-* No separate per-channel data formats (not supported by :file:`libtiff`).
-* Only multiples of 8 bits per pixel may be passed through OpenImageIO's
+- No separate per-channel data formats (not supported by {file}`libtiff`).
+- Only multiples of 8 bits per pixel may be passed through OpenImageIO's
   APIs, e.g., 1-, 2-, and 4-bits per pixel will be passed by OIIO as 8 bit
-  images; 12 bits per pixel will be passed as 16, etc.  But the
-  ``oiio:BitsPerSample`` attribute in the ImageSpec will correctly report
+  images; 12 bits per pixel will be passed as 16, etc. But the
+  `oiio:BitsPerSample` attribute in the ImageSpec will correctly report
   the original bit depth of the file. Similarly for output, you must pass 8
-  or 16 bit output, but ``oiio:BitsPerSample`` gives a hint about how you
+  or 16 bit output, but `oiio:BitsPerSample` gives a hint about how you
   want it to be when written to the file, and it will try to accommodate the
   request (for signed integers, TIFF output can accommodate 2, 4, 8, 10, 12,
   and 16 bits).
-* JPEG compression is limited to 8-bit per channel, 3-channel files.
-
+- JPEG compression is limited to 8-bit per channel, 3-channel files.
 
 **TIFF Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -3182,19 +3190,18 @@ aware of:
        methods).
 
 
+```
 
-|
+(sec-bundledplugins-webp)=
 
-.. _sec-bundledplugins-webp:
-
-Webp
-===============================================
+## Webp
 
 WebP is an image file format developed by Google that is intended to be an
 open standard for lossy-compressed images for use on the web.
 
 **Attributes**
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -3216,13 +3223,15 @@ open standard for lossy-compressed images for use on the web.
    * - ``webp:LoopCount``
      - int
      - Deprecated synonym for ``oiio:LoopCount``.
+```
 
 **Configuration settings for WebP input**
 
 When opening an WebP ImageInput with a *configuration* (see
-Section :ref:`sec-input-with-config`), the following special configuration
+Section {ref}`sec-input-with-config`), the following special configuration
 attributes are supported:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -3239,12 +3248,14 @@ attributes are supported:
      - If nonzero, will leave alpha unassociated (versus the default of
        premultiplying color channels by alpha if the alpha channel is
        unassociated).
+```
 
 **Configuration settings for WebP output**
 
 When opening a WebP ImageOutput, the following special metadata tokens
 control aspects of the writing itself:
 
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -3280,33 +3291,30 @@ control aspects of the writing itself:
      - int
      - A general quality/speed trade-off (0=fast, 6=slower-better) for both
        lossy and lossless image encoding. The default is 6.
+```
 
 **Custom I/O Overrides**
 
 WebP input and output both support the "custom I/O" feature via the special
-``"oiio:ioproxy"`` attributes (see Sections :ref:`sec-imageoutput-ioproxy` and
-:ref:`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
+`"oiio:ioproxy"` attributes (see Sections {ref}`sec-imageoutput-ioproxy` and
+{ref}`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
 **Limitations**
 
-* WebP only supports 3-channel (RGB) or 4-channel (RGBA) images and must
+- WebP only supports 3-channel (RGB) or 4-channel (RGBA) images and must
   be 8-bit unsigned integer pixel values (uint8).
 
+(sec-bundledplugins-zfile)=
 
-|
-
-.. _sec-bundledplugins-zfile:
-
-Zfile
-===============================================
+## Zfile
 
 Zfile is a very simple format for writing a depth (*z*) image, originally
 from Pixar's PhotoRealistic RenderMan but now supported by many other
-renderers.  It's extremely minimal, holding only a width, height,
+renderers. It's extremely minimal, holding only a width, height,
 world-to-screen and camera-to-screen matrices, and uncompressed float pixels
-of the z-buffer. Zfile files use the file extension :file:`.zfile`.
+of the z-buffer. Zfile files use the file extension {file}`.zfile`.
 
-
+```{eval-rst}
 .. list-table::
    :widths: 30 10 65
    :header-rows: 1
@@ -3320,4 +3328,7 @@ of the z-buffer. Zfile files use the file extension :file:`.zfile`.
    * - ``worldtoscreen``
      - matrix
      - Nl
+```
+
+[st 2065-4]: https://pub.smpte.org/pub/st2065-4/
 
