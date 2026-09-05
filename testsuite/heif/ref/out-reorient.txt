@@ -2,13 +2,13 @@ Reading ref/rotated-90cw.heic
 ref/rotated-90cw.heic :   96 x   64, 3 channel, uint8 heif
     channel list: R, G, B
     CICP: 1, 13, 6, 1
-    Orientation: 8 (rotated 90 deg CCW)
+    Orientation: 6 (rotated 90 deg CW)
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading reorient0.tif
 reorient0.tif        :   96 x   64, 3 channel, uint8 tiff
     channel list: R, G, B
     compression: "zip"
-    Orientation: 8 (rotated 90 deg CCW)
+    Orientation: 6 (rotated 90 deg CW)
     planarconfig: "contig"
     Exif:ColorSpace: 1
     oiio:BitsPerSample: 8

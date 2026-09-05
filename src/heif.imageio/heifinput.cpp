@@ -477,9 +477,11 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         if (type == heif_item_property_type_transform_rotation) {
             int rot = heif_item_get_property_transform_rotation_ccw(raw_ctx, id,
                                                                     xprops[i]);
-            // cw[] maps to one additional clockwise 90 degree turn
+            // cw[] maps to one additional clockwise 90 degree turn. The
+            // irot angle is the anticlockwise presentation rotation, so
+            // applying it equals (4 - rot/90) % 4 clockwise quarter turns.
             static const int cw[] = { 0, 6, 7, 8, 5, 2, 3, 4, 1 };
-            for (int i = 0; i < rot / 90; ++i)
+            for (int i = 0; i < (4 - rot / 90) % 4; ++i)
                 orientation = cw[orientation];
         } else if (type == heif_item_property_type_transform_mirror) {
             int mirror = heif_item_get_property_transform_mirror(raw_ctx, id,
