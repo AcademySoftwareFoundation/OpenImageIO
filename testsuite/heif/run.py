@@ -32,5 +32,20 @@ command += info_command("mono-10bit.avif", safematch=True)
 command += oiiotool("--pattern fill:color=0.5,0.5,0.5 47x31 3 -o odd-size.avif")
 command += info_command("odd-size.avif", safematch=True)
 
+# Test reading an irot-transformed image with oiio:reorient=0, which asks
+# for the raw stored pixels without applying the transformation. The spec
+# must describe the stored (unrotated) plane, the orientation must be
+# reported via the "Orientation" attribute, and rotating the raw pixels
+# back must reproduce the default auto-reoriented read exactly.
+rotated = make_relpath(os.path.join(imagedir, "rotated-90cw.heic"))
+reorient_redirect = " >> out-reorient.txt "
+command += oiio_app("oiiotool") + " --info -v --iconfig oiio:reorient 0 " + rotated + reorient_redirect + ";\n"
+command += oiio_app("oiiotool") + " --iconfig oiio:reorient 0 " + rotated + " -d uint8 -o reorient0.tif ;\n"
+command += oiio_app("oiiotool") + " " + rotated + " -d uint8 -o oriented.tif ;\n"
+command += oiio_app("oiiotool") + " reorient0.tif --rotate90 -o reorient0-rotated.tif ;\n"
+command += oiio_app("oiiotool") + " --info -v --no-metamatch \"DateTime|Software|ImageHistory\" reorient0.tif" + reorient_redirect + ";\n"
+command += oiio_app("oiiotool") + " reorient0-rotated.tif oriented.tif --diff" + reorient_redirect + ";\n"
+outputs += [ "out-reorient.txt" ]
+
 # avif conversion is expected to fail if libheif is built without AV1 support
 failureok = 1
