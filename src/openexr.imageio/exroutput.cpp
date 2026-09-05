@@ -187,6 +187,9 @@ private:
     // spec a bit.
     bool spec_to_header(ImageSpec& spec, int subimage, Imf::Header& header);
 
+    // Validate color interop IDs if openexr:ColorInteropIDPolicy is set.
+    bool validate_color_interop_ids();
+
     // Compute an OpenEXR PixelType from an OIIO TypeDesc
     Imf::PixelType imfpixeltype(TypeDesc type);
 
@@ -710,17 +713,28 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
 }
 
 
-// Follow the color interop forum recommendation for OpenEXR files,
-// where the colorInteropID in later parts must match the first part,
-// except when "data" or missing.
-static std::string
-validate_color_interop_ids(const std::vector<Imf::Header>& headers)
+bool
+OpenEXROutput::validate_color_interop_ids()
 {
+    string_view policy = m_subimagespecs[0].get_string_attribute(
+        "openexr:ColorInteropIDPolicy", "none");
+    if (policy == "none")
+        return true;
+
+    if (policy != "strict") {
+        errorfmt("Unknown openexr:ColorInteropIDPolicy \"{}\"", policy);
+        return false;
+    }
+
+    // Follow the color interop forum recommendation, where the colorInteropID
+    // of later parts must match the first part, except when "data" or missing.
+    //
+    // In the future, checkColorMetadata added in OpenEXR 3.5 can replace this.
     string_view file_interop_id;
 
-    for (size_t s = 0; s < headers.size(); ++s) {
+    for (size_t s = 0; s < m_headers.size(); ++s) {
         const Imf::StringAttribute* attr
-            = headers[s].findTypedAttribute<Imf::StringAttribute>(
+            = m_headers[s].findTypedAttribute<Imf::StringAttribute>(
                 "colorInteropID");
         string_view interop_id = attr ? string_view(attr->value())
                                       : string_view();
@@ -734,12 +748,13 @@ validate_color_interop_ids(const std::vector<Imf::Header>& headers)
             || interop_id == file_interop_id)
             continue;
 
-        return Strutil::fmt::format(
+        errorfmt(
             "OpenEXR subimage {} has color space \"{}\", different from \"{}\" in the first subimage",
             s, interop_id, file_interop_id);
+        return false;
     }
 
-    return "";
+    return true;
 }
 
 
@@ -791,11 +806,8 @@ OpenEXROutput::open(const std::string& name, int subimages,
         }
     }
 
-    std::string interop_id_error = validate_color_interop_ids(m_headers);
-    if (!interop_id_error.empty()) {
-        errorfmt("{}", interop_id_error);
+    if (!validate_color_interop_ids())
         return false;
-    }
 
     m_spec = m_subimagespecs[0];
     sanity_check_channelnames();
@@ -1197,7 +1209,7 @@ static ExrMeta exr_meta_translation[] = {
     // user or from a file we read.
     ExrMeta("YResolution"), ExrMeta("planarconfig"), ExrMeta("type"),
     ExrMeta("tiles"), ExrMeta("chunkCount"), ExrMeta("maxSamplesPerPixel"),
-    ExrMeta("openexr:roundingmode")
+    ExrMeta("openexr:roundingmode"), ExrMeta("openexr:ColorInteropIDPolicy")
 };
 
 

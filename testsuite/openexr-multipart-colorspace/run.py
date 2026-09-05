@@ -47,14 +47,16 @@ command += info_command("src/multipart_colorspace_data_first.exr",
 # Parts: "lin_ap1_scene", "lin_ap1_scene"
 command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
+                    "-sattrib openexr:ColorInteropIDPolicy strict "
                     "--pattern constant:color=0,1,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename specular "
                     "--siappendall -o matched.exr")
 
 # Parts: "lin_ap1_scene", "lin_rec709_scene"
-# Not valid according to the CIF recommendation, error on write.
+# Not valid according to the CIF recommendation, error with strict policy.
 command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
+                    "-sattrib openexr:ColorInteropIDPolicy strict "
                     "--pattern constant:color=0,1,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_rec709_scene --attrib oiio:subimagename specular "
                     "--siappendall -o mismatched.exr", failureok=True)
@@ -62,14 +64,16 @@ command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
 # Parts: "lin_ap1_scene", missing
 command += oiiotool("--pattern constant:color=1,0,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
+                    "-sattrib openexr:ColorInteropIDPolicy strict "
                     "--pattern constant:color=0,1,0 4x4 3 -d half "
                     "--attrib oiio:subimagename specular "
                     "--siappendall -o missing_second.exr")
 
 # Parts: "data", "lin_ap1_scene", "lin_ap1_scene"
-# Not valid according to the CIF recommendation, error on write.
+# Not valid according to the CIF recommendation, error with strict policy.
 command += oiiotool("--pattern constant:color=0.25,0.25,0.25 4x4 3 -d half "
                     "--attrib oiio:ColorSpace data --attrib oiio:subimagename depth "
+                    "-sattrib openexr:ColorInteropIDPolicy strict "
                     "--pattern constant:color=1,0,0 4x4 3 -d half "
                     "--attrib oiio:ColorSpace lin_ap1_scene --attrib oiio:subimagename beauty "
                     "--pattern constant:color=0,1,0 4x4 3 -d half "
