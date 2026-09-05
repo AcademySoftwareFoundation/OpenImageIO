@@ -951,6 +951,14 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         header.zipCompressionLevel() = (qual >= 1 && qual <= 9) ? qual : 4;
     }
 #endif
+    if (Strutil::istarts_with(comp, "htj2k") && qual > 110) {
+#if OPENEXR_CODED_VERSION >= 30500
+        // OpenEXR 3.5.0 and later have an API for setting the quality level
+        // in the Header object. Older ones do it by setting an attribute, as
+        // below.
+        header.lossyHTJ2KQuality() = float(qual);
+#endif
+        ================
     if (Strutil::istarts_with(comp, "dwa") && qual > 0) {
 #if OPENEXR_CODED_VERSION >= 30103
         // OpenEXR 3.1.3 and later have an API for setting the quality level
@@ -1204,6 +1212,10 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
 #ifdef IMF_HTJ2K32_COMPRESSION
             else if (Strutil::iequals(str, "htj2k32"))
                 header.compression() = Imf::HTJ2K32_COMPRESSION;
+#endif
+#ifdef HTJ2KL256_COMPRESSION
+            else if (Strutil::iequals(str, "htj2kl256"))
+                header.compression() = Imf::HTJ2KL256_COMPRESSION;
 #endif
         }
         return true;

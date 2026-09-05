@@ -580,6 +580,9 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 #ifdef IMF_HTJ2K32_COMPRESSION
         case EXR_COMPRESSION_HTJ2K32: comp = "htj2k32"; break;
 #endif
+#ifdef IMF_HTJ2KL256_COMPRESSION
+        case EXR_COMPRESSION_HTJ2KL256: comp = "htj2kl256"; break;
+#endif
         default: break;
         }
         if (comp)
