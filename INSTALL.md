@@ -192,28 +192,34 @@ also as an environment variable.
 
 **Selecting the SIMD instruction set**
 
-`USE_SIMD=...` : A comma-separated list of the machine / instruction set
-capabilities to generate code for, for example `USE_SIMD=avx2,f16c`. Like the
-options above, it works as a CMake variable, an environment variable, or a
-setting on the Make wrapper (`make USE_SIMD=avx2,f16c`).
+`USE_SIMD=...` : A comma-separated list of the ISA features to generate code
+for, for example `USE_SIMD=avx2,f16c`. It works as a CMake variable, an
+environment variable, or a Make wrapper setting (`make USE_SIMD=avx2,f16c`).
 
-The recognized x86 tokens are `sse2`, `sse3`, `ssse3`, `sse4.1`, `sse4.2`,
-`avx`, `avx2`, `avx512f` (and the other `avx512*` subsets), `f16c`, `fma`,
-`aes`, and `popcnt`. On ARM you may pass `neon`, an architecture name such as
-`armv8.2-a+fp16`, or a CPU name such as `apple-m1`. Tokens naming an ISA that
-belongs to a different CPU family than the one being built for are ignored,
-so passing `avx2,f16c` on an ARM machine is harmless rather than fatal.
+**The default** is `x86-64-v2` on x86_64 (SSE4.2 + POPCNT + CMPXCHG16B; every
+x86-64 CPU since ~2009) and empty elsewhere (the compiler's own default,
+which already includes NEON on ARMv8-A). Most people want the default. Set
+`USE_SIMD=0` to disable SIMD, `sse2` to run on pre-2009 x86_64, or a higher
+level if you know your target hardware:
 
-The default depends on the target architecture:
+| value | needs a CPU from | adds over the default |
+|-------|------------------|-----------------------|
+| `x86-64-v3` | ~2013 (Haswell / Zen) | AVX, AVX2, FMA, F16C, BMI |
+| `x86-64-v4` | ~2017 (Skylake-X / Zen 4) | AVX-512 (F, BW, CD, DQ, VL) |
 
-* x86_64 : `sse4.2`. OIIO defaults to SSE4.2 on x86_64 to enable newer fast
-  paths; if you need to run on older x86_64 CPUs, set `USE_SIMD` to a lower
-  level (e.g. `sse2`) or `0`. (Without this, gcc and clang would generate only
-  SSE2 code.)
-* arm64 / aarch64 : empty. NEON is architecturally mandatory on ARMv8-A, so
-  the compiler already enables it and there is nothing to request.
+Each `x86-64-vN` is shorthand for a fixed set of feature tokens, and also
+passes `-march=x86-64-vN` when the compiler supports it. Because no CPU ships
+one of these features without the rest of its level, a bare `avx` is promoted
+to `x86-64-v2` and `avx2` to `x86-64-v3`, so you can't accidentally
+under-specify. (`avx512*` promotes only to `x86-64-v3`; AVX-512 CPUs vary in
+which subsets they carry, so request `x86-64-v4` explicitly if you want it.)
 
-`USE_SIMD=0` disables SIMD entirely, on any architecture.
+Individual tokens are also accepted: `sse2`, `sse3`, `ssse3`, `sse4.1`,
+`sse4.2`, `popcnt`, `cx16`, `avx`, `avx2`, `avx512f` (and other `avx512*`),
+`f16c`, `fma`, `bmi`, `bmi2`, `lzcnt`, `movbe`, `aes`; on ARM, `neon`, an
+arch name like `armv8.2-a+fp16`, or a CPU name like `apple-m1`. Tokens for
+the wrong CPU family are ignored, so passing `avx2,f16c` on an ARM machine is
+harmless rather than fatal.
 
 Beware that the resulting binaries will not run on a CPU that lacks the
 instructions you asked for. Also note that this only controls how OIIO itself
@@ -391,8 +397,8 @@ On the other hand, if you would prefer to open the generated Visual Studio
 solution, the "cmake configure" will have produced
 `{OIIO_ROOT}/build/OpenImageIO.sln` that can be opened in Visual Studio IDE.
 Note that the solution will be only for the Intel x64 architecture only; and
-will target the default SSE4.2 SIMD instruction set (see `USE_SIMD` above if
-you want something else).
+will target the default SIMD level (SSE4.2; see `USE_SIMD` above if you want
+something else).
 
 Optional packages that OIIO can use (e.g. libpng, Qt) can be build and pointed to OIIO build process in a similar way.
 

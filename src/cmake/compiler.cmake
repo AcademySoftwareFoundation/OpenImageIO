@@ -316,25 +316,27 @@ endif ()
 ###########################################################################
 # SIMD and machine architecture options.
 #
-# The USE_SIMD option may be set to a comma-separated list of machine /
-# instruction set options, such as "avx2,f16c". The list will be parsed and
-# the proper compiler directives added to generate code for those ISA
-# capabilities.
+# USE_SIMD is a comma-separated list of ISA features to generate code for,
+# e.g. "avx2,f16c". Also usable as an env var or `make USE_SIMD=...`.
 #
-# The default depends on the architecture we are building for:
-#   * x86_64 : "sse4.2". OIIO defaults to SSE4.2 for x86_64 builds to enable
-#     newer fast paths; if you need compatibility with older x86_64 CPUs, set
-#     USE_SIMD to a lower level (e.g. sse2) or to 0 to disable SIMD. Without
-#     this, gcc and clang would generate only SSE2 code.
-#   * arm64 / aarch64 : "" (empty). NEON is architecturally mandatory on
-#     ARMv8-A, so the compiler enables it without any help from us.
-#   * anything else : "" (empty), i.e. whatever the compiler defaults to.
-# Setting USE_SIMD=0 disables SIMD entirely, regardless of architecture.
+# Default: x86_64 -> "x86-64-v2" (SSE4.2 + POPCNT + CMPXCHG16B; every x86-64
+# CPU since ~2009). Other arches -> "" (compiler default, which already has
+# NEON on ARMv8-A). "0" disables SIMD everywhere. Lower it (e.g. "sse2") to
+# run on pre-2009 x86_64; raise it to "x86-64-v3" (CPUs since ~2013) or
+# "x86-64-v4" (~2017, AVX-512) to go faster on newer hardware.
 #
-# Feature tokens naming an ISA belonging to some other CPU family than the
-# one we are building for are ignored rather than passed to the compiler, so
-# that a caller (or a CI matrix) may pass "avx2,f16c" without breaking an ARM
-# build.
+# The psABI level names are shorthands for a fixed set of feature tokens
+# (and add -march=x86-64-vN when the compiler knows it):
+#   x86-64-v2 = sse4.2,popcnt,cx16
+#   x86-64-v3 = v2 + avx,avx2,bmi,bmi2,f16c,fma,lzcnt,movbe
+#   x86-64-v4 = v3 + avx512f,avx512bw,avx512cd,avx512dq,avx512vl
+# Since no CPU ships one of these features without the rest of its level, a
+# bare "avx" is promoted to v2 and "avx2" to v3 (so you can't under-specify).
+# "avx512*" only promotes to v3, not v4: AVX-512 CPUs differ in which avx512
+# subsets they carry, so ask for "x86-64-v4" explicitly if you want it.
+#
+# Tokens for the wrong CPU family are ignored, so a CI matrix may pass
+# "avx2,f16c" to an ARM build harmlessly.
 
 # Which CPU family(s) are we targeting? On Apple, CMAKE_OSX_ARCHITECTURES,
 # when set, overrides CMAKE_SYSTEM_PROCESSOR and may name more than one
@@ -362,19 +364,28 @@ message (VERBOSE "SIMD target archs = ${_simd_target_archs}"
                  " arm64=${SIMD_TARGET_ARM64})")
 
 if (SIMD_TARGET_X86_64)
-    set (_simd_default "sse4.2")
+    set (_simd_default "x86-64-v2")
 else ()
     set (_simd_default "")
 endif ()
 set_cache (USE_SIMD "${_simd_default}"
-           "Use SIMD directives (0, sse2, sse3, ssse3, sse4.1, sse4.2, avx, avx2, avx512f, f16c, fma, aes, neon)")
+           "Use SIMD directives (0, x86-64-v2, x86-64-v3, x86-64-v4, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, cx16, avx, avx2, avx512f, f16c, fma, aes, neon)")
 unset (_simd_default)
 
 # Tokens we recognize as naming an x86 or an ARM ISA feature. Anything not on
 # either list is passed through to the compiler as before.
 set (_simd_x86_features sse2 sse3 ssse3 sse4.1 sse4.2 avx avx2
                         avx512f avx512dq avx512bw avx512vl avx512cd avx512ifma
-                        f16c fma aes popcnt)
+                        f16c fma aes popcnt cx16 bmi bmi2 lzcnt movbe)
+
+# Feature tokens each psABI level expands to (see USE_SIMD notes above). The
+# "fma" token in v3/v4 also flips on -ffp-contract=off below, so the compiler
+# won't silently contract a*b+c even though FMA is available for madd().
+set (_simd_x86_64_v2_features sse4.2 popcnt cx16)
+set (_simd_x86_64_v3_features ${_simd_x86_64_v2_features}
+                              avx avx2 bmi bmi2 f16c fma lzcnt movbe)
+set (_simd_x86_64_v4_features ${_simd_x86_64_v3_features}
+                              avx512f avx512bw avx512cd avx512dq avx512vl)
 
 # For a universal binary we must attach the per-family flags to just the one
 # slice they apply to. Apple's clang has -Xarch_<arch> for exactly this.
@@ -401,6 +412,41 @@ if (NOT USE_SIMD STREQUAL "")
     else ()
         set(_highest_msvc_arch 0)
         string (REPLACE "," ";" SIMD_FEATURE_LIST "${USE_SIMD}")
+
+        # Promote a bare avx/avx2/avx512* to the psABI level it guarantees.
+        foreach (feature ${SIMD_FEATURE_LIST})
+            if (feature STREQUAL "avx")
+                list (APPEND SIMD_FEATURE_LIST "x86-64-v2")
+            elseif (feature STREQUAL "avx2" OR feature MATCHES "^avx512")
+                list (APPEND SIMD_FEATURE_LIST "x86-64-v3")
+            endif ()
+        endforeach ()
+
+        # Expand each x86-64-vN token to its feature list, plus -march=x86-64-vN
+        # when the compiler accepts it.
+        foreach (_lvl v2 v3 v4)
+            if (NOT "x86-64-${_lvl}" IN_LIST SIMD_FEATURE_LIST)
+                continue ()
+            endif ()
+            list (REMOVE_ITEM SIMD_FEATURE_LIST "x86-64-${_lvl}")
+            list (APPEND SIMD_FEATURE_LIST ${_simd_x86_64_${_lvl}_features})
+            if (SIMD_TARGET_X86_64 AND NOT _simd_skip_x86
+                AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
+                if (_simd_x86_xarch)
+                    # Apple universal build: can't probe the x86 slice here,
+                    # but Apple's clang always knows these levels.
+                    list (APPEND SIMD_COMPILE_FLAGS ${_simd_x86_xarch} "-march=x86-64-${_lvl}")
+                else ()
+                    include (CheckCXXCompilerFlag)
+                    check_cxx_compiler_flag ("-march=x86-64-${_lvl}" OIIO_COMPILER_SUPPORTS_X86_64_${_lvl})
+                    if (OIIO_COMPILER_SUPPORTS_X86_64_${_lvl})
+                        list (APPEND SIMD_COMPILE_FLAGS "-march=x86-64-${_lvl}")
+                    endif ()
+                endif ()
+            endif ()
+        endforeach ()
+        list (REMOVE_DUPLICATES SIMD_FEATURE_LIST)
+
         foreach (feature ${SIMD_FEATURE_LIST})
             message (VERBOSE "SIMD feature: ${feature}")
             if (feature IN_LIST _simd_x86_features)
@@ -484,6 +530,9 @@ if (NOT USE_SIMD STREQUAL "")
 endif ()
 unset (_simd_target_archs)
 unset (_simd_x86_features)
+unset (_simd_x86_64_v2_features)
+unset (_simd_x86_64_v3_features)
+unset (_simd_x86_64_v4_features)
 unset (_simd_x86_xarch)
 unset (_simd_arm_xarch)
 unset (_simd_skip_x86)
