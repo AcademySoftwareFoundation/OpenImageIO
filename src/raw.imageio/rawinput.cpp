@@ -818,7 +818,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         ushort left_margin = m_processor->imgdata.sizes.left_margin;
         ushort top_margin  = m_processor->imgdata.sizes.top_margin;
 
-        auto p = config.find_attribute("raw:cropbox");
+        bool has_user_crop = false;
+        auto p             = config.find_attribute("raw:cropbox");
         if (p) {
             auto type = p->type();
             if (type.equivalent(TypeDesc(TypeDesc::INT, 4))
@@ -837,10 +838,12 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
                     crop_left += left_margin;
                 if (crop_top != 65535)
                     crop_top += top_margin;
+
+                has_user_crop = true;
             }
         }
 
-        if (crop_width == 0 || crop_height == 0) {
+        if (!has_user_crop) {
             const auto& raw_inset_crops
                 = m_processor->imgdata.sizes.raw_inset_crops[0];
             if (raw_inset_crops.cwidth != 0) {
@@ -852,7 +855,7 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         }
 
         if (crop_width > 0 && crop_height > 0) {
-            const auto S         = m_processor->imgdata.sizes;
+            const auto& S        = m_processor->imgdata.sizes;
             ushort raw_width     = S.raw_width;
             ushort raw_height    = S.raw_height;
             ushort image_width   = S.width;

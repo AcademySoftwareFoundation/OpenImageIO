@@ -649,6 +649,122 @@ Full command line was:
 oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 208 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool -iconfig raw:Demosaic none --stats src/bomb-32000x32000.dng
+________________
+ROTATION 0 info:
+  24 x   22, 1 channel, float raw
+    channel list: Y
+    full/display size: 14 x 12
+    full/display origin: 4, 2
+ Full stats:
+  24 x   22, 1 channel, float raw
+    Stats Min: 32768 (of 65535)
+    Stats Max: 65535 (of 65535)
+    Stats Avg: 43193.86 (of 65535)
+    Stats StdDev: 15261.90 (of 65535)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 528 
+    Constant: No
+    Monochrome: Yes
+Crop stats:
+  14 x   12, 1 channel, float 
+    Stats Min: 1.000000 (float)
+    Stats Max: 1.000000 (float)
+    Stats Avg: 1.000000 (float)
+    Stats StdDev: 0.000000 (float)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 168 
+    Constant: Yes
+    Constant Color: 1.000000 (float)
+    Monochrome: Yes
+________________
+ROTATION 90 info:
+  22 x   24, 1 channel, float raw
+    channel list: Y
+    full/display size: 12 x 14
+    full/display origin: 8, 4
+ Full stats:
+  22 x   24, 1 channel, float raw
+    Stats Min: 32768 (of 65535)
+    Stats Max: 65535 (of 65535)
+    Stats Avg: 43193.86 (of 65535)
+    Stats StdDev: 15261.90 (of 65535)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 528 
+    Constant: No
+    Monochrome: Yes
+Crop stats:
+  12 x   14, 1 channel, float 
+    Stats Min: 1.000000 (float)
+    Stats Max: 1.000000 (float)
+    Stats Avg: 1.000000 (float)
+    Stats StdDev: 0.000000 (float)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 168 
+    Constant: Yes
+    Constant Color: 1.000000 (float)
+    Monochrome: Yes
+________________
+ROTATION 180 info:
+  24 x   22, 1 channel, float raw
+    channel list: Y
+    full/display size: 14 x 12
+    full/display origin: 6, 8
+ Full stats:
+  24 x   22, 1 channel, float raw
+    Stats Min: 32768 (of 65535)
+    Stats Max: 65535 (of 65535)
+    Stats Avg: 43193.86 (of 65535)
+    Stats StdDev: 15261.90 (of 65535)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 528 
+    Constant: No
+    Monochrome: Yes
+Crop stats:
+  14 x   12, 1 channel, float 
+    Stats Min: 1.000000 (float)
+    Stats Max: 1.000000 (float)
+    Stats Avg: 1.000000 (float)
+    Stats StdDev: 0.000000 (float)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 168 
+    Constant: Yes
+    Constant Color: 1.000000 (float)
+    Monochrome: Yes
+________________
+ROTATION 270 info:
+  22 x   24, 1 channel, float raw
+    channel list: Y
+    full/display size: 12 x 14
+    full/display origin: 2, 6
+ Full stats:
+  22 x   24, 1 channel, float raw
+    Stats Min: 32768 (of 65535)
+    Stats Max: 65535 (of 65535)
+    Stats Avg: 43193.86 (of 65535)
+    Stats StdDev: 15261.90 (of 65535)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 528 
+    Constant: No
+    Monochrome: Yes
+Crop stats:
+  12 x   14, 1 channel, float 
+    Stats Min: 1.000000 (float)
+    Stats Max: 1.000000 (float)
+    Stats Avg: 1.000000 (float)
+    Stats StdDev: 0.000000 (float)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 168 
+    Constant: Yes
+    Constant Color: 1.000000 (float)
+    Monochrome: Yes
 Comparing "RAW_CANON_EOS_7D.CR2.tif" and "ref/RAW_CANON_EOS_7D.CR2.tif"
 PASS
 Comparing "RAW_NIKON_D3X.NEF.tif" and "ref/RAW_NIKON_D3X.NEF.tif"
