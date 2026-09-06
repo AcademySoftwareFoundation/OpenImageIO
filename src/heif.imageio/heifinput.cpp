@@ -511,15 +511,15 @@ HeifInput::seek_subimage(int subimage, int miplevel)
             m_spec.attribute("oiio:OriginalOrientation", orientation);
             m_spec.attribute("Orientation", 1);
         } else {
-            // libheif supplies oriented width & height, so if we are NOT
-            // auto-reorienting and it's one of the orientations that swaps
-            // width and height, we need to do that swap ourselves.
-            // Note: all the orientations that swap width and height are 5-8,
-            // whereas 1-4 preserve aspect ratio.
-            if (orientation >= 5) {
-                std::swap(m_spec.width, m_spec.height);
-                std::swap(m_spec.full_width, m_spec.full_height);
-            }
+            // We asked libheif to ignore the transformations, so the decoded
+            // image and its planes are in the stored, unrotated orientation,
+            // and m_spec -- assigned above from the decoded image dimensions
+            // -- already matches the plane geometry. Swapping width and
+            // height here would make the spec disagree with the planes and
+            // make read_native_scanline run past the end of the plane for
+            // orientations 5-8. Just report the orientation so callers can
+            // account for the stored rotation themselves.
+            m_spec.attribute("Orientation", orientation);
         }
     }
 
