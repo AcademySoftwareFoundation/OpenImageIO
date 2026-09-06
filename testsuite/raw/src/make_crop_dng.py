@@ -59,7 +59,7 @@ def make_dng(path, width=32, height=32,
         heap.extend(data + b'\0' * (len(data) & 1))
         return off
 
-    model_off = place(unique_camera_model_str)
+    model_off = place(model_str)
 
     active_area = struct.pack('<HHHH',
         image_insets[0], image_insets[1],
