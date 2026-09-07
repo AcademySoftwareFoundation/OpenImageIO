@@ -469,6 +469,9 @@ macro (oiio_add_all_tests)
     # Self-contained decompression-bomb regression (ships its own tiny fixture);
     # exercises both the C++ and C-API readers via the openexr:core attribute.
     oiio_add_tests (openexr-bomb)
+    # Self-contained multi-part colorInteropID inheritance test (ships its own
+    # tiny fixture); exercises both the C++ and C-API readers.
+    oiio_add_tests (openexr-multipart-colorspace)
     # if (NOT DEFINED ENV{${PROJECT_NAME}_CI})
     #     oiio_add_tests (openexr-damaged
     #                     IMAGEDIR openexr-images

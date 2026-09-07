@@ -1741,6 +1741,14 @@ control aspects of the writing itself:
        While in `relaxed` mode, if the spec is non-compliant, `chromaticities`
        and `colorInteropID` will be set, but `acesImageContainerFlag`
        will NOT.
+   * - ``openexr:ColorInteropIDPolicy``
+     - string
+     - One of `none` (default) or `strict`, taken from the first subimage.
+       In `strict` mode, if the spec is non-compliant with the ASWF Color
+       Interop Forum Recommendation for OpenEXR files, the output will
+       throw an error and avoid writing the image. For compliance, the
+       `colorInteropID` in all subimages must be either equal to the first
+       subimage, or be unspecified or set to `data`.
    * - ``oiio:RawColor``
      - int
      - If nonzero, writing images with non-RGB color models (such as YCbCr)
