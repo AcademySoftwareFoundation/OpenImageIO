@@ -15,6 +15,7 @@ Reading ../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
+    oiio:miplevels: 1
     oiio:subimagename: "rgba.left"
     oiio:subimages: 4
     openexr:chunkCount: 1078
@@ -32,6 +33,7 @@ Reading ../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
+    oiio:miplevels: 1
     oiio:subimagename: "depth.left"
     oiio:subimages: 4
     openexr:chunkCount: 1078
@@ -49,6 +51,7 @@ Reading ../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
+    oiio:miplevels: 1
     oiio:subimagename: "rgba.right"
     oiio:subimages: 4
     openexr:chunkCount: 1078
@@ -66,6 +69,7 @@ Reading ../openexr-images/v2/Stereo/composited.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
+    oiio:miplevels: 1
     oiio:subimagename: "depth.right"
     oiio:subimages: 4
     openexr:chunkCount: 1078
@@ -99,6 +103,7 @@ Reading ../openexr-images/v2/Stereo/Balls.exr
     screenWindowWidth: 1
     version: 1
     view: "left"
+    oiio:miplevels: 1
     oiio:subimagename: "rgba.left"
     oiio:subimages: 2
     openexr:chunkCount: 761
@@ -117,6 +122,7 @@ Reading ../openexr-images/v2/Stereo/Balls.exr
     screenWindowWidth: 1
     version: 1
     view: "right"
+    oiio:miplevels: 1
     oiio:subimagename: "rgba.right"
     oiio:subimages: 2
     openexr:chunkCount: 761
@@ -158,6 +164,7 @@ Reading ../openexr-images/v2/Stereo/Leaves.exr
     screenWindowWidth: 1
     version: 1
     view: "left"
+    oiio:miplevels: 1
     oiio:subimagename: "rgba.left"
     oiio:subimages: 2
     openexr:chunkCount: 1080
@@ -173,6 +180,7 @@ Reading ../openexr-images/v2/Stereo/Leaves.exr
     screenWindowWidth: 1
     version: 1
     view: "right"
+    oiio:miplevels: 1
     oiio:subimagename: "rgba.right"
     oiio:subimages: 2
     openexr:chunkCount: 1080
@@ -215,6 +223,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
+    oiio:miplevels: 1
     oiio:subimagename: "rgba_right"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -231,6 +240,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
+    oiio:miplevels: 1
     oiio:subimagename: "depth_left"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -247,6 +257,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
+    oiio:miplevels: 1
     oiio:subimagename: "forward_left"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -263,6 +274,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
+    oiio:miplevels: 1
     oiio:subimagename: "whitebarmask_left"
     oiio:subimages: 10
     openexr:chunkCount: 769
@@ -279,6 +291,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "left"
+    oiio:miplevels: 1
     oiio:subimagename: "rgba_left"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -295,6 +308,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
+    oiio:miplevels: 1
     oiio:subimagename: "depth_right"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -311,6 +325,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
+    oiio:miplevels: 1
     oiio:subimagename: "forward_right"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -326,6 +341,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:subimagename: "disparityL"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -341,6 +357,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:subimagename: "disparityR"
     oiio:subimages: 10
     openexr:chunkCount: 876
@@ -357,6 +374,7 @@ Reading ../openexr-images/Beachball/multipart.0001.exr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     view: "right"
+    oiio:miplevels: 1
     oiio:subimagename: "whitebarmask_right"
     oiio:subimages: 10
     openexr:chunkCount: 769

@@ -420,6 +420,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     if (!query_channels(in, header))  // also sets format
         return false;
 
+    spec.attribute("oiio:miplevels", nmiplevels);
     spec.deep = Strutil::istarts_with(header->type(), "deep");
 
     if (levelmode != Imf::ONE_LEVEL)

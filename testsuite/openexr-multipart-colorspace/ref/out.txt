@@ -11,6 +11,7 @@ copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "beauty"
     oiio:subimages: 4
@@ -25,6 +26,7 @@ copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "diffuse"
     oiio:subimages: 4
@@ -40,6 +42,7 @@ copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "depth"
     oiio:subimages: 4
@@ -54,6 +57,7 @@ copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "specular"
     oiio:subimages: 4
@@ -72,6 +76,7 @@ copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "beauty"
     oiio:subimages: 4
@@ -86,6 +91,7 @@ copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "diffuse"
     oiio:subimages: 4
@@ -101,6 +107,7 @@ copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "depth"
     oiio:subimages: 4
@@ -115,6 +122,7 @@ copy_from_first.exr  :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "specular"
     oiio:subimages: 4
@@ -131,6 +139,7 @@ missing_first.exr    :    4 x    4, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "beauty"
     oiio:subimages: 3
@@ -146,6 +155,7 @@ missing_first.exr    :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "depth"
     oiio:subimages: 3
@@ -159,6 +169,7 @@ missing_first.exr    :    4 x    4, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "specular"
     oiio:subimages: 3
@@ -175,6 +186,7 @@ missing_first.exr    :    4 x    4, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "beauty"
     oiio:subimages: 3
@@ -190,6 +202,7 @@ missing_first.exr    :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "depth"
     oiio:subimages: 3
@@ -203,6 +216,7 @@ missing_first.exr    :    4 x    4, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "specular"
     oiio:subimages: 3
@@ -221,6 +235,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "data0"
     oiio:subimages: 4
@@ -235,6 +250,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "missing1"
     oiio:subimages: 4
@@ -250,6 +266,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "color2"
     oiio:subimages: 4
@@ -264,6 +281,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "missing3"
     oiio:subimages: 4
@@ -282,6 +300,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "data0"
     oiio:subimages: 4
@@ -296,6 +315,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "missing1"
     oiio:subimages: 4
@@ -311,6 +331,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "color2"
     oiio:subimages: 4
@@ -325,6 +346,7 @@ src/multipart_colorspace_data_first.exr :    4 x    4, 3 channel, half openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "data"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "missing3"
     oiio:subimages: 4
