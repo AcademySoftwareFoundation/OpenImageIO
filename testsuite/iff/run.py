@@ -14,8 +14,12 @@ command += diff_command (OIIO_TESTSUITE_IMAGEDIR+"/grid.tif", "gridtile.iff")
 # Regression test: verify reading of 16 bit rgba + float z (used to have a
 # buffer overrun)
 command += info_command("src/tiny_rgba16z.iff", hash=True)
-# Regression test: chunk size 0 caused subtraction underflow
+
+# Regression test: rgba chunk size 0 caused subtraction underflow
 command += info_command("src/bad_rgba_chunk_size.iff", hash=True, failureok=True)
+# Regression test: zbuf chunk size 0 caused subtraction underflow
+command += info_command("src/bad_zbuf_chunk_size.iff", hash=True, failureok=True)
+
 # Regression test: a ZBUFFER-only (no RGBA) header advertised a 16-bit
 # ImageSpec while the internal pixel size stayed 32-bit, causing
 # read_native_tile to write past the caller's tile buffer. Must be rejected.
