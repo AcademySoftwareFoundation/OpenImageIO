@@ -40,16 +40,23 @@ command += info_command("odd-size.avif", safematch=True)
 # image is a deliberately asymmetric pattern (see oiiotool-xform and
 # orientation1.tif) so that a wrong rotation direction is plainly visible
 # when the files are viewed or compared.
-rotated = make_relpath(os.path.join(imagedir, "rotated-90cw.heic"))
-reorient_redirect = " >> out-reorient.txt "
-volatile = "--no-metamatch \"DateTime|Software|ImageHistory|CICP\""
-command += oiio_app("oiiotool") + " --info -v " + volatile + " --iconfig oiio:reorient 0 " + rotated + reorient_redirect + ";\n"
-command += oiio_app("oiiotool") + " --iconfig oiio:reorient 0 " + rotated + " -d uint8 -o reorient0.tif ;\n"
-command += oiio_app("oiiotool") + " " + rotated + " -d uint8 -o oriented.tif ;\n"
-command += oiio_app("oiiotool") + " reorient0.tif --rotate90 -o reorient0-rotated.tif ;\n"
-command += oiio_app("oiiotool") + " --info -v " + volatile + " reorient0.tif" + reorient_redirect + ";\n"
-command += oiio_app("oiiotool") + " reorient0-rotated.tif oriented.tif --diff" + reorient_redirect + ";\n"
+rotated = os.path.join(imagedir, "rotated-90cw.heic")
+
+###############
+# redirect this section of commands to out-reorient.txt
+redirect_save = redirect
+redirect = " >> out-reorient.txt "
 outputs += [ "out-reorient.txt" ]
+
+command += oiiotool("--info -v --no-metamatch \"DateTime|Software|ImageHistory|CICP\" --iconfig oiio:reorient 0 " + rotated)
+command += oiiotool("--iconfig oiio:reorient 0 " + rotated + " -d uint8 -o reorient0.tif")
+command += oiiotool(rotated + " -d uint8 -o oriented.tif")
+command += oiiotool("reorient0.tif --rotate90 -o reorient0-rotated.tif")
+command += oiiotool("--info -v --no-metamatch \"DateTime|Software|ImageHistory|CICP\" reorient0.tif")
+command += oiiotool("reorient0-rotated.tif oriented.tif --diff")
+
+redirect = redirect_save
+###############
 
 # avif conversion is expected to fail if libheif is built without AV1 support
 failureok = 1
