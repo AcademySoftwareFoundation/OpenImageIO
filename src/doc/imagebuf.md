@@ -416,40 +416,39 @@ Cons/Limitations:
 
 Examples:
 
-```cpp
-// Assume ImageBuf A, B are the inputs, ImageBuf R is the output
+Assume `ImageBuf` A and B are the inputs, and R is the output.
 
-/////////////////////////////////////////////////////////////////
-// Approach 1: using a standalone function to add two images
-bool my_add (span<float> r, cspan<float> a, cspan<float> b) {
-    for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
-        r[c] = a[c] + b[c];
-    return true;
-}
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+:language: c++
+:start-after: BEGIN-imagebuf-perpixel-op-function
+:end-before: END-imagebuf-perpixel-op-function
+```
 
-R = ImageBufAlgo::perpixel_op(A, B, my_add);
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+:language: c++
+:start-after: BEGIN-imagebuf-perpixel-op-function-call
+:end-before: END-imagebuf-perpixel-op-function-call
+:dedent: 4
+```
 
-/////////////////////////////////////////////////////////////////
-// Approach 2: using a "functor" class to add two images
-struct Adder {
-    bool operator() (span<float> r, cspan<float> a, cspan<float> b) {
-        for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
-            r[c] = a[c] + b[c];
-        return true;
-    }
-};
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+:language: c++
+:start-after: BEGIN-imagebuf-perpixel-op-functor
+:end-before: END-imagebuf-perpixel-op-functor
+```
 
-Adder adder;
-R = ImageBufAlgo::perpixel_op(A, B, adder);
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+:language: c++
+:start-after: BEGIN-imagebuf-perpixel-op-functor-call
+:end-before: END-imagebuf-perpixel-op-functor-call
+:dedent: 4
+```
 
-/////////////////////////////////////////////////////////////////
-// Approach 3: using a lambda to add two images
-R = ImageBufAlgo::perpixel_op(A, B,
-        [](span<float> r, cspan<float> a, cspan<float> b) {
-            for (size_t c = 0, nc = size_t(r.size()); c < nc; ++c)
-                r[c] = a[c] + b[c];
-            return true;
-        });
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imagebuf.cpp
+:language: c++
+:start-after: BEGIN-imagebuf-perpixel-op-lambda
+:end-before: END-imagebuf-perpixel-op-lambda
+:dedent: 4
 ```
 
 ## Iterators -- the fast way of accessing individual pixels
