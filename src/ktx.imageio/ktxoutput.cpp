@@ -29,7 +29,7 @@ public:
         return (
             feature == "alpha" || feature == "ioproxy" ||
             // as per the KTX2 specs:
-            //  registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
+            // registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
             feature == "arbitrary_metadata" ||
             // KTX2 supports 2D texture arrays, cubmap arrays, and 2D texture
             // arrays. That being said, we only support 2D texture arrays.
@@ -39,18 +39,47 @@ public:
             // Ktx supports 3D textures
             feature == "volumes" ||
             // Can write in any order whatsoever
-            feature == "random_access");
+            feature == "random_access" ||
+            // Can write Cubemaps and volume textures (these are simulated as
+            // tiles even though libktx actually treats volumes slices as
+            // subimages)
+            feature == "tiles");
     }
 
     bool open(const std::string& name, const ImageSpec& spec,
               OpenMode mode = Create) override;
 
+    // Calls the span-based single-scanline implementation
     bool write_scanline(int y, int z, TypeDesc format, const void* data,
                         stride_t xstride) override;
 
+    // Calls the span-based multi-scanline implementation
+    bool write_scanline(int y, TypeDesc format,
+                        const image_span<const std::byte>& data) override;
+
+    // Calls the span-based multi-scanline implementation
     bool write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                          const void* data, stride_t xstride = AutoStride,
                          stride_t ystride = AutoStride) override;
+
+    // Actual implementation
+    bool write_scanlines(int ybegin, int yend, TypeDesc format,
+                         const image_span<const std::byte>& data) override;
+
+    // Calls the span-based single-tile implementation
+    bool write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                    stride_t xstride = AutoStride,
+                    stride_t ystride = AutoStride,
+                    stride_t zstride = AutoStride) override;
+
+    // Calls the span-based multi-tile implementation
+    bool write_tile(int x, int y, int z, TypeDesc format,
+                    const image_span<const std::byte>& data) override;
+
+    // Actual implementation
+    bool write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                     int zend, TypeDesc format,
+                     const image_span<const std::byte>& data) override;
 
     bool close() override;
 
@@ -73,6 +102,10 @@ private:
     uint32_t m_basedepth { 0 };  // MIP level 0 depth
 
     bool m_is1D { false };  // is this a 1D texture?
+
+    bool m_is3D { false };  // is this a 3D texture?
+
+    bool m_is_cubemap { false };  // is this a cubemap texture?
 
     ktxSupercmpScheme m_superCmp { KTX_SS_NONE };
 
@@ -153,20 +186,49 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
     if (mode == Create) {
-        if (userspec.depth
-            > 1) {  // Volume texture are limited to 4096x4096x4096
+        //
+        // Before anything, do some basic checks on the given dimensions
+        // depending on the given texture kind (2D, 3D, Cubemap, etc.).
+        //
+        // The check_open() calls below set the m_spec from the given userspec
+        //
+        if (userspec.depth > 1) {
+            // Volume texture are limited to 4096x4096x4096
             if (!check_open(mode, userspec, { 0, 4096, 0, 4096, 0, 4096, 0, 4 }))
                 return false;
-        } else if (userspec.tile_width
-                   > 1) {  // Cubemap texture are limited to 16384x16384
+            if (userspec.tile_width != userspec.width
+                || userspec.tile_height != 1 || userspec.tile_depth != 1) {
+                errorfmt(
+                    "For volume textures, tile width must be: {} (provided {}). Tile height and depth must both be: 1 (provided {} and {}, respectively)",
+                    userspec.width, userspec.tile_width, userspec.tile_height,
+                    userspec.tile_depth);
+                return false;
+            }
+            m_is3D = true;
+        } else if (userspec.tile_width > 1) {
+            // Cubemap texture are limited to 16384x16384
             if (!check_open(mode, userspec,
                             { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 }))
                 return false;
-        } else {  // 2D texture are limited to 32768x32768
+            // In KTX2, cubemaps are 'simulated' as 1x6 layout (tiles along the
+            // height)
+            if (userspec.width != userspec.tile_width
+                || userspec.height != userspec.tile_height * 6
+                || userspec.tile_depth != 1) {
+                errorfmt(
+                    "For Cubemap textures, tile width must be: {} (provided {}). Tile height must be 1/6th the height: {}/6 (provided {}). Tile depth must be: 1 (provided {}) ",
+                    userspec.width, userspec.tile_width, userspec.height,
+                    userspec.tile_height, userspec.tile_depth);
+                return false;
+            }
+            m_is_cubemap = true;
+        } else {
+            // 2D texture are limited to 32768x32768
             if (!check_open(mode, userspec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
                 return false;
         }
 
+        // Save base dimensions (useful to compute MIP-level dims)
         m_basewidth  = m_spec.width;
         m_baseheight = m_spec.height;
         m_basedepth  = m_spec.depth;
@@ -183,24 +245,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         if (!ioproxy_use_or_open(m_filename))
             return false;
 
-        // Try to figure the texture kind (i.e., plain 2D texture, volume, or cubemap)
-        // const auto textureformat = m_spec.get_string_attribute("textureformat");
-        // if (textureformat == "Volume Texture") {
-        //     if (m_spec.depth <= 1) {
-        //         errorfmt("Volume textures are expected to have a depth > 1");
-        //         close();
-        //         return false;
-        //     }
-        //     m_texturekind = TextureKind::SINGLE_TEXTURE_3D;
-        // } else if (textureformat == "CubeFace Environment") {
-        //     // TODO: check on tiles
-        //     m_texturekind = TextureKind::CUBEMAP_TEXTURE;
-        // } else /* unknown */ {
-        //     m_texturekind = TextureKind::SINGLE_TEXTURE_2D;
-        // }
-
         const auto compression = m_spec.get_string_attribute("compression",
-                                                             "NONE");
+                                                             "none");
         if (Strutil::iequals(compression, "none")) {
             m_cmp = BlockCompression::NONE;
         } else if (Strutil::iequals(compression, "astc")) {
@@ -215,9 +261,9 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // Currently only two colorspaces are tested, linear or REC709 sRGB
         const auto colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
                                                             "srgb_rec709_scene");
+        m_spec.set_colorspace(colorspace);
         bool is_srgb = ColorConfig::default_colorconfig().equivalent(
             colorspace, "srgb_rec709_scene");
-        m_spec.set_colorspace(colorspace);
 
         if (auto Q = m_spec.find_attribute("ktx:1d", TypeDesc::INT)) {
             auto ndims = Q->get_int();
@@ -249,7 +295,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         }
 
         //
-        // Use sensible default in case the input data did not originate from a
+        // Use sensible defaults in case the input data did not originate from a
         // KTX2 file and the user did not provide a supercompression scheme.
         // KTX2 usually uses BasisLZ supercompression scheme to benefit from
         // both: smaller disk filesizes and on-the-fly transcoding to a
@@ -300,7 +346,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         }
 
 
-        if (m_spec.depth > 1)
+        if (m_is3D)
             m_max_nmiplevels
                 = (uint32_t)floor(
                       logf(std::min(std::min(m_spec.width, m_spec.height),
@@ -331,7 +377,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 
     if (mode == AppendMIPLevel) {
         if (!m_initialized) {
-            errorfmt("Cannot append a MIP level if no file has been opened");
+            errorfmt("Cannot append a MIP level if no file has been opened. "
+                     "Make sure to call open() with mode=\"Create\" first.");
             return false;
         }
 
@@ -358,10 +405,25 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                 userspec.height, userspec.depth);
             return false;
         }
-        m_spec.width  = userspec.width;
-        m_spec.height = userspec.height;
-        m_spec.depth  = userspec.depth;
+        m_spec.width = m_spec.full_width = userspec.width;
+        m_spec.height = m_spec.full_height = userspec.height;
+        m_spec.depth = m_spec.full_depth = userspec.depth;
         ++m_miplevel_idx;
+
+        // If this is a volume texture, also update tile_width
+        if (m_is3D) {
+            m_spec.tile_width  = m_spec.width;
+            m_spec.tile_height = 1;
+            m_spec.tile_depth  = 1;
+        }
+
+        // If this is a cubemap texture, update tile dims
+        if (m_is_cubemap) {
+            OIIO_ASSERT(m_spec.height % 6 == 0);
+            m_spec.tile_width  = m_spec.width;
+            m_spec.tile_height = m_spec.height / 6;
+            m_spec.tile_depth  = 1;
+        }
 
         // Reserve memory for this mip level
         append_mipmaps_vector();
@@ -370,8 +432,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
     }  // mode == AppendMIPLevel
 
     // (mode == AppendSubimage) is NOT supported. Pre-declaring the number of
-    // subimages is easier to implement (random access to volume slices is
-    // already provided).
+    // subimages is easier to implement (random access to array entries is
+    // already supported).
 
     return false;
 }
@@ -388,45 +450,178 @@ KtxOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
 
 
 bool
+KtxOutput::write_scanline(int y, TypeDesc format,
+                          const image_span<const std::byte>& data)
+{
+    return write_scanlines(y, y + 1, format, data);
+}
+
+
+
+bool
 KtxOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
                            const void* data, stride_t xstride, stride_t ystride)
 {
-    const int width  = std::max(m_basewidth >> m_miplevel_idx, 1u);
-    const int height = std::max(m_baseheight >> m_miplevel_idx, 1u);
-    if (ybegin < 0 || ybegin >= yend || yend > height || z < 0
-        || z >= (int)m_basedepth) {
-        errorfmt(
-            "KTX write_scanlines: Out of valid range scanline indices. "
-            "Provided: ybegin={} yend={} z={}. "
-            "Constraints: ybegin: [0, min({},yend)[, yend>ybegin, z: [0,{}[",
-            ybegin, yend, z, height, m_basedepth);
+    const image_span data_img_span(static_cast<const std::byte*>(data),
+                                   m_spec.nchannels, m_spec.width,
+                                   m_spec.height, m_spec.depth, AutoStride,
+                                   xstride, ystride);
+    // For 3D volumes, fallback to write_tiles()
+    if (m_is3D)
+        return write_tiles(0, m_spec.width, ybegin, yend, z, z + 1, format,
+                           data_img_span);
+    // For Cubemaps, just return false (it should be obvious that write_tiles()
+    // should be used for Cubemaps; unlike the case for Volumes which is
+    // somewhat a hack)
+    if (m_is_cubemap)
+        return false;
+    return write_scanlines(ybegin, yend, format, data_img_span);
+}
+
+
+
+bool
+KtxOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
+                           const image_span<const std::byte>& data)
+{
+    // Unlike KtxInput, we don't need to worry about thread-safety here as there
+    // is no requirement for these `write_*` functions to be thread-safe.
+    if (ybegin < 0 || ybegin >= yend || yend > m_spec.height) {
+        errorfmt("KTX write_scanlines: Out of valid range scanline indices. "
+                 "Provided: ybegin={} yend={}. "
+                 "Constraints: ybegin: [0, min({},yend)[, yend>ybegin",
+                 ybegin, yend, m_spec.height);
         return false;
     }
-    stride_t zstride = AutoStride;
-    m_spec.auto_stride(xstride, ystride, zstride, format, m_spec.nchannels,
-                       width, height);
+
     //
-    // Convert to the native format the current specs expects. This is needed,
-    // for instance, to convert a given TypeDesc::FLOAT into native format that
-    // this KTX2 writer expects (i.e., TypeDesc::UINT8 or TypeDesc::UINT16).
+    // Convert to the native format the current specs expects. This is needed
+    // for mainly two reasons:
+    //  1. To convert a given TypeDesc::FLOAT into native format that this KTX2
+    //     writer expects (i.e., TypeDesc::UINT8 or TypeDesc::UINT16).
+    //  2. And/Or to 'contiguize' the data
     //
     // Returned data pointer may be the same as the provided pointer (i.e., no
-    // conversion is needed because supplied data is already in native format).
+    // conversion is needed because supplied data is already in native format
+    // and is already contiguous).
     //
-    data = to_native_rectangle(/* m_spec.x */ 0, /* m_spec.x + */ width, ybegin,
-                               yend, z, z + 1, format, data, xstride, ystride,
-                               zstride, m_scratch, false, 0, ybegin, z);
+    // Importantly, the data that we get is both contiguous and in 100%
+    // accordance with the current spec.
+    //
+    cspan<std::byte> data_native = to_native(0, m_spec.width, ybegin, yend, 0,
+                                             1, format, data, m_scratch, 0);
 
     // data should now be contiguous and of the expected format (UINT8 or
     // UINT16) so simply memcpy into internal buffer that will be written on
     // close().
     const size_t pitch = m_spec.scanline_bytes();
-    auto pSrc          = reinterpret_cast<const uint8_t*>(data);
+    auto pSrc          = data_native.data();
     size_t offset      = ybegin * pitch;
     size_t datalen     = (yend - ybegin) * pitch;
-    memcpy(m_imgs[m_miplevel_idx][z].data() + offset, pSrc, datalen);
+    memcpy(m_imgs[m_miplevel_idx][0].data() + offset, pSrc, datalen);
     DBG std::cout << "write_scanlines wrote " << datalen << " bytes"
                   << std::endl;
+    return true;
+}
+
+
+bool
+KtxOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
+                      stride_t xstride, stride_t ystride, stride_t zstride)
+{
+    const image_span data_img_span(static_cast<const std::byte*>(data),
+                                   m_spec.nchannels, m_spec.width,
+                                   m_spec.height, m_spec.depth, AutoStride,
+                                   xstride, ystride);
+    return write_tile(x, y, z, format, data_img_span);
+}
+
+
+
+bool
+KtxOutput::write_tile(int x, int y, int z, TypeDesc format,
+                      const image_span<const std::byte>& data)
+{
+    // For a volume texture, read a single WIDTHx1x1 tile
+    if (m_is3D) {
+        return write_tiles(x, x + m_spec.width, y, y + 1, z, z + 1, format,
+                           data);
+    }
+    // For a cubemap, read a single WIDTHxHEIGHTx1 tile
+    // (Note: there is no such thing as 3D cubemaps)
+    return write_tiles(x, x + m_spec.width, y, y + m_spec.height, z, z + 1,
+                       format, data);
+}
+
+
+
+bool
+KtxOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
+                       int zend, TypeDesc format,
+                       const image_span<const std::byte>& data)
+{
+    // Basis checks on provided ranges
+    if (xbegin < 0 || xbegin >= xend || xend > m_spec.width || ybegin < 0
+        || ybegin >= yend || yend > m_spec.height || zbegin < 0
+        || zbegin >= zend || zend > m_spec.depth) {
+        errorfmt(
+            "KTX write_tiles: Out of valid range scanline ranges. "
+            "Provided: xbegin={} xend={} ybegin={} yend={} zbegin={} zend={}. "
+            "Constraints: xbegin: must be 0, xend: must be {}; "
+            "ybegin: [0, min({},yend)[, yend>ybegin; "
+            "zbegin: [0, min({},zend)[, zend>zbegin",
+            xbegin, xend, ybegin, yend, zbegin, zend, m_spec.width,
+            m_spec.height, m_spec.depth);
+        return false;
+    }
+
+    // Why not zbegin/zend? These are only used for volume textures and tile
+    // depth for said textures is always set to 1.
+    if (xbegin != 0 || xend != m_spec.width || ybegin % m_spec.height
+        || yend % m_spec.height) {
+        errorfmt(
+            "Invalid tiles ROI ranges. X and Y ranges should be multiples of width and height, respectively");
+        return false;
+    }
+
+    cspan<std::byte> data_native = to_native(xbegin, xend, ybegin, yend, zbegin,
+                                             zend, format, data, m_scratch, 0);
+
+    // Now data is guaranteed to be contiguous and native to our spec
+
+    const size_t pitch = m_spec.pixel_bytes() * m_spec.width;
+    auto pSrc          = data_native.data();
+    size_t offset      = ybegin * pitch;
+    [[maybe_unused]] size_t nbr_written_bytes { 0 };
+
+    // For a volume texture, do a memcpy for each depth slice
+    if (m_is3D) {
+        size_t datalen = (yend - ybegin) * pitch;
+        for (int slice_idx = zbegin; slice_idx < zend; ++slice_idx) {
+            memcpy(m_imgs[m_miplevel_idx][slice_idx].data() + offset,
+                   pSrc
+                       + size_t(slice_idx - zbegin) * pitch
+                             * size_t(yend - ybegin),
+                   datalen);
+            nbr_written_bytes += datalen;
+        }
+        DBG std::cout << "[ktxoutput] write_tiles wrote " << nbr_written_bytes
+                      << " bytes" << std::endl;
+        return true;
+    }
+
+    // else: Cubemap texture
+
+    size_t tile_size_in_bytes = m_spec.height * pitch;
+    for (int face_idx = (ybegin / m_spec.height);
+         (face_idx * m_spec.height) < yend; ++face_idx) {
+        memcpy(m_imgs[m_miplevel_idx][face_idx].data() + offset,
+               pSrc + (face_idx - ybegin / m_spec.height) * tile_size_in_bytes,
+               tile_size_in_bytes);
+        nbr_written_bytes += tile_size_in_bytes;
+    }
+    DBG std::cout << "[ktxoutput] write_tiles wrote " << nbr_written_bytes
+                  << " bytes" << std::endl;
     return true;
 }
 
@@ -444,7 +639,7 @@ KtxOutput::close()
         init();
         return true;
     }
-    bool result = write_ktx2();  // TODO: can this throw? (prob not)
+    bool result = write_ktx2();
     init();
     return result;
 }
@@ -474,6 +669,9 @@ KtxOutput::init()
     m_basewidth           = 0;
     m_baseheight          = 0;
     m_basedepth           = 0;
+    m_is1D                = false;
+    m_is3D                = false;
+    m_is_cubemap          = false;
     m_superCmp            = KTX_SS_NONE;
     m_generate_mipmaps    = false;
     m_cmp                 = BlockCompression::NONE;
@@ -657,6 +855,7 @@ KtxOutput::write_ktx2()
     OIIO_ASSERT(
         m_vkformat != VK_FORMAT_UNDEFINED
         && "VkFormat should never be VK_FORMAT_UNDEFINED when creating a KTX2 texture");
+    // TODO: arrays are currently not supported
     ktxTextureCreateInfo create_info;
     create_info.glInternalformat = 0;  // Ignored as this is not a KTX1 texture
     create_info.vkFormat         = m_vkformat;
@@ -666,9 +865,9 @@ KtxOutput::write_ktx2()
     create_info.baseDepth        = m_basedepth;
     create_info.numDimensions    = m_is1D ? 1 : m_basedepth > 1 ? 3u : 2u;
     create_info.numLevels        = m_miplevel_idx + 1;
-    create_info.numLayers = 1;  // Can't support this with current OIIO API
-    create_info.numFaces  = 1;  // TODO
-    create_info.isArray = KTX_FALSE;  // Can't support this with current OIIO API
+    create_info.numLayers        = 1;
+    create_info.numFaces = (m_spec.tile_width > 1 && m_basedepth <= 1) ? 6 : 1;
+    create_info.isArray  = KTX_FALSE;
     create_info.generateMipmaps = m_generate_mipmaps;
 
     DBG std::cout << "calling ktxTexture2_Create with: "

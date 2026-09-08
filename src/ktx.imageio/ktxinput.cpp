@@ -38,16 +38,40 @@ public:
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
 
+    // Calls the span-based implementation with inferred data buffer length
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
 
+    // Calls the span-based implementation with inferred data buffer length
     bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                int z, void* data) override;
 
-    // TODO: why there is no `read_native_scanlines` that takes a span<std::byte>
-    // but also a `z` slice index (same as unsafe `read_native_scanlines`)?
-    // bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
-    //                            span<std::byte> data) override;
+    // Actual implementation for 1d/2d textures
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               span<std::byte> data) override;
+
+    // Calls the span-based implementation with inferred data buffer length
+    bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                          void* data) override;
+
+    // Calls the span-based implementation with inferred data buffer length
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, int zbegin, int zend,
+                           void* data) override;
+
+    // Actual implementation for Cubemap textures
+    bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                           int ybegin, int yend, span<std::byte> data) override;
+
+    // Actual implementation for volume textures
+    // Note: current OIIO API does not make any call to this method. This is
+    // just implemented for future use and to be called within read_native_tiles
+    // when the texture is a volume.
+    bool read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
+                                      int xend, int ybegin, int yend,
+                                      int zbegin, int zend,
+                                      span<std::byte> data) override;
+
 
     const std::string& filename() const { return m_filename; }
 
@@ -227,7 +251,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     DBG std::cout << "[ktxinput] is_hdr: " << is_hdr << '\n';
 
     // height can be 0 for 1D textures.
-    m_spec       = ImageSpec(m_tex->baseWidth, std::max(m_tex->baseHeight, 1u),
+    m_spec       = ImageSpec(m_tex->baseWidth,
+                             std::max(m_tex->baseHeight, 1u)
+                                 * (m_tex->isCubemap ? 6 : 1),
                              4 /* dummy value - will be overwritten */,
                              TypeDesc::UINT8);
     m_spec.depth = m_spec.full_depth = m_tex->baseDepth;
@@ -238,10 +264,13 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
     // Set textureformat attribute
     if (m_tex->numDimensions == 2 || m_tex->numDimensions == 1) {
-        if (m_tex->isCubemap)
+        if (m_tex->isCubemap) {
             m_spec.attribute("textureformat", "CubeFace Environment");
-        else
+            // In KTX (as per the specs) cubemap faces are always in this order
+            m_spec.attribute("ktx:CubeMapSides", "+x -x +y -y +z -z");
+        } else {
             m_spec.attribute("textureformat", "Plain Texture");
+        }
     } else if (m_tex->numDimensions == 3) {
         m_spec.attribute("textureformat", "Volume Texture");
     } else {
@@ -642,7 +671,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     } else {  // 2D texture are limited to 32768x32768
         if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
             return false;
-    }  // Array textures are not supported
+    }
 
     if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 65535, 0, 4 }))
         return false;
@@ -676,9 +705,7 @@ KtxInput::check(int subimage, int miplevel) const
     // Before doing any calls, check if provided subimage and mip lvl are valid.
     // This is how OIIO figures out the number of subimages/miplevels.
     //
-    if (subimage < 0 || miplevel < 0
-        || (m_tex->isCubemap ? (uint32_t)subimage >= m_tex->numFaces
-                             : (uint32_t)subimage >= m_tex->numLayers)
+    if (subimage < 0 || miplevel < 0 || (uint32_t)subimage >= m_tex->numLayers
         || (uint32_t)miplevel >= m_tex->numLevels)
         return false;  // don't errorfmt here
     return true;
@@ -692,18 +719,22 @@ KtxInput::check(int subimage, int miplevel) const
 // offset.
 //
 // What this seek_subimage does, is essentially parameter verification (i.e.,
-// are provided subimage and miplevel sane for the current texture kind).
+// are provided subimage and miplevel sane for the current texture kind) and
+// setting up dimensions and tile dimensions for cubemap or volume textures.
 //
 // In the context of KTX:
 // - For 3D textures (i.e., depth > 1): `subimage` does NOT correspond to the
 //   3D texture depth slice (unlike how libktx 'considers' 3D slices and cubemap
 //   faces equivalent; from point of view of the API). `subimage` SHOULD be 0.
-// - For Cubemaps (i.e., tile_width/tile_height > 1): `subimage` corresponds to
-//   the cubemap face. subimage SHOULD be [0,tex->numFaces[.
-// - Arrays of 2D textures: `subimage` maps to layer in libktx (i.e., index in
-//   array). subimage SHOULD be [0, m_tex->numLayers[.
-// - Arrays of 3D textures: not supported.
-// - Arrays of Cubemap textures: not supported.
+//   Volumes are expected to be read using `read_native_tiles` where each tile
+//   is simulated as a scanline.
+// - For Cubemaps (i.e., tile_width/tile_height > 1): `subimage` also does NOT
+//   correspond to the face slice (again, unlike how libktx accesses cubemap
+//   faces using slices/subimages). `subimage` SHOULD be 0. Incomplete cubemaps
+//   (i.e., number of faces < 6) are currently not supported.
+// - Arrays of 2D/cubemap textures: `subimage` maps to layer in libktx (i.e.,
+//   index in array). `subimage` SHOULD be [0, m_tex->numLayers[.
+// - Arrays of 3D textures: currently not supported.
 //
 // For all kinds of textures, `miplevel` is ALWAYS interpreted as a mip level of
 // the above `subimage` (e.g., `miplevel` 0 of 3D texture refers to base-level
@@ -732,9 +763,30 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     const size_t height = std::max(m_tex->baseHeight >> miplevel, 1u);
     const size_t depth  = std::max(m_tex->baseDepth >> miplevel, 1u);
 
-    m_spec.width  = width;
-    m_spec.height = height;
-    m_spec.depth  = depth;
+    m_spec.width = m_spec.full_width = width;
+    m_spec.height = m_spec.full_height = height;
+    m_spec.depth = m_spec.full_depth = depth;
+
+    //
+    // For volume texture, pretend it's a tiled texture with:
+    // width x 1 x 1 tiles.
+    // Why? Current OIIO API does not provide safe span-based
+    // read_native_scanlines with a depth parameter (i.e., `z` parameter).
+    //
+    if (m_tex->numDimensions == 3) {
+        m_spec.tile_width  = width;
+        m_spec.tile_height = 1;
+        m_spec.tile_depth  = 1;
+    }
+
+    // Pretend a 1x6 layout (libktx doesn't provide access to cubemaps as whole
+    // textures but rather through a per-face index API)
+    if (m_tex->isCubemap) {
+        m_spec.height = m_spec.full_height = height * 6;
+        m_spec.tile_width                  = width;
+        m_spec.tile_height                 = height;
+        m_spec.tile_depth                  = 1;
+    }
 
     return true;
 }
@@ -745,7 +797,14 @@ bool
 KtxInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                                void* data)
 {
-    return read_native_scanlines(subimage, miplevel, y, y + 1, z, data);
+    const int width = std::max(m_tex->baseWidth >> miplevel, 1u);
+    // Use read_native_volumetric_tiles() to read scanlines from volume slices
+    if (z != 0)
+        return false;
+    // Simply call the span-base multi-scanline method with inferred length
+    return read_native_scanlines(subimage, miplevel, y, y + 1,
+                                 make_span((std::byte*)data,
+                                           m_spec.pixel_bytes() * width));
 }
 
 
@@ -754,22 +813,56 @@ bool
 KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                 int yend, int z, void* data)
 {
+    const int width      = std::max(m_tex->baseWidth >> miplevel, 1u);
+    const int height     = std::max(m_tex->baseHeight >> miplevel, 1u);
+    const auto data_span = make_span((std::byte*)data, m_spec.pixel_bytes()
+                                                           * width
+                                                           * (yend - ybegin));
+    // Use read_native_volumetric_tiles() to read scanlines from volume slices
+    if (z != 0)
+        return read_native_volumetric_tiles(subimage, miplevel, 0, width,
+                                            ybegin, yend, z, z + 1, data_span);
+    if (ybegin < 0 || ybegin >= yend || yend > height) {
+        errorfmt(
+            "KTX read_native_scanlines: Out of valid range scanlines range");
+        return false;
+    }
+    // Simply call the span-base multi-scanline method with inferred length
+    return read_native_scanlines(subimage, miplevel, ybegin, yend, data_span);
+}
+
+
+
+bool
+KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                int yend, span<std::byte> data)
+{
     const int width             = std::max(m_tex->baseWidth >> miplevel, 1u);
     const int height            = std::max(m_tex->baseHeight >> miplevel, 1u);
-    const int depth             = std::max(m_tex->baseDepth >> miplevel, 1u);
     const size_t pitch_in_bytes = m_spec.pixel_bytes() * width;
     ktx_size_t offset;
+
+    // Use read_native_tiles() to read cubemap faces or
+    // read_native_volumetric_tiles() to read 3D volume slices
+    if (m_tex->isCubemap || m_tex->numDimensions == 3) {
+        return false;
+    }
+
+    if (ybegin < 0 || ybegin >= yend || yend > height) {
+        errorfmt(
+            "KTX read_native_scanlines: Out of valid range scanlines range");
+        return false;
+    }
 
     if (!check(subimage, miplevel)) {
         errorfmt("KTX read_native_scanlines: invalid subimage or miplevel");
         return false;
     }
 
-    if (ybegin < 0 || ybegin >= yend || yend > height || z < 0 || z >= depth) {
-        errorfmt(
-            "KTX read_native_scanlines: Out of valid range scanline indices");
-        return false;
-    }
+    // Can the provided span hold the requested scanlines?
+    // This only accesses nchannels of the m_spec, so this is thread safe.
+    if (!valid_raw_span_size(data, m_spec, 0, width, ybegin, yend))
+        return false;  // errorfmt is set within valid_raw_span_size
 
     if (const size_t libktx_image_size = ktxTexture2_GetImageSize(m_tex.get(),
                                                                   miplevel),
@@ -789,46 +882,233 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
-    // Use this in case OIIO API provides read_native_scanlines with `data` as
-    // `span<std::byte>` and a `z` slice param
-#if 0
-    // Can the provided span hold the requested scanlines?
-    // This only accesses nchannels of the m_spec, so this is thread safe.
-    if (!valid_raw_span_size(data, m_spec, 0, width, ybegin, yend))
-        // errorfmt is set within valid_raw_span_size
-        return false;
-#endif
-
     //
-    // GetImageOffset implements internal checks depending on texture kind (e.g.,
-    // 3D, cubemap, etc.) and incase of invalid input, KTX_INVALID_OPERATION is
-    // returned.
+    // GetImageOffset implements internal checks depending on texture kind
+    // (e.g., 3D, cubemap, etc.) and in case of invalid input,
+    // KTX_INVALID_OPERATION is returned.
     //
-    // Face slices are indexed via the `subimage` OIIO parameter (and not `z`
-    // parameter which is exclusively used for 3D textures). Cubemap texture
-    // arrays are not supported hence why this it is not problematic to
-    // `subimage` both as layer index and face index.
-    //
-    ktx_uint32_t layer     = m_tex->isArray ? subimage : 0u;
-    ktx_uint32_t faceSlice = m_tex->isCubemap            ? subimage
-                             : m_tex->numDimensions == 3 ? z
-                                                         : 0u;
-    OIIO_ASSERT(!(layer > 0 && faceSlice > 0));
-    if (auto status = ktxTexture2_GetImageOffset(m_tex.get(), miplevel, layer,
-                                                 faceSlice, &offset);
+    if (auto status = ktxTexture2_GetImageOffset(m_tex.get(), miplevel,
+                                                 subimage, 0, &offset);
         status != KTX_SUCCESS) {
         errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
                  static_cast<uint32_t>(status));
         return false;
     }
 
-    auto data_ptr = m_tex->pData + offset;
-
-    // since miplevel is valid => get number of bytes in a row for this mip
-    memcpy(data, data_ptr, pitch_in_bytes * size_t(yend - ybegin));
+    auto src_ptr = m_tex->pData + offset + ktx_size_t(ybegin) * pitch_in_bytes;
+    memcpy(data.data(), src_ptr, pitch_in_bytes * size_t(yend - ybegin));
     DBG std::cout << fmt::format(
-        "[ktxinput] read_native_scanlines(subimage={},miplevel={},ybegin={},yend={},z={})\n",
-        subimage, miplevel, ybegin, yend, z);
+        "[ktxinput] read_native_scanlines(subimage={},miplevel={},ybegin={},yend={})\n",
+        subimage, miplevel, ybegin, yend);
+    return true;
+}
+
+
+
+bool
+KtxInput::read_native_tile(int subimage, int miplevel, int x, int y, int z,
+                           void* data)
+{
+    int tile_width  = std::max(m_tex->baseWidth >> miplevel, 1u);
+    int tile_height = std::max(m_tex->baseHeight >> miplevel, 1u);
+    int tile_depth  = std::max(m_tex->baseDepth >> miplevel, 1u);
+    // Use read_native_volumetric_tiles() for volume tiles
+    if (m_tex->numDimensions == 3) {
+        tile_height = 1;
+        tile_depth  = 1;
+        return read_native_volumetric_tiles(
+            subimage, miplevel, x, x + tile_width, y, y + tile_height, z,
+            z + tile_depth,
+            make_span(static_cast<std::byte*>(data),
+                      m_spec.pixel_bytes() * tile_width));
+    }
+    return read_native_tiles(subimage, miplevel, x, x + tile_width, y,
+                             y + tile_height,
+                             make_span(static_cast<std::byte*>(data),
+                                       m_spec.pixel_bytes() * tile_width
+                                           * tile_height));
+}
+
+
+
+bool
+KtxInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                            int ybegin, int yend, int zbegin, int zend,
+                            void* data)
+{
+    const int tile_width = std::max(m_tex->baseWidth >> miplevel, 1u);
+    // Use read_native_volumetric_tiles() for volume tiles
+    if (m_tex->numDimensions == 3)
+        return read_native_volumetric_tiles(
+            subimage, miplevel, xbegin, xend, ybegin, yend, zbegin, zend,
+            make_span((std::byte*)data, m_spec.pixel_bytes() * tile_width
+                                            * size_t(yend - ybegin)
+                                            * size_t(zend - zbegin)));
+    return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
+                             make_span(static_cast<std::byte*>(data),
+                                       m_spec.pixel_bytes() * tile_width
+                                           * size_t(yend - ybegin)));
+}
+
+
+
+bool
+KtxInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
+                            int ybegin, int yend, span<std::byte> data)
+{
+    const int width             = std::max(m_tex->baseWidth >> miplevel, 1u);
+    const int height            = std::max(m_tex->baseHeight >> miplevel, 1u);
+    const size_t pitch_in_bytes = m_spec.pixel_bytes() * width;
+    ktx_size_t offset;
+
+    // Is this a Cubemap?
+    if (!m_tex->isCubemap)
+        return false;
+
+    if (!check(subimage, miplevel)) {
+        errorfmt("KTX read_native_scanlines: invalid subimage or miplevel");
+        return false;
+    }
+
+    // Check provided ROI (with 1x6 layout => tiles arranged along height)
+    if (xbegin != 0 || xend != width || ybegin < 0 || ybegin >= yend
+        || ybegin % height || yend > (height * 6) || yend % height) {
+        errorfmt("KTX read_native_tiles: out of valid range tile(s) ROI");
+        return false;
+    }
+
+    // Can the provided span hold the requested scanlines?
+    // This only accesses nchannels of the m_spec, so this is thread safe.
+    if (!valid_raw_span_size(data, m_spec, xbegin, xend, ybegin, yend))
+        return false;  // errorfmt is set within valid_raw_span_size
+
+    if (const size_t libktx_image_size = ktxTexture2_GetImageSize(m_tex.get(),
+                                                                  miplevel),
+        expected_image_size            = pitch_in_bytes * height;
+        libktx_image_size != expected_image_size) {
+        errorfmt("Expected image size of {} but libktx reported {}",
+                 expected_image_size, libktx_image_size);
+        return false;
+    }
+
+    // Check that our pitch (from spec) is equal to the one reported by libktx
+    if (auto libktx_pitch_in_bytes
+        = ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel);
+        pitch_in_bytes != libktx_pitch_in_bytes) {
+        errorfmt("Expected a pitch of size {} but libktx expects {}",
+                 pitch_in_bytes, libktx_pitch_in_bytes);
+        return false;
+    }
+
+    for (int start_face_idx = ybegin / height, face_idx = start_face_idx;
+         face_idx < (yend / height); ++face_idx) {
+        //
+        // GetImageOffset implements internal checks depending on texture kind
+        // (e.g., 3D, cubemap, etc.) and in case of invalid input,
+        // KTX_INVALID_OPERATION is returned.
+        //
+        if (auto status = ktxTexture2_GetImageOffset(m_tex.get(), miplevel,
+                                                     subimage, face_idx,
+                                                     &offset);
+            status != KTX_SUCCESS) {
+            errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
+                     static_cast<uint32_t>(status));
+            return false;
+        }
+        size_t tile_size_in_bytes = pitch_in_bytes * height;
+        auto src_ptr              = m_tex->pData + offset;
+        auto dst_ptr = data.data()
+                       + size_t(face_idx - start_face_idx) * tile_size_in_bytes;
+        memcpy(dst_ptr, src_ptr, tile_size_in_bytes);
+    }
+    DBG std::cout << fmt::format(
+        "[ktxinput] read_native_tiles(subimage={},miplevel={},xbegin={},xend={},ybegin={},yend={})\n",
+        subimage, miplevel, xbegin, xend, ybegin, yend);
+    return true;
+}
+
+
+
+bool
+KtxInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
+                                       int xend, int ybegin, int yend,
+                                       int zbegin, int zend,
+                                       span<std::byte> data)
+{
+    const int width             = std::max(m_tex->baseWidth >> miplevel, 1u);
+    const int height            = std::max(m_tex->baseHeight >> miplevel, 1u);
+    const int depth             = std::max(m_tex->baseDepth >> miplevel, 1u);
+    const size_t pitch_in_bytes = m_spec.pixel_bytes() * width;
+    ktx_size_t offset;
+
+    // Is this a 3D volume texture?
+    if (m_tex->numDimensions != 3)
+        return false;
+
+    if (!check(subimage, miplevel)) {
+        errorfmt(
+            "KTX read_native_volumetric_tiles: out of valid range tile(s) ROI");
+        return false;
+    }
+
+    if (xbegin != 0 || xend != width) {
+        errorfmt("KTX read_native_volumetric_tiles: for 3d volumes tiles are "
+                 "reported as scanlines. xbegin must be 0 and xend must be the "
+                 "width");
+        return false;
+    }
+
+    if (ybegin < 0 || ybegin >= yend || yend > height || zbegin < 0
+        || zbegin >= zend || zend > depth) {
+        errorfmt(
+            "KTX read_native_volumetric_tiles: out of valid range scanline indices");
+        return false;
+    }
+
+    // Can the provided span hold the requested scanlines?
+    // This only accesses nchannels of the m_spec, so this is thread safe.
+    if (!valid_raw_span_size(data, m_spec, xbegin, xend, ybegin, yend, zbegin,
+                             zend))
+        return false;  // errorfmt is set within valid_raw_span_size
+
+    if (const size_t libktx_image_size = ktxTexture2_GetImageSize(m_tex.get(),
+                                                                  miplevel),
+        expected_image_size            = pitch_in_bytes * height;
+        libktx_image_size != expected_image_size) {
+        errorfmt("Expected image size of {} but libktx reported {}",
+                 expected_image_size, libktx_image_size);
+        return false;
+    }
+
+    // Check that our pitch (from spec) is equal to the one reported by libktx
+    if (auto libktx_pitch_in_bytes
+        = ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel);
+        pitch_in_bytes != libktx_pitch_in_bytes) {
+        errorfmt("Expected a pitch of size {} but libktx expects {}",
+                 pitch_in_bytes, libktx_pitch_in_bytes);
+        return false;
+    }
+
+    for (int slice_idx = zbegin; slice_idx < zend; ++slice_idx) {
+        if (auto status = ktxTexture2_GetImageOffset(m_tex.get(), miplevel,
+                                                     subimage, slice_idx,
+                                                     &offset);
+            status != KTX_SUCCESS) {
+            errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
+                     static_cast<uint32_t>(status));
+            return false;
+        }
+        size_t tile_size_in_bytes = size_t(yend - ybegin) * pitch_in_bytes;
+        auto src_ptr              = m_tex->pData + offset
+                                    + ktx_size_t(ybegin) * pitch_in_bytes;
+        auto dst_ptr = data.data()
+                       + size_t(slice_idx - zbegin) * tile_size_in_bytes;
+        memcpy(dst_ptr, src_ptr, tile_size_in_bytes);
+    }
+    DBG std::cout << fmt::format(
+        "[ktxinput] read_native_volumetric_tiles(subimage={},miplevel={},"
+        "xbegin={},xend={},ybegin={},yend={},zbegin={},zend={})\n",
+        subimage, miplevel, xbegin, xend, ybegin, yend, zbegin, zend);
     return true;
 }
 
