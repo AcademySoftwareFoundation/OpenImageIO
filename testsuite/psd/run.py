@@ -42,3 +42,5 @@ command += info_command ("src/crash-eofstring.psd", failureok=True)
 command += info_command ("src/crash-rowbounds-f999.psd", failureok=True)
 # Tiny file declaring a huge composite (decompression bomb) is rejected
 command += info_command ("src/crash-bomb-30000.psd", failureok=True)
+# Corrupt thumbnail resource length underflowed into a multi-GB allocation
+command += info_command ("src/crash-thumb-oom.psd", failureok=True)

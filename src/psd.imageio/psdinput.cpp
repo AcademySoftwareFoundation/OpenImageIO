@@ -1455,7 +1455,21 @@ PSDInput::load_resource_thumbnail(uint32_t length, bool isBGR)
     uint32_t compressed_size;
     uint16_t bpp;
     uint16_t planes;
+
+    // The 28-byte thumbnail header must fit within the resource.
+    if (length < 28) {
+        errorfmt("[Image Resource] [Thumbnail] resource length {} too small",
+                 length);
+        return false;
+    }
     uint32_t jpeg_length = length - 28;
+    int64_t file_size    = ioproxy() ? ioproxy()->size() : 0;
+    if (int64_t(jpeg_length) > file_size - iotell()) {
+        errorfmt(
+            "[Image Resource] [Thumbnail] data length {} exceeds remaining file size",
+            jpeg_length);
+        return false;
+    }
 
     bool ok = read_bige<uint32_t>(format) && read_bige<uint32_t>(width)
               && read_bige<uint32_t>(height) && read_bige<uint32_t>(widthbytes)
@@ -1760,6 +1774,15 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     channel_info.height = height;
 
     channel_info.data_pos = iotell();
+
+    // A channel's stored data cannot extend past the end of the file.
+    int64_t file_size = ioproxy() ? ioproxy()->size() : 0;
+    if (int64_t(channel_info.data_length) > file_size - channel_info.data_pos) {
+        errorfmt("[Layer Channel] data length {} exceeds remaining file size",
+                 channel_info.data_length);
+        return false;
+    }
+
     channel_info.row_pos.resize(height);
     channel_info.row_length = (width * m_header.depth + 7) / 8;
 
@@ -1971,7 +1994,11 @@ PSDInput::load_layers_16_32(uint64_t length)
 
     LayerMaskInfo::LayerInfo& layer_info = m_layer_mask_info.layer_info;
     // The layer info length must have been 0 in the actual layer info section
-    OIIO_ASSERT(layer_info.length == 0);
+    if (layer_info.length != 0) {
+        errorfmt("[Global Additional Layer Info] unexpected second layer info "
+                 "section");
+        return false;
+    }
     layer_info.length = length;
 
     uint64_t begin = iotell();
