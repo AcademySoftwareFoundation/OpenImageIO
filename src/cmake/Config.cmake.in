@@ -17,6 +17,13 @@ if (NOT @fmt_LOCAL_BUILD@ AND (NOT @OIIO_INTERNALIZE_FMT@ OR @OIIO_USE_COMPILED_
 endif ()
 
 if (NOT @BUILD_SHARED_LIBS@)
+    if (@OIIO_USE_HWY@)
+        # OpenMeta dependencies may otherwise create a partial Highway import.
+        find_dependency(hwy CONFIG)
+    endif ()
+    if (@OIIO_OPENMETA_BRIDGE_ENABLED@ AND @EMBEDPLUGINS@)
+        find_dependency(OpenMeta CONFIG)
+    endif ()
     # This is required in static library builds, as e.g. PNG::PNG appears among
     # INTERFACE_LINK_LIBRARIES. If the project does not know about PNG target, it will cause
     # configuration error about unknown targets being linked in.

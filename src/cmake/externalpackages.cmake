@@ -221,6 +221,21 @@ endif ()
 
 checked_find_package (WebP VERSION_MIN 1.1)
 
+# Import the complete Highway target set before OpenMeta dependencies.
+if (OIIO_USE_HWY)
+    checked_find_package (hwy)
+endif ()
+
+option (USE_OPENMETA "Enable experimental OpenMeta metadata decoding" OFF)
+checked_find_package (OpenMeta CONFIG
+                      VERSION_MIN 0.4.118)
+if (OpenMeta_FOUND AND NOT TARGET OpenMeta::openmeta)
+    message (WARNING
+             "OpenMeta was found without an OpenMeta::openmeta target; "
+             "disabling it")
+    set (OpenMeta_FOUND FALSE)
+endif ()
+
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
 
@@ -249,11 +264,6 @@ if (USE_QT AND OPENGL_FOUND)
     endif ()
 endif ()
 
-
-# Google Highway for SIMD (optional optimization)
-if (OIIO_USE_HWY)
-    checked_find_package (hwy)
-endif ()
 
 # Tessil/robin-map. Use its own exported CMake config (target tsl::robin_map)
 # rather than a bespoke Find module. This also means that when the nanobind

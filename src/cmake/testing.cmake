@@ -553,6 +553,10 @@ macro (oiio_add_all_tests)
     oiio_add_tests (webp
                     FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
                     IMAGEDIR oiio-images/webp)
+    if (TARGET OpenImageIO_OpenMeta)
+        oiio_add_tests (webp-openmeta
+                        FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP)
+    endif ()
     oiio_add_tests (zfile ENABLEVAR ENABLE_ZFILE
                     IMAGEDIR oiio-images)
 

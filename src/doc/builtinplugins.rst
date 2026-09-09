@@ -3193,6 +3193,11 @@ Webp
 WebP is an image file format developed by Google that is intended to be an
 open standard for lossy-compressed images for use on the web.
 
+When OpenImageIO is built with the experimental ``USE_OPENMETA=ON`` option,
+the WebP reader uses OpenMeta to decode EXIF and XMP into typed ImageSpec
+attributes, including structured XMP properties. Without OpenMeta, the WebP
+reader retains its legacy EXIF metadata handling.
+
 **Attributes**
 
 .. list-table::
@@ -3320,4 +3325,3 @@ of the z-buffer. Zfile files use the file extension :file:`.zfile`.
    * - ``worldtoscreen``
      - matrix
      - Nl
-

@@ -76,6 +76,9 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * DCMTK >= 3.6.2 (tested through 3.7.0)
  * If you want support for WebP images:
      * WebP >= 1.1 (tested through 1.6)
+     * OpenMeta >= 0.4.118 is an experimental optional metadata decoder,
+       enabled with `USE_OPENMETA=ON`. OpenMeta and its bridge are compiled as
+       C++20, while OpenImageIO and the bridge facade retain C++17 interfaces.
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.5)
  * If you want to be able to do font rendering into images:

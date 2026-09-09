@@ -1,0 +1,7 @@
+{
+    global:
+        oiio_openmeta_bridge_contract;
+        oiio_openmeta_decode;
+    local:
+        *;
+};

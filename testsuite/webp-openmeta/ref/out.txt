@@ -1,0 +1,16 @@
+TIFF Make=OpenMetaCamera
+TIFF Orientation=6
+TIFF aperture=12/5
+TIFF XMP rating=4
+TIFF XMP aperture=99/10
+TIFF document=test:document
+TIFF history=saved
+TIFF ColorSpace=srgb_rec709_scene
+Prefixed Make=OpenMetaCamera
+Prefixed Orientation=6
+Prefixed aperture=12/5
+Prefixed XMP rating=4
+Prefixed XMP aperture=99/10
+Prefixed document=test:document
+Prefixed history=saved
+Prefixed ColorSpace=srgb_rec709_scene
