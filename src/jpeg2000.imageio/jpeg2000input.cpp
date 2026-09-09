@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include <cstdarg>
 #include <cstdio>
 #include <vector>
 
@@ -502,28 +501,35 @@ Jpeg2000Input::ojph_read_image()
 
 
 
-class Oiio_Reader_Error_handler : public ojph::message_error {
-    // This is a special error handler, since in this case, if we get the error-code for not a J2K file, we dont
-    // want to print out anything. If not, we fall through to the regular error handler.
-    ojph::message_error* default_error;
-
+// Custom OpenJPH error handler. OpenJPH requires the handler to throw; we
+// turn every reported error into a std::runtime_error that open() catches so
+// it can fall through to the OpenJPEG code path. The message text is not
+// forwarded: relaying a va_list through another C-varargs call is undefined
+// behavior, and OpenJPH's error stream is disabled process-wide anyway.
+class Oiio_Reader_Error_handler final : public ojph::message_error {
 public:
-    Oiio_Reader_Error_handler(ojph::message_error* error)
+    void operator()(int error_code, const char* file_name, int line_num,
+                    const char* /*fmt*/, ...) override
     {
-        default_error = error;
-    }
-    virtual void operator()(int error_code, const char* file_name, int line_num,
-                            const char* fmt, ...)
-    {
-        if (error_code == 0x00050044) {
-            throw std::runtime_error("ojph error: not HTJ2K file");
-        }
-        va_list args;
-        va_start(args, fmt);
-        default_error[0](error_code, file_name, line_num, fmt, args);
-        va_end(args);
+        throw std::runtime_error(
+            Strutil::format("ojph error 0x{:08X} at {}:{}", error_code,
+                            file_name ? file_name : "", line_num));
     }
 };
+
+
+// OpenJPH's error handling is process-global (configure_error / get_error set
+// and return a single pointer). The object handed to configure_error must
+// therefore outlive every OpenJPH call in the process -- including scanline
+// decodes that run long after open() returns. A stack object does not, and a
+// prior open() that left its handler installed would leave get_error()
+// returning a dangling pointer. Use one handler with static lifetime.
+static Oiio_Reader_Error_handler&
+ojph_error_handler()
+{
+    static Oiio_Reader_Error_handler handler;
+    return handler;
+}
 
 #endif  // USE_OPENJPH
 
@@ -537,19 +543,18 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
 
 #ifdef USE_OPENJPH
     m_jphinfile.reset(new jph_infile(ioproxy()));
-    ojph_reader                        = true;
-    ojph::message_error* default_error = ojph::get_error();
-    // Disable the default OpenJPH error stream to prevent unwanted error output.
-    // Errors will be handled by the custom error handler (Oiio_Reader_Error_handler) configured below.
+    ojph_reader = true;
+    // Silence OpenJPH's error stream and route errors through our handler,
+    // which throws. Both settings are process-global and intentionally left
+    // installed: the handler has static lifetime and OpenJPH may report
+    // errors from codestream decodes that run after open() returns.
     ojph::set_error_stream(nullptr);
+    ojph::configure_error(&ojph_error_handler());
 
     try {
-        Oiio_Reader_Error_handler error_handler(default_error);
-        ojph::configure_error(&error_handler);
         codestream.read_headers(m_jphinfile.get());
         return ojph_read_header();
     } catch (const std::runtime_error& e) {
-        ojph::configure_error(default_error);
         ojph_reader = false;
         m_jphinfile.reset();
     }
