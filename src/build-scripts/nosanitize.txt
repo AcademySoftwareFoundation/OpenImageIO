@@ -1,2 +1,3 @@
 leak:libtbb
 leak:libjpeg
+leak:libpng

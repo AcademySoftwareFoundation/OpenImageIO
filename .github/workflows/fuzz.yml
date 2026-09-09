@@ -90,13 +90,15 @@ jobs:
       skip_tests: '1'
       fuzz_format: ${{ matrix.format }}
       fuzz_max_time: ${{ matrix.max_total_time }}
+      # PNG is built locally because the container's system libpng is 1.6.37,
+      # which leaks in png_handle_eXIf (fixed upstream in 1.6.40).
       setenvs: export SANITIZE=address,undefined
                       USE_PYTHON=0
                       OIIO_BUILD_FUZZ_TARGETS=ON
                       INSTALL_DOCS=OFF
                       OIIO_BUILD_TOOLS=OFF
                       OIIO_BUILD_TESTS=OFF
-                      OpenImageIO_BUILD_LOCAL_DEPS="TIFF,libdeflate"
+                      OpenImageIO_BUILD_LOCAL_DEPS="TIFF,libdeflate,PNG"
 
   #
   # Verify every format reported by oiio_fuzz_image --list-formats has a corpus
