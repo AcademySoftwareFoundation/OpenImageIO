@@ -44,18 +44,14 @@ rotated = os.path.join(imagedir, "rotated-90cw.heic")
 
 ###############
 # redirect this section of commands to out-reorient.txt
-redirect_save = redirect
-redirect = " >> out-reorient.txt "
-outputs += [ "out-reorient.txt" ]
-
+redirect_push("out-reorient.txt")
 command += oiiotool("--info -v --no-metamatch \"DateTime|Software|ImageHistory|CICP\" --iconfig oiio:reorient 0 " + rotated)
 command += oiiotool("--iconfig oiio:reorient 0 " + rotated + " -d uint8 -o reorient0.tif")
 command += oiiotool(rotated + " -d uint8 -o oriented.tif")
 command += oiiotool("reorient0.tif --rotate90 -o reorient0-rotated.tif")
 command += oiiotool("--info -v --no-metamatch \"DateTime|Software|ImageHistory|CICP\" reorient0.tif")
 command += oiiotool("reorient0-rotated.tif oriented.tif --diff")
-
-redirect = redirect_save
+redirect_pop()
 ###############
 
 # avif conversion is expected to fail if libheif is built without AV1 support
