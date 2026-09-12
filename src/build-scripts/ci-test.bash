@@ -20,6 +20,12 @@ fi
 #
 echo ; echo "Results of oiiotool --version:"
 $OpenImageIO_ROOT/bin/oiiotool --version
+echo ; echo "Results of oiiotool --buildinfo:"
+$OpenImageIO_ROOT/bin/oiiotool --buildinfo | tee -a "$GITHUB_STEP_SUMMARY"
+# Note: the above both echos the --buildinfo output, and also appends it
+# to the message that will be visible in the GHA summary log page so it's
+# easy to see at a glance which build chain & dependencies were used across
+# all the tests.
 echo ; echo "Results of oiiotool brief help:"
 $OpenImageIO_ROOT/bin/oiiotool || true
 echo ; echo "Results of oiiotool full --help:"
