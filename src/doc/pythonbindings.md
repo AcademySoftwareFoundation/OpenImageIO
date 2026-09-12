@@ -3011,6 +3011,37 @@ ImageBufAlgo.paste (Big, 100, 100, 0, 0, Small)
 ```
 
 ```{eval-rst}
+.. py:method:: ImageBuf ImageBufAlgo.decorr_stretch (src, firstchannel=0, nchannels=0, scale=1.0, sigma=0.0, mean=None, percentile=0.0, mode="covariance", roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.decorr_stretch (dst, src, firstchannel=0, nchannels=0, scale=1.0, sigma=0.0, mean=None, percentile=0.0, mode="covariance", roi=ROI.All, nthreads=0)
+
+    Return an image (or copy into `dst`) in which a "decorrelation stretch"
+    has been applied to the `nchannels` channels starting at `firstchannel`,
+    exaggerating the subtle color variation of images whose channels are
+    highly correlated. If `nchannels` is 0, up to three channels will be
+    stretched, but never the alpha or z channel.
+
+    The output channels keep the mean and standard deviation they had in
+    `src`, unless `scale` (a multiplier on the standard deviation), `sigma`
+    (a standard deviation for every channel), or `mean` (a mean for every
+    channel) say otherwise. A nonzero `percentile` instead finishes with a
+    linear contrast stretch that maps that percentile of each channel and
+    its complement onto the [0,1] range. A `mode` of "correlation" gives
+    every channel equal weight, rather than weighting each by its own
+    variance.
+
+    This function was added in OpenImageIO 3.2.
+
+    Example:
+
+    .. code-block:: python
+
+        A = ImageBuf("a.exr")
+        B = ImageBufAlgo.decorr_stretch(A)
+
+
+```
+
+```{eval-rst}
 .. py:method:: ImageBuf ImageBufAlgo.color_map (src, srcchannel, nknots, channels, knots, roi=ROI.All, nthreads=0)
                ImageBuf ImageBufAlgo.color_map (src, srcchannel, mapname, roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.color_map (dst, src, srcchannel, nknots, channels, knots, roi=ROI.All, nthreads=0)
