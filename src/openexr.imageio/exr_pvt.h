@@ -368,6 +368,16 @@ private:
         m_filename.clear();
     }
 
+    // Forget which subimage/miplevel we're on, for when a seek picks one and
+    // then rejects it. Leaving it current would let a later seek to it take
+    // seek_subimage's "no change" early out and skip the rejection.
+    void invalidate_current()
+    {
+        m_subimage = -1;
+        m_miplevel = -1;
+        m_spec     = ImageSpec();
+    }
+
     // Read scanlines [ybegin,yend) out of the chunk [cbegin,cend), decoding
     // that chunk if the cache doesn't already hold it.
     bool read_cached_chunk(int subimage, int miplevel, int ybegin, int yend,

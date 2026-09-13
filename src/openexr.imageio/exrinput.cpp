@@ -1092,6 +1092,11 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
         part.initialized = true;
     }
 
+    // Check this before touching anything below, so that probing for a
+    // miplevel that doesn't exist leaves the reader exactly as it was.
+    if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
+        return false;
+
     if (subimage != m_subimage) {
         delete m_scanline_input_part;
         m_scanline_input_part = NULL;
@@ -1108,6 +1113,7 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
                 if (subimage != 0 || miplevel != 0) {
                     errorfmt(
                         "Non-zero subimage or miplevel are not supported for luminance-chroma images.");
+                    invalidate_current();
                     return false;
                 }
                 m_input_stream->seekg(0);
@@ -1136,6 +1142,7 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
             m_deep_scanline_input_part = NULL;
             m_deep_tiled_input_part    = NULL;
             m_input_rgba               = NULL;
+            invalidate_current();
             return false;
         } catch (...) {  // catch-all for edge cases or compiler bugs
             errorfmt("OpenEXR exception: unknown");
@@ -1144,15 +1151,12 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
             m_deep_scanline_input_part = NULL;
             m_deep_tiled_input_part    = NULL;
             m_input_rgba               = NULL;
+            invalidate_current();
             return false;
         }
     }
 
     m_subimage = subimage;
-
-    if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
-        return false;
-
     m_miplevel = miplevel;
     m_spec     = part.spec;
 
@@ -1161,15 +1165,22 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     // if (m_miplevel == 0 && part.nmiplevels > 1)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
-    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 }))
+    // The checks below reject this subimage. Invalidate rather than leave it
+    // as the current one, or a repeat of this same seek would take the early
+    // out above and hand back the spec we just refused.
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 })) {
+        invalidate_current();
         return false;
+    }
 
     // check_open's size cap still admits a dataWindow that is absurd for a tiny
     // compressed file, so also bound the declared-vs-compressed ratio.
     imagesize_t filesize = m_io ? m_io->size()
                                 : Filesystem::file_size(m_filename);
-    if (!check_compression_ratio(m_spec, filesize))
+    if (!check_compression_ratio(m_spec, filesize)) {
+        invalidate_current();
         return false;
+    }
 
     if (miplevel == 0 && part.levelmode == Imf::ONE_LEVEL) {
         return true;

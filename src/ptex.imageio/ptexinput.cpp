@@ -359,16 +359,14 @@ PtexInput::seek_subimage(int subimage, int miplevel)
 
     if (subimage < 0 || subimage >= m_numFaces)
         return false;
-    m_subimage                  = subimage;
     const Ptex::FaceInfo& pface = m_ptex->getFaceInfo(subimage);
-    m_faceres                   = pface.res;
+    Ptex::Res faceres           = pface.res;
 
-    int nmiplevels = std::max(m_faceres.ulog2, m_faceres.vlog2) + 1;
+    // Check the miplevel before adopting the new face, so that probing for a
+    // level this face doesn't have leaves the reader on the one it was on.
+    int nmiplevels = std::max(faceres.ulog2, faceres.vlog2) + 1;
     if (miplevel < 0 || miplevel > nmiplevels - 1)
         return false;
-    m_miplevel   = miplevel;
-    m_mipfaceres = Ptex::Res(std::max(0, m_faceres.ulog2 - miplevel),
-                             std::max(0, m_faceres.vlog2 - miplevel));
 
     TypeDesc format = TypeDesc::UNKNOWN;
     switch (m_ptex->dataType()) {
@@ -378,6 +376,12 @@ PtexInput::seek_subimage(int subimage, int miplevel)
     case Ptex::dt_float: format = TypeDesc::FLOAT; break;
     default: errorfmt("Ptex with unknown data format"); return false;
     }
+
+    m_subimage   = subimage;
+    m_faceres    = faceres;
+    m_miplevel   = miplevel;
+    m_mipfaceres = Ptex::Res(std::max(0, m_faceres.ulog2 - miplevel),
+                             std::max(0, m_faceres.vlog2 - miplevel));
 
     m_spec = ImageSpec(std::max(1, m_faceres.u() >> miplevel),
                        std::max(1, m_faceres.v() >> miplevel),
@@ -399,6 +403,11 @@ PtexInput::seek_subimage(int subimage, int miplevel)
         // lazily reading this face's data -- e.g. a corrupt or truncated
         // per-face block whose size the 64-byte header check can't catch.
         errorfmt("Could not read Ptex face data for face {}", m_subimage);
+        // m_spec and m_faceres already describe this face, so don't leave it
+        // current -- the early out above would hand it back as usable.
+        m_subimage = -1;
+        m_miplevel = -1;
+        m_spec     = ImageSpec();
         return false;
     }
     m_isTiled = facedata->isTiled();
