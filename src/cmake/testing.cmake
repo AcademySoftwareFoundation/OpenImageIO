@@ -384,6 +384,8 @@ macro (oiio_add_all_tests)
     oiio_add_tests (cineon
                     ENABLEVAR ENABLE_CINEON
                     IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
+    oiio_add_tests (dicom
+                    FOUNDVAR DCMTK_FOUND ENABLEVAR ENABLE_DCMTK)
     oiio_add_tests (dpx
                     ENABLEVAR ENABLE_DPX
                     IMAGEDIR oiio-images/dpx URL "Recent checkout of OpenImageIO-images")

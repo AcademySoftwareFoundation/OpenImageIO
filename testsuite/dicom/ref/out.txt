@@ -1,0 +1,15 @@
+Reading multiframe.dcm
+multiframe.dcm       :    4 x    3, 1 channel, uint8 dicom
+    3 subimages: 4x3 [u8], 4x3 [u8], 4x3 [u8]
+ subimage  0:    4 x    3, 1 channel, uint8 dicom
+    SHA-1: 6A48B1275CD442524903DC85F7801407F4140172
+    channel list: Y
+    PixelAspectRatio: 1
+ subimage  1:    4 x    3, 1 channel, uint8 dicom
+    SHA-1: 9A62E1F0495F896E9266171FC901994ED314A026
+    channel list: Y
+    PixelAspectRatio: 1
+ subimage  2:    4 x    3, 1 channel, uint8 dicom
+    SHA-1: C7512C6477BFC411A88F7A5B9194B62AC6D86A8E
+    channel list: Y
+    PixelAspectRatio: 1
