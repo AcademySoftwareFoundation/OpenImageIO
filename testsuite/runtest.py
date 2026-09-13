@@ -222,6 +222,8 @@ def run_app(app: str, silent: bool=False, failureok: bool=False,
     # If the command starts with the name of an OIIO app, substitute the
     # full path to the built app.
     words = cmd.split(maxsplit=1)
+    if not words:
+        return ""
     if words[0] in oiio_app_list:
         cmd = oiio_app(words[0]).strip() + (" " + words[1] if len(words) > 1 else "")
     if not silent:
@@ -235,8 +237,12 @@ def run_app(app: str, silent: bool=False, failureok: bool=False,
 
 # Take shell `commands`, split at newlines, adorn each with redirects, etc.,
 # then re-join with semicolons to make a single command.
+# Note: `failureok` defaults to None, meaning "use the global `failureok`
+# value at the time this is called", which a run.py may have set.
 def run_commands(commands: str, silent: bool=False,
-                 failureok: bool=failureok, concat: bool=True) -> str :
+                 failureok=None, concat: bool=True) -> str :
+    if failureok is None :
+        failureok = globals()["failureok"]
     result = ""
     for line in commands.splitlines():
         cmd = line.strip()
@@ -411,7 +417,7 @@ def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
 
     for sub_command in [c.strip() for c in command.split(';') if c.strip()]:
         cmdret = subprocess.call (sub_command, shell=True, env=test_environ)
-        if cmdret != 0 and failureok == 0 :
+        if cmdret != 0 and not failureok :
             print ("#### Error: this command failed: ", sub_command)
             print ("FAIL")
             err = 1
