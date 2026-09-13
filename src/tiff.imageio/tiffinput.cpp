@@ -234,6 +234,11 @@ private:
     // like we think the file is hopelessly corrupted.
     bool readspec(bool read_meta = true);
 
+    // Helper for seek_subimage: having already pointed libtiff at the
+    // directory for `subimage`, read and validate its header into m_spec.
+    // Return true if the subimage is usable, false if not.
+    bool readspec_validated(int subimage, bool read_meta);
+
     // Figure out all the photometric-related aspects of the header.
     // Return true if all is fine, false if something really bad happens,
     // like we think the file is invalid or hopelessly corrupted.
@@ -998,37 +1003,18 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
     m_next_scanline = 0;  // next scanline we'll read
     if (subimage == m_actual_subimage || TIFFSetDirectory(m_tif, subimage)) {
         m_actual_subimage = subimage;
-        if (!readspec(read_meta))
-            return false;
-
-        char emsg[1024];
-        if (m_use_rgba_interface && !TIFFRGBAImageOK(m_tif, emsg)) {
-            errorfmt("No support for this flavor of TIFF file ({})", emsg);
-            return false;
-        }
-        if (size_t(subimage) >= m_subimage_specs.size())  // make room
-            m_subimage_specs.resize(
-                subimage > 0 ? round_to_multiple(subimage + 1, 4) : 1);
-        if (m_subimage_specs[subimage].undefined()) {
-            // haven't cached this spec yet
-            m_subimage_specs[subimage] = m_spec;
-        }
-        if (m_spec.format == TypeDesc::UNKNOWN) {
-            errorfmt("No support for data format of \"{}\"", m_filename);
+        // From here on, libtiff and m_spec describe `subimage`. If it turns
+        // out to be unusable, we must invalidate the logical state as well --
+        // leaving m_subimage/m_miplevel describing the previously valid
+        // subimage would let a subsequent seek back to it take the early-out
+        // above and then read this directory through a mismatched m_spec.
+        if (!readspec_validated(subimage, read_meta)) {
+            m_subimage        = -1;
+            m_miplevel        = -1;
+            m_actual_subimage = -1;
+            m_spec            = ImageSpec();
             return false;
         }
-        if (!check_open(m_spec,
-                        { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
-            return false;
-
-        // Guard against decompression bombs / corrupt headers: a tiny file
-        // claiming a multi-gigabyte image, which would then make the strip/
-        // scanline readers below allocate and attempt to fill gigabytes of
-        // pixel data.
-        imagesize_t filesize = ioproxy() ? ioproxy()->size()
-                                         : Filesystem::file_size(m_filename);
-        if (!check_compression_ratio(m_spec, filesize))
-            return false;
         m_subimage = orig_subimage;
         m_miplevel = miplevel;
         return true;
@@ -1042,6 +1028,45 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         m_actual_subimage = -1;
         return false;
     }
+}
+
+
+
+bool
+TIFFInput::readspec_validated(int subimage, bool read_meta)
+{
+    if (!readspec(read_meta))
+        return false;
+
+    char emsg[1024];
+    if (m_use_rgba_interface && !TIFFRGBAImageOK(m_tif, emsg)) {
+        errorfmt("No support for this flavor of TIFF file ({})", emsg);
+        return false;
+    }
+    if (size_t(subimage) >= m_subimage_specs.size())  // make room
+        m_subimage_specs.resize(
+            subimage > 0 ? round_to_multiple(subimage + 1, 4) : 1);
+    if (m_subimage_specs[subimage].undefined()) {
+        // haven't cached this spec yet
+        m_subimage_specs[subimage] = m_spec;
+    }
+    if (m_spec.format == TypeDesc::UNKNOWN) {
+        errorfmt("No support for data format of \"{}\"", m_filename);
+        return false;
+    }
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 1 << 16 }))
+        return false;
+
+    // Guard against decompression bombs / corrupt headers: a tiny file
+    // claiming a multi-gigabyte image, which would then make the strip/
+    // scanline readers below allocate and attempt to fill gigabytes of
+    // pixel data.
+    imagesize_t filesize = ioproxy() ? ioproxy()->size()
+                                     : Filesystem::file_size(m_filename);
+    if (!check_compression_ratio(m_spec, filesize))
+        return false;
+
+    return true;
 }
 
 

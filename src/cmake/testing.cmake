@@ -550,6 +550,8 @@ macro (oiio_add_all_tests)
     endif ()
     oiio_add_tests (tiff-suite tiff-depths tiff-misc
                     IMAGEDIR oiio-images/libtiffpic)
+    oiio_add_tests (tiff-subimage-seek
+                    ENABLEVAR USE_PYTHON)
     oiio_add_tests (webp
                     FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
                     IMAGEDIR oiio-images/webp)
