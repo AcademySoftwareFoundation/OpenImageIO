@@ -1094,6 +1094,10 @@ PSDInput::load_color_data()
         return false;
 
     if (m_color_data.length) {
+        // Check if the reported size of the color data is less than the
+        // remaining size of the file before we allocate.
+        if (size_t(iotell()) + m_color_data.length > ioproxy()->size())
+            return false;
         m_color_data.data.reset(new uint8_t[m_color_data.length]);
         return ioread(m_color_data.data.get(), m_color_data.length);
     }
