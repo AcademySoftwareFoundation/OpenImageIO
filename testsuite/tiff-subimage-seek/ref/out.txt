@@ -1,0 +1,13 @@
+Testing seek back after a rejected subimage:
+  opened: True
+  seek to subimage 1 rejected: True
+  seek back to subimage 0 ok: True
+  spec is subimage 0's: True
+  read_image shape: (1, 1, 1)
+  read_image value: 17 (expected 17)
+
+Testing ImageCache read after a rejected subimage:
+  get_pixels ok: True
+  get_pixels value: 17 (expected 17)
+
+Done.
