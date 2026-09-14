@@ -1164,6 +1164,11 @@ ImageViewer::updateStatusBar()
     message = Strutil::fmt::format("({}/{}) : ", m_current_image + 1,
                                    (int)m_images.size());
     message += cur()->shortinfo();
+    if (cur()->partially_loaded()) {
+        message += "  [partially readable file: ";
+        message += cur()->partial_error();
+        message += "]";
+    }
     statusImgInfo->setText(message.c_str());
 
     message.clear();

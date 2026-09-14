@@ -1253,7 +1253,7 @@ OpenEXRInput::read_native_scanline(int subimage, int miplevel, int y, int z,
                                    void* data)
 {
     return read_native_scanlines(subimage, miplevel, y, y + 1, z, 0,
-                                 m_spec.nchannels, data);
+                                 m_spec.nchannels, data, false);
 }
 
 
@@ -1263,7 +1263,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                     int yend, int z, void* data)
 {
     return read_native_scanlines(subimage, miplevel, ybegin, yend, z, 0,
-                                 m_spec.nchannels, data);
+                                 m_spec.nchannels, data, false);
 }
 
 
@@ -1280,11 +1280,15 @@ OpenEXRInput::read_cached_chunk(int subimage, int miplevel, int ybegin,
                            ybegin, yend, scanlinebytes, data))
         return true;
 
-    // Cache miss. Decode the whole chunk. This recursive call asks for
-    // exactly one full chunk, so it won't come back here.
+    // Cache miss. Decode the whole chunk. The bypass_chunk_cache flag of
+    // this recursive call asks for exactly one full chunk, so it won't come
+    // back here -- this matters when the decode fails and tolerance is on:
+    // without the bypass, the per-scanline retry would re-enter the chunk
+    // cache and recurse forever.
     default_init_vector<uint8_t> chunk(scanlinebytes * size_t(cend - cbegin));
     if (!read_native_scanlines(subimage, miplevel, cbegin, cend, 0, chbegin,
-                               chend, chunk.data()))
+                               chend, chunk.data(),
+                               /*bypass_chunk_cache=*/true))
         return false;
     memcpy(data, chunk.data() + scanlinebytes * size_t(ybegin - cbegin),
            scanlinebytes * size_t(yend - ybegin));
@@ -1298,6 +1302,15 @@ bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                     int yend, int z, int chbegin, int chend,
                                     void* data)
+{
+    return read_native_scanlines(subimage, miplevel, ybegin, yend, z, chbegin,
+                                 chend, data, /*bypass_chunk_cache=*/false);
+}
+
+bool
+OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
+                                    int yend, int z, int chbegin, int chend,
+                                    void* data, bool bypass_chunk_cache)
 {
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
@@ -1341,7 +1354,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         default_init_vector<uint8_t> scratch(fullscanbytes
                                              * size_t(yend - ybegin));
         if (!read_native_scanlines(subimage, miplevel, ybegin, yend, z, 0,
-                                   m_spec.nchannels, scratch.data()))
+                                   m_spec.nchannels, scratch.data(), false))
             return false;
         size_t choff = m_spec.pixel_bytes(0, chbegin, true);
         for (int y = ybegin; y < yend; ++y) {
@@ -1364,7 +1377,7 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // swath) at a time will ask for the rest of that chunk next. (The
     // library has a stash of its own, but it drops it every time we set the
     // frame buffer, which we must do on every read.)
-    if (part.scansperchunk > 1 && !part.luminance_chroma
+    if (part.scansperchunk > 1 && !part.luminance_chroma && !bypass_chunk_cache
         && ybegin >= m_spec.y) {
         int ychunkstart = m_spec.y
                           + round_down_to_multiple(ybegin - m_spec.y,
@@ -1456,10 +1469,10 @@ OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             } else {
                 // Read of many tiles -- don't know which failed, so try
                 // again to read them all individually.
-                return read_native_scanlines_individually(subimage, miplevel,
-                                                          ybegin, yend, z,
-                                                          chbegin, chend, data,
-                                                          scanlinebytes);
+                return read_native_scanlines_individually(
+                    subimage, miplevel, ybegin, yend, z, chbegin, chend, data,
+                    scanlinebytes,
+                    /*bypass_chunk_cache=*/true);
             }
         } else {
             errorfmt("Failed OpenEXR read: {}", err);
@@ -1631,7 +1644,8 @@ bool
 OpenEXRInput::read_native_scanlines_individually(int subimage, int miplevel,
                                                  int ybegin, int yend, int z,
                                                  int chbegin, int chend,
-                                                 void* data, stride_t ystride)
+                                                 void* data, stride_t ystride,
+                                                 bool bypass_chunk_cache)
 {
     // Note: this is only called by read_native_scanlines, which still holds
     // the mutex, so it's safe to directly access m_spec.
@@ -1639,7 +1653,7 @@ OpenEXRInput::read_native_scanlines_individually(int subimage, int miplevel,
     for (int y = ybegin; y < yend; ++y) {
         char* d = (char*)data + (y - ybegin) * ystride;
         ok &= read_native_scanlines(subimage, miplevel, y, y + 1, z, chbegin,
-                                    chend, d);
+                                    chend, d, bypass_chunk_cache);
     }
     return ok;
 }

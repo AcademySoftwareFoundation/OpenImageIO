@@ -265,6 +265,11 @@ public:
     bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                int z, int chbegin, int chend,
                                void* data) override;
+    // Internal version with a flag letting the per-scanline retry bypass the
+    // chunk cache (see read_native_scanlines_individually).
+    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
+                               int z, int chbegin, int chend, void* data,
+                               bool bypass_chunk_cache);
     bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
                           void* data) override;
     bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
@@ -377,7 +382,8 @@ private:
     bool read_native_scanlines_individually(int subimage, int miplevel,
                                             int ybegin, int yend, int z,
                                             int chbegin, int chend, void* data,
-                                            stride_t ystride);
+                                            stride_t ystride,
+                                            bool bypass_chunk_cache = false);
     bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
                                         int xend, int ybegin, int yend,
                                         int zbegin, int zend, int chbegin,
