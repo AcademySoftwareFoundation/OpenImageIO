@@ -194,7 +194,7 @@ jobs:
           - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2026
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2026.5
+            container: aswf/ci-oiio:2026.6
             cxx_std: 20
             python_ver: "3.13"
             simd: "avx2,f16c"
@@ -206,7 +206,7 @@ jobs:
           - desc: VFX2027 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2027
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2027
+            container: aswf/ci-oiio:2027.1
             cxx_std: 20
             python_ver: "3.13"
             oiio_python_bindings_backend: nanobind
@@ -216,7 +216,7 @@ jobs:
           - desc: VFX2027 clang21/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2027-clang
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2027
+            container: aswf/ci-oiio:2027.1
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 20
@@ -228,7 +228,7 @@ jobs:
           - desc: Sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2026.5
+            container: aswf/ci-oiio:2026.6
             cc_compiler: clang
             cxx_compiler: clang++
             build_type: Debug
