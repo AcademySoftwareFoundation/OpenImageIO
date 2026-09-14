@@ -107,6 +107,9 @@ if (NOT TARGET Deflate::Deflate)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_shared)
 endif ()
 
+# WebP must be found before TIFF, so that an auto-built libtiff can use it.
+checked_find_package (WebP VERSION_MIN 1.1)
+
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.1
                       RECOMMEND_MIN 4.5
@@ -222,8 +225,6 @@ if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
     unset (Ptex_FOUND)
     checked_find_package (Ptex)
 endif ()
-
-checked_find_package (WebP VERSION_MIN 1.1)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
