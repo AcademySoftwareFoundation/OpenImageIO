@@ -102,7 +102,7 @@ jobs:
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024.6
+            container: aswf/ci-oiio:2024.8
             opencolorio_ver: v2.3.2
             python_ver: "3.11"
             oiio_python_bindings_backend: pybind11
@@ -115,7 +115,7 @@ jobs:
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024.clang
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024.6
+            container: aswf/ci-oiio:2024.8
             cc_compiler: clang
             cxx_compiler: clang++
             opencolorio_ver: v2.3.2
@@ -132,7 +132,7 @@ jobs:
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.7
             cxx_std: 17
             python_ver: "3.11"
             oiio_python_bindings_backend: pybind11
@@ -146,7 +146,7 @@ jobs:
           - desc: VFX2025 Debug gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025-debug
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.7
             cxx_std: 17
             build_type: Debug
             ctest_test_timeout: "300"
@@ -161,7 +161,7 @@ jobs:
           # - desc: VFX2025 Static gcc11/C++17 py3.11 exr3.3 ocio2.4
           #   nametag: linux-vfx2025-static
           #   runner: ubuntu-latest
-          #   container: aswf/ci-oiio:2025.5
+          #   container: aswf/ci-oiio:2025.7
           #   cxx_std: 17
           #   python_ver: "3.11"
           #   simd: "avx2,f16c"
@@ -174,7 +174,7 @@ jobs:
           - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4 qt5.15
             nametag: linux-vfx2025.icx
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.7
             cc_compiler: icx
             cxx_compiler: icpx
             fmt_ver: 11.2.0
@@ -247,7 +247,7 @@ jobs:
           - desc: ABI check
             nametag: abi-check
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.7
             build_type: RelWithDebInfo
             fmt_ver: 11.1.4
             fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
@@ -263,7 +263,7 @@ jobs:
           - desc: ABI check 3.2
             nametag: abi-check-3.2
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.7
             build_type: RelWithDebInfo
             fmt_ver: 11.1.4
             fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
@@ -279,7 +279,7 @@ jobs:
           - desc: ABI check 3.1
             nametag: abi-check-3.1
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.7
             build_type: RelWithDebInfo
             fmt_ver: 11.1.4
             fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
