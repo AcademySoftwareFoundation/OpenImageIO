@@ -229,6 +229,16 @@ private:
         m_chunkcache.clear();
     }
 
+    // Forget which subimage/miplevel we're on, for when a seek picks one and
+    // then rejects it, so that nothing downstream mistakes the rejected
+    // subimage's spec for a validated one.
+    void invalidate_current()
+    {
+        m_subimage = -1;
+        m_miplevel = -1;
+        m_spec     = ImageSpec();
+    }
+
     bool valid_file_or_proxy(const std::string& filename,
                              Filesystem::IOProxy* io) const;
 
@@ -1136,11 +1146,10 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
         part.initialized = true;
     }
 
-    m_subimage = subimage;
-
     if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
         return false;
 
+    m_subimage = subimage;
     m_miplevel = miplevel;
     m_spec     = part.spec;
 
@@ -1149,15 +1158,21 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     // if (m_miplevel == 0 && part.nmiplevels > 1)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
-    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 }))
+    // The checks below reject this subimage, so don't leave it as the
+    // current one with a spec that failed validation.
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 })) {
+        invalidate_current();
         return false;
+    }
 
     // check_open's size cap still admits a dataWindow that is absurd for a tiny
     // compressed file, so also bound the declared-vs-compressed ratio.
     imagesize_t filesize = m_userdata.m_io ? m_userdata.m_io->size()
                                            : Filesystem::file_size(m_filename);
-    if (!check_compression_ratio(m_spec, filesize))
+    if (!check_compression_ratio(m_spec, filesize)) {
+        invalidate_current();
         return false;
+    }
 
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
         return true;

@@ -190,8 +190,6 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     if (subimage < 0 || subimage >= m_dpx.header.ImageElementCount())
         return false;
 
-    m_subimage = subimage;
-
     // create imagespec
     TypeDesc typedesc;
     switch (m_dpx.header.ComponentDataSize(subimage)) {
@@ -215,8 +213,14 @@ DPXInput::seek_subimage(int subimage, int miplevel)
                        m_dpx.header.ImageElementComponentCount(subimage),
                        typedesc);
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 8 })
-        || !check_compression_ratio(m_spec, m_filesize))
+        || !check_compression_ratio(m_spec, m_filesize)) {
+        // Don't adopt an element we just refused: the early out above would
+        // hand its spec back on a repeat of this same seek.
+        m_subimage = -1;
+        m_spec     = ImageSpec();
         return false;
+    }
+    m_subimage = subimage;
 
     // xOffset/yOffset are defined as unsigned 32-bit integers, but m_spec.x/y are signed
     // avoid casts that would result in negative values
