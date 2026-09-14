@@ -99,7 +99,7 @@ endif ()
 
 # Enable default use of OpenEXR core library for versions of the library
 # new enough to support DWA compression in exrcore.
-if (OPENEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
+if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
     target_compile_definitions(OpenImageIO
                                PRIVATE OIIO_OPENEXR_CORE_DEFAULT=1)
     message (STATUS "OpenEXR core library will be used by default")
@@ -143,10 +143,10 @@ target_link_libraries (OpenImageIO
         PUBLIC
             OpenImageIO_Util
             ${OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY}
-            ${OPENIMAGEIO_IMATH_TARGETS}
+            Imath::Imath
         PRIVATE
             tsl::robin_map
-            ${OPENIMAGEIO_OPENEXR_TARGETS}
+            OpenEXR::OpenEXR
             ${format_plugin_libs} # Add all the target link libraries from the plugins
             OpenColorIO::OpenColorIO
             $<TARGET_NAME_IF_EXISTS:OpenColorIO::OpenColorIOHeaders>
@@ -272,7 +272,7 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           LINK_LIBRARIES OpenImageIO
                                          tsl::robin_map
                                          ${OpenCV_LIBRARIES}
-                                         ${OPENIMAGEIO_IMATH_TARGETS}
+                                         Imath::Imath
                           FOLDER "Unit Tests" NO_INSTALL)
     target_compile_definitions (imagebufalgo_test PRIVATE OIIO_USE_HWY=${_oiio_use_hwy})
     add_test (unit_imagebufalgo ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/imagebufalgo_test)

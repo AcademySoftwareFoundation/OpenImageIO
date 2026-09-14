@@ -12,7 +12,7 @@ endif()
 
 # Enable default use of OpenEXR core library for versions of the library
 # new enough to support DWA compression in exrcore.
-if (OPENEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
+if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
     list (APPEND openexr_defs OIIO_OPENEXR_CORE_DEFAULT=1)
     message (STATUS "OpenEXR core library will be used by default")
 else ()
@@ -21,7 +21,7 @@ else ()
 endif ()
 
 add_oiio_plugin (${openexr_src}
-    INCLUDE_DIRS ${OPENEXR_INCLUDES} ${IMATH_INCLUDE_DIR}/OpenEXR
+    INCLUDE_DIRS ${OPENEXR_INCLUDES}
     LINK_LIBRARIES
         $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXR>
         $<TARGET_NAME_IF_EXISTS:OpenEXR::OpenEXRCore>
