@@ -1167,6 +1167,8 @@ TIFFInput::readspec(bool read_meta)
         m_spec.nchannels = (int)m_inputchannels;
     }
 
+    m_spec.x   = 0;
+    m_spec.y   = 0;
     float xpos = 0, ypos = 0;
     TIFFGetField(m_tif, TIFFTAG_XPOSITION, &xpos);
     TIFFGetField(m_tif, TIFFTAG_YPOSITION, &ypos);
@@ -1197,11 +1199,13 @@ TIFFInput::readspec(bool read_meta)
         if (oiio_write_version && oiio_write_version < 10803) {
             xres = yres = 1.0f;
         }
-        m_spec.x = (int)(xpos * xres);
-        m_spec.y = (int)(ypos * yres);
-    } else {
-        m_spec.x = 0;
-        m_spec.y = 0;
+        auto xoffset = uint64_t(xpos * xres);
+        auto yoffset = uint64_t(ypos * yres);
+        if (xoffset < (1 << 30) && yoffset < (1 << 30)) {
+            // Anything outside this generous range is definitely corrupted
+            m_spec.x = (int)xoffset;
+            m_spec.y = (int)yoffset;
+        }
     }
     m_spec.z = 0;
 
