@@ -103,6 +103,31 @@ ociover = os.getenv('OCIO_VERSION_OVERRIDE', ociover)
 command = ""
 outputs = [ "out.txt" ]    # default
 
+# Support for temporarily redirecting a section of a test's commands to a file
+# other than the default out.txt. Use redirect_push(filename) before the
+# commands that should go to the alternate file, and redirect_pop() right
+# after to restore the previous redirect. Push/pop nest freely. The first time
+# a given filename is pushed, it's truncated and added to 'outputs' so it gets
+# checked against its ref; that same membership in 'outputs' is how we
+# recognize a later push of the same filename (e.g. a second section of the
+# test meant to append to it) and leave its contents alone rather than
+# truncating again.
+_redirect_stack: list[str] = []
+
+def redirect_push (filename: str) -> None :
+    global redirect
+    _redirect_stack.append (redirect)
+    if filename not in outputs :
+        open (filename, "w").close ()    # truncate, but only the first time
+        outputs.append (filename)
+    redirect = " >> " + filename + " "
+
+def redirect_pop () -> None :
+    global redirect
+    if not _redirect_stack :
+        raise RuntimeError ("redirect_pop: no matching redirect_push")
+    redirect = _redirect_stack.pop ()
+
 # The image comparison thresholds are tricky to remember. Here's the key:
 # A test fails if more than `failpercent` of pixel values differ by more
 # than `failthresh`, or if even one pixel differs by more than `hardfail`.
