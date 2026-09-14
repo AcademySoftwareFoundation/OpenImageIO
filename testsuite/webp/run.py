@@ -28,7 +28,7 @@ short_exif_files = [
     "short-exif-len13.webp",
 ]
 for f in short_exif_files:
-    command += iconvert(f + " out.null", successmessage=f + "-ok")
+    command += iconvert(f"{f} out.null && echo {f}-ok")
 
 # Regression test: a 76-byte WebP whose VP8X header declares a 16383x16383
 # canvas inconsistent with its tiny frame. Must be rejected cleanly (libwebp's

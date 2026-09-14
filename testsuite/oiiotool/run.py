@@ -10,10 +10,12 @@ redirect += " 2>&1"
 failureok = True
 
 # Create some test images we need
-command += oiiotool ("--create 320x240 3 -d uint8 -o black.tif")
-command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o grey128.exr")
-command += oiiotool ("--pattern constant:color=0.5,0.5,0.5 64x64 3 -d half -o grey64.exr")
-command += oiiotool ("--create 256x256 3 --fill:color=1,.5,.5 256x256 --fill:color=0,1,0 80x80+100+100 -d uint8 -o filled.tif")
+command += run_commands("""
+    oiiotool --create 320x240 3 -d uint8 -o black.tif
+    oiiotool --pattern constant:color=0.5,0.5,0.5 128x128 3 -d half -o grey128.exr
+    oiiotool --pattern constant:color=0.5,0.5,0.5 64x64 3 -d half -o grey64.exr
+    oiiotool --create 256x256 3 --fill:color=1,.5,.5 256x256 --fill:color=0,1,0 80x80+100+100 -d uint8 -o filled.tif
+    """)
 
 
 # test --autotrim
