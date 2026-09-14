@@ -12,6 +12,7 @@ reorient0.tif        :  160 x  240, 3 channel, uint8 tiff
     Exif:ColorSpace: 1
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 32
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2

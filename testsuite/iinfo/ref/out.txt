@@ -147,6 +147,7 @@ src/tiny-az.exr :     screenWindowCenter: 0, 0
 src/tiny-az.exr :     screenWindowWidth: 1
 src/tiny-az.exr :     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
 src/tiny-az.exr :     Exif:ImageHistory: "oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
+src/tiny-az.exr :     oiio:miplevels: 1
 src/tiny-az.exr :     oiio:RowsPerChunk: 16
 src/tiny-az.exr :     oiio:subimages: 1
 src/tiny-az.exr :     openexr:lineOrder: "increasingY"
@@ -175,6 +176,7 @@ src/tiny-az.exr      :    4 x    4, 3 channel, float openexr
     screenWindowWidth: 1
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
     Exif:ImageHistory: "oiiotool -pattern constant:color=0.25,0.5,0.75 4x4 3 --origin +2+2 --fullsize 20x20+1+1 -o tiny-az.exr"
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -215,6 +217,7 @@ src/tinydeep.exr :    4 x    4, 2 channel, deep float openexr
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=1e38,0 4x4 2 --chnames Z,A --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr"
     version: 1
     Exif:ImageHistory: "oiiotool -pattern constant:color=1e38,0 4x4 2 --chnames Z,A --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr"
+    oiio:miplevels: 1
     oiio:subimages: 1
     openexr:chunkCount: 4
     openexr:lineOrder: "increasingY"
@@ -250,6 +253,7 @@ src/tinydeep.exr     :    4 x    4, 2 channel, deep float openexr
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=1e38,0 4x4 2 --chnames Z,A --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr"
     version: 1
     Exif:ImageHistory: "oiiotool -pattern constant:color=1e38,0 4x4 2 --chnames Z,A --point:color=10.0,1.0 2,2 --deepen -o tinydeep.exr"
+    oiio:miplevels: 1
     oiio:subimages: 1
     openexr:chunkCount: 4
     openexr:lineOrder: "increasingY"
@@ -351,6 +355,7 @@ Reading tmp.tif
 <attrib name="compression" type="string">zip</attrib>
 <attrib name="oiio:RowsPerChunk" type="int">32</attrib>
 <attrib name="tiff:RowsPerStrip" type="int">32</attrib>
+<attrib name="oiio:miplevels" type="int">1</attrib>
 </ImageSpec>
 src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     3 subimages: 2x2 [u8,u8,u8], 2x2 [u8,u8,u8], 2x2 [u8,u8,u8]
@@ -363,6 +368,7 @@ src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     planarconfig: "contig"
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 32
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -387,6 +393,7 @@ src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     planarconfig: "contig"
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 32
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -411,6 +418,7 @@ src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     planarconfig: "contig"
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 32
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2

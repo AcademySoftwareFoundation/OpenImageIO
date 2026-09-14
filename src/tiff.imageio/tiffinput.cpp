@@ -1462,6 +1462,10 @@ TIFFInput::readspec(bool read_meta)
             m_spec.channelnames[c] = "z";
     }
 
+    // Set miplevels to 1 if no mipmap emulation.
+    if (!m_emulate_mipmap)
+        m_spec.attribute("oiio:miplevels", 1);
+
     /// read color profile
     unsigned int icc_datasize = 0;
     uint8_t* icc_buf          = NULL;
