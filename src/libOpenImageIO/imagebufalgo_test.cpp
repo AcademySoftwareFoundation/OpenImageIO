@@ -1123,6 +1123,182 @@ test_computePixelStats()
 
 
 
+// Return the correlation matrix of the first 3 channels of an image.
+static void
+channel_correlation(const ImageBuf& img, float corr[3][3])
+{
+    double sum[3] = { 0, 0, 0 };
+    double sum2[3][3];
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            sum2[i][j] = 0.0;
+    int64_t n = 0;
+    for (ImageBuf::ConstIterator<float> p(img); !p.done(); ++p, ++n)
+        for (int i = 0; i < 3; ++i) {
+            sum[i] += p[i];
+            for (int j = 0; j < 3; ++j)
+                sum2[i][j] += double(p[i]) * double(p[j]);
+        }
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            sum2[i][j] = sum2[i][j] / n - (sum[i] / n) * (sum[j] / n);
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            corr[i][j] = float(sum2[i][j] / std::sqrt(sum2[i][i] * sum2[j][j]));
+}
+
+
+
+// Tests ImageBufAlgo::decorr_stretch()
+void
+test_decorr_stretch()
+{
+    std::cout << "test decorr_stretch\n";
+    // Three nearly indistinguishable channels: a strong shared signal, plus
+    // a tiny bit of independent variation in each one.
+    const int n = 64;
+    ImageBuf img(ImageSpec(n, n, 3, TypeDesc::FLOAT));
+    for (int y = 0; y < n; ++y)
+        for (int x = 0; x < n; ++x) {
+            float g        = float(x + y) / float(2 * n);
+            float pixel[3] = { g + 0.0005f * ((x * 7 + y * 3) % 11),
+                               0.9f * g + 0.1f + 0.0005f * ((x * 5 + y) % 7),
+                               1.1f * g - 0.05f
+                                   + 0.0005f * ((x + y * 13) % 5) };
+            img.setpixel(x, y, make_span(pixel));
+        }
+    float corr[3][3];
+    channel_correlation(img, corr);
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            OIIO_CHECK_ASSERT(corr[i][j] > 0.999f);  // very correlated indeed
+
+    ImageBuf result = ImageBufAlgo::decorr_stretch(img);
+    OIIO_CHECK_ASSERT(!result.has_error());
+
+    // The stretch should leave the mean and the standard deviation of each
+    // channel as they were...
+    auto before = ImageBufAlgo::computePixelStats(img);
+    auto after  = ImageBufAlgo::computePixelStats(result);
+    for (int c = 0; c < 3; ++c) {
+        OIIO_CHECK_EQUAL_THRESH(after.avg[c], before.avg[c], 1.0e-4f);
+        OIIO_CHECK_EQUAL_THRESH(after.stddev[c], before.stddev[c],
+                                1.0e-3f * before.stddev[c]);
+    }
+    // ... but the channels should no longer be correlated with each other.
+    channel_correlation(result, corr);
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            OIIO_CHECK_EQUAL_THRESH(corr[i][j], i == j ? 1.0f : 0.0f, 1.0e-3f);
+
+    // The scale option multiplies the standard deviation of every channel,
+    // and sigma and mean override them outright. Note that a lone option is
+    // spelled `{ ParamValue(name, value) }` rather than `{ { name, value } }`:
+    // the latter is also a candidate for constructing the `src` ImageBuf of
+    // the (dst, src, options) overload, which some compilers take.
+    result = ImageBufAlgo::decorr_stretch(img, { ParamValue("scale", 2.0f) });
+    after  = ImageBufAlgo::computePixelStats(result);
+    for (int c = 0; c < 3; ++c) {
+        OIIO_CHECK_EQUAL_THRESH(after.avg[c], before.avg[c], 1.0e-4f);
+        OIIO_CHECK_EQUAL_THRESH(after.stddev[c], 2.0f * before.stddev[c],
+                                1.0e-3f * before.stddev[c]);
+    }
+    result = ImageBufAlgo::decorr_stretch(img, { { "sigma", 0.25f },
+                                                 { "mean", 0.5f } });
+    after  = ImageBufAlgo::computePixelStats(result);
+    for (int c = 0; c < 3; ++c) {
+        OIIO_CHECK_EQUAL_THRESH(after.avg[c], 0.5f, 1.0e-5f);
+        OIIO_CHECK_EQUAL_THRESH(after.stddev[c], 0.25f, 1.0e-4f);
+    }
+
+    // The percentile contrast stretch should fill the [0,1] range and clip
+    // about the requested fraction of the pixels at each end. It also makes
+    // the result independent of scale, sigma, and mean.
+    const float pct = 2.0f;
+    result = ImageBufAlgo::decorr_stretch(img,
+                                          { ParamValue("percentile", pct) });
+    OIIO_CHECK_ASSERT(!result.has_error());
+    after               = ImageBufAlgo::computePixelStats(result);
+    imagesize_t npixels = imagesize_t(n) * n;
+    for (int c = 0; c < 3; ++c) {
+        OIIO_CHECK_EQUAL(after.min[c], 0.0f);
+        OIIO_CHECK_EQUAL(after.max[c], 1.0f);
+        // Within a bin's worth of the requested fraction at each end.
+        auto hist = ImageBufAlgo::histogram(result, c, 100, 0.0f, 1.0f);
+        OIIO_CHECK_ASSERT(hist[0] >= imagesize_t(0.01 * pct * npixels));
+        OIIO_CHECK_ASSERT(hist[0] <= imagesize_t(0.02 * pct * npixels));
+        OIIO_CHECK_ASSERT(hist[99] >= imagesize_t(0.01 * pct * npixels));
+        OIIO_CHECK_ASSERT(hist[99] <= imagesize_t(0.02 * pct * npixels));
+    }
+    ImageBuf other = ImageBufAlgo::decorr_stretch(img, { { "percentile", pct },
+                                                         { "scale", 3.0f },
+                                                         { "mean", 0.25f } });
+    auto cmp       = ImageBufAlgo::compare(result, other, 1.0e-4f, 1.0e-4f);
+    OIIO_CHECK_EQUAL(cmp.nfail, 0);
+
+    // Out of range percentile is an error.
+    result = ImageBufAlgo::decorr_stretch(img,
+                                          { ParamValue("percentile", 50.0f) });
+    OIIO_CHECK_ASSERT(result.has_error());
+    result.geterror();
+
+    // Correlation mode decorrelates just as thoroughly and preserves the
+    // same per-channel statistics, but mixes the channels differently,
+    // because it does not let the highest variance channel dominate.
+    result = ImageBufAlgo::decorr_stretch(img, { ParamValue("mode",
+                                                            "correlation") });
+    OIIO_CHECK_ASSERT(!result.has_error());
+    after = ImageBufAlgo::computePixelStats(result);
+    for (int c = 0; c < 3; ++c) {
+        OIIO_CHECK_EQUAL_THRESH(after.avg[c], before.avg[c], 1.0e-4f);
+        OIIO_CHECK_EQUAL_THRESH(after.stddev[c], before.stddev[c],
+                                1.0e-3f * before.stddev[c]);
+    }
+    channel_correlation(result, corr);
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            OIIO_CHECK_EQUAL_THRESH(corr[i][j], i == j ? 1.0f : 0.0f, 1.0e-3f);
+    other = ImageBufAlgo::decorr_stretch(img,
+                                         { ParamValue("mode", "covariance") });
+    cmp   = ImageBufAlgo::compare(result, other, 1.0e-4f, 1.0e-4f);
+    OIIO_CHECK_ASSERT(cmp.nfail > 0);  // the two modes really do differ
+
+    // An unknown mode is an error.
+    result = ImageBufAlgo::decorr_stretch(img, { ParamValue("mode", "bogus") });
+    OIIO_CHECK_ASSERT(result.has_error());
+    result.geterror();
+
+    // An image with no variation at all has no principal axes to stretch,
+    // and should come back unchanged rather than as NaNs.
+    ImageBuf flat(ImageSpec(4, 4, 3, TypeDesc::FLOAT));
+    float gray[3] = { 0.2f, 0.3f, 0.4f };
+    ImageBufAlgo::fill(flat, gray);
+    result = ImageBufAlgo::decorr_stretch(flat);
+    OIIO_CHECK_ASSERT(!result.has_error());
+    after = ImageBufAlgo::computePixelStats(result);
+    for (int c = 0; c < 3; ++c) {
+        OIIO_CHECK_EQUAL_THRESH(after.avg[c], gray[c], 1.0e-6f);
+        OIIO_CHECK_EQUAL(after.nancount[c], 0);
+    }
+
+    // Alpha is not part of the correlated set, and must pass through.
+    ImageBuf rgba(ImageSpec(n, n, 4, TypeDesc::FLOAT));
+    ImageBufAlgo::channel_append(
+        rgba, img, ImageBufAlgo::fill({ 0.75f }, ROI(0, n, 0, n, 0, 1, 0, 1)));
+    result = ImageBufAlgo::decorr_stretch(rgba);
+    OIIO_CHECK_ASSERT(!result.has_error());
+    after = ImageBufAlgo::computePixelStats(result);
+    OIIO_CHECK_EQUAL_THRESH(after.avg[3], 0.75f, 1.0e-6f);
+    OIIO_CHECK_EQUAL_THRESH(after.stddev[3], 0.0f, 1.0e-6f);
+
+    // Asking to stretch the alpha channel is an error.
+    result = ImageBufAlgo::decorr_stretch(rgba, { ParamValue("nchannels", 4) });
+    OIIO_CHECK_ASSERT(result.has_error());
+    std::cout << "  (expected error: " << result.geterror() << ")\n";
+}
+
+
+
 // Tests histogram computation.
 void
 histogram_computation_test()
@@ -1977,6 +2153,7 @@ main(int argc, char** argv)
     test_isConstantChannel();
     test_isMonochrome();
     test_computePixelStats();
+    test_decorr_stretch();
     histogram_computation_test();
     test_maketx_from_imagebuf();
     test_IBAprep();

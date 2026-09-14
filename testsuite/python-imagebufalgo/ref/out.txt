@@ -182,6 +182,14 @@ Comparing "saturate-0.tif" and "ref/saturate-0.tif"
 PASS
 Comparing "saturate-2.tif" and "ref/saturate-2.tif"
 PASS
+Comparing "decorr_stretch.tif" and "ref/decorr_stretch.tif"
+PASS
+Comparing "decorr_stretch-scale2.tif" and "ref/decorr_stretch-scale2.tif"
+PASS
+Comparing "decorr_stretch-percentile.tif" and "ref/decorr_stretch-percentile.tif"
+PASS
+Comparing "decorr_stretch-correlation.tif" and "ref/decorr_stretch-correlation.tif"
+PASS
 Comparing "resize.tif" and "../../../testsuite/oiiotool-xform/ref/resize.tif"
 PASS
 Comparing "resample.tif" and "../../../testsuite/oiiotool-xform/ref/resample.tif"

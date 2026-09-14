@@ -183,6 +183,7 @@ macro (oiio_add_all_tests)
                     oiiotool-composite
                     oiiotool-control
                     oiiotool-copy
+                    oiiotool-decorrstretch
                     oiiotool-demosaic
                     oiiotool-fixnan
                     oiiotool-layers

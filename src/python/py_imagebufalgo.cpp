@@ -1218,6 +1218,56 @@ IBA_saturate_ret(const ImageBuf& src, float scale = 0.0f, int firstchannel = 0,
 
 
 
+static ParamValueList
+decorr_stretch_params(int firstchannel, int nchannels, float scale, float sigma,
+                      py::object mean, float percentile,
+                      const std::string& mode)
+{
+    ParamValueList params;
+    params["firstchannel"] = firstchannel;
+    params["nchannels"]    = nchannels;
+    params["scale"]        = scale;
+    params["sigma"]        = sigma;
+    params["percentile"]   = percentile;
+    if (mode.size())
+        params["mode"] = mode;
+    if (!mean.is(py::none()))
+        params["mean"] = py::cast<float>(mean);
+    return params;
+}
+
+
+bool
+IBA_decorr_stretch(ImageBuf& dst, const ImageBuf& src, int firstchannel = 0,
+                   int nchannels = 0, float scale = 1.0f, float sigma = 0.0f,
+                   py::object mean = py::none(), float percentile = 0.0f,
+                   const std::string& mode = "", ROI roi = ROI::All(),
+                   int nthreads = 0)
+{
+    ParamValueList params = decorr_stretch_params(firstchannel, nchannels,
+                                                  scale, sigma, mean,
+                                                  percentile, mode);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::decorr_stretch(dst, src, params, roi, nthreads);
+}
+
+
+ImageBuf
+IBA_decorr_stretch_ret(const ImageBuf& src, int firstchannel = 0,
+                       int nchannels = 0, float scale = 1.0f,
+                       float sigma = 0.0f, py::object mean = py::none(),
+                       float percentile = 0.0f, const std::string& mode = "",
+                       ROI roi = ROI::All(), int nthreads = 0)
+{
+    ParamValueList params = decorr_stretch_params(firstchannel, nchannels,
+                                                  scale, sigma, mean,
+                                                  percentile, mode);
+    py::gil_scoped_release gil;
+    return ImageBufAlgo::decorr_stretch(src, params, roi, nthreads);
+}
+
+
+
 bool
 IBA_contrast_remap(ImageBuf& dst, const ImageBuf& src, py::object black_,
                    py::object white_, py::object min_, py::object max_,
@@ -2867,6 +2917,17 @@ declare_imagebufalgo(py_module& m)
                     "roi"_a = ROI::All(), "nthreads"_a = 0)
         .def_static("saturate", &IBA_saturate_ret, "src"_a, "scale"_a = 0.0f,
                     "firstchannel"_a = 0, "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+
+        .def_static("decorr_stretch", &IBA_decorr_stretch, "dst"_a, "src"_a,
+                    "firstchannel"_a = 0, "nchannels"_a = 0, "scale"_a = 1.0f,
+                    "sigma"_a = 0.0f, "mean"_a = py::none(),
+                    "percentile"_a = 0.0f, "mode"_a = "", "roi"_a = ROI::All(),
+                    "nthreads"_a = 0)
+        .def_static("decorr_stretch", &IBA_decorr_stretch_ret, "src"_a,
+                    "firstchannel"_a = 0, "nchannels"_a = 0, "scale"_a = 1.0f,
+                    "sigma"_a = 0.0f, "mean"_a = py::none(),
+                    "percentile"_a = 0.0f, "mode"_a = "", "roi"_a = ROI::All(),
                     "nthreads"_a = 0)
 
         .def_static("colorconvert", &IBA_colorconvert, "dst"_a, "src"_a,
