@@ -254,8 +254,7 @@ DPXOutput::open(const std::string& name, const ImageSpec& userspec,
             spec.get_int_attribute("dpx:HighData", 0xFFFFFFFF),
             spec.get_float_attribute("dpx:HighQuantity",
                                      std::numeric_limits<float>::quiet_NaN()),
-            spec.get_int_attribute("dpx:EndOfLinePadding", 0),
-            spec.get_int_attribute("dpx:EndOfImagePadding", 0));
+            0, 0);
         std::string desc = spec.get_string_attribute("ImageDescription", "");
         m_dpx.header.SetDescription(s, desc.c_str());
         // TODO: Writing RLE compressed files seem to be broken.
