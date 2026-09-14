@@ -46,6 +46,16 @@ command += oiiotool("src/crash-badusersize.dpx -o test.tif", failureok=True)
 # one uint16 past the end of the caller's scanline buffer.
 command += info_command("src/crash-1chan-10bit-filled-methodA.dpx", safematch=True)
 
+# Regression test: the "dpx:EndOfLinePadding" attribute is carried over from
+# an input file's header, but the libdpx writer uses it as the row stride of
+# the caller's pixel buffer, which is always tightly packed. A nonzero value
+# therefore read past the end of the buffer. The writer must ignore it.
+command += oiiotool("--create 80x60 3 -d uint10 "
+                    "--attrib:type=int dpx:EndOfLinePadding 16384 "
+                    "--attrib:type=int dpx:EndOfImagePadding 16384 "
+                    "-o eolpad.dpx")
+command += info_command("eolpad.dpx", safematch=True)
+
 # Regression test: a 21 KB DPX whose header declares a ~12 GB image
 # (46341x46341x3) -- a decompression bomb the compression-ratio guard must
 # reject before any large allocation.
