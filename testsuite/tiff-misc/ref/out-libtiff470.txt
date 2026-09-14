@@ -79,5 +79,11 @@ src/crash-cmyk-1bit.tif :   73 x   43, 3 channel, uint1 tiff
 oiiotool ERROR: read : "src/crash-rawstrip-offset-past-eof.tif": TIFFReadRawStrip failed reading line y=0: Read error at scanline 4294967295; got 0 bytes, expected 28
 Full command line was:
 > oiiotool --oiioattrib try_all_readers 0 src/crash-rawstrip-offset-past-eof.tif -o out.exr
+Computing diff of "src/cmyk-1bit-tiled.tif" vs "src/cmyk-1bit-strip.tif"
+PASS
+Computing diff of "src/cmyk-4bit-planar-tiled.tif" vs "src/cmyk-4bit-planar-strip.tif"
+PASS
+Computing diff of "src/rgb-24bit-tiled.tif" vs "src/rgb-24bit-strip.tif"
+PASS
 Comparing "check1.tif" and "ref/check1.tif"
 PASS
