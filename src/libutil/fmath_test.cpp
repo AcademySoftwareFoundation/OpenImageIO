@@ -506,6 +506,65 @@ test_interpolate_linear()
 
 
 
+static void
+test_float_to_rational()
+{
+    std::cout << "\nTesting float_to_rational\n";
+    const unsigned int maxuint = std::numeric_limits<unsigned int>::max();
+    const int maxint           = std::numeric_limits<int>::max();
+    const float inf            = std::numeric_limits<float>::infinity();
+    const float nan            = std::numeric_limits<float>::quiet_NaN();
+    unsigned int num = 0, den = 0;
+    int snum = 0, sden = 0;
+
+    // Ordinary values
+    float_to_rational(0.0f, num, den);
+    OIIO_CHECK_EQUAL(num, 0);
+    OIIO_CHECK_EQUAL(den, 1);
+    float_to_rational(1.0f, num, den);
+    OIIO_CHECK_EQUAL(num, 1);
+    OIIO_CHECK_EQUAL(den, 1);
+    float_to_rational(0.5f, num, den);
+    OIIO_CHECK_EQUAL(num, 1);
+    OIIO_CHECK_EQUAL(den, 2);
+    float_to_rational(52.83f, num, den);
+    OIIO_CHECK_EQUAL(num, 52830004);
+    OIIO_CHECK_EQUAL(den, 1000000);
+
+    // Degenerate values must not be undefined behavior, and must not
+    // produce a zero denominator.
+    float degenerate[] = { nan,   inf,   -inf, -1.0f,  1e-12f,
+                           1e30f, 1e38f, 1e9f, 2.2e9f, 5e9f };
+    for (float f : degenerate) {
+        float_to_rational(f, num, den);
+        OIIO_CHECK_ASSERT(den != 0);
+        float_to_rational(f, snum, sden);
+        OIIO_CHECK_ASSERT(sden > 0);
+        OIIO_CHECK_ASSERT(snum >= -maxint && snum <= maxint);
+    }
+
+    // Specific clamping behavior for out-of-range magnitudes
+    float_to_rational(nan, num, den);
+    OIIO_CHECK_EQUAL(num, 0);
+    OIIO_CHECK_EQUAL(den, 1);
+    float_to_rational(inf, num, den);
+    OIIO_CHECK_EQUAL(num, maxuint);
+    OIIO_CHECK_EQUAL(den, 1);
+    float_to_rational(inf, snum, sden);
+    OIIO_CHECK_EQUAL(snum, maxint);
+    OIIO_CHECK_EQUAL(sden, 1);
+    float_to_rational(-inf, snum, sden);
+    OIIO_CHECK_EQUAL(snum, -maxint);
+    OIIO_CHECK_EQUAL(sden, 1);
+
+    // Signed version keeps the sign
+    float_to_rational(-3.5f, snum, sden);
+    OIIO_CHECK_EQUAL(snum, -35);
+    OIIO_CHECK_EQUAL(sden, 10);
+}
+
+
+
 inline std::string
 bin16(int i)
 {
@@ -793,6 +852,8 @@ main(int argc, char* argv[])
     test_swap_endian();
 
     test_interpolate_linear();
+
+    test_float_to_rational();
 
     test_vecparam();
 
