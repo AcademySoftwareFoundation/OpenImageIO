@@ -71,16 +71,14 @@ command += info_command ("src/corrupt-icc-oversized.jpg", safematch=True)
 # These files have short APP1/APP2 metadata marker payloads that used to be
 # read past their saved-marker buffers before being ignored. Use iconvert to
 # a null output to force a full input read.
-command += iconvert("short-exif-app1-len4.jpg out.null",
-                    successmessage="short-exif-app1-len4-ok")
-command += iconvert("short-exif-app1-len5.jpg out.null",
-                    successmessage="short-exif-app1-len5-ok")
-command += iconvert("short-icc-app2-len11.jpg out.null",
-                    successmessage="short-icc-app2-len11-ok")
-command += iconvert("short-icc-app2-len12.jpg out.null",
-                    successmessage="short-icc-app2-len12-ok")
-command += iconvert("short-icc-app2-len13.jpg out.null",
-                    successmessage="short-icc-app2-len13-ok")
+command += run_commands(
+"""
+iconvert short-exif-app1-len4.jpg out.null && echo short-exif-app1-len4-ok
+iconvert short-exif-app1-len5.jpg out.null && echo short-exif-app1-len5-ok
+iconvert short-icc-app2-len11.jpg out.null && echo short-icc-app2-len11-ok
+iconvert short-icc-app2-len12.jpg out.null && echo short-icc-app2-len12-ok
+iconvert short-icc-app2-len13.jpg out.null && echo short-icc-app2-len13-ok
+""")
 
 # This file had corrupted IPTC data
 command += oiiotool("-oiioattrib imageinput:strict 1 -info -v src/corrupt-iptc-8011.jpg")
