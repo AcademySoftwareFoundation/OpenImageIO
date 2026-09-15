@@ -215,6 +215,12 @@ if (IGNORE_HOMEBREWED_DEPS)
              )
     endforeach ()
 
+    # Also ignore the whole prefixes, which (unlike CMAKE_IGNORE_PATH) is
+    # honored by config-package searches, and is forwarded to local
+    # dependency child builds so they can't quietly resolve a Homebrew
+    # package (e.g. a mismatched Imath) that we ourselves are ignoring.
+    list (APPEND CMAKE_IGNORE_PREFIX_PATH ${HOMEBREW_PREFIXES})
+
     message (STATUS "CMAKE_IGNORE_PATH: ${CMAKE_IGNORE_PATH}")
 endif ()
 
