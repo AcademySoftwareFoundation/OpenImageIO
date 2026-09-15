@@ -260,6 +260,10 @@ public:
     ImageSpec spec_dimensions(int subimage, int miplevel) override;
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
+    // Unhide the base-class span-based read_native_scanlines overloads: our
+    // pointer-based overloads would otherwise hide them, which newer GCC
+    // versions flag as an error (-Woverloaded-virtual).
+    using ImageInput::read_native_scanlines;
     bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                int z, void* data) override;
     bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
