@@ -432,16 +432,19 @@ if (NOT USE_SIMD STREQUAL "")
             list (APPEND SIMD_FEATURE_LIST ${_simd_x86_64_${_lvl}_features})
             if (SIMD_TARGET_X86_64 AND NOT _simd_skip_x86
                 AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
-                if (_simd_x86_xarch)
-                    # Apple universal build: can't probe the x86 slice here,
-                    # but Apple's clang always knows these levels.
+                # Compilers older than gcc 11 / clang 12 don't know the psABI
+                # level names, so probe before using one. For a universal
+                # build the flag must be qualified with -Xarch_x86_64, or the
+                # arm64 slice rejects it, so probe the qualified form.
+                include (CheckCXXSourceCompiles)
+                set (_simd_saved_required_flags "${CMAKE_REQUIRED_FLAGS}")
+                set (CMAKE_REQUIRED_FLAGS "${_simd_x86_xarch} -march=x86-64-${_lvl}")
+                check_cxx_source_compiles ("int main() { return 0; }"
+                                           OIIO_COMPILER_SUPPORTS_X86_64_${_lvl})
+                set (CMAKE_REQUIRED_FLAGS "${_simd_saved_required_flags}")
+                unset (_simd_saved_required_flags)
+                if (OIIO_COMPILER_SUPPORTS_X86_64_${_lvl})
                     list (APPEND SIMD_COMPILE_FLAGS ${_simd_x86_xarch} "-march=x86-64-${_lvl}")
-                else ()
-                    include (CheckCXXCompilerFlag)
-                    check_cxx_compiler_flag ("-march=x86-64-${_lvl}" OIIO_COMPILER_SUPPORTS_X86_64_${_lvl})
-                    if (OIIO_COMPILER_SUPPORTS_X86_64_${_lvl})
-                        list (APPEND SIMD_COMPILE_FLAGS "-march=x86-64-${_lvl}")
-                    endif ()
                 endif ()
             endif ()
         endforeach ()

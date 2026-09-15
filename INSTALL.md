@@ -204,8 +204,8 @@ level if you know your target hardware:
 
 | value | needs a CPU from | adds over the default |
 |-------|------------------|-----------------------|
-| `x86-64-v3` | ~2013 (Haswell / Zen) | AVX, AVX2, FMA, F16C, BMI |
-| `x86-64-v4` | ~2017 (Skylake-X / Zen 4) | AVX-512 (F, BW, CD, DQ, VL) |
+| `x86-64-v3` | ~2013 (Haswell / Zen) | AVX, AVX2, FMA, F16C, BMI, BMI2, LZCNT, MOVBE |
+| `x86-64-v4` | ~2017 (Skylake-X / Zen 4) | everything in `x86-64-v3`, plus AVX-512 (F, BW, CD, DQ, VL) |
 
 Each `x86-64-vN` is shorthand for a fixed set of feature tokens, and also
 passes `-march=x86-64-vN` when the compiler supports it. Because no CPU ships
@@ -397,8 +397,8 @@ On the other hand, if you would prefer to open the generated Visual Studio
 solution, the "cmake configure" will have produced
 `{OIIO_ROOT}/build/OpenImageIO.sln` that can be opened in Visual Studio IDE.
 Note that the solution will be only for the Intel x64 architecture only; and
-will target the default SIMD level (SSE4.2; see `USE_SIMD` above if you want
-something else).
+will target the default SIMD level (`x86-64-v2`, i.e. SSE4.2 + POPCNT +
+CMPXCHG16B; see `USE_SIMD` above if you want something else).
 
 Optional packages that OIIO can use (e.g. libpng, Qt) can be build and pointed to OIIO build process in a similar way.
 
