@@ -29,3 +29,33 @@ Full command line was:
 oiiotool ERROR: read : "src/bomb-46341.iff": iff header claims a 8192 MB image from a 336 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool --info -v -a --hash src/bomb-46341.iff
+Reading src/missing-tile.iff
+src/missing-tile.iff :    2 x    1, 3 channel, uint8 iff
+    SHA-1: 8A1895DEABC083C78C98A566B6F1C492334DB9F1
+    channel list: R, G, B
+    tile size: 1 x 1
+Reading src/duplicate-tile.iff
+src/duplicate-tile.iff :    2 x    1, 3 channel, uint8 iff
+    SHA-1: 691C41AF0916C5408B27B99EA0BD736727DE5557
+    channel list: R, G, B
+    tile size: 1 x 1
+Reading src/valid-multitile.iff
+src/valid-multitile.iff :    2 x    1, 3 channel, uint8 iff
+    SHA-1: 57D1B759BF3D1811135748CB0328C73B51FA6F57
+    channel list: R, G, B
+    tile size: 1 x 1
+Reading src/valid-out-of-order.iff
+src/valid-out-of-order.iff :    4 x    1, 3 channel, uint8 iff
+    SHA-1: 4630DE8510EC2BD361225C12D7B1097F9641C8E2
+    channel list: R, G, B
+    tile size: 2 x 1
+Reading src/valid-edge-tile.iff
+src/valid-edge-tile.iff :    3 x    1, 3 channel, uint8 iff
+    SHA-1: 40E3568424D89728910AD2EA19EBB09FDCC159A2
+    channel list: R, G, B
+    tile size: 2 x 1
+Reading src/overlap-full-coverage.iff
+src/overlap-full-coverage.iff :    2 x    1, 3 channel, uint8 iff
+    SHA-1: 9884235A64511DBBFD499886C555C084228C203D
+    channel list: R, G, B
+    tile size: 2 x 1
