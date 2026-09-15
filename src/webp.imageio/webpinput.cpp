@@ -7,10 +7,6 @@
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/tiffutils.h>
 
-#ifdef OIIO_USE_OPENMETA
-#    include "openmeta_oiio.h"
-#endif
-
 #include <webp/decode.h>
 #include <webp/demux.h>
 
@@ -28,7 +24,6 @@ struct WebpHead {
 
 
 
-#ifndef OIIO_USE_OPENMETA
 static bool
 webp_exif_payload_has_tiff_header(cspan<uint8_t> exif)
 {
@@ -40,28 +35,6 @@ webp_exif_payload_has_tiff_header(cspan<uint8_t> exif)
     const size_t tiff_header_offset = has_exif_header ? exif_header_size : 0;
     return exif.size() >= tiff_header_offset + sizeof(TIFFHeader);
 }
-#endif
-
-
-#ifdef OIIO_USE_OPENMETA
-static bool
-decode_openmeta_metadata(Filesystem::IOProxy& io, ImageSpec& spec)
-{
-    OIIO::pvt::openmeta::DecodeRequest request;
-    request.serialize_snapshot = false;
-    OIIO::pvt::openmeta::DecodeResult decoded
-        = OIIO::pvt::openmeta::decode(io, OIIO::pvt::openmeta::Format::Webp,
-                                      request);
-    if (!decoded.ok() || !decoded.bridge.complete)
-        return false;
-
-    for (const ParamValue& attribute : decoded.attributes) {
-        if (!spec.extra_attribs.contains(attribute.name()))
-            spec.extra_attribs.add_or_replace(attribute);
-    }
-    return true;
-}
-#endif
 
 
 class WebpInput final : public ImageInput {
@@ -232,20 +205,13 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     }
 
     WebPChunkIterator chunk_iter;
-#ifdef OIIO_USE_OPENMETA
-    if (!decode_openmeta_metadata(*io, m_spec)
-        && OIIO::get_int_attribute("imageinput:strict")) {
-        errorfmt("Could not decode metadata with OpenMeta");
-        close();
-        return false;
-    }
-#else
     if (m_demux_flags & EXIF_FLAG
         && WebPDemuxGetChunk(m_demux, "EXIF", 1, &chunk_iter)) {
         cspan<uint8_t> exif_span(chunk_iter.chunk.bytes, chunk_iter.chunk.size);
         if (webp_exif_payload_has_tiff_header(exif_span)) {
             bool ok = decode_exif(exif_span, m_spec);
             if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+                WebPDemuxReleaseChunkIterator(&chunk_iter);
                 errorfmt("Could not decode Exif");
                 close();
                 return false;
@@ -255,12 +221,16 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
     }
     if (m_demux_flags & XMP_FLAG
         && WebPDemuxGetChunk(m_demux, "XMP ", 1, &chunk_iter)) {
-        // FIXME: This is where we would extract XMP. Come back to this when
-        // I have found an example webp containing XMP that I can use as a
-        // test case, otherwise I'm just guessing.
+        const bool ok = decode_xmp(
+            cspan<uint8_t>(chunk_iter.chunk.bytes, chunk_iter.chunk.size),
+            m_spec);
         WebPDemuxReleaseChunkIterator(&chunk_iter);
+        if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+            errorfmt("Could not decode XMP");
+            close();
+            return false;
+        }
     }
-#endif
     if (m_demux_flags & ICCP_FLAG
         && WebPDemuxGetChunk(m_demux, "ICCP", 1, &chunk_iter)) {
         cspan<uint8_t> icc_span(chunk_iter.chunk.bytes, chunk_iter.chunk.size);

@@ -3193,10 +3193,12 @@ Webp
 WebP is an image file format developed by Google that is intended to be an
 open standard for lossy-compressed images for use on the web.
 
-When OpenImageIO is built with the experimental ``USE_OPENMETA=ON`` option,
-the WebP reader uses OpenMeta to decode EXIF and XMP into typed ImageSpec
-attributes, including structured XMP properties. Without OpenMeta, the WebP
-reader retains its legacy EXIF metadata handling.
+The WebP reader passes EXIF and XMP chunks to the shared metadata decoders.
+When built with ``USE_OPENMETA=ON``, setting the global ``enable_openmeta``
+attribute to 1 selects OpenMeta instead of the native decoders. This also
+affects other readers that call ``decode_exif`` or ``decode_xmp``. OpenMeta
+retains structured and unknown XMP properties under namespace-qualified
+names. ICC decoding and image decoding remain unchanged.
 
 **Attributes**
 

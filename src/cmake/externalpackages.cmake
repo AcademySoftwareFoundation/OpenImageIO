@@ -235,6 +235,44 @@ if (OpenMeta_FOUND AND NOT TARGET OpenMeta::openmeta)
     set (OpenMeta_FOUND FALSE)
 endif ()
 
+if (OpenMeta_FOUND)
+    # Probe the actual headers and link interface, not just acceptance of a
+    # compiler flag. Keep the rest of OIIO at its configured C++ standard.
+    unset (OIIO_OPENMETA_COMPILES)
+    if ("cxx_std_20" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+        set (_openmeta_probe_configuration ${CMAKE_TRY_COMPILE_CONFIGURATION})
+        if (NOT CMAKE_TRY_COMPILE_CONFIGURATION)
+            if (CMAKE_BUILD_TYPE)
+                set (CMAKE_TRY_COMPILE_CONFIGURATION ${CMAKE_BUILD_TYPE})
+            else ()
+                set (CMAKE_TRY_COMPILE_CONFIGURATION Release)
+            endif ()
+        endif ()
+        try_compile (OIIO_OPENMETA_COMPILES
+                 "${CMAKE_BINARY_DIR}/openmeta-probe"
+                 "${CMAKE_SOURCE_DIR}/src/cmake/openmeta-probe"
+                 OpenMetaProbe
+                 CMAKE_FLAGS
+                     "-DOpenMeta_DIR:PATH=${OpenMeta_DIR}"
+                     "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
+                     "-DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=${CMAKE_MSVC_RUNTIME_LIBRARY}"
+                     "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}"
+                 OUTPUT_VARIABLE _openmeta_probe_output)
+        set (CMAKE_TRY_COMPILE_CONFIGURATION ${_openmeta_probe_configuration})
+    else ()
+        set (OIIO_OPENMETA_COMPILES FALSE)
+    endif ()
+    if (NOT OIIO_OPENMETA_COMPILES)
+        message (VERBOSE "${_openmeta_probe_output}")
+        if (OpenMeta IN_LIST OpenImageIO_REQUIRED_DEPS
+            OR "ALL" IN_LIST OpenImageIO_REQUIRED_DEPS)
+            message (FATAL_ERROR "OpenMeta requires a working C++20 compiler and compatible libraries")
+        endif ()
+        message (WARNING "OpenMeta C++20 compile/link probe failed; disabling OpenMeta")
+        set (OpenMeta_FOUND FALSE)
+    endif ()
+endif ()
+
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera
 

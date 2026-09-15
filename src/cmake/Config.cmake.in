@@ -21,7 +21,7 @@ if (NOT @BUILD_SHARED_LIBS@)
         # OpenMeta dependencies may otherwise create a partial Highway import.
         find_dependency(hwy CONFIG)
     endif ()
-    if (@OIIO_OPENMETA_BRIDGE_ENABLED@ AND @EMBEDPLUGINS@)
+    if (@OIIO_OPENMETA_ENABLED@)
         find_dependency(OpenMeta @OpenMeta_VERSION@ CONFIG)
     endif ()
     # This is required in static library builds, as e.g. PNG::PNG appears among

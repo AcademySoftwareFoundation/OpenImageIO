@@ -9,24 +9,30 @@ redirect = " >> out.txt 2>&1 "
 command += oiiotool("--create 1x1 3 -d uint8 -o base.webp")
 command += run_app(pythonbin + " src/make-openmeta-webp.py", silent=True)
 command += oiiotool(
-    'openmeta-metadata.webp '
+    '--oiioattrib enable_openmeta 1 openmeta-metadata.webp '
     '--echo "TIFF Make={TOP.Make}" '
     '--echo "TIFF Orientation={TOP.Orientation}" '
     '--echo "TIFF aperture={TOP.\'Exif:ApertureValue\'}" '
-    '--echo "TIFF XMP rating={TOP.\'XMP:Rating\'}" '
+    '--echo "TIFF XMP rating={TOP.\'IPTC:Rating\'}" '
     '--echo "TIFF XMP aperture={TOP.\'xmp:http://ns.adobe.com/exif/1.0/:ApertureValue\'}" '
-    '--echo "TIFF document={TOP.\'xmp:http://ns.adobe.com/xap/1.0/mm/:DocumentID\'}" '
+    '--echo "TIFF document={TOP.\'IPTC:DocumentID\'}" '
     '--echo "TIFF history={TOP.\'xmp:http://ns.adobe.com/xap/1.0/mm/:History[1]/stEvt:action\'}" '
     '--echo "TIFF ColorSpace={TOP.\'oiio:ColorSpace\'}"'
 )
 command += oiiotool(
-    'openmeta-prefixed-metadata.webp '
+    '--oiioattrib enable_openmeta 1 openmeta-prefixed-metadata.webp '
     '--echo "Prefixed Make={TOP.Make}" '
     '--echo "Prefixed Orientation={TOP.Orientation}" '
     '--echo "Prefixed aperture={TOP.\'Exif:ApertureValue\'}" '
-    '--echo "Prefixed XMP rating={TOP.\'XMP:Rating\'}" '
+    '--echo "Prefixed XMP rating={TOP.\'IPTC:Rating\'}" '
     '--echo "Prefixed XMP aperture={TOP.\'xmp:http://ns.adobe.com/exif/1.0/:ApertureValue\'}" '
-    '--echo "Prefixed document={TOP.\'xmp:http://ns.adobe.com/xap/1.0/mm/:DocumentID\'}" '
+    '--echo "Prefixed document={TOP.\'IPTC:DocumentID\'}" '
     '--echo "Prefixed history={TOP.\'xmp:http://ns.adobe.com/xap/1.0/mm/:History[1]/stEvt:action\'}" '
     '--echo "Prefixed ColorSpace={TOP.\'oiio:ColorSpace\'}"'
+)
+command += oiiotool(
+    '--oiioattrib enable_openmeta 0 openmeta-metadata.webp '
+    '--echo "Native Make={TOP.Make}" '
+    '--echo "Native XMP rating={TOP.\'IPTC:Rating\'}" '
+    '--echo "Native document={TOP.\'IPTC:DocumentID\'}"'
 )

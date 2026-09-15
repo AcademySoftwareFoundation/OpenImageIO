@@ -366,6 +366,23 @@ inside the source code.
     line, but not the full human-readable command line. (This was added in
     OpenImageIO 2.5.11.)
 
+.. cpp:var:: OPENIMAGEIO_ENABLE_OPENMETA
+
+    When built with ``USE_OPENMETA=ON``, a nonzero integer selects OpenMeta
+    for shared EXIF and XMP decoding. The default is 0 (native decoders).
+    Equivalent runtime controls are::
+
+        OIIO::attribute("enable_openmeta", 1);  // OpenMeta
+        OIIO::attribute("enable_openmeta", 0);  // native
+
+    Set this before opening images. It does not re-read cached metadata.
+    Builds without OpenMeta always report 0. An OpenMeta decoding failure
+    leaves the destination attributes unchanged and does not silently retry
+    with the native parser. Known fields use OIIO naming and types; unknown
+    or structured XMP fields retain namespace-qualified names. Existing native
+    attributes take precedence over conflicting XMP values, which are kept
+    under their namespace-qualified names.
+
 .. cpp:var:: OPENIMAGEIO_ENABLE_HWY
 
     Controls whether to use Google Highway SIMD library optimizations for

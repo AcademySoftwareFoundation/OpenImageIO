@@ -158,6 +158,35 @@ target_link_libraries (OpenImageIO
             ${CMAKE_DL_LIBS}
         )
 
+if (OIIO_OPENMETA_ENABLED)
+    # An object target isolates the C++20 requirement without another installed
+    # library or exposing OpenMeta headers through OIIO's public interface.
+    add_library (oiio_openmeta OBJECT openmeta.cpp)
+    set_target_properties (oiio_openmeta PROPERTIES
+                           CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON
+                           CXX_EXTENSIONS OFF POSITION_INDEPENDENT_CODE ON)
+    target_compile_definitions (oiio_openmeta PRIVATE OpenImageIO_EXPORTS)
+    if (NOT BUILD_SHARED_LIBS)
+        target_compile_definitions (oiio_openmeta PRIVATE OIIO_STATIC_DEFINE=1)
+    endif ()
+    target_link_libraries (oiio_openmeta PRIVATE OpenMeta::openmeta
+                           OpenImageIO_Util ${OPENIMAGEIO_IMATH_TARGETS})
+    target_sources (OpenImageIO PRIVATE $<TARGET_OBJECTS:oiio_openmeta>)
+    target_compile_definitions (OpenImageIO PRIVATE OIIO_USE_OPENMETA=1)
+    # The interface wrapper keeps compile requirements out of OpenImageIO,
+    # including with CMake 3.23 (before LINK_ONLY in LINK_LIBRARIES).
+    add_library (oiio_openmeta_link INTERFACE)
+    target_link_libraries (oiio_openmeta_link INTERFACE
+                           $<LINK_ONLY:OpenMeta::openmeta>)
+    # Do not put the build-only wrapper into either export set.
+    set_property (TARGET OpenImageIO APPEND PROPERTY LINK_LIBRARIES
+                  oiio_openmeta_link)
+    if (NOT BUILD_SHARED_LIBS)
+        set_property (TARGET OpenImageIO APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+                      $<LINK_ONLY:OpenMeta::openmeta>)
+    endif ()
+endif ()
+
 # Google Highway (hwy) is an optional optimization dependency.
 set (_oiio_use_hwy 0)
 if (OIIO_USE_HWY AND TARGET hwy::hwy)
@@ -243,6 +272,13 @@ endif ()
 # Testing
 
 if (OIIO_BUILD_TESTS AND BUILD_TESTING)
+
+    fancy_add_executable (NAME openmeta_test SRC openmeta_test.cpp
+                          LINK_LIBRARIES OpenImageIO
+                          FOLDER "Unit Tests" NO_INSTALL)
+    target_compile_definitions (openmeta_test PRIVATE
+                                OIIO_USE_OPENMETA=$<BOOL:${OIIO_OPENMETA_ENABLED}>)
+    add_test (unit_openmeta ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/openmeta_test)
 
     fancy_add_executable (NAME color_test SRC color_test.cpp
                           LINK_LIBRARIES OpenImageIO

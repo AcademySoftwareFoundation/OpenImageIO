@@ -13,6 +13,9 @@
 #include <OpenImageIO/tiffutils.h>
 #include <OpenImageIO/timer.h>
 
+#include "exif.h"
+#include "openmeta.h"
+
 extern "C" {
 #include "tiff.h"
 }
@@ -563,6 +566,55 @@ decode_xmp_node(pugi::xml_node node, ImageSpec& spec, XMPbudget& budget,
 
 }  // anonymous namespace
 
+#if OIIO_USE_OPENMETA
+bool
+pvt::openmetadata_xmp_attribute(string_view name, string_view value,
+                                bool sequence, ImageSpec& spec)
+{
+    // Only map known properties. Keep unknown/structured properties under
+    // their namespace-qualified OpenMeta names rather than guessing a type.
+    const XMPtag* tag = xmp_tagmap_ref().find(name);
+    if (sequence && (!tag || !(tag->special & (IsList | IsSeq))))
+        return false;
+    if (!tag) {
+        int id = 0, type = 0, count = 0;
+        if (!Strutil::istarts_with(name, "exif:")
+            || !(exif_tag_lookup(name, id, type, count)
+                 || exif_tag_lookup(name.substr(5), id, type, count)))
+            return false;
+        const TagInfo* info = exif_tagmap_ref().find(id);
+        if (!info)
+            return false;
+        if ((type == TIFF_RATIONAL || type == TIFF_SRATIONAL) && count == 1) {
+            int numerator = 0, denominator = 1;
+            if (parse_rational(value, numerator, denominator)) {
+                if (!denominator)
+                    return false;
+                spec.attribute(info->name,
+                               float(double(numerator) / denominator));
+            } else if (Strutil::string_is_float(value)) {
+                spec.attribute(info->name, Strutil::stof(value));
+            } else {
+                return false;
+            }
+            return true;
+        }
+        if (string_view(info->name) == "Exif:ExifVersion"
+            || string_view(info->name) == "Exif:FlashPixVersion") {
+            spec.attribute(info->name, value);
+            return true;
+        }
+        ImageSpec converted;
+        add_attrib(converted, name, value, sequence);
+        for (const auto& p : converted.extra_attribs)
+            spec.attribute(info->name, p.type(), p.data());
+        return true;
+    }
+    add_attrib(spec, name, value, sequence);
+    return true;
+}
+#endif
+
 OIIO_NAMESPACE_END
 
 
@@ -592,6 +644,10 @@ decode_xmp(string_view xml, ImageSpec& spec)
     if (xmlstart == string_view::npos)
         return true;
     xml = xml.substr(xmlstart);
+#if OIIO_USE_OPENMETA
+    if (OIIO::pvt::openmetadata_enabled())
+        return OIIO::pvt::openmetadata_decode_xmp(xml, spec);
+#endif
     pugi::xml_document doc;
     pugi::xml_parse_result parse_result
         = doc.load_buffer(xml.data(), xml.size(),

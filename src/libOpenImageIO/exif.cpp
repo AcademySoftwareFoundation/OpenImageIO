@@ -19,6 +19,7 @@
 #include <OpenImageIO/tiffutils.h>
 
 #include "exif.h"
+#include "openmeta.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -834,6 +835,44 @@ add_exif_item_to_spec(ImageSpec& spec, const char* name,
 
 
 
+#if OIIO_USE_OPENMETA
+bool
+pvt::openmetadata_exif_attribute(string_view ifd, uint16_t tag, uint16_t type,
+                                 uint32_t count, cspan<uint8_t> bytes,
+                                 ImageSpec& spec)
+{
+    const TagMap* map = nullptr;
+    if (ifd == "ifd0" || ifd == "exififd" || ifd == "interopifd")
+        map = &exif_tagmap_ref();
+    else if (ifd == "gpsifd")
+        map = &gps_tagmap_ref();
+    else if (ifd == "mk_canon0")
+        map = &canon_maker_tagmap_ref();
+    const TagInfo* info = map ? map->find(tag) : nullptr;
+    if (!info)
+        return false;
+    // OpenMeta has already followed pointers and decoded MakerNotes.
+    if (info->tifftype == TIFF_NOTYPE || info->handler == makernote_handler)
+        return true;
+    TIFFDirEntry dir = {};
+    dir.tdir_tag     = tag;
+    dir.tdir_type    = type;
+    dir.tdir_count   = count;
+    if (tiff_data_size(dir) != bytes.size() || bytes.empty())
+        return false;
+    if (bytes.size() <= sizeof(dir.tdir_offset))
+        memcpy(&dir.tdir_offset, bytes.data(), bytes.size());
+    // The temporary directory describes host-order values, not file offsets.
+    if (info->handler)
+        info->handler(*info, dir, bytes, spec, false, 0);
+    else {
+        add_exif_item_to_spec(spec, info->name, &dir, bytes, false);
+        return spec.find_attribute(info->name) != nullptr;
+    }
+    return true;
+}
+#endif
+
 /// Process a single TIFF directory entry embedded in the JPEG 'APP1'
 /// data.  The directory entry is in *dirp, buf points to the beginning
 /// of the TIFF "file", i.e. all TIFF tag offsets are relative to buf.
@@ -1255,6 +1294,11 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
         && exif[3] == 'f' && exif[4] == 0 && exif[5] == 0) {
         exif = exif.subspan(6);
     }
+
+#if OIIO_USE_OPENMETA
+    if (OIIO::pvt::openmetadata_enabled())
+        return OIIO::pvt::openmetadata_decode_exif(exif, spec);
+#endif
 
 #if DEBUG_EXIF_READ
     std::cerr << "Exif dump:\n";

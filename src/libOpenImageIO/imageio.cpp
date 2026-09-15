@@ -61,6 +61,15 @@ int enable_hwy = Strutil::stoi(Sysutil::getenv("OPENIMAGEIO_ENABLE_HWY", "0"));
 #else
 int enable_hwy = 0;  // Not enabled at build time
 #endif
+#if OIIO_USE_OPENMETA
+static atomic_int enable_openmeta(
+    Strutil::stoi(Sysutil::getenv("OPENIMAGEIO_ENABLE_OPENMETA", "0")) != 0);
+#else
+static atomic_int enable_openmeta(0);
+#endif
+
+bool openmetadata_enabled() noexcept { return enable_openmeta.load() != 0; }
+
 int limit_channels(1024);
 int limit_imagesize_MB(std::min(32 * 1024,
                                 int(Sysutil::physical_memory() >> 20)));
@@ -419,6 +428,12 @@ attribute(string_view name, TypeDesc type, const void* val)
         dds_bc5normal = *(const int*)val;
         return true;
     }
+    if (name == "enable_openmeta" && type == TypeInt) {
+#if OIIO_USE_OPENMETA
+        enable_openmeta = *(const int*)val != 0;
+#endif
+        return true;
+    }
     if (name == "enable_hwy" && type == TypeInt) {
 #if OIIO_USE_HWY
         enable_hwy = *(const int*)val;
@@ -645,6 +660,10 @@ getattribute(string_view name, TypeDesc type, void* val)
     }
     if (name == "enable_hwy" && type == TypeInt) {
         *(int*)val = enable_hwy;
+        return true;
+    }
+    if (name == "enable_openmeta" && type == TypeInt) {
+        *(int*)val = enable_openmeta.load();
         return true;
     }
     if (name == "oiio:print_uncaught_errors" && type == TypeInt) {

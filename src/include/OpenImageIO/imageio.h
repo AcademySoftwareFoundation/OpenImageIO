@@ -3851,6 +3851,12 @@ OIIO_API std::string geterror(bool clear = true);
 ///    If zero, they will try to use OIIO's native thread pool even if TBB
 ///    is available.
 ///
+/// - `int enable_openmeta` (0)
+///    Select OpenMeta for shared EXIF/XMP decoding when built with
+///    USE_OPENMETA=ON. OPENIMAGEIO_ENABLE_OPENMETA sets the initial value.
+///    Otherwise this attribute remains 0. Set before opening images; changing
+///    it does not re-read metadata of images already opened or cached.
+///
 /// - `int enable_hwy' (0)
 ///
 ///    If nonzero and Google Highway was found and support configured when
