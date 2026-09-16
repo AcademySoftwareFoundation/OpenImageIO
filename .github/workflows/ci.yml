@@ -80,7 +80,7 @@ jobs:
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;JXL;Libheif;Nuke;OpenCV;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;Libheif;Nuke;OpenCV;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
     strategy:
       fail-fast: false
@@ -320,7 +320,7 @@ jobs:
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;OpenVDB;Ptex;pystring;Qt5;R3DSDK;Libheif;' }}${{matrix.optional_deps_append}}
+      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;Nuke;OpenGL;OpenVDB;Ptex;pystring;Qt5;R3DSDK;Libheif;' }}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
       oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'nanobind' }}
     strategy:
@@ -381,7 +381,7 @@ jobs:
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
-            optional_deps: 'CUDAToolkit;DCMTK;JXL;Nuke;OpenCV;OpenGL;openjph;OpenVDB;R3DSDK'
+            optional_deps: 'CUDAToolkit;DCMTK;Nuke;OpenCV;OpenGL;openjph;OpenVDB;R3DSDK'
           - desc: bleeding edge gcc16 C++26 py3.12 OCIO/libtiff/exr-main avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-24.04
@@ -419,7 +419,7 @@ jobs:
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
-            optional_deps: 'CUDAToolkit;DCMTK;JXL;libuhdr;Nuke;OpenCV;OpenGL;R3DSDK;'
+            optional_deps: 'CUDAToolkit;DCMTK;libuhdr;Nuke;OpenCV;OpenGL;R3DSDK;'
           - desc: all local builds gcc12 C++17 avx2 exr3.2 ocio2.3
             nametag: linux-local-builds
             runner: ubuntu-22.04
@@ -742,7 +742,7 @@ jobs:
       # built. But we would like to add more dependencies and reduce this list
       # of exceptions in the future.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
+      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
       build_local_deps: ${{ matrix.build_local_deps }}
       oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'nanobind' }}
     strategy:
