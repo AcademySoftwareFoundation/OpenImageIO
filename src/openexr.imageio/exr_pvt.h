@@ -269,11 +269,6 @@ public:
     bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                int z, int chbegin, int chend,
                                void* data) override;
-    // Internal version with a flag letting the per-scanline retry bypass the
-    // chunk cache (see read_native_scanlines_individually).
-    bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
-                               int z, int chbegin, int chend, void* data,
-                               bool bypass_chunk_cache);
     bool read_native_tile(int subimage, int miplevel, int x, int y, int z,
                           void* data) override;
     bool read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
@@ -383,11 +378,21 @@ private:
                            int chbegin, int chend, int cbegin, int cend,
                            size_t scanlinebytes, void* data);
 
+    // This is the real scanline reader; the externally-called
+    // read_native_scanlines overloads are wrappers around it that always use
+    // the chunk cache. The flag lets internal callers (the per-scanline
+    // retry, and read_cached_chunk's chunk decode) skip the chunk cache --
+    // without the skip, a failed cached chunk decode would re-enter the
+    // cache and recurse forever. See read_cached_chunk.
+    bool read_native_scanlines_impl(int subimage, int miplevel, int ybegin,
+                                    int yend, int z, int chbegin, int chend,
+                                    void* data, bool use_chunk_cache = true);
+
     bool read_native_scanlines_individually(int subimage, int miplevel,
                                             int ybegin, int yend, int z,
                                             int chbegin, int chend, void* data,
                                             stride_t ystride,
-                                            bool bypass_chunk_cache = false);
+                                            bool use_chunk_cache = true);
     bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
                                         int xend, int ybegin, int yend,
                                         int zbegin, int zend, int chbegin,
