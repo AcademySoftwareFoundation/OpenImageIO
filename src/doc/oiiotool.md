@@ -3515,7 +3515,7 @@ to 8 bits, yet the stretch recovers both, in two different colors.
   - mode=correlation
 ::::
 
-> This command was added in OIIO 3.3.
+> This command was added in OIIO 3.2.
 
 ```{eval-rst}
 .. option:: --colormap <mapname>

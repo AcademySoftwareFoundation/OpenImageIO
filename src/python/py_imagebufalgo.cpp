@@ -1231,7 +1231,7 @@ decorr_stretch_params(int firstchannel, int nchannels, float scale, float sigma,
     params["percentile"]   = percentile;
     if (mode.size())
         params["mode"] = mode;
-    if (!mean.is(py::none()))
+    if (!mean.is_none())
         params["mean"] = py::cast<float>(mean);
     return params;
 }
@@ -2507,7 +2507,7 @@ IBA_demosaic_ret(const ImageBuf& src, const std::string& pattern = "",
     params["layout"]             = layout;
     params["white_balance_mode"] = white_balance_mode;
 
-    if (!white_balance.is(py::none())) {
+    if (!white_balance.is_none()) {
         params.add_or_replace(
             ParamValue("white_balance", TypeFloat, wb.size(), wb.data()));
     }
@@ -2534,7 +2534,7 @@ IBA_demosaic(ImageBuf& dst, const ImageBuf& src,
     params["layout"]             = layout;
     params["white_balance_mode"] = white_balance_mode;
 
-    if (!white_balance.is(py::none())) {
+    if (!white_balance.is_none()) {
         params.add_or_replace(
             ParamValue("white_balance", TypeFloat, wb.size(), wb.data()));
     }
