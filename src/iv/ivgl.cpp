@@ -1756,9 +1756,9 @@ IvGL::update()
 
     size_t buffer_size = 0;
     for (size_t i = 0; i < m_slots.size(); ++i)
-        buffer_size
-            = std::max(buffer_size,
-                       update_texture(m_slots[i], GL_TEXTURE0 + GLenum(i)));
+        buffer_size = std::max(buffer_size,
+                               update_texture(m_slots[i],
+                                              GL_TEXTURE0 + GLenum(i)));
 
     // Set the right type for the texture used for pixelview.
     glActiveTexture(GL_TEXTURE0);

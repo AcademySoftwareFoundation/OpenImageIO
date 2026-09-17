@@ -1184,9 +1184,9 @@ ImageViewer::updateStatusBar()
         }
         const char* first_side  = glwin->wipe_horizontal() ? "top" : "left";
         const char* second_side = glwin->wipe_horizontal() ? "bottom" : "right";
-        message += Strutil::fmt::format("  |  {}: {}  {}: {}  (inspecting {})",
-                                        first_side, first_name, second_side,
-                                        second_name, first_side);
+        message += Strutil::format("  |  {}: {}  {}: {}  (inspecting {})",
+                                   first_side, first_name, second_side,
+                                   second_name, first_side);
         statusImgInfo->setText(message.c_str());
     }
 
@@ -1327,6 +1327,8 @@ ImageViewer::loadImage(IvImage* img, int subimage, int miplevel)
     return false;
 }
 
+
+
 bool
 ImageViewer::loadCurrentImage(int subimage, int miplevel)
 {
@@ -1346,8 +1348,8 @@ ImageViewer::displayCurrentImage(bool update)
     IvImage* img = cur();
     if (img) {
         if (m_comparison_image == img && m_images.size() > 1) {
-            int previous = (m_current_image + (int)m_images.size() - 1)
-                           % (int)m_images.size();
+            int previous       = (m_current_image + (int)m_images.size() - 1)
+                                 % (int)m_images.size();
             m_comparison_image = m_images[previous];
         }
         if (!img->image_valid()) {
