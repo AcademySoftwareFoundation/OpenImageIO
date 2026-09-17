@@ -67,9 +67,7 @@ IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
     , m_texture_width(1)
     , m_texture_height(1)
     , m_last_pbo_used(0)
-    , m_current_image(NULL)
     , m_pixelview_left_corner(true)
-    , m_last_texbuf_used(0)
 {
 #if 0
     QGLFormat format;
@@ -90,8 +88,6 @@ IvGL::IvGL(QWidget* parent, ImageViewer& viewer)
 IvGL::~IvGL()
 {
 }
-
-
 
 void
 IvGL::initializeGL()
@@ -133,6 +129,7 @@ IvGL::initializeGL()
     create_textures();
 
     create_shaders();
+    m_viewer.updateActions();
 }
 
 
@@ -145,32 +142,34 @@ IvGL::create_textures(void)
 
     // FIXME: Determine this dynamically.
     const int total_texbufs = 4;
-    GLuint textures[total_texbufs];
+    for (auto& slot : m_slots) {
+        GLuint textures[total_texbufs];
 
-    glGenTextures(total_texbufs, textures);
+        glGenTextures(total_texbufs, textures);
 
-    // Initialize texture objects
-    for (unsigned int texture : textures) {
-        m_texbufs.emplace_back();
-        glBindTexture(GL_TEXTURE_2D, texture);
-        print_error("bind tex");
-        glTexImage2D(GL_TEXTURE_2D, 0 /*mip level*/,
-                     4 /*internal format - color components */, 1 /*width*/,
-                     1 /*height*/, 0 /*border width*/,
-                     GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
-                     GL_FLOAT /*format - GL_FLOAT */, NULL /*data*/);
-        print_error("tex image 2d");
-        // Initialize tex parameters.
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-        print_error("After tex parameters");
-        m_texbufs.back().tex_object = texture;
-        m_texbufs.back().x          = 0;
-        m_texbufs.back().y          = 0;
-        m_texbufs.back().width      = 0;
-        m_texbufs.back().height     = 0;
+        // Initialize texture objects
+        for (unsigned int texture : textures) {
+            slot.textures.emplace_back();
+            glBindTexture(GL_TEXTURE_2D, texture);
+            print_error("bind tex");
+            glTexImage2D(GL_TEXTURE_2D, 0 /*mip level*/,
+                         4 /*internal format - color components */, 1 /*width*/,
+                         1 /*height*/, 0 /*border width*/,
+                         GL_RGBA /*type - GL_RGB, GL_RGBA, GL_LUMINANCE */,
+                         GL_FLOAT /*format - GL_FLOAT */, NULL /*data*/);
+            print_error("tex image 2d");
+            // Initialize tex parameters.
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+            print_error("After tex parameters");
+            slot.textures.back().tex_object = texture;
+            slot.textures.back().x          = 0;
+            slot.textures.back().y          = 0;
+            slot.textures.back().width      = 0;
+            slot.textures.back().height     = 0;
+        }
     }
 
     // Create another texture for the pixelview.
@@ -261,6 +260,7 @@ IvGL::create_shaders(void)
 
     static const GLchar* fragment_source = R"glsl(
         uniform sampler2D imgtex;
+        uniform sampler2D imgtexB;
         varying vec2 vTexCoord;
         uniform int startchannel;
         uniform int colormode;
@@ -270,6 +270,11 @@ IvGL::create_shaders(void)
         uniform int linearinterp;
         uniform int width;
         uniform int height;
+        uniform int imgchannelsB;
+        uniform int comparison;
+        uniform int wipe_horizontal;
+        uniform float wipe_split;
+        uniform vec2 viewport_origin;
 
         vec4 rgba_mode (vec4 C)
         {
@@ -335,6 +340,10 @@ IvGL::create_shaders(void)
         void main ()
         {
             vec2 st = vTexCoord;
+            vec2 screen = gl_FragCoord.xy - viewport_origin;
+            bool second = comparison != 0 &&
+                (wipe_horizontal != 0 ? screen.y < wipe_split
+                                      : screen.x >= wipe_split);
             float black = 0.0;
             if (pixelview != 0 || linearinterp == 0) {
                 vec2 wh = vec2(width,height);
@@ -351,9 +360,9 @@ IvGL::create_shaders(void)
                         black = 1.0;
                 }
             }
-            vec4 C = texture2D (imgtex, st);
+            vec4 C = second ? texture2D(imgtexB, st) : texture2D(imgtex, st);
             C = mix (C, vec4(0.05,0.05,0.05,1.0), black);
-            if (startchannel < 0)
+            if (startchannel < 0 || (second && imgchannelsB == 0))
                 C = vec4(0.0,0.0,0.0,1.0);
             else if (colormode == 0) // RGBA
                 C = rgba_mode (C);
@@ -439,6 +448,7 @@ IvGL::create_shaders_abort(void)
 
     print_error("After delete shaders");
     m_use_shaders = false;
+    m_viewer.updateActions();
 }
 
 
@@ -585,7 +595,7 @@ IvGL::paintGL()
 #endif
     //std::cerr << "paintGL " << m_viewer.current_image() << " with zoom " << m_zoom << "\n";
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    IvImage* img = m_current_image;
+    IvImage* img = m_slots[0].image;
     if (!img || !img->image_valid())
         return;
 
@@ -633,16 +643,25 @@ IvGL::paintGL()
         std::swap(wincenterx, wincentery);
     }
 
+    ROI data_roi;
+    for (auto& slot : m_slots) {
+        if (!slot.image || !slot.image->image_valid())
+            continue;
+        ROI slot_roi = get_roi(slot.image->spec());
+        data_roi     = data_roi.defined() ? roi_union(data_roi, slot_roi)
+                                          : slot_roi;
+    }
+
     int xbegin = (int)floor(real_centerx) - wincenterx;
-    xbegin     = std::max(spec.x, xbegin - (xbegin % m_texture_width));
+    xbegin     = std::max(data_roi.xbegin, xbegin - (xbegin % m_texture_width));
     int ybegin = (int)floor(real_centery) - wincentery;
-    ybegin     = std::max(spec.y, ybegin - (ybegin % m_texture_height));
-    int xend   = (int)floor(real_centerx) + wincenterx;
-    xend       = std::min(spec.x + spec.width,
-                          xend + m_texture_width - (xend % m_texture_width));
-    int yend   = (int)floor(real_centery) + wincentery;
-    yend       = std::min(spec.y + spec.height,
-                          yend + m_texture_height - (yend % m_texture_height));
+    ybegin   = std::max(data_roi.ybegin, ybegin - (ybegin % m_texture_height));
+    int xend = (int)floor(real_centerx) + wincenterx;
+    xend     = std::min(data_roi.xend,
+                        xend + m_texture_width - (xend % m_texture_width));
+    int yend = (int)floor(real_centery) + wincentery;
+    yend     = std::min(data_roi.yend,
+                        yend + m_texture_height - (yend % m_texture_height));
     //std::cerr << "(" << xbegin << ',' << ybegin << ") - (" << xend << ',' << yend << ")\n";
 
     // Provide some feedback
@@ -664,7 +683,13 @@ IvGL::paintGL()
             // FIXME: This can get too slow. Some ideas: avoid sending the tex
             // images more than necessary, figure an optimum texture size, use
             // multiple texture objects.
-            load_texture(xstart, ystart, tile_width, tile_height);
+            for (size_t i = 0; i < m_slots.size(); ++i) {
+                if (m_slots[i].image && m_slots[i].image->image_valid()) {
+                    load_texture(m_slots[i], GL_TEXTURE0 + GLenum(i), xstart,
+                                 ystart, tile_width, tile_height);
+                }
+            }
+            glActiveTexture(GL_TEXTURE0);
             gl_rect(xstart, ystart, xstart + tile_width, ystart + tile_height,
                     0, smin, tmin, smax, tmax);
         }
@@ -722,7 +747,7 @@ IvGL::paintGL()
     // Show the status info again.
     m_viewer.statusProgress->hide();
     m_viewer.statusViewInfo->show();
-    unsetCursor();
+    update_cursor();
 
 #ifndef NDEBUG
     std::cerr << "paintGL elapsed time: " << paint_image_time() << " seconds\n";
@@ -776,7 +801,7 @@ num_channels(int current_channel, int nchannels,
         return clamp(nchannels - current_channel, 0, 3);
         break;
     case ImageViewer::SINGLE_CHANNEL:
-    case ImageViewer::HEATMAP: return 1;
+    case ImageViewer::HEATMAP: return current_channel < nchannels ? 1 : 0;
     default: return nchannels;
     }
 }
@@ -826,7 +851,7 @@ IvGL::paint_pixelview()
 {
     using Strutil::fmt::format;
 
-    IvImage* img = m_current_image;
+    IvImage* img = m_slots[0].image;
     const ImageSpec& spec(img->spec());
 
     // (x_mouse_viewport,y_mouse_viewport) are the window coordinates of the mouse.
@@ -1444,9 +1469,9 @@ IvGL::paint_pixelview()
 void
 IvGL::paint_probeview()
 {
-    if (!m_current_image)
+    if (!m_slots[0].image)
         return;
-    IvImage* img = m_current_image;
+    IvImage* img = m_slots[0].image;
     const ImageSpec& spec(img->spec());
 
     int x_mouse_viewport, y_mouse_viewport;
@@ -1507,7 +1532,7 @@ IvGL::paint_probeview()
 void
 IvGL::paint_windowguides()
 {
-    IvImage* img = m_current_image;
+    IvImage* img = m_slots[0].image;
     const ImageSpec& spec(img->spec());
 
     glDisable(GL_TEXTURE_2D);
@@ -1544,7 +1569,7 @@ IvGL::useshader(int tex_width, int tex_height, bool pixelview)
 {
     if (!m_use_shaders) {
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-        for (auto&& tb : m_texbufs) {
+        for (auto&& tb : m_slots[0].textures) {
             glBindTexture(GL_TEXTURE_2D, tb.tex_object);
             if (m_viewer.linearInterpolation()) {
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
@@ -1594,6 +1619,9 @@ IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
     }
     glUniform1i(loc, 0);
 
+    loc = glGetUniformLocation(m_shader_program, "imgtexB");
+    glUniform1i(loc, 1);
+
     loc = glGetUniformLocation(m_shader_program, "imgtex");
     // This is the texture unit, not the texture object
     glUniform1i(loc, 0);
@@ -1609,7 +1637,8 @@ IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
     glUniform1i(loc, m_viewer.current_color_mode());
 
     loc = glGetUniformLocation(m_shader_program, "imgchannels");
-    glUniform1i(loc, spec.nchannels);
+    glUniform1i(loc, num_channels(m_viewer.current_channel(), spec.nchannels,
+                                  m_viewer.current_color_mode()));
 
     loc = glGetUniformLocation(m_shader_program, "pixelview");
     glUniform1i(loc, pixelview);
@@ -1623,7 +1652,69 @@ IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
     loc = glGetUniformLocation(m_shader_program, "height");
     glUniform1i(loc, tex_height);
 
+    IvImage* imageB = m_viewer.m_comparison_image;
+    loc             = glGetUniformLocation(m_shader_program, "imgchannelsB");
+    glUniform1i(loc, imageB ? num_channels(m_viewer.current_channel(),
+                                           imageB->nchannels(),
+                                           m_viewer.current_color_mode())
+                            : 0);
+    loc = glGetUniformLocation(m_shader_program, "comparison");
+    glUniform1i(loc, !pixelview && imageB && imageB->image_valid());
+    loc = glGetUniformLocation(m_shader_program, "wipe_horizontal");
+    glUniform1i(loc, m_wipe.horizontal);
+    GLint viewport[4] = { 0, 0, width(), height() };
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    float split = m_wipe.fraction
+                  * (m_wipe.horizontal ? viewport[3] : viewport[2]);
+    if (m_wipe.horizontal)
+        split = viewport[3] - split;
+    loc = glGetUniformLocation(m_shader_program, "wipe_split");
+    glUniform1f(loc, split);
+    loc = glGetUniformLocation(m_shader_program, "viewport_origin");
+    glUniform2f(loc, viewport[0], viewport[1]);
+    glActiveTexture(GL_TEXTURE0);
+
     print_error("After setting uniforms");
+}
+
+
+
+size_t
+IvGL::update_texture(ImageSlot& slot, GLenum texture_unit)
+{
+    GLenum gltype           = GL_UNSIGNED_BYTE;
+    GLenum glformat         = GL_RGB;
+    GLenum glinternalformat = GL_RGB;
+    int nchannels           = 1;
+    GLsizei width           = 1;
+    GLsizei height          = 1;
+    size_t buffer_size      = 0;
+
+    if (slot.image) {
+        const ImageSpec& spec = slot.image->spec();
+        nchannels             = slot.image->nchannels();
+        if (m_use_shaders) {
+            nchannels = num_channels(m_viewer.current_channel(), nchannels,
+                                     m_viewer.current_color_mode());
+        }
+        typespec_to_opengl(spec, std::max(1, nchannels), gltype, glformat,
+                           glinternalformat);
+        width       = m_texture_width;
+        height      = m_texture_height;
+        buffer_size = size_t(width) * height * std::max(1, nchannels)
+                      * spec.channel_bytes();
+    }
+
+    glActiveTexture(texture_unit);
+    for (auto& tb : slot.textures) {
+        tb.width = tb.height = 0;
+        glBindTexture(GL_TEXTURE_2D, tb.tex_object);
+        glTexImage2D(GL_TEXTURE_2D, 0 /*mip level*/, glinternalformat, width,
+                     height, 0 /*border width*/, glformat, gltype,
+                     NULL /*data*/);
+        print_error("Setting up texture");
+    }
+    return buffer_size;
 }
 
 
@@ -1635,11 +1726,14 @@ IvGL::update()
 
     IvImage* img = m_viewer.cur();
     if (!img) {
-        m_current_image = NULL;
+        for (auto& slot : m_slots)
+            slot.image = nullptr;
         return;
     }
 
     const ImageSpec& spec(img->spec());
+    m_slots[0].image = img;
+    m_slots[1].image = m_viewer.m_comparison_image;
 
     int nchannels = img->nchannels();
     // For simplicity, we don't support more than 4 channels without shaders
@@ -1649,39 +1743,33 @@ IvGL::update()
                                  m_viewer.current_color_mode());
     }
 
-    if (!nchannels)
-        return;  // Don't bother, the shader will show blackness for us.
-
     GLenum gltype           = GL_UNSIGNED_BYTE;
     GLenum glformat         = GL_RGB;
     GLenum glinternalformat = GL_RGB;
-    typespec_to_opengl(spec, nchannels, gltype, glformat, glinternalformat);
+    typespec_to_opengl(spec, std::max(1, nchannels), gltype, glformat,
+                       glinternalformat);
 
     m_texture_width  = clamp(ceil2(spec.width), 1, m_max_texture_size);
     m_texture_height = clamp(ceil2(spec.height), 1, m_max_texture_size);
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
-    for (auto&& tb : m_texbufs) {
-        tb.width  = 0;
-        tb.height = 0;
-        glBindTexture(GL_TEXTURE_2D, tb.tex_object);
-        glTexImage2D(GL_TEXTURE_2D, 0 /*mip level*/, glinternalformat,
-                     m_texture_width, m_texture_height, 0 /*border width*/,
-                     glformat, gltype, NULL /*data*/);
-        print_error("Setting up texture");
-    }
+    size_t buffer_size = 0;
+    for (size_t i = 0; i < m_slots.size(); ++i)
+        buffer_size
+            = std::max(buffer_size,
+                       update_texture(m_slots[i], GL_TEXTURE0 + GLenum(i)));
 
     // Set the right type for the texture used for pixelview.
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_pixelview_tex);
     glTexImage2D(GL_TEXTURE_2D, 0, glinternalformat, closeup_texture_size,
                  closeup_texture_size, 0, glformat, gltype, NULL);
     print_error("Setting up pixelview texture");
 
     // Resize the buffer at once, rather than create one each drawing.
-    m_tex_buffer.resize(m_texture_width * m_texture_height * nchannels
-                        * spec.channel_bytes());
-    m_current_image = img;
+    m_tex_buffer.resize(buffer_size);
+    update_cursor();
 }
 
 
@@ -1735,7 +1823,7 @@ IvGL::remember_mouse(const QPoint& pos)
 void
 IvGL::clamp_view_to_window()
 {
-    IvImage* img = m_current_image;
+    IvImage* img = m_slots[0].image;
     if (!img)
         return;
     int w = width(), h = height();
@@ -1780,7 +1868,7 @@ IvGL::clamp_view_to_window()
 void
 IvGL::update_area_probe_text()
 {
-    IvImage* img = m_current_image;
+    IvImage* img = m_slots[0].image;
     const ImageSpec& spec(img->spec());
     // (x_mouse_viewport,y_mouse_viewport) are the window coordinates of the mouse.
     int x_mouse_viewport, y_mouse_viewport;
@@ -1929,6 +2017,31 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
 {
     QPoint pos = event->pos();
 
+    if (m_viewer.m_comparison_image && !m_viewer.areaSampleMode()) {
+        if (!m_wipe.anchored) {
+            m_wipe.anchor   = pos;
+            m_wipe.anchored = true;
+        }
+        const int dx = pos.x() - m_wipe.anchor.x();
+        const int dy = pos.y() - m_wipe.anchor.y();
+        if (std::abs(dx) + std::abs(dy) >= 6) {
+            const bool old_horizontal = m_wipe.horizontal;
+            if (std::abs(dx) > 2 * std::abs(dy))
+                m_wipe.horizontal = false;
+            else if (std::abs(dy) > 2 * std::abs(dx))
+                m_wipe.horizontal = true;
+            m_wipe.anchor   = pos;
+            m_wipe.fraction = clamp(m_wipe.horizontal
+                                        ? float(pos.y()) / std::max(1, height())
+                                        : float(pos.x()) / std::max(1, width()),
+                                    0.0f, 1.0f);
+            if (m_wipe.horizontal != old_horizontal)
+                m_viewer.updateStatusBar();
+            parent_t::update();
+            update_cursor();
+        }
+    }
+
     // Area probe override
     if (m_viewer.areaSampleMode() && m_selecting) {
         m_select_end = event->pos();
@@ -1946,7 +2059,7 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     // myself.
     bool Alt      = (event->modifiers() & Qt::AltModifier);
     int mousemode = m_viewer.mouseModeComboBox->currentIndex();
-    bool do_pan = false, do_zoom = false, do_wipe = false;
+    bool do_pan = false, do_zoom = false;
     bool do_select = false, do_annotate = false;
     switch (mousemode) {
     case ImageViewer::MouseModeZoom:
@@ -1964,10 +2077,6 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
     case ImageViewer::MouseModePan:
         if (m_drag_button != Qt::NoButton)
             do_pan = true;
-        break;
-    case ImageViewer::MouseModeWipe:
-        if (m_drag_button != Qt::NoButton)
-            do_wipe = true;
         break;
     case ImageViewer::MouseModeSelect:
         if (m_drag_button != Qt::NoButton)
@@ -1989,8 +2098,6 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
         z        = OIIO::clamp(z, 0.01f, 256.0f);
         m_viewer.zoom(z);
         m_viewer.fitImageToWindowAct->setChecked(false);
-    } else if (do_wipe) {
-        // FIXME -- unimplemented
     } else if (do_select) {
         if (m_selecting) {
             m_select_end = event->pos();
@@ -2031,6 +2138,14 @@ void
 IvGL::focusOutEvent(QFocusEvent*)
 {
     m_mouse_activation = true;
+    m_wipe.anchored    = false;
+}
+
+void
+IvGL::leaveEvent(QEvent* event)
+{
+    m_wipe.anchored = false;
+    parent_t::leaveEvent(event);
 }
 
 
@@ -2280,11 +2395,13 @@ IvGL::typespec_to_opengl(const ImageSpec& spec, int nchannels, GLenum& gltype,
 
 
 void
-IvGL::load_texture(int x, int y, int width, int height)
+IvGL::load_texture(ImageSlot& slot, GLenum texture_unit, int x, int y,
+                   int width, int height)
 {
-    const ImageSpec& spec = m_current_image->spec();
+    const ImageSpec& spec = slot.image->spec();
     // Find if this has already been loaded.
-    for (auto&& tb : m_texbufs) {
+    glActiveTexture(texture_unit);
+    for (auto&& tb : slot.textures) {
         if (tb.x == x && tb.y == y && tb.width >= width
             && tb.height >= height) {
             glBindTexture(GL_TEXTURE_2D, tb.tex_object);
@@ -2301,10 +2418,14 @@ IvGL::load_texture(int x, int y, int width, int height)
         nchannels = num_channels(m_viewer.current_channel(), nchannels,
                                  m_viewer.current_color_mode());
     }
+    if (!nchannels) {
+        glBindTexture(GL_TEXTURE_2D, slot.textures.front().tex_object);
+        return;
+    }
     GLenum gltype, glformat, glinternalformat;
     typespec_to_opengl(spec, nchannels, gltype, glformat, glinternalformat);
 
-    TexBuffer& tb = m_texbufs[m_last_texbuf_used];
+    TexBuffer& tb = slot.textures[slot.next_texture];
     tb.x          = x;
     tb.y          = y;
     tb.width      = width;
@@ -2313,15 +2434,14 @@ IvGL::load_texture(int x, int y, int width, int height)
     // it safely since ImageBuf has a cache underneath and the whole image
     // may not be resident at once.
     if (!m_use_shaders) {
-        m_current_image->get_pixels(ROI(x, x + width, y, y + height),
-                                    spec.format,
-                                    as_writable_bytes(make_span(m_tex_buffer)));
+        slot.image->get_pixels(ROI(x, x + width, y, y + height), spec.format,
+                               as_writable_bytes(make_span(m_tex_buffer)));
     } else {
-        m_current_image->get_pixels(ROI(x, x + width, y, y + height, 0, 1,
-                                        m_viewer.current_channel(),
-                                        m_viewer.current_channel() + nchannels),
-                                    spec.format,
-                                    as_writable_bytes(make_span(m_tex_buffer)));
+        slot.image->get_pixels(ROI(x, x + width, y, y + height, 0, 1,
+                                   m_viewer.current_channel(),
+                                   m_viewer.current_channel() + nchannels),
+                               spec.format,
+                               as_writable_bytes(make_span(m_tex_buffer)));
     }
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[m_last_pbo_used]);
@@ -2336,13 +2456,23 @@ IvGL::load_texture(int x, int y, int width, int height)
     // When using PBO this is the offset within the buffer.
     void* data = 0;
 
+    glActiveTexture(texture_unit);
     glBindTexture(GL_TEXTURE_2D, tb.tex_object);
     print_error("After bind texture");
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, glformat, gltype,
                     data);
     print_error("After loading sub image");
-    m_last_texbuf_used = (m_last_texbuf_used + 1) % m_texbufs.size();
+    slot.next_texture = (slot.next_texture + 1) % slot.textures.size();
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+}
+
+void
+IvGL::update_cursor()
+{
+    if (m_viewer.m_comparison_image && !m_viewer.areaSampleMode())
+        setCursor(m_wipe.horizontal ? Qt::SplitVCursor : Qt::SplitHCursor);
+    else
+        unsetCursor();
 }
 
 
@@ -2352,7 +2482,7 @@ IvGL::is_too_big(float width, float height)
 {
     unsigned int tiles = (unsigned int)(ceilf(width / m_max_texture_size)
                                         * ceilf(height / m_max_texture_size));
-    return tiles > m_texbufs.size();
+    return tiles > m_slots[0].textures.size();
 }
 
 
