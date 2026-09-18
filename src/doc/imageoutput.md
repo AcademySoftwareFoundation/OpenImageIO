@@ -688,18 +688,22 @@ at all, you should make sure that it contains the same number of strings as
 the number of color channels in your image. Here is an example:
 
 ::::{tabs}
-:::{code-tab} c++
-
-int channels = 3;
-ImageSpec spec (width, length, channels, TypeDesc::UINT8);
-spec.channelnames.assign ({ "R", "G", "B" });
+:::{tab} C++
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imageoutput.cpp
+:language: c++
+:start-after: BEGIN-imageoutput-channelnamesbasic
+:end-before: END-imageoutput-channelnamesbasic
+:dedent: 4
+```
 :::
 
-:::{code-tab} py
-
-channels = 3
-spec = ImageSpec(width, length, channels, "uint8")
-spec.channelnames = ("R", "G", "B")
+:::{tab} Python
+```{literalinclude} ../../testsuite/docs-examples-python/src/docs-examples-imageoutput.py
+:language: py
+:start-after: BEGIN-imageoutput-channelnamesbasic
+:end-before: END-imageoutput-channelnamesbasic
+:dedent: 4
+```
 :::
 ::::
 
@@ -708,21 +712,22 @@ channels in an 8-channel image containing beauty pass RGB, per-channel
 opacity, and texture s,t coordinates for each pixel.
 
 ::::{tabs}
-:::{code-tab} c++
-
-int channels = 8;
-ImageSpec spec (width, length, channels, TypeDesc::UINT8);
-spec.channelnames.clear ();
-spec.channelnames.assign ({ "R", "G", "B", "opacityR", "opacityG",
-                            "opacityB", "texture_s", "texture_t" });
+:::{tab} C++
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imageoutput.cpp
+:language: c++
+:start-after: BEGIN-imageoutput-channelnames8
+:end-before: END-imageoutput-channelnames8
+:dedent: 4
+```
 :::
 
-:::{code-tab} py
-
-channels = 8
-spec = ImageSpec(width, length, channels, "uint8")
-spec.channelnames = ("R", "G", "B", "opacityR", "opacityG", "opacityB",
-                     "texture_s", "texture_t")
+:::{tab} Python
+```{literalinclude} ../../testsuite/docs-examples-python/src/docs-examples-imageoutput.py
+:language: py
+:start-after: BEGIN-imageoutput-channelnames8
+:end-before: END-imageoutput-channelnames8
+:dedent: 4
+```
 :::
 ::::
 
