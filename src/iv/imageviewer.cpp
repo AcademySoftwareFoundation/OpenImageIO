@@ -39,6 +39,7 @@
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/dassert.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -1095,13 +1096,27 @@ ImageViewer::saveWindowAs()
     IvImage* img = cur();
     if (!img)
         return;
+    ROI roi;
+    glwin->get_visible_image_roi(roi);
+    if (!roi.defined() || roi.width() <= 0 || roi.height() <= 0) {
+        std::cerr << "Save failed: no pixels of the image are visible\n";
+        return;
+    }
     QString name;
     name = QFileDialog::getSaveFileName(this, tr("Save Window"),
                                         QString(img->uname().c_str()));
     if (name.isEmpty())
         return;
-    img->write(name.toStdString(), TypeUnknown, "", image_progress_callback,
-               this);
+    ImageBuf cropped;
+    if (!ImageBufAlgo::cut(cropped, *img, roi)) {
+        std::cerr << "Crop failed: " << cropped.geterror() << "\n";
+        return;
+    }
+    bool ok = cropped.write(name.toStdString(), TypeUnknown, "",
+                            image_progress_callback, this);
+    if (!ok) {
+        std::cerr << "Save failed: " << cropped.geterror() << "\n";
+    }
 }
 
 
