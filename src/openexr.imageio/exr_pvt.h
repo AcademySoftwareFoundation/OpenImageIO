@@ -260,6 +260,10 @@ public:
     ImageSpec spec_dimensions(int subimage, int miplevel) override;
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
+    // Unhide the base-class span-based read_native_scanlines overloads: our
+    // pointer-based overloads would otherwise hide them, which newer GCC
+    // versions flag as an error (-Woverloaded-virtual).
+    using ImageInput::read_native_scanlines;
     bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                int z, void* data) override;
     bool read_native_scanlines(int subimage, int miplevel, int ybegin, int yend,
@@ -374,10 +378,21 @@ private:
                            int chbegin, int chend, int cbegin, int cend,
                            size_t scanlinebytes, void* data);
 
+    // This is the real scanline reader; the externally-called
+    // read_native_scanlines overloads are wrappers around it that always use
+    // the chunk cache. The flag lets internal callers (the per-scanline
+    // retry, and read_cached_chunk's chunk decode) skip the chunk cache --
+    // without the skip, a failed cached chunk decode would re-enter the
+    // cache and recurse forever. See read_cached_chunk.
+    bool read_native_scanlines_impl(int subimage, int miplevel, int ybegin,
+                                    int yend, int z, int chbegin, int chend,
+                                    void* data, bool use_chunk_cache = true);
+
     bool read_native_scanlines_individually(int subimage, int miplevel,
                                             int ybegin, int yend, int z,
                                             int chbegin, int chend, void* data,
-                                            stride_t ystride);
+                                            stride_t ystride,
+                                            bool use_chunk_cache = true);
     bool read_native_tiles_individually(int subimage, int miplevel, int xbegin,
                                         int xend, int ybegin, int yend,
                                         int zbegin, int zend, int chbegin,

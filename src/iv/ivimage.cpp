@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "imageviewer.h"
+#include "ivutils.h"
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/strutil.h>
 
@@ -20,6 +21,10 @@ IvImage::IvImage(const std::string& filename, const ImageSpec* input_config)
     , m_image_valid(false)
     , m_auto_subimage(false)
 {
+    if (input_config) {
+        m_input_config      = *input_config;
+        m_have_input_config = true;
+    }
 }
 
 
@@ -76,6 +81,47 @@ IvImage::read_iv(int subimage, int miplevel, bool force, TypeDesc format,
         m_image_valid = ImageBuf::read(subimage, miplevel, force, format,
                                        progress_callback,
                                        progress_callback_data);
+
+    m_partially_loaded = false;
+    m_partial_error.clear();
+    if (m_image_valid && storage() == ImageBuf::IMAGECACHE) {
+        // The image is backed by the ImageCache, which means that the
+        // pixel data has not been touched yet and read failures will only
+        // turn up later, awkwardly, as pixels are fetched for display.
+        // For a file that was only partially written (for example, an EXR
+        // that a renderer didn't finish), check now whether the pixel
+        // data is really all readable, and if not, fall through to the
+        // tolerant re-read below.
+        ImageSpec* config = m_have_input_config ? &m_input_config : nullptr;
+        m_image_valid = image_data_readable(name(), config, subimage, miplevel);
+    }
+    if (!m_image_valid) {
+        // The straightforward read failed. This can happen for a file that
+        // was only partially written -- for example, an EXR file from a
+        // renderer that crashed or was killed before it finished writing
+        // all of the pixel data. Rather than showing nothing at all, reopen
+        // the file with the "oiio:missingcolor" config attribute, which asks
+        // the OpenEXR reader to fill unreadable scanlines or tiles with the
+        // given color (black here) instead of failing the read. Readers
+        // without that support ignore the config, so the re-read simply
+        // fails the same way for them.
+        ImageSpec config;
+        if (m_have_input_config)
+            config = m_input_config;
+        config.attribute("oiio:missingcolor", "0");
+        reset(name(), 0, 0, {}, &config);
+        m_image_valid = ImageBuf::read(subimage, miplevel, force, format,
+                                       progress_callback,
+                                       progress_callback_data);
+        if (m_image_valid) {
+            // The read succeeded where the straightforward one failed, so
+            // part of the pixel data must have been unreadable -- remember
+            // that so the status bar can let the user know.
+            m_partially_loaded = true;
+            m_partial_error    = "partially readable file, showing the "
+                                 "readable portion";
+        }
+    }
 
     if (m_image_valid && secondary_data && spec().format == TypeDesc::UINT8) {
         m_corrected_image.reset(ImageSpec(spec().width, spec().height,
@@ -388,8 +434,10 @@ IvImage::invalidate()
 {
     ustring filename(name());
     reset(filename.string());
-    m_thumbnail_valid = false;
-    m_image_valid     = false;
+    m_thumbnail_valid  = false;
+    m_image_valid      = false;
+    m_partially_loaded = false;
+    m_partial_error.clear();
     if (imagecache())
         imagecache()->invalidate(filename);
 }

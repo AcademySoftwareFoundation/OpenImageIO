@@ -104,6 +104,16 @@ public:
     ///
     bool image_valid() const { return m_image_valid; }
 
+    /// True if the last read only partially succeeded, i.e. the image
+    /// specification was readable but some of the pixel data could not be
+    /// read (for example, a file that was only partially written before a
+    /// renderer crashed).
+    bool partially_loaded() const { return m_partially_loaded; }
+
+    /// If the last read was only partial (see partially_loaded()), a
+    /// message describing the problem.
+    const std::string& partial_error() const { return m_partial_error; }
+
     /// Copies data from the read buffer to the secondary buffer, selecting the
     /// given channel:
     ///  -2 = luminance
@@ -139,6 +149,10 @@ private:
     mutable std::string m_longinfo;
     bool m_image_valid;    ///< Image is valid and pixels can be read.
     bool m_auto_subimage;  ///< Automatically use subimages when zooming-in/out.
+    bool m_partially_loaded = false;   ///< Only some pixel data was readable.
+    std::string m_partial_error;       ///< Description of what was unreadable.
+    ImageSpec m_input_config;          ///< Copy of the input configuration spec
+    bool m_have_input_config = false;  ///< Was an input configuration given?
 };
 
 
