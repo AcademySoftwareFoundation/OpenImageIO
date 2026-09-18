@@ -45,4 +45,15 @@ command += info_command ("src/crash-cmyk-1bit.tif", safematch=True)
 # last so its output appends at the tail of every libtiff-version ref variant.
 command += oiiotool ("--oiioattrib try_all_readers 0 src/crash-rawstrip-offset-past-eof.tif -o out.exr", failureok = True)
 
+# Regression test: the tiled reader did not do the channel shuffling and bit
+# unpacking that the strip reader does. Sub-8-bit CMYK tiles unpacked all 4
+# input channels straight into the 3-channel RGB buffer and overflowed it,
+# "separate" CMYK tiles overflowed in separate_to_contig, and 17-31 bit tiles
+# were never unpacked at all, leaving the caller's buffer uninitialized. Each
+# pair below holds identical pixels, stored tiled and in strips, so the two
+# must decode the same. Also placed at the end so the output appends to the
+# tail of every libtiff-version ref variant.
+for base in [ "cmyk-1bit", "cmyk-4bit-planar", "rgb-24bit" ] :
+    command += oiiotool ("src/{0}-tiled.tif src/{0}-strip.tif --diff".format(base))
+
 outputs = [ "check1.tif", "out.txt" ]
