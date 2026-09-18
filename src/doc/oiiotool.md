@@ -799,48 +799,69 @@ oiiotool RGB.tif --chsum:weight=.2126,.7152,.0722 -o luma.tif
 
 Copy just the color from an RGBA file, truncating the A, yielding RGB only:
 
-```
-oiiotool rgba.tif --ch R,G,B -o rgb.tif
+```{literalinclude} ../../testsuite/oiiotool-channels/run.py
+:language: bash
+:start-after: BEGIN-docs-channels-copy-color
+:end-before: END-docs-channels-copy-color
+:dedent:
 ```
 
 Zero out the red and green channels:
 
-```
-oiiotool rgb.tif --ch R=0,G=0,B -o justblue.tif
+```{literalinclude} ../../testsuite/oiiotool-channels/run.py
+:language: bash
+:start-after: BEGIN-docs-channels-zero-rg
+:end-before: END-docs-channels-zero-rg
+:dedent:
 ```
 
 Swap the red and blue channels from an RGBA image:
 
-```
-oiiotool rgba.tif --ch R=B,G,B=R,A -o bgra.tif
+```{literalinclude} ../../testsuite/oiiotool-channels/run.py
+:language: bash
+:start-after: BEGIN-docs-channels-swap-rb
+:end-before: END-docs-channels-swap-rb
+:dedent:
 ```
 
 Extract just the named channels from a many-channel image, as efficiently as
 possible (avoiding memory and I/O for the unused channels):
 
-```
-oiiotool -i:ch=R,G,B manychannels.exr -o rgb.exr
+```{literalinclude} ../../testsuite/oiiotool-channels/run.py
+:language: bash
+:start-after: BEGIN-docs-channels-extract
+:end-before: END-docs-channels-extract
+:dedent:
 ```
 
 Add an alpha channel to an RGB image, setting it to 1.0 everywhere, and
 naming it "A" so it will be recognized as an alpha channel:
 
-```
-oiiotool rgb.tif --ch R,G,B,A=1.0 -o rgba.tif
+```{literalinclude} ../../testsuite/oiiotool-channels/run.py
+:language: bash
+:start-after: BEGIN-docs-channels-add-alpha-const
+:end-before: END-docs-channels-add-alpha-const
+:dedent:
 ```
 
 Add an alpha channel to an RGB image, setting it to be the same as the R
 channel and naming it "A" so it will be recognized as an alpha channel:
 
-```
-oiiotool rgb.tif --ch R,G,B,A=R -o rgba.tif
+```{literalinclude} ../../testsuite/oiiotool-channels/run.py
+:language: bash
+:start-after: BEGIN-docs-channels-add-alpha-from-r
+:end-before: END-docs-channels-add-alpha-from-r
+:dedent:
 ```
 
 Add a *z* channel to an RGBA image, setting it to 3.0 everywhere, and naming
 it "Z" so it will be recognized as a depth channel:
 
-```
-oiiotool rgba.exr --ch R,G,B,A,Z=3.0 -o rgbaz.exr
+```{literalinclude} ../../testsuite/oiiotool-channels/run.py
+:language: bash
+:start-after: BEGIN-docs-channels-add-z
+:end-before: END-docs-channels-add-z
+:dedent:
 ```
 
 ### Copy metadata from one image to another
