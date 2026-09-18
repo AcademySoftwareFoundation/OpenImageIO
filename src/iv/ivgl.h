@@ -18,6 +18,7 @@
 // included to remove std::min/std::max errors
 #include <OpenImageIO/platform.h>
 
+#include <array>
 #include <vector>
 
 #include <QOpenGLExtraFunctions>
@@ -40,6 +41,12 @@ public:
     /// Update the image texture.
     ///
     virtual void update();
+    void reset_wipe()
+    {
+        m_wipe = Wipe();
+        update_cursor();
+    }
+    bool wipe_horizontal() const { return m_wipe.horizontal; }
 
     /// Update the view -- center (in pixel coordinates) and zoom level.
     ///
@@ -104,6 +111,12 @@ public:
                             GLenum& glinternal) const;
 
 protected:
+    struct Wipe {
+        bool horizontal = false;
+        float fraction  = 0.5f;
+        bool anchored   = false;
+        QPoint anchor;
+    };
     ImageViewer& m_viewer;          ///< Backpointer to viewer
     bool m_shaders_created;         ///< Have the shaders been created?
     GLuint m_vertex_shader;         ///< Vertex shader id
@@ -127,7 +140,6 @@ protected:
     GLsizei m_texture_height;
     GLuint m_pbo_objects[2];       ///< Pixel buffer objects
     int m_last_pbo_used;           ///< Last used pixel buffer object.
-    IvImage* m_current_image;      ///< Image to show on screen.
     GLuint m_pixelview_tex;        ///< Pixelview's own texture.
     bool m_pixelview_left_corner;  ///< Draw pixelview in upper left or right
     bool m_probeview_left_corner;  ///< Draw probeview in bottom left or right
@@ -147,8 +159,13 @@ protected:
         int width;
         int height;
     };
-    std::vector<TexBuffer> m_texbufs;
-    int m_last_texbuf_used;
+    struct ImageSlot {
+        IvImage* image = nullptr;
+        std::vector<TexBuffer> textures;
+        int next_texture = 0;
+    };
+    std::array<ImageSlot, 2> m_slots;
+    Wipe m_wipe;
     bool m_mouse_activation;  ///< Can we expect the window to be activated by mouse?
 
 
@@ -161,6 +178,7 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent* event) override;
     void focusOutEvent(QFocusEvent* event) override;
+    void leaveEvent(QEvent* event) override;
 
     void paint_pixelview();
     void paint_probeview();
@@ -208,7 +226,10 @@ private:
 
     /// Loads the given patch of the image, but first figures if it's already
     /// been loaded.
-    void load_texture(int x, int y, int width, int height);
+    size_t update_texture(ImageSlot& slot, GLenum texture_unit);
+    void load_texture(ImageSlot& slot, GLenum texture_unit, int x, int y,
+                      int width, int height);
+    void update_cursor();
 
     /// Destroys shaders and selects fixed-function pipeline
     void create_shaders_abort(void);
