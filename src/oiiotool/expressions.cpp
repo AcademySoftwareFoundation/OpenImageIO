@@ -178,7 +178,7 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
             result = ::fmt::vformat(val, store);
         } catch (const ::fmt::format_error& e) {
             express_error(expr, s,
-                          Strutil::fmt::format("format(): {}", e.what()));
+                          Strutil::format("format(): {}", e.what()));
             result = orig;
             return false;
         }

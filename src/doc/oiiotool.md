@@ -238,7 +238,7 @@ contents of an expression may be any of:
   - `not(val)` : returns 1 if `val` is a false value, 0 if `val` evaluates
     to a true value. (Added in OIIO 2.4.)
   - `format(val,...)` : returns a string formatted according to `val`
-    (using standard `{fmt}`/Python-style replacement fields, such as `{}`,
+    (using standard std::format/Python replacement fields, such as `{}`,
     `{:+}`, `{:04d}`, or `{:.2f}`) applied to the values that follow. For
     example, `format('{:+}{:+}', 3, -4)` returns `"+3-4"`. Note: `val`
     values containing literal-brace escapes (`{{` or `}}`) are not currently
