@@ -237,6 +237,12 @@ contents of an expression may be any of:
     OIIO 2.4.)
   - `not(val)` : returns 1 if `val` is a false value, 0 if `val` evaluates
     to a true value. (Added in OIIO 2.4.)
+  - `format(val,...)` : returns a string formatted according to `val`
+    (using standard std::format/Python replacement fields, such as `{}`,
+    `{:+}`, `{:04d}`, or `{:.2f}`) applied to the values that follow. For
+    example, `format('{:+}{:+}', 3, -4)` returns `"+3-4"`. Note: `val`
+    values containing literal-brace escapes (`{{` or `}}`) are not currently
+    supported. 
 
 To illustrate how this works, consider the following command, which trims
 a four-pixel border from all sides and outputs a new image prefixed with
