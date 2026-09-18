@@ -300,11 +300,12 @@ private slots:
     /// change the zoom, even to fit on screen. If minsize is true, do not
     /// resize smaller than default_width x default_height.
     void fitWindowToImage(bool zoomok = true, bool minsize = false);
-    void fullScreenToggle();    ///< Toggle full screen mode
-    void about();               ///< Show "about iv" dialog
-    void prevImage();           ///< View previous image in sequence
-    void nextImage();           ///< View next image in sequence
-    void toggleImage();         ///< View most recently viewed image
+    void fullScreenToggle();  ///< Toggle full screen mode
+    void about();             ///< Show "about iv" dialog
+    void prevImage();         ///< View previous image in sequence
+    void nextImage();         ///< View next image in sequence
+    void toggleImage();       ///< View most recently viewed image
+    void toggleComparison(bool enabled);
     void toggleWindowGuides();  ///< Toggle data and display window overlay
     void exposureMinusOneTenthStop();  ///< Decrease exposure 1/10 stop
     void exposureMinusOneHalfStop();   ///< Decrease exposure 1/2 stop
@@ -363,6 +364,7 @@ private:
     void removeRecentFile(const std::string& name);
     void updateRecentFilesMenu();
     bool loadCurrentImage(int subimage = 0, int miplevel = 0);
+    bool loadImage(IvImage* image, int subimage = 0, int miplevel = 0);
     void displayCurrentImage(bool update = true);
     void updateTitle();
     void updateStatusBar();
@@ -409,6 +411,7 @@ private:
     QAction* fullScreenAct;
     QAction* aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
+    QAction* comparisonAct = nullptr;
     QAction *sortByNameAct, *sortByPathAct, *sortReverseAct;
     QAction *sortByImageDateAct, *sortByFileDateAct;
     QAction *slideShowAct, *slideLoopAct, *slideNoLoopAct;
@@ -429,7 +432,6 @@ private:
     enum MouseMode {
         MouseModeZoom,
         MouseModePan,
-        MouseModeWipe,
         MouseModeSelect,
         MouseModeAnnotate
     };
@@ -447,12 +449,13 @@ private:
     QSpinBox* closeupAvgPixelsBox;
 
     std::vector<IvImage*> m_images;  // List of images
-    int m_current_image;             // Index of current image, -1 if none
-    int m_current_channel;           // Channel we're viewing.
-    COLOR_MODE m_color_mode;         // How to show the current channel(s).
-    int m_last_image;                // Last image we viewed
-    float m_zoom;                    // Zoom amount (positive maxifies)
-    bool m_fullscreen;               // Full screen mode
+    IvImage* m_comparison_image = nullptr;
+    int m_current_image;      // Index of current image, -1 if none
+    int m_current_channel;    // Channel we're viewing.
+    COLOR_MODE m_color_mode;  // How to show the current channel(s).
+    int m_last_image;         // Last image we viewed
+    float m_zoom;             // Zoom amount (positive maxifies)
+    bool m_fullscreen;        // Full screen mode
     std::vector<std::string> m_recent_files;  // Recently opened files
     float m_default_gamma;                    // Default gamma of the display
     QPalette m_palette;                       // Custom palette
