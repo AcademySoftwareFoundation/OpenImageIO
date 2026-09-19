@@ -52,7 +52,7 @@ install (FILES ${detail_headers}
 if (OIIO_INTERNALIZE_FMT OR fmt_LOCAL_BUILD)
     set (fmt_headers_base_names)
     foreach (header_name core.h format-inl.h format.h ostream.h printf.h
-             std.h base.h chrono.h)
+             std.h base.h chrono.h args.h)
         if (EXISTS "${FMT_INCLUDE_DIR}/fmt/${header_name}")
              list (APPEND fmt_headers_base_names ${header_name})
         endif ()
@@ -79,8 +79,9 @@ else ()
     set (fmt_headers
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/format.h
          ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/ostream.h
-         ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/printf.h )
-    foreach (f format.h ostream.h printf.h)
+         ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/printf.h
+         ${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/args.h )
+    foreach (f format.h ostream.h printf.h args.h)
         if (NOT EXISTS "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}")
             file (WRITE "${CMAKE_BINARY_DIR}/include/OpenImageIO/detail/fmt/${f}"
                         "#include <fmt/${f}>")
