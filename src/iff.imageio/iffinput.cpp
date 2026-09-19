@@ -632,8 +632,11 @@ IffInput::readimg()
         return false;
     }
 
-    // resize buffer
-    m_buf.resize(m_header.image_bytes());
+    // Resize and clear the buffer. The zero fill matters: nothing below
+    // proves that the tiles we're about to decode cover the whole image, and
+    // m_buf is default-initialized, so any pixel left uncovered would hand
+    // back whatever the heap happened to contain.
+    m_buf.assign(m_header.image_bytes(), 0);
 
     while ((rgbatiles < m_header.tiles && m_header.rgba_count > 0)
            || (ztiles < m_header.tiles && m_header.zbuffer > 0)) {
