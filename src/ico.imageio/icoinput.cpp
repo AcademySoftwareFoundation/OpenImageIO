@@ -185,10 +185,13 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     if (m_png && m_info)
         PNG_pvt::destroy_read_struct(m_png, m_info);
 
-    m_subimage = subimage;
+    // We're about to overwrite m_spec and the decode state, so give up the
+    // current subimage first. Every failure below then leaves us on none,
+    // rather than on one whose spec and offsets don't match.
+    m_subimage = -1;
 
     // read subimage header
-    ioseek(sizeof(ico_header) + m_subimage * sizeof(ico_subimage), SEEK_SET);
+    ioseek(sizeof(ico_header) + subimage * sizeof(ico_subimage), SEEK_SET);
     ico_subimage subimg;
     if (!ioread(&subimg, 1, sizeof(subimg)))
         return false;
@@ -253,6 +256,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
 
         m_spec.attribute("oiio:BitsPerSample", m_bpp / m_spec.nchannels);
 
+        m_subimage = subimage;
         return true;
     }
 
@@ -312,6 +316,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     /*std::cerr << "[ico] expected bytes: scanline " << m_spec.scanline_bytes()
               << ", image " << m_spec.image_bytes() << "\n";*/
 
+    m_subimage = subimage;
     return true;
 }
 

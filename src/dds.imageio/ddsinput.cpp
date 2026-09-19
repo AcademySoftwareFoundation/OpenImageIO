@@ -776,6 +776,12 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     // clear buffer so that readimage is called
     m_buf.clear();
 
+    // We're about to overwrite m_spec for the requested level, so give up the
+    // current one first -- failing partway then leaves us on no level, rather
+    // than on one whose spec describes a different level.
+    m_subimage = -1;
+    m_miplevel = -1;
+
     // for cube maps, the seek will be performed when reading a tile instead
     size_t w = 0, h = 0, d = 0;
     TypeDesc::BASETYPE basetype = GetBaseType(m_compression);
