@@ -146,7 +146,7 @@ private:
 
     void close_file() { init(); }
 
-    void scan_for_thumbnail(cspan<uint8_t> exif);
+    bool scan_for_thumbnail(cspan<uint8_t> exif);
 
     friend class JpgOutput;
 };
