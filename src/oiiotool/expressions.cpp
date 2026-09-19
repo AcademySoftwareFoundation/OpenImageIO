@@ -13,7 +13,7 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebufalgo.h>
 
-#include <fmt/args.h>
+#include <OpenImageIO/detail/fmt/args.h>
 
 using namespace OIIO;
 using namespace OiioTool;
