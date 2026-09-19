@@ -490,7 +490,7 @@ ImageSpec::find_attribute(string_view name, ParamValue& tmpparam,
     auto iter = extra_attribs.find(name, searchtype, casesensitive);
     if (iter != extra_attribs.end())
         return &(*iter);
-        // Check named items in the ImageSpec structs, not in extra_attrubs
+    // Check named items in the ImageSpec structs, not in extra_attrubs
 #define MATCH(n, t)                                 \
     (((!casesensitive && Strutil::iequals(name, n)) \
       || (casesensitive && name == n))              \

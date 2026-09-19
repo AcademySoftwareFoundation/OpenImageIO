@@ -59,33 +59,25 @@ extern std::atomic<float> IB_total_image_read_time;
 extern OIIO_UTIL_API int oiio_use_tbb;
 extern OIIO_UTIL_API int oiio_ustring_cleanup;
 
-OIIO_API const std::vector<std::string>&
-font_dirs();
-OIIO_API const std::vector<std::string>&
-font_file_list();
-OIIO_API const std::vector<std::string>&
-font_list();
-OIIO_API const std::vector<std::string>&
-font_family_list();
-OIIO_API const std::vector<std::string>
-font_style_list(string_view family);
-OIIO_API const std::string
-font_filename(string_view family, string_view style = "");
+OIIO_API const std::vector<std::string>& font_dirs();
+OIIO_API const std::vector<std::string>& font_file_list();
+OIIO_API const std::vector<std::string>& font_list();
+OIIO_API const std::vector<std::string>& font_family_list();
+OIIO_API const std::vector<std::string> font_style_list(string_view family);
+OIIO_API const std::string font_filename(string_view family,
+                                         string_view style = "");
 
 
 // Make sure all plugins are inventoried. For internal use only.
-void
-catalog_all_plugins(std::string searchpath);
+void catalog_all_plugins(std::string searchpath);
 
 // Inexpensive check if a file extension or format name corresponds to a
 // procedural input plugin.
-bool
-is_procedural_plugin(const std::string& name);
+bool is_procedural_plugin(const std::string& name);
 
 /// Given the format, set the default quantization range.
-void
-get_default_quantize(TypeDesc format, long long& quant_min,
-                     long long& quant_max) noexcept;
+void get_default_quantize(TypeDesc format, long long& quant_min,
+                          long long& quant_max) noexcept;
 
 /// Turn potentially non-contiguous-stride data (e.g. "RGBxRGBx") into
 /// contiguous-stride ("RGBRGB"), for any format or stride values (measured in
@@ -102,45 +94,41 @@ contiguize(const image_span<const std::byte>& src, span<std::byte> dst);
 /// memory to hold the contiguous rectangle.  Return a ptr to where the
 /// contiguous data ended up, which is either dst or src (if the strides
 /// indicated that data were already contiguous).
-OIIO_API const void*
-contiguize(const void* src, int nchannels, stride_t xstride, stride_t ystride,
-           stride_t zstride, void* dst, int width, int height, int depth,
-           TypeDesc format);
+OIIO_API const void* contiguize(const void* src, int nchannels,
+                                stride_t xstride, stride_t ystride,
+                                stride_t zstride, void* dst, int width,
+                                int height, int depth, TypeDesc format);
 
 /// Turn contiguous data from any format into float data.  Return a
 /// pointer to the converted data (which may still point to src if no
 /// conversion was necessary).
-const float*
-convert_to_float(const void* src, float* dst, int nvals, TypeDesc format);
+const float* convert_to_float(const void* src, float* dst, int nvals,
+                              TypeDesc format);
 
 /// Turn contiguous float data into any format.  Return a pointer to the
 /// converted data (which may still point to src if no conversion was
 /// necessary).
-const void*
-convert_from_float(const float* src, void* dst, size_t nvals, TypeDesc format);
+const void* convert_from_float(const float* src, void* dst, size_t nvals,
+                               TypeDesc format);
 
 /// A version of convert_from_float that will break up big jobs with
 /// multiple threads.
-const void*
-parallel_convert_from_float(const float* src, void* dst, size_t nvals,
-                            TypeDesc format);
+const void* parallel_convert_from_float(const float* src, void* dst,
+                                        size_t nvals, TypeDesc format);
 
 /// Internal utility: Error checking on the spec -- if it contains texture-
 /// specific metadata but there are clues it's not actually a texture file
 /// written by maketx or `oiiotool -otex`, then assume these metadata are
 /// wrong and delete them. Return true if we think it's one of these
 /// incorrect files and it was fixed.
-OIIO_API bool
-check_texture_metadata_sanity(ImageSpec& spec);
+OIIO_API bool check_texture_metadata_sanity(ImageSpec& spec);
 
 /// If the spec's metadata specifies a color space with Rec709 primaries and
 /// gamma transfer function, return the gamma value. If not, return zero.
-OIIO_API float
-get_colorspace_rec709_gamma(const ImageSpec& spec);
+OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec);
 
 /// Get the timing report from log_time entries.
-OIIO_API std::string
-timing_report();
+OIIO_API std::string timing_report();
 
 /// An object that, if oiio_log_times is nonzero, logs time until its
 /// destruction. If oiio_log_times is 0, it does nothing.
@@ -234,11 +222,11 @@ struct print_info_options {
     ROI roi;
 };
 
-OIIO_API std::string
-compute_sha1(ImageInput* input, int subimage, int miplevel, std::string& err);
-OIIO_API bool
-print_stats(std::ostream& out, string_view indent, const ImageBuf& input,
-            const ImageSpec& spec, ROI roi, std::string& err);
+OIIO_API std::string compute_sha1(ImageInput* input, int subimage, int miplevel,
+                                  std::string& err);
+OIIO_API bool print_stats(std::ostream& out, string_view indent,
+                          const ImageBuf& input, const ImageSpec& spec, ROI roi,
+                          std::string& err);
 
 
 
@@ -250,8 +238,7 @@ enum class ComputeDevice : int {
 
 // Which compute device is currently active, and should be used by any
 // OIIO facilities that know how to use it.
-OIIO_API ComputeDevice
-compute_device();
+OIIO_API ComputeDevice compute_device();
 
 #if 0
 /// Return true if CUDA is available to OpenImageIO at this time -- support
@@ -265,28 +252,23 @@ openimageio_cuda();
 // Set an attribute related to OIIO's use of GPUs/compute devices. This is a
 // strictly internal function. User code should just call OIIO::attribute()
 // and GPU-related attributes will be directed here automatically.
-OIIO_API bool
-gpu_attribute(string_view name, TypeDesc type, const void* val);
+OIIO_API bool gpu_attribute(string_view name, TypeDesc type, const void* val);
 
 // Retrieve an attribute related to OIIO's use of GPUs/compute devices. This
 // is a strictly internal function. User code should just call
 // OIIO::getattribute() and GPU-related attributes will be directed here
 // automatically.
-OIIO_API bool
-gpu_getattribute(string_view name, TypeDesc type, void* val);
+OIIO_API bool gpu_getattribute(string_view name, TypeDesc type, void* val);
 
 
 /// Allocate compute device memory
-OIIO_API void*
-device_malloc(size_t size);
+OIIO_API void* device_malloc(size_t size);
 
 /// Allocate unified compute device memory -- visible on both CPU & GPU
-OIIO_API void*
-device_unified_malloc(size_t size);
+OIIO_API void* device_unified_malloc(size_t size);
 
 /// Free compute device memory
-OIIO_API void
-device_free(void* mem);
+OIIO_API void device_free(void* mem);
 
 }  // namespace pvt
 
@@ -302,13 +284,12 @@ namespace pvt {
 /// extraneous allocation as possible. What is this good for? (1) Benchmarking
 /// just the read itself; (2) Fuzz testing; (3) Debugging the code path where
 /// fuzz testing revealed a specific error.
-OIIO_API bool
-test_read_image(ImageInput& inp, int subimage, int miplevel,
-                TypeDesc format = TypeUInt8);
+OIIO_API bool test_read_image(ImageInput& inp, int subimage, int miplevel,
+                              TypeDesc format = TypeUInt8);
 
 /// Read all subimage and MIP levels of the open file.
-OIIO_API bool
-test_read_all_images(ImageInput& inp, TypeDesc format = TypeUInt8);
+OIIO_API bool test_read_all_images(ImageInput& inp,
+                                   TypeDesc format = TypeUInt8);
 }  // namespace pvt
 OIIO_NAMESPACE_3_1_END
 

@@ -11,8 +11,7 @@ set -ex
 CLANG_FORMAT_EXE=${CLANG_FORMAT_EXE:="clang-format"}
 echo "Running " `which clang-format` " version " `${CLANG_FORMAT_EXE} --version`
 
-files=`find ./{src,testsuite} \( -name '*.h' -o -name '*.cpp' \) -print \
-       | grep -Ev 'pugixml|SHA1|farmhash.cpp|libdpx|libcineon|bcdec.h|gif.h|stb_sprintf.h'`
+files=`find ./{src,testsuite} \( -name '*.h' -o -name '*.cpp' \) -print`
 
 
 ${CLANG_FORMAT_EXE}  -i -style=file $files

@@ -286,10 +286,8 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 #if OIIO_TIFFLIB_VERSION < 40500
-extern std::string&
-oiio_tiff_last_error();
-extern void
-oiio_tiff_set_error_handler();
+extern std::string& oiio_tiff_last_error();
+extern void oiio_tiff_set_error_handler();
 #endif
 
 
@@ -924,6 +922,16 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     // Deal with all other params
     for (const auto& p : m_spec.extra_attribs)
         put_parameter(p);
+
+    // Now that m_rowsperstrip has stopped moving -- put_parameter above
+    // honors a "tiff:RowsPerStrip" request -- say how many scanlines are in
+    // each of the strips we are about to write, so that
+    // ImageOutput::write_image can hand us whole strips. A value carried in
+    // from some other file says nothing about this one, so erase it either
+    // way.
+    m_spec.erase_attribute("oiio:RowsPerChunk");
+    if (!m_spec.tile_width && m_rowsperstrip > 1)
+        m_spec.attribute("oiio:RowsPerChunk", m_rowsperstrip);
 
     if (m_spec.get_int_attribute("tiff:write_iptc")) {
         // Enable IPTC block writing only if "tiff_write_iptc" hint is explicitly
@@ -1783,10 +1791,11 @@ TIFFOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                         tile_ystride = tile_xstride * m_spec.tile_width;
                         tile_zstride = tile_ystride * m_spec.tile_height;
                     }
-                    const void* buf
-                        = to_native_tile(format, tilestart, tile_xstride,
-                                         tile_ystride, tile_zstride,
-                                         tilebuf[tileno], m_dither, x, y, z);
+                    const void* buf = to_native_tile(format, tilestart,
+                                                     tile_xstride, tile_ystride,
+                                                     tile_zstride,
+                                                     tilebuf[tileno], m_dither,
+                                                     x, y, z);
                     if (buf == (const void*)tilestart) {
                         // Ugly detail: if to_native_rectangle did not allocate
                         // scratch space and copy to it, we need to do it now,

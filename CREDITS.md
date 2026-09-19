@@ -1,8 +1,8 @@
 This is a list of all the contributors to OpenImageIO, sorted alphabetically
 by first name.
 
-If you know of somebody that I missed or have corrections, please email:
-lg@openimageio.org
+If you know of somebody that I missed or have corrections, please contact
+the project.
 
 * Aamir Raza
 * Aaron Colwell
@@ -34,6 +34,7 @@ lg@openimageio.org
 * Anthony Nemoff
 * Aras Pranckevičius
 * Arkady Shapkin
+* Asish Kumar
 * Basile Fraboni
 * Basileios Anastasatos
 * Bastien Montagne
@@ -87,6 +88,7 @@ lg@openimageio.org
 * Dominik Wójt
 * Don Olmstead
 * Dongju Lee
+* Doug Walker
 * Duncan Chan
 * Dustin Rodrigues
 * Edgar Velazquez-Armendariz
@@ -95,6 +97,7 @@ lg@openimageio.org
 * Emil Dohne
 * Fabien Castan
 * Fabien Servant
+* Faisal
 * Fredrik Averpil
 * Frédéric Devernay
 * Gaurav Bansal
@@ -111,6 +114,7 @@ lg@openimageio.org
 * Heiko Becker
 * Henri Fousse
 * Hugh Macdonald
+* Hunter
 * Imarz
 * Irena Damsky
 * Ismael Cortes
@@ -141,6 +145,7 @@ lg@openimageio.org
 * Justina Mikonyte
 * Kaarrot
 * Kazuki Takahashi
+* Ken McGaugh
 * Kevin Brightwell
 * Kimball Thurston
 * Konrad Kleine
@@ -150,6 +155,7 @@ lg@openimageio.org
 * Leonid Onokhov
 * Leszek Godlewski
 * Li Ji
+* Loïc Vital
 * Lucas Panian
 * Lucille Caillaud
 * Lukas Schrangl
@@ -169,9 +175,11 @@ lg@openimageio.org
 * Mark Boorer
 * Mark Visser
 * Massimo Paladin
+* Matt Van Horn
 * Matteo F. Vescovi
 * Matthew E. Levine
 * Max Liani
+* Mixie / Maxi741cv
 * Maxwell Iverson
 * Mel Massadian
 * Merwan Achibet
@@ -183,6 +191,7 @@ lg@openimageio.org
 * Mike Root
 * Morteza Ramezanali
 * Nandan Dubey
+* Nathan Gray
 * Nathan Rusch
 * Nicholas Yue
 * Nick Black
@@ -211,6 +220,7 @@ lg@openimageio.org
 * Pino Toscano
 * Povilas Kanapickas
 * Puneet Jain
+* Qi-fly
 * Radu Arjocu
 * Ramon Montoya
 * Ray Molenkamp
@@ -219,6 +229,7 @@ lg@openimageio.org
 * Robert Matusewicz
 * Roeland Schoukens
 * Roman Zulak
+* rose413
 * Rui Chen
 * Rui Li
 * Russell Greene

@@ -427,10 +427,10 @@ is_aces_container_compliant(const OIIO::ImageSpec& spec, std::string& reason)
 
     // Check chromaticities
     float chromaticities[8] = { 0., 0., 0., 0., 0., 0., 0., 0. };
-    bool chroms_found
-        = spec.getattribute("chromaticities",
-                            OIIO::TypeDesc(OIIO::TypeDesc::FLOAT, 8),
-                            chromaticities);
+    bool chroms_found = spec.getattribute("chromaticities",
+                                          OIIO::TypeDesc(OIIO::TypeDesc::FLOAT,
+                                                         8),
+                                          chromaticities);
     bool chroms_equal = std::equal(std::begin(chromaticities),
                                    std::end(chromaticities),
                                    std::begin(ACES_AP0_chromaticities));
@@ -1104,6 +1104,19 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     for (const auto& p : spec.extra_attribs)
         put_parameter(p.name().string(), p.type(), p.data(), header);
 
+    // Now that the header's compression is settled, say how many scanlines
+    // are packed into each of the chunks we are about to write, so that
+    // ImageOutput::write_image can hand us whole chunks. A value carried in
+    // from some other file says nothing about this one, so erase it either
+    // way. This has to come after the loop above -- that is what would have
+    // written it into the file, and this is only a hint to our own caller.
+    spec.erase_attribute("oiio:RowsPerChunk");
+    if (spec.tile_width == 0) {
+        int scansperchunk = exr_scanlines_per_chunk(header.compression());
+        if (scansperchunk > 1)
+            spec.attribute("oiio:RowsPerChunk", scansperchunk);
+    }
+
     // Multi-part EXR files required to have a name. Make one up if not
     // supplied.
     if (m_nsubimages > 1 && !header.hasName()) {
@@ -1718,7 +1731,7 @@ OpenEXROutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     // image.
     imagesize_t scanlinebytes = m_spec.scanline_bytes(native);
     char* buf                 = (char*)data - ptrdiff_t(m_spec.x * pixel_bytes)
-                - ptrdiff_t(y * scanlinebytes);
+                                - ptrdiff_t(y * scanlinebytes);
 
     try {
         Imf::FrameBuffer frameBuffer;
@@ -1832,15 +1845,15 @@ OpenEXROutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
 
     const imagesize_t limit = 16 * 1024
                               * 1024;  // Allocate 16 MB, or 1 scanline
-    int chunk = std::max(1, int(limit / scanlinebytes));
+    int chunk               = std::max(1, int(limit / scanlinebytes));
 
     bool ok                  = true;
     const bool isDecreasingY = m_spec.get_string_attribute("openexr:lineOrder")
                                == "decreasingY";
     const int nAvailableScanLines = yend - ybegin;
-    const int numChunks           = nAvailableScanLines > 0
-                                        ? 1 + ((nAvailableScanLines - 1) / chunk)
-                                        : 0;
+    const int numChunks  = nAvailableScanLines > 0
+                               ? 1 + ((nAvailableScanLines - 1) / chunk)
+                               : 0;
     const int yLoopStart = isDecreasingY ? ybegin + (numChunks - 1) * chunk
                                          : ybegin;
     const int yDelta     = isDecreasingY ? -chunk : chunk;
@@ -2158,9 +2171,9 @@ OpenEXROutput::write_deep_tiles(int xbegin, int xend, int ybegin, int yend,
         int firstxtile = (xbegin - m_spec.x) / m_spec.tile_width;
         int firstytile = (ybegin - m_spec.y) / m_spec.tile_height;
         int xtiles     = round_to_multiple(xend - xbegin, m_spec.tile_width)
-                     / m_spec.tile_width;
-        int ytiles = round_to_multiple(yend - ybegin, m_spec.tile_height)
-                     / m_spec.tile_height;
+                         / m_spec.tile_width;
+        int ytiles     = round_to_multiple(yend - ybegin, m_spec.tile_height)
+                         / m_spec.tile_height;
 
         // Write the pixels
         m_deep_tiled_output_part->writeTiles(firstxtile,

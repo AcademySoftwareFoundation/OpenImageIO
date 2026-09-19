@@ -152,10 +152,10 @@ public:
                      stride_t zstride = AutoStride)
     {
         auto formatsize = m_spec.format.size();
-        m_bufspan       = image_span(reinterpret_cast<std::byte*>(data),
-                                     m_spec.nchannels, m_spec.width, m_spec.height,
-                                     m_spec.depth, formatsize, xstride, ystride,
-                                     zstride, formatsize);
+        m_bufspan = image_span(reinterpret_cast<std::byte*>(data),
+                               m_spec.nchannels, m_spec.width, m_spec.height,
+                               m_spec.depth, formatsize, xstride, ystride,
+                               zstride, formatsize);
         eval_contiguous();
     }
 
@@ -321,9 +321,9 @@ public:
 
     void eval_contiguous()
     {
-        bool in_memory = m_bufspan.data() != nullptr
-                         && (m_storage == ImageBuf::LOCALBUFFER
-                             || m_storage == ImageBuf::APPBUFFER);
+        bool in_memory        = m_bufspan.data() != nullptr
+                                && (m_storage == ImageBuf::LOCALBUFFER
+                                    || m_storage == ImageBuf::APPBUFFER);
         m_contiguous          = in_memory && m_bufspan.is_contiguous();
         m_contiguous_scanline = in_memory && m_bufspan.is_contiguous_scanline();
     }
@@ -705,7 +705,9 @@ ImageBuf::ImageBuf(ImageBuf&& src)
 
 
 
-ImageBuf::~ImageBuf() {}
+ImageBuf::~ImageBuf()
+{
+}
 
 
 
@@ -1679,9 +1681,9 @@ ImageBuf::write(ImageOutput* out, ProgressCallback progress_callback,
                                        && outspec.get_string_attribute(
                                               "openexr:lineOrder")
                                               == "decreasingY";
-            const int numChunks  = outspec.height > 0
-                                       ? 1 + ((outspec.height - 1) / chunk)
-                                       : 0;
+            const int numChunks      = outspec.height > 0
+                                           ? 1 + ((outspec.height - 1) / chunk)
+                                           : 0;
             const int yLoopStart = isDecreasingY ? (numChunks - 1) * chunk : 0;
             const int yDelta     = isDecreasingY ? -chunk : chunk;
             const int yLoopEnd   = yLoopStart + numChunks * yDelta;
@@ -2683,7 +2685,7 @@ get_pixels_(const ImageBuf& buf, const ImageBuf& /*dummy*/, ROI whole_roi,
                 imagesize_t offset = (p.z() - whole_roi.zbegin) * zstride
                                      + (p.y() - whole_roi.ybegin) * ystride
                                      + (p.x() - whole_roi.xbegin) * xstride;
-                D* rc = (D*)((char*)r + offset);
+                D* rc              = (D*)((char*)r + offset);
                 for (int c = 0; c < nchans; ++c)
                     rc[c] = p[c + roi.chbegin];
             }
@@ -2777,7 +2779,7 @@ set_pixels_(ImageBuf& buf, ROI roi, const void* data_, stride_t xstride,
         imagesize_t offset = (p.z() - roi.zbegin) * zstride
                              + (p.y() - roi.ybegin) * ystride
                              + (p.x() - roi.xbegin) * xstride;
-        const S* src = (const S*)((const char*)data + offset);
+        const S* src       = (const S*)((const char*)data + offset);
         for (int c = 0; c < nchans; ++c)
             p[c + roi.chbegin] = src[c];
     }

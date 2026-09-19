@@ -411,7 +411,10 @@ enableVTMode()
 
 namespace Sysutil {
 
-Term::Term(FILE* file) { m_is_console = isatty(fileno((file))); }
+Term::Term(FILE* file)
+{
+    m_is_console = isatty(fileno((file)));
+}
 
 
 Term::Term(const std::ostream& stream)

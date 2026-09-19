@@ -13,7 +13,9 @@ IvGL_OCIO::IvGL_OCIO(QWidget* parent, ImageViewer& viewer)
 {
 }
 
-IvGL_OCIO::~IvGL_OCIO() {}
+IvGL_OCIO::~IvGL_OCIO()
+{
+}
 
 void
 IvGL_OCIO::update_state()
@@ -115,7 +117,7 @@ IvGL_OCIO::update_state()
 
             m_shader_desc = shaderDesc;
 
-            allocate_all_textures(m_texbufs.size() + 1);
+            allocate_all_textures(unsigned(m_slots.size()));
 
             create_shaders();
 

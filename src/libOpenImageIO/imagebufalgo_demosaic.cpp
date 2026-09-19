@@ -417,13 +417,13 @@ private:
     {
         float tmp = w(0, 2) + w(4, 2) + w(2, 0) + w(2, 4);
         out_mix1  = (8.0f * w(2, 2)
-                    + 4.0f * (w(1, 2) + w(3, 2) + w(2, 1) + w(2, 3))
-                    - 2.0f * tmp)
-                   / 16.0f;
-        out_mix2 = (12.0f * w(2, 2)
-                    + 4.0f * (w(1, 1) + w(1, 3) + w(3, 1) + w(3, 3))
-                    - 3.0f * tmp)
-                   / 16.0f;
+                     + 4.0f * (w(1, 2) + w(3, 2) + w(2, 1) + w(2, 3))
+                     - 2.0f * tmp)
+                    / 16.0f;
+        out_mix2  = (12.0f * w(2, 2)
+                     + 4.0f * (w(1, 1) + w(1, 3) + w(3, 1) + w(3, 3))
+                     - 3.0f * tmp)
+                    / 16.0f;
     }
 
     inline static void mix2(Window& w, float& out_mix1, float& out_mix2)

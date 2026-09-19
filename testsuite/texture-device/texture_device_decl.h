@@ -58,8 +58,7 @@ struct RequestHash {
 
 enum class WrapMode : uint8_t { Clamp, Periodic, Black };
 
-int
-wrap_coord(int coord, int size, WrapMode mode, bool& in_range);
+int wrap_coord(int coord, int size, WrapMode mode, bool& in_range);
 
 struct TileRecord {
     static constexpr uint32_t kTileWidth  = 64;
@@ -260,8 +259,7 @@ private:
     uint32_t m_tile_count;
 };
 
-bool
-run_device_unit_tests();
+bool run_device_unit_tests();
 
 }  // namespace texture_device
 

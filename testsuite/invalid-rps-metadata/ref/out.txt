@@ -8,6 +8,7 @@ negrps.tif           :    1 x    1, 3 channel, float tiff
     planarconfig: "contig"
     Software: "OpenImageIO 3.2.0.2dev : 2C50DDDC920616B428C03D5F6786B396201DAF23"
     oiio:BitsPerSample: 32
+    oiio:RowsPerChunk: 32
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1

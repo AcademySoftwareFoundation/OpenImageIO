@@ -41,22 +41,18 @@ OIIO_NAMESPACE_3_1_BEGIN
 
 
 /// Return pixel data window for this ImageSpec as a ROI.
-OIIO_API ROI
-get_roi(const ImageSpec& spec);
+OIIO_API ROI get_roi(const ImageSpec& spec);
 
 /// Return full/display window for this ImageSpec as a ROI.
-OIIO_API ROI
-get_roi_full(const ImageSpec& spec);
+OIIO_API ROI get_roi_full(const ImageSpec& spec);
 
 /// Set pixel data window for this ImageSpec to a ROI.
 /// Does NOT change the channels of the spec, regardless of newroi.
-OIIO_API void
-set_roi(ImageSpec& spec, const ROI& newroi);
+OIIO_API void set_roi(ImageSpec& spec, const ROI& newroi);
 
 /// Set full/display window for this ImageSpec to a ROI.
 /// Does NOT change the channels of the spec, regardless of newroi.
-OIIO_API void
-set_roi_full(ImageSpec& spec, const ROI& newroi);
+OIIO_API void set_roi_full(ImageSpec& spec, const ROI& newroi);
 
 
 enum class InitializePixels { No = 0, Yes = 1 };

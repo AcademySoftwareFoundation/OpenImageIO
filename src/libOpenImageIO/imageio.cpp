@@ -187,6 +187,7 @@ hw_simd_caps()
     if (cpu_has_f16c())        caps.emplace_back ("f16c");
     if (cpu_has_popcnt())      caps.emplace_back ("popcnt");
     if (cpu_has_rdrand())      caps.emplace_back ("rdrand");
+    if (cpu_has_neon())        caps.emplace_back ("neon");
     return Strutil::join (caps, ",");
     // clang-format on
 }
@@ -1031,7 +1032,7 @@ convert_image(int nchannels, int width, int height, int depth, const void* src,
         for (int y = 0; y < height; ++y) {
             const char* f = (const char*)src
                             + (z * src_zstride + y * src_ystride);
-            char* t = (char*)dst + (z * dst_zstride + y * dst_ystride);
+            char* t       = (char*)dst + (z * dst_zstride + y * dst_ystride);
             if (contig) {
                 // Special case: pixels within each row are contiguous
                 // in both src and dst and we're copying all channels.
@@ -1065,9 +1066,8 @@ parallel_convert_image(int nchannels, int width, int height, int depth,
 {
     if (nthreads <= 0)
         nthreads = oiio_threads;
-    nthreads
-        = clamp(int((int64_t(width) * height * depth * nchannels) / 100000), 1,
-                nthreads);
+    nthreads = clamp(int((int64_t(width) * height * depth * nchannels) / 100000),
+                     1, nthreads);
     if (nthreads <= 1)
         return convert_image(nchannels, width, height, depth, src, src_type,
                              src_xstride, src_ystride, src_zstride, dst,
@@ -1108,7 +1108,7 @@ copy_image(int nchannels, int width, int height, int depth, const void* src,
         for (int y = 0; y < height; ++y) {
             const char* f = (const char*)src
                             + (z * src_zstride + y * src_ystride);
-            char* t = (char*)dst + (z * dst_zstride + y * dst_ystride);
+            char* t       = (char*)dst + (z * dst_zstride + y * dst_ystride);
             if (contig) {
                 // Special case: pixels within each row are contiguous
                 // in both src and dst and we're copying all channels.
@@ -1476,3 +1476,18 @@ image_span_within_span(const image_span<const std::byte>& ispan,
 
 
 OIIO_NAMESPACE_3_1_END
+
+
+// A symbol is put in each namespace so that we can double check is in the
+// namespace we think it's in.
+OIIO_NAMESPACE_3_1_BEGIN
+const int oiio_3_1_namespace_canary = 0;
+OIIO_NAMESPACE_3_1_END
+
+OIIO_NAMESPACE_3_2_BEGIN
+const int oiio_3_2_namespace_canary = 0;
+OIIO_NAMESPACE_3_2_END
+
+OIIO_NAMESPACE_BEGIN
+const int oiio_current_namespace_canary = 0;
+OIIO_NAMESPACE_END

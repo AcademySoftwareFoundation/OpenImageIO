@@ -295,11 +295,7 @@ DICOMInput::read_metadata()
                 float val;
                 if (dataset->findAndGetFloat32(tag, val).good())
                     m_spec.attribute(name, val);
-            } else if (evr == EVR_FD
-#if PACKAGE_VERSION_NUMBER >= 362
-                       || evr == EVR_OD
-#endif
-            ) {
+            } else if (evr == EVR_FD || evr == EVR_OD) {
                 double val;
                 if (dataset->findAndGetFloat64(tag, val).good())
                     m_spec.attribute(name, (float)val);
@@ -320,10 +316,7 @@ DICOMInput::read_metadata()
                        || evr == EVR_DT || evr == EVR_LT || evr == EVR_PN
                        || evr == EVR_ST || evr == EVR_TM || evr == EVR_UI
                        || evr == EVR_UT || evr == EVR_LO || evr == EVR_SH
-#if PACKAGE_VERSION_NUMBER >= 362
-                       || evr == EVR_UC || evr == EVR_UR
-#endif
-            ) {
+                       || evr == EVR_UC || evr == EVR_UR) {
                 OFString val;
                 if (dataset->findAndGetOFString(tag, val).good())
                     m_spec.attribute(name, val.c_str());

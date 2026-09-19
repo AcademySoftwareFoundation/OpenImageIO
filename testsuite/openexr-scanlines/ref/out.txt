@@ -1,0 +1,6 @@
+none.exr scanline reads match: PASS
+zips.exr scanline reads match: PASS
+zip.exr scanline reads match: PASS
+piz.exr scanline reads match: PASS
+dwab.exr scanline reads match: PASS
+offset.exr scanline reads match: PASS

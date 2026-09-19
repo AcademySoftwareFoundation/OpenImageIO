@@ -359,9 +359,9 @@ TextureSystemImpl::accum3d_sample_closest(
     TileRef& tile(thread_info->tile);
     if (!tile || !ok)
         return false;
-    imagesize_t tilepel = (tile_r * dims.tile_height + imagesize_t(tile_t))
-                              * dims.tile_width
-                          + tile_s;
+    imagesize_t tilepel   = (tile_r * dims.tile_height + imagesize_t(tile_t))
+                                * dims.tile_width
+                            + tile_s;
     int startchan_in_tile = options.firstchannel - id.chbegin();
     imagesize_t offset    = dims.nchannels * tilepel + startchan_in_tile;
     OIIO_DASSERT((size_t)offset
@@ -599,8 +599,8 @@ TextureSystemImpl::accum3d_sample_bilinear(
         imagesize_t tilepel = (tile_r * dims.tile_height + imagesize_t(tile_t))
                                   * dims.tile_width
                               + tile_s;
-        imagesize_t offset = (dims.nchannels * tilepel + startchan_in_tile)
-                             * channelsize;
+        imagesize_t offset  = (dims.nchannels * tilepel + startchan_in_tile)
+                              * channelsize;
         OIIO_DASSERT(offset < si.get_tile_bytes(miplevel));
 
         const unsigned char* b = tile->bytedata() + offset;
@@ -639,9 +639,9 @@ TextureSystemImpl::accum3d_sample_bilinear(
                                            + imagesize_t(tile_t))
                                               * dims.tile_width
                                           + tile_s;
-                    imagesize_t offset = (dims.nchannels * tilepel
-                                          + startchan_in_tile)
-                                         * channelsize;
+                    imagesize_t offset  = (dims.nchannels * tilepel
+                                           + startchan_in_tile)
+                                          * channelsize;
 #ifndef NDEBUG
                     if (offset >= si.get_tile_bytes(miplevel))
                         std::cerr << "offset=" << offset << ", whd "

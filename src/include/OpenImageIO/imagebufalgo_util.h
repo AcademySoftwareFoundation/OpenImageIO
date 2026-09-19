@@ -185,9 +185,8 @@ parallel_image(ROI roi, std::function<void(ROI)> f)
 ///     If nonzero and `dst` is uninitialized, fill `dst` with 0 values if we
 ///     allocate space for it.
 ///
-bool
-IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs = {},
-        KWArgs options = {}, ImageSpec* force_spec = nullptr);
+bool IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs = {},
+             KWArgs options = {}, ImageSpec* force_spec = nullptr);
 
 
 /// Common preparation for IBA functions: Given an ROI (which may or may not
@@ -202,10 +201,9 @@ IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs = {},
 /// If all is ok, return true.  Some additional checks and behaviors may be
 /// specified by the 'prepflags', which is a bit field defined by
 /// IBAprep_flags.
-bool OIIO_API
-IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A = NULL,
-        const ImageBuf* B = NULL, const ImageBuf* C = NULL,
-        ImageSpec* force_spec = NULL, int prepflags = 0);
+bool OIIO_API IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A = NULL,
+                      const ImageBuf* B = NULL, const ImageBuf* C = NULL,
+                      ImageSpec* force_spec = NULL, int prepflags = 0);
 inline bool
 IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A, const ImageBuf* B,
         ImageSpec* force_spec, int prepflags = 0)
@@ -789,10 +787,9 @@ inline bool is_common_pixel_type(TypeDesc t)
 ///   version of the operation that allows specialization to any other pixel
 ///   data types
 //
-OIIO_NODISCARD OIIO_API ImageBuf
-perpixel_op(const ImageBuf& src,
-            function_view<bool(span<float>, cspan<float>)> op,
-            KWArgs options = {});
+OIIO_NODISCARD OIIO_API ImageBuf perpixel_op(
+    const ImageBuf& src, function_view<bool(span<float>, cspan<float>)> op,
+    KWArgs options = {});
 
 /// A version of perpixel_op that performs a binary operation, taking two
 /// source images and a 3-argument `op` function that receives a destination

@@ -308,7 +308,7 @@ ImageRec::read(ReadPolicy readpolicy, string_view channel_set)
             m_imagecache->get_cache_dimensions(uname, spec, s, m);
             imagesize_t imgbytes = spec.image_bytes();
             bool forceread       = (s == 0 && m == 0
-                              && imgbytes * subimages < 50 * 1024 * 1024);
+                                    && imgbytes * subimages < 50 * 1024 * 1024);
             ImageBufRef ib(
                 new ImageBuf(name(), s, m, m_imagecache, configspec()));
 

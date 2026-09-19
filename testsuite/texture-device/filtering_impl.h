@@ -99,9 +99,9 @@ MipAnisoFilter::generate_samples(unsigned mip_i, float u, float v) const
             const uint16_t tile_y = floor_div(wrapped_y,
                                               int(TileRecord::kTileHeight));
             const int local_x     = wrapped_x
-                                - tile_x * int(TileRecord::kTileWidth);
-            const int local_y = wrapped_y
-                                - tile_y * int(TileRecord::kTileHeight);
+                                    - tile_x * int(TileRecord::kTileWidth);
+            const int local_y     = wrapped_y
+                                    - tile_y * int(TileRecord::kTileHeight);
 
             if (samples.size() >= samples.capacity())
                 continue;

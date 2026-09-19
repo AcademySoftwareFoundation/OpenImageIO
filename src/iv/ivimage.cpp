@@ -24,7 +24,10 @@ IvImage::IvImage(const std::string& filename, const ImageSpec* input_config)
 
 
 
-IvImage::~IvImage() { delete[] m_thumbnail; }
+IvImage::~IvImage()
+{
+    delete[] m_thumbnail;
+}
 
 
 
@@ -143,11 +146,10 @@ IvImage::longinfo() const
         m_longinfo += html_table_row("Channel list", chanlist);
         m_longinfo += html_table_row("File format", file_format_name());
         m_longinfo += html_table_row("Data format", m_file_dataformat.c_str());
-        m_longinfo
-            += html_table_row("Data size",
-                              Strutil::fmt::format("{:.2f} MB",
-                                                   (float)m_spec.image_bytes()
-                                                       / (1024.0 * 1024.0)));
+        m_longinfo += html_table_row(
+            "Data size",
+            Strutil::fmt::format("{:.2f} MB", (float)m_spec.image_bytes()
+                                                  / (1024.0 * 1024.0)));
         m_longinfo += html_table_row("Image origin",
                                      Strutil::fmt::format("{}, {}, {}",
                                                           m_spec.x, m_spec.y,

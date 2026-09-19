@@ -16,8 +16,7 @@ namespace texture_device {
 #define OPT_FUNCT(condition, return_type) \
     template<typename __Q = return_type> std::enable_if_t<condition, __Q>
 
-uint64_t
-arena_context();
+uint64_t arena_context();
 
 template<size_t N>
 inline constexpr uint64_t

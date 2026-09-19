@@ -87,8 +87,7 @@ private:
 // the extern "C" block below) so the linkage matches the definition in the
 // non-embedded (dynamic plugin) build where OIIO_PLUGIN_EXPORTS_BEGIN is
 // `extern "C"`.
-extern void
-oiio_heif_init();
+extern void oiio_heif_init();
 
 
 OIIO_PLUGIN_EXPORTS_BEGIN

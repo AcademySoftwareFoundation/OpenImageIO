@@ -483,8 +483,8 @@ IffInput::read_header()
                                                 return false;
 
                                             // set tile width and height
-                                            m_header.tile_width = xmax - xmin
-                                                                  + 1;
+                                            m_header.tile_width  = xmax - xmin
+                                                                   + 1;
                                             m_header.tile_height = ymax - ymin
                                                                    + 1;
 
@@ -632,8 +632,11 @@ IffInput::readimg()
         return false;
     }
 
-    // resize buffer
-    m_buf.resize(m_header.image_bytes());
+    // Resize and clear the buffer. The zero fill matters: nothing below
+    // proves that the tiles we're about to decode cover the whole image, and
+    // m_buf is default-initialized, so any pixel left uncovered would hand
+    // back whatever the heap happened to contain.
+    m_buf.assign(m_header.image_bytes(), 0);
 
     while ((rgbatiles < m_header.tiles && m_header.rgba_count > 0)
            || (ztiles < m_header.tiles && m_header.zbuffer > 0)) {
@@ -728,9 +731,10 @@ IffInput::readimg()
                                     return false;
                                 }
 
-                                uint8_t* out_p
-                                    = out_dy + px * m_header.pixel_bytes() + c;
-                                *out_p = in_span[offset++];
+                                uint8_t* out_p = out_dy
+                                                 + px * m_header.pixel_bytes()
+                                                 + c;
+                                *out_p         = in_span[offset++];
                             }
                         }
                     }
@@ -788,15 +792,15 @@ IffInput::readimg()
                     if (littleendian()) {
                         uint8_t rgb16[]  = { 0, 2, 4, 1, 3, 5 };
                         uint8_t rgba16[] = { 0, 2, 4, 6, 1, 3, 5, 7 };
-                        map              = (m_header.rgba_count == 3)
-                                               ? std::vector<uint8_t>(rgb16, rgb16 + 6)
-                                               : std::vector<uint8_t>(rgba16, rgba16 + 8);
+                        map = (m_header.rgba_count == 3)
+                                  ? std::vector<uint8_t>(rgb16, rgb16 + 6)
+                                  : std::vector<uint8_t>(rgba16, rgba16 + 8);
                     } else {
                         uint8_t rgb16[]  = { 1, 3, 5, 0, 2, 4 };
                         uint8_t rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
-                        map              = (m_header.rgba_count == 3)
-                                               ? std::vector<uint8_t>(rgb16, rgb16 + 6)
-                                               : std::vector<uint8_t>(rgba16, rgba16 + 8);
+                        map = (m_header.rgba_count == 3)
+                                  ? std::vector<uint8_t>(rgb16, rgb16 + 6)
+                                  : std::vector<uint8_t>(rgba16, rgba16 + 8);
                     }
 
                     for (int c = m_header.rgba_count * m_header.channel_bytes()
@@ -831,9 +835,10 @@ IffInput::readimg()
                                     return false;
                                 }
 
-                                uint8_t* out_p
-                                    = out_dy + px * m_header.pixel_bytes() + mc;
-                                *out_p = in_span[offset++];
+                                uint8_t* out_p = out_dy
+                                                 + px * m_header.pixel_bytes()
+                                                 + mc;
+                                *out_p         = in_span[offset++];
                             }
                         }
                     }
@@ -905,6 +910,11 @@ IffInput::readimg()
 
             // get image size
             // skip coordinates, uint16_t (2) * 4 = 8
+            if (chunksize <= 8) {
+                errorfmt("nonsensical ZBUF chunk size {} (must be > 8)\n",
+                         size);
+                return false;
+            }
             uint32_t image_size = chunksize - 8;
 
             // check tile

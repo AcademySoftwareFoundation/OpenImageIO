@@ -13,6 +13,7 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebufalgo.h>
 
+#include <fmt/args.h>
 
 using namespace OIIO;
 using namespace OiioTool;
@@ -144,10 +145,45 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
         std::string val;
         bool ok = express_parse_summands(s, s, val)
                   && Strutil::parse_char(s, ')');
-        result = Strutil::eval_as_bool(val) ? "0" : "1";
+        result  = Strutil::eval_as_bool(val) ? "0" : "1";
         if (!ok)
             return false;
 
+    } else if (parse_function_start_if(s, "format")) {
+        // {format()} allows for basic string formatting
+        // ex: --originoffset "{format('{:+}{:+}', 3, -4)}"
+        std::string val;
+        bool ok = express_parse_atom(s, s, val) && Strutil::parse_char(s, ',');
+        std::vector<std::string> args;
+        while (ok) {
+            std::string arg;
+            ok &= express_parse_summands(s, s, arg);
+            if (!ok)
+                break;
+            args.push_back(arg);
+            if (Strutil::parse_char(s, ')'))
+                break;
+            ok &= Strutil::parse_char(s, ',');
+        }
+        ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
+        for (auto& a : args) {
+            if (Strutil::string_is<int>(a))
+                store.push_back(Strutil::from_string<int64_t>(a));
+            else if (Strutil::string_is<float>(a))
+                store.push_back(Strutil::from_string<double>(a));
+            else
+                store.push_back(a);
+        }
+        try {
+            result = ::fmt::vformat(val, store);
+        } catch (const ::fmt::format_error& e) {
+            express_error(expr, s, Strutil::format("format(): {}", e.what()));
+            result = orig;
+            return false;
+        }
+        result = "\"" + result + "\"";
+        if (!ok)
+            return false;
     } else if (Strutil::starts_with(s, "TOP")
                || Strutil::starts_with(s, "BOTTOM")
                || Strutil::starts_with(s, "IMG[")) {
@@ -276,13 +312,14 @@ Oiiotool::express_parse_atom(const string_view expr, string_view& s,
                     out << (i ? "," : "") << pixstat.avg[i];
                 result = out.str();
             } else if (metadata == "NONFINITE_COUNT") {
-                auto pixstat = ImageBufAlgo::computePixelStats((*img)(0, 0));
-                imagesize_t sum
-                    = std::accumulate(pixstat.nancount.begin(),
-                                      pixstat.nancount.end(), imagesize_t(0))
-                      + std::accumulate(pixstat.infcount.begin(),
-                                        pixstat.infcount.end(), imagesize_t(0));
-                result = Strutil::to_string(sum);
+                auto pixstat    = ImageBufAlgo::computePixelStats((*img)(0, 0));
+                imagesize_t sum = std::accumulate(pixstat.nancount.begin(),
+                                                  pixstat.nancount.end(),
+                                                  imagesize_t(0))
+                                  + std::accumulate(pixstat.infcount.begin(),
+                                                    pixstat.infcount.end(),
+                                                    imagesize_t(0));
+                result          = Strutil::to_string(sum);
             } else if (metadata == "META" || metadata == "METANATIVE") {
                 std::stringstream out;
                 print_info_options opt;

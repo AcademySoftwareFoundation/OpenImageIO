@@ -8,7 +8,7 @@
 
 set_cache (pystring_BUILD_VERSION 1.2.0 "pystring version for local builds")
 set (pystring_GIT_REPOSITORY "https://github.com/imageworks/pystring")
-set (pystring_GIT_TAG "v${pystring_BUILD_VERSION}" "Git branch or tag")
+set (pystring_GIT_TAG "v${pystring_BUILD_VERSION}")
 set (pystring_GIT_COMMIT "1922c8f2b48e3beb6831c27b4811b58995e986cf")
 
 set_cache (pystring_BUILD_SHARED_LIBS OFF

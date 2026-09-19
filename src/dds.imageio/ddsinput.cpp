@@ -267,8 +267,8 @@ DecompressImage(uint8_t* rgba, int width, int height, const uint8_t* blocks,
                         // HDR formats: half
                         const uint16_t* src = rgbh;
                         uint16_t* dst       = (uint16_t*)rgba
-                                        + channelCount
-                                              * (size_t(width) * y + x);
+                                              + channelCount
+                                                    * (size_t(width) * y + x);
                         for (int py = 0; py < kBlockSize && y + py < yend;
                              py++) {
                             int cols = std::min(kBlockSize, width - x);
@@ -279,7 +279,7 @@ DecompressImage(uint8_t* rgba, int width, int height, const uint8_t* blocks,
                     } else {
                         // LDR formats: uint8
                         const uint8_t* src = rgbai;
-                        uint8_t* dst       = rgba
+                        uint8_t* dst = rgba
                                        + channelCount * (size_t(width) * y + x);
                         for (int py = 0; py < kBlockSize && y + py < yend;
                              py++) {

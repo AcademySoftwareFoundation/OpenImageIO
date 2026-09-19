@@ -135,7 +135,10 @@ OIIO_EXPORT const char* targa_output_extensions[] = { "tga", "tpic", nullptr };
 OIIO_PLUGIN_EXPORTS_END
 
 
-TGAOutput::TGAOutput() { init(); }
+TGAOutput::TGAOutput()
+{
+    init();
+}
 
 
 

@@ -17,6 +17,8 @@ using namespace OIIO;
 
 static ustring udimpattern;
 static ustring checkertex;
+static ustring onestriptex;
+static ustring bigstriptex;
 static std::vector<ustring> files_to_delete;
 
 
@@ -39,6 +41,32 @@ create_temp_textures()
                                    checkertex, config);
         check.write(checkertex);
         files_to_delete.push_back(checkertex);
+    }
+
+    // Two untiled TIFFs that are each a single strip, to exercise the
+    // ImageCache's autotiling of files that read in whole groups of
+    // scanlines. Setting "tiff:RowsPerStrip" to the height is what asks the
+    // TIFF writer for one strip holding the whole image.
+    {
+        std::string temp_dir = Filesystem::temp_directory_path();
+
+        // Small enough (1 MB) that a strip-aligned tile is fine.
+        onestriptex = ustring::fmtformat("{}/onestrip.tif", temp_dir);
+        ImageSpec onestripspec(512, 512, 4, TypeUInt8);
+        onestripspec.attribute("tiff:RowsPerStrip", onestripspec.height);
+        ImageBuf onestrip(onestripspec);
+        ImageBufAlgo::zero(onestrip);
+        onestrip.write(onestriptex);
+        files_to_delete.push_back(onestriptex);
+
+        // Big enough (32 MB) that a strip-aligned tile would be unreasonable.
+        bigstriptex = ustring::fmtformat("{}/bigstrip.tif", temp_dir);
+        ImageSpec bigstripspec(1024, 8192, 4, TypeUInt8);
+        bigstripspec.attribute("tiff:RowsPerStrip", bigstripspec.height);
+        ImageBuf bigstrip(bigstripspec);
+        ImageBufAlgo::zero(bigstrip);
+        bigstrip.write(bigstriptex);
+        files_to_delete.push_back(bigstriptex);
     }
 
     ustring badfile("badfile.exr");
@@ -252,8 +280,11 @@ test_tileptr()
     Strutil::print("tile @ 4,4 format {} ROI {}\n",
                    imagecache->tile_format(tile), imagecache->tile_roi(tile));
     OIIO_CHECK_EQUAL(imagecache->tile_format(tile), TypeHalf);
+    // checkertex is an untiled EXR, and its compression reads whole groups
+    // of scanlines, so the IC autotiles it into full-width 64-row tiles even
+    // though autotile is off.
     OIIO_CHECK_EQUAL(imagecache->tile_roi(tile),
-                     ROI(0, 256, 0, 256, 0, 1, 0, 3));
+                     ROI(0, 256, 0, 64, 0, 1, 0, 3));
     TypeDesc tileformat;
     OIIO_CHECK_ASSERT(imagecache->tile_pixels(tile, tileformat) != nullptr);
     OIIO_CHECK_ASSERT(tileformat == TypeHalf);
@@ -264,6 +295,40 @@ test_tileptr()
     OIIO_CHECK_ASSERT(imagecache->get_tile(hand, nullptr, 1, 0, 400, 400, 0)
                       == nullptr);  // nonexistent tile
 
+    imagecache->release_tile(tile);
+}
+
+
+
+// A file that can only be read in whole groups of scanlines is autotiled
+// even when autotile is off, in tiles holding a whole number of groups --
+// unless that would make the tile too big, in which case we settle for
+// small unaligned tiles.
+void
+test_autotile_chunks()
+{
+    Strutil::print("\nTesting autotiling of chunked scanline files\n");
+    auto imagecache = ImageCache::create(false /* not shared */);
+    int autotile    = -1;
+    OIIO_CHECK_ASSERT(imagecache->getattribute("autotile", autotile));
+    OIIO_CHECK_EQUAL(autotile, 0);
+
+    // 512x512, one 512-row strip: a strip-sized tile is only 1 MB, so the
+    // tiles are the whole strip.
+    auto hand = imagecache->get_image_handle(onestriptex);
+    auto tile = imagecache->get_tile(hand, nullptr, 0, 0, 4, 4, 0);
+    OIIO_CHECK_ASSERT(tile != nullptr);
+    OIIO_CHECK_EQUAL(imagecache->tile_roi(tile),
+                     ROI(0, 512, 0, 512, 0, 1, 0, 4));
+    imagecache->release_tile(tile);
+
+    // 1024x8192, one 8192-row strip: a strip-sized tile would be 32 MB, so
+    // we give up on alignment and use the 64-row minimum instead.
+    hand = imagecache->get_image_handle(bigstriptex);
+    tile = imagecache->get_tile(hand, nullptr, 0, 0, 4, 4, 0);
+    OIIO_CHECK_ASSERT(tile != nullptr);
+    OIIO_CHECK_EQUAL(imagecache->tile_roi(tile),
+                     ROI(0, 1024, 0, 64, 0, 1, 0, 4));
     imagecache->release_tile(tile);
 }
 
@@ -386,6 +451,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_custom_threadinfo();
     test_imagespec();
     test_get_cache_dimensions();
+    test_autotile_chunks();
 
     auto ic = ImageCache::create();
     Strutil::print("\n\n{}\n", ic->getstats(5));

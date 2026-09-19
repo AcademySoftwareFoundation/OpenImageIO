@@ -314,9 +314,9 @@ ImageBufAlgo::compare_Yee(const ImageBuf& img0, const ImageBuf& img1,
                            - bLAB.getchannel(x, y, 0, 1);  // diff in A
                 float db = aLAB.getchannel(x, y, 0, 2)
                            - bLAB.getchannel(x, y, 0, 2);  // diff in B
-                da    = da * da;
-                db    = db * db;
-                delta = (da + db) * color_scale;
+                da       = da * da;
+                db       = db * db;
+                delta    = (da + db) * color_scale;
                 if (delta > factor)
                     pass = false;
             }

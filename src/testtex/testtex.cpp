@@ -581,7 +581,7 @@ map_filtertest(const int& x, const int& y, float& s, float& t, float& dsdx,
     float minoraxis = 1.0f / 256;
     float majoraxis = minoraxis
                       * lerp(1.0f, 32.0f, (float)x / (output_xres - 1));
-    float angle = (float)(2.0 * M_PI * (double)y / (output_yres - 1));
+    float angle     = (float)(2.0 * M_PI * (double)y / (output_yres - 1));
     float sinangle, cosangle;
     sincos(angle, &sinangle, &cosangle);
     s = 0.5f;
@@ -644,7 +644,7 @@ map_env_latlong(const int& x, const int& y, Imath::Vec3<float>& R,
     float dphi_dy   = float(M_PI) * dv_dy;  // dphi_dx = 0
 
     R    = Imath::Vec3<float>(fast_sin(phi) * fast_sin(theta), fast_cos(phi),
-                           -fast_sin(phi) * fast_cos(theta));
+                              -fast_sin(phi) * fast_cos(theta));
     dRdx = Imath::Vec3<float>(fast_sin(phi) * fast_cos(theta) * dtheta_dx,
                               float(0.0f),
                               fast_sin(phi) * fast_sin(theta) * dtheta_dx);
@@ -1040,19 +1040,20 @@ tex3d_region_batch(ImageBuf& image, ustring filename, Mapping3DWide mapping,
             RunMask mask = RunMaskOn >> (BatchWidth - npoints);
 
             // Call the texture system to do the filtering.
-            bool ok
-                = use_handle
-                      ? texsys->texture3d(texture_handle, perthread_info, opt,
-                                          mask, (float*)&P, (float*)&dPdx,
-                                          (float*)&dPdy, (float*)&dPdz,
-                                          nchannels, (float*)result,
-                                          (float*)dresultds, (float*)dresultdt,
-                                          (float*)dresultdr)
-                      : texsys->texture3d(filename, opt, mask, (float*)&P,
-                                          (float*)&dPdx, (float*)&dPdy,
-                                          (float*)&dPdz, nchannels,
-                                          (float*)result, (float*)dresultds,
-                                          (float*)dresultdt, (float*)dresultdr);
+            bool ok = use_handle
+                          ? texsys->texture3d(texture_handle, perthread_info,
+                                              opt, mask, (float*)&P,
+                                              (float*)&dPdx, (float*)&dPdy,
+                                              (float*)&dPdz, nchannels,
+                                              (float*)result, (float*)dresultds,
+                                              (float*)dresultdt,
+                                              (float*)dresultdr)
+                          : texsys->texture3d(filename, opt, mask, (float*)&P,
+                                              (float*)&dPdx, (float*)&dPdy,
+                                              (float*)&dPdz, nchannels,
+                                              (float*)result, (float*)dresultds,
+                                              (float*)dresultdt,
+                                              (float*)dresultdr);
             if (!ok) {
                 std::string e = texsys->geterror();
                 if (!e.empty())
@@ -1218,20 +1219,21 @@ env_region_batch(ImageBuf& image, ustring filename, MappingEnvWide mapping,
             // Call the texture system to do the filtering.
             // if (y == 0 && x == 0)
             //     Strutil::print("R = {}\n", R);
-            bool ok
-                = use_handle
-                      ? texsys->environment(texture_handle, perthread_info, opt,
-                                            mask, (const float*)&R,
-                                            (const float*)&dRdx,
-                                            (const float*)&dRdy, nchannels,
-                                            (float*)result, (float*)dresultds,
-                                            (float*)dresultdt)
-                      : texsys->environment(filename, opt, mask,
-                                            (const float*)&R,
-                                            (const float*)&dRdx,
-                                            (const float*)&dRdy, nchannels,
-                                            (float*)result, (float*)dresultds,
-                                            (float*)dresultdt);
+            bool ok = use_handle
+                          ? texsys->environment(texture_handle, perthread_info,
+                                                opt, mask, (const float*)&R,
+                                                (const float*)&dRdx,
+                                                (const float*)&dRdy, nchannels,
+                                                (float*)result,
+                                                (float*)dresultds,
+                                                (float*)dresultdt)
+                          : texsys->environment(filename, opt, mask,
+                                                (const float*)&R,
+                                                (const float*)&dRdx,
+                                                (const float*)&dRdy, nchannels,
+                                                (float*)result,
+                                                (float*)dresultds,
+                                                (float*)dresultdt);
 
             if (!ok) {
                 std::string e = texsys->geterror();
@@ -1779,9 +1781,9 @@ make_test_files()
             fflush(stdout);
         }
         for (int u = 0; u < pieces && n < num_test_files; ++u) {
-            std::string fn
-                = Strutil::replace(filename, "<UDIM>",
-                                   Strutil::fmt::format("{:04d}", u + 1001));
+            std::string fn = Strutil::replace(filename, "<UDIM>",
+                                              Strutil::fmt::format("{:04d}",
+                                                                   u + 1001));
             if (udim_tests && do_print)
                 Strutil::print("    {}\n", fn);
             if (!Filesystem::exists(fn))
@@ -1883,9 +1885,9 @@ main(int argc, const char* argv[])
 
     if (gtiname.size()) {
         const char* attrib = nullptr;
-        bool result        = texsys->get_texture_info(filenames[0], 0,
-                                                      ustring(gtiname), TypeString,
-                                                      &attrib);
+        bool result = texsys->get_texture_info(filenames[0], 0,
+                                               ustring(gtiname), TypeString,
+                                               &attrib);
         if (result)
             Strutil::print("Image \"{}\" attrib \"{}\" = \"{}\"\n",
                            filenames[0], gtiname, attrib);

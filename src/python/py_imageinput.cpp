@@ -96,8 +96,8 @@ ImageInput_read_tiles(ImageInput& self, int subimage, int miplevel, int xbegin,
     size_t nchans    = size_t(chend - chbegin);
     size_t pixelsize = size_t(nchans * format.size());
     size_t size      = (xend - xbegin) * (yend - ybegin) * (zend - zbegin)
-                  * pixelsize;
-    int dims = spec.tile_depth > 1 ? 4 : 3;
+                       * pixelsize;
+    int dims         = spec.tile_depth > 1 ? 4 : 3;
     std::unique_ptr<char[]> data(new char[size]);
     bool ok;
     {

@@ -15,6 +15,9 @@
 # the (unusually light) local build performed below.
 ######################################################################
 
+# NOTE: We are sticking with autobuild of nanobind defaulting to 2.13.0,
+# because nanobind 3.0+ requiers a minimum python of 3.10, whereas we
+# still support python 3.9.
 set_cache (nanobind_BUILD_VERSION 2.13.0 "nanobind version for local builds")
 set (nanobind_GIT_REPOSITORY "https://github.com/wjakob/nanobind")
 set_cache (nanobind_GIT_TAG "v${nanobind_BUILD_VERSION}"
@@ -65,4 +68,3 @@ set (nanobind_DIR "${nanobind_LOCAL_INSTALL_DIR}/nanobind/cmake" CACHE PATH
 # Signal to caller that we need to find again at the installed location
 set (nanobind_REFIND TRUE)
 set (nanobind_REFIND_ARGS CONFIG)
-set (nanobind_REFIND_VERSION ${nanobind_BUILD_VERSION})

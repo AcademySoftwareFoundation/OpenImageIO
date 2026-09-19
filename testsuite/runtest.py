@@ -47,6 +47,7 @@ tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
 redirect = " >> out.txt "
 wrapper_cmd = ""
+oiio_app_list = ("oiiotool", "iinfo", "idiff", "maketx", "iconvert", "igrep", "testtex", "iv")
 
 def make_relpath (path: str, start: str=os.curdir) -> str:
     "Wrapper around os.path.relpath which always uses '/' as the separator."
@@ -101,6 +102,31 @@ ociover = os.getenv('OCIO_VERSION_OVERRIDE', ociover)
 
 command = ""
 outputs = [ "out.txt" ]    # default
+
+# Support for temporarily redirecting a section of a test's commands to a file
+# other than the default out.txt. Use redirect_push(filename) before the
+# commands that should go to the alternate file, and redirect_pop() right
+# after to restore the previous redirect. Push/pop nest freely. The first time
+# a given filename is pushed, it's truncated and added to 'outputs' so it gets
+# checked against its ref; that same membership in 'outputs' is how we
+# recognize a later push of the same filename (e.g. a second section of the
+# test meant to append to it) and leave its contents alone rather than
+# truncating again.
+_redirect_stack: list[str] = []
+
+def redirect_push (filename: str) -> None :
+    global redirect
+    _redirect_stack.append (redirect)
+    if filename not in outputs :
+        open (filename, "w").close ()    # truncate, but only the first time
+        outputs.append (filename)
+    redirect = " >> " + filename + " "
+
+def redirect_pop () -> None :
+    global redirect
+    if not _redirect_stack :
+        raise RuntimeError ("redirect_pop: no matching redirect_push")
+    redirect = _redirect_stack.pop ()
 
 # The image comparison thresholds are tricky to remember. Here's the key:
 # A test fails if more than `failpercent` of pixel values differ by more
@@ -170,6 +196,15 @@ else :
 
 # Handy functions...
 
+# Strip trailing spaces/tabs from a line, but leave its line ending (if any)
+# alone. Used to make text_diff tolerant of trailing whitespace, which can
+# vary by platform (e.g. cmd.exe's `echo` bakes in a trailing space that a
+# Unix shell would not) without being a meaningful difference in output.
+def _rstrip_line (line: str) -> str:
+    ending = line[len (line.rstrip ('\r\n')):]
+    return line.rstrip () + ending
+
+
 # Compare two text files. Returns 0 if they are equal otherwise returns
 # a non-zero value and writes the differences to "diff_file".
 # Based on the command-line interface to difflib example from the Python
@@ -179,8 +214,8 @@ def text_diff (fromfile: str, tofile: str, diff_file: str=None) -> int:
     try:
         fromdate = time.ctime (os.stat (fromfile).st_mtime)
         todate = time.ctime (os.stat (tofile).st_mtime)
-        fromlines = open (fromfile, 'r').readlines()
-        tolines   = open (tofile, 'r').readlines()
+        fromlines = [_rstrip_line(l) for l in open (fromfile, 'r').readlines()]
+        tolines   = [_rstrip_line(l) for l in open (tofile, 'r').readlines()]
         # if replace_relative:
         #     tolines = replace_relative(tolines)
     except:
@@ -206,13 +241,41 @@ def text_diff (fromfile: str, tofile: str, diff_file: str=None) -> int:
     return 1
 
 
-def run_app(app: str, silent: bool=False, concat: bool=True) -> str:
-    command = app
+def run_app(app: str, silent: bool=False, failureok: bool=False,
+            concat: bool=True) -> str:
+    cmd = app.strip()
+    # If the command starts with the name of an OIIO app, substitute the
+    # full path to the built app.
+    words = cmd.split(maxsplit=1)
+    if not words:
+        return ""
+    if words[0] in oiio_app_list:
+        cmd = oiio_app(words[0]).strip() + (" " + words[1] if len(words) > 1 else "")
     if not silent:
-        command += redirect
+        cmd += redirect
+    if failureok :
+        cmd += " || true "
     if concat:
-        command += " ;\n"
-    return command
+        cmd += " ;\n"
+    return cmd
+
+
+# Take shell `commands`, split at newlines, adorn each with redirects, etc.,
+# then re-join with semicolons to make a single command.
+# Note: `failureok` defaults to None, meaning "use the global `failureok`
+# value at the time this is called", which a run.py may have set.
+def run_commands(commands: str, silent: bool=False,
+                 failureok=None, concat: bool=True) -> str :
+    if failureok is None :
+        failureok = globals()["failureok"]
+    result = ""
+    for line in commands.splitlines():
+        cmd = line.strip()
+        # Skip empty lines or comments
+        if cmd == "" or cmd.startswith("#"):
+            continue
+        result += run_app(cmd, silent=silent, failureok=failureok, concat=concat)
+    return result
 
 
 # Construct a command that will print info for an image, appending output to
@@ -230,15 +293,8 @@ def info_command (file: str, extraargs: str="", safematch: bool=False, hash: boo
         args += " --no-metamatch \"DateTime|Software|OriginatingProgram|ImageHistory\""
     if hash :
         args += " --hash"
-    cmd = (oiio_app(info_program) + args + " " + extraargs
-            + " " + make_relpath(file,tmpdir))
-    if not silent :
-        cmd += redirect
-    if failureok :
-        cmd += " || true "
-    if concat:
-        cmd += " ;\n"
-    return cmd
+    return run_app(f"{info_program} {args} {extraargs} {make_relpath(file,tmpdir)}",
+                   silent=silent, failureok=failureok, concat=concat)
 
 
 # Construct a command that will compare two images, appending output to
@@ -246,20 +302,12 @@ def info_command (file: str, extraargs: str="", safematch: bool=False, hash: boo
 # 1 LSB (8 bit) error, it's very hard to make different platforms and
 # compilers always match to every last floating point bit.
 def diff_command (fileA: str, fileB: str, extraargs: str="", silent: bool=False, concat: bool=True) -> str :
-    command = (oiio_app("idiff") + "-a"
-               + " -fail " + str(failthresh)
-               + " -failpercent " + str(failpercent)
-               + " -hardfail " + str(hardfail)
-               + " -allowfailures " + str(allowfailures)
-               + " -warn " + str(2*failthresh)
-               + " -warnpercent " + str(failpercent)
-               + " " + extraargs + " " + make_relpath(fileA,tmpdir)
-               + " " + make_relpath(fileB,tmpdir))
-    if not silent :
-        command += redirect
-    if concat:
-        command += " ;\n"
-    return command
+    return run_app (f"idiff -a -fail {failthresh} -failpercent {failpercent}"
+                    f" -hardfail {hardfail} -allowfailures {allowfailures}"
+                    f" -warn {2*failthresh} -warnpercent {failpercent}"
+                    f" {extraargs} {make_relpath(fileA,tmpdir)} "
+                    f" {make_relpath(fileB,tmpdir)}",
+                    silent=silent, concat=concat)
 
 
 # Construct a command that will create a texture, appending console
@@ -267,14 +315,10 @@ def diff_command (fileA: str, fileB: str, extraargs: str="", silent: bool=False,
 def maketx_command (infile: str, outfile: str, extraargs: str="",
                     showinfo: bool=False, showinfo_extra: str="",
                     silent: str=False, concat: str=True) -> str :
-    command = (oiio_app("maketx")
-               + " " + make_relpath(infile,tmpdir)
-               + " " + extraargs
-               + " -o " + make_relpath(outfile,tmpdir))
-    if not silent :
-        command += redirect
-    if concat:
-        command += " ;\n"
+    infile_relpath = make_relpath(infile,tmpdir)
+    outfile_relpath = make_relpath(outfile,tmpdir)
+    command = run_app(f"maketx {infile_relpath} {extraargs} -o {outfile_relpath}",
+                      silent=silent, concat=concat)
     if showinfo:
         command += info_command (outfile, extraargs=showinfo_extra, safematch=1)
     return command
@@ -291,62 +335,38 @@ def rw_command (dir: str, filename: str, testwrite: bool=True, use_oiiotool: boo
                 preargs: str="", idiffextraargs: str="", output_filename: str="",
                 safematch: bool=False, printinfo: bool=True) -> str:
     fn = make_relpath (dir + "/" + filename, tmpdir)
+    cmd = ""
     if printinfo :
-        cmd = info_command (fn, safematch=safematch)
-    else :
-        cmd = ""
+        cmd += info_command (fn, safematch=safematch)
     if output_filename == "" :
         output_filename = filename
     tool = "oiiotool" if use_oiiotool else "iconvert"
     if testwrite :
-        cmd = (cmd + oiio_app(tool) + preargs + " " + fn
-               + " " + extraargs + " -o " + output_filename + redirect + ";\n")
-        cmd = (cmd + oiio_app("idiff") + " -a " + fn
-               + " -fail " + str(failthresh)
-               + " -failpercent " + str(failpercent)
-               + " -hardfail " + str(hardfail)
-               + " -allowfailures " + str(allowfailures)
-               + " -warn " + str(2*failthresh)
-               + " " + idiffextraargs + " " + output_filename + redirect + ";\n")
+        cmd += run_app(f"{tool} {preargs} {fn} {extraargs} -o {output_filename}")
+        cmd += run_app(f"idiff -a {fn} -fail {failthresh} -failpercent {failpercent}"
+                       + f" -hardfail {hardfail} -allowfailures {allowfailures}"
+                       + f" -warn {2*failthresh} {idiffextraargs} {output_filename}")
     return cmd
 
 
 # Construct a command that will testtex
 def testtex_command (file: str, extraargs: str="", silent: bool=False, concat: bool=True) -> str:
-    cmd = oiio_app("testtex") + " " + file + " " + extraargs + " "
-    if not silent :
-        cmd += redirect
-    if concat:
-        cmd += " ;\n"
-    return cmd
+    return run_app(f"testtex {file} {extraargs}",
+                   silent=silent, concat=concat)
 
 
 # Construct a command that will run iconvert and append its output to out.txt
 def iconvert (args: str, silent: bool=False, concat: bool=True,
-              failureok: bool=False, successmessage: str="") -> str:
-    cmd = (oiio_app("iconvert") + " " + args)
-    if successmessage:
-        cmd = "(" + cmd + " && echo " + successmessage + ")"
-    if not silent :
-        cmd += redirect
-    if failureok :
-        cmd += " || true "
-    if concat:
-        cmd += " ;\n"
-    return cmd
+              failureok: bool=False) -> str:
+    return run_app(f"iconvert {args}",
+                   silent=silent, failureok=failureok, concat=concat)
 
 
 # Construct a command that will run oiiotool and append its output to out.txt
 def oiiotool (args: str, silent: bool=False, concat: bool=True,
              failureok: bool=False) -> str:
-    cmd = (oiio_app("oiiotool") + " " + args)
-    if not silent :
-        cmd += redirect
-    if failureok :
-        cmd += " || true "
-    if concat:
-        cmd += " ;\n"
-    return cmd
+    return run_app(f"oiiotool {args}",
+                   silent=silent, failureok=failureok, concat=concat)
 
 
 
@@ -422,7 +442,7 @@ def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
 
     for sub_command in [c.strip() for c in command.split(';') if c.strip()]:
         cmdret = subprocess.call (sub_command, shell=True, env=test_environ)
-        if cmdret != 0 and failureok == 0 :
+        if cmdret != 0 and not failureok :
             print ("#### Error: this command failed: ", sub_command)
             print ("FAIL")
             err = 1

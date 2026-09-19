@@ -44,11 +44,16 @@ static thread_local InputErrorMessages input_error_messages;
 static std::atomic_int64_t input_next_id(0);
 
 
+// How many scanlines does this file want to be read at a time? Formats that
+// store scanlines in indivisible groups -- TIFF strips, OpenEXR compressed
+// chunks -- say so in "oiio:RowsPerChunk". Reading in whole multiples of
+// that keeps us from decompressing the same group more than once. Formats
+// that don't say don't care, so pick 64 and move on.
 static int
-safe_rows_per_strip(const ImageSpec& spec)
+safe_rows_per_chunk(const ImageSpec& spec)
 {
-    int rps = spec.get_int_attribute("tiff:RowsPerStrip", 64);
-    return rps > 0 ? rps : 64;
+    int rpc = spec.get_int_attribute("oiio:RowsPerChunk", 0);
+    return rpc > 0 ? rpc : 64;
 }
 
 
@@ -390,7 +395,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = safe_rows_per_strip(m_spec);
+            rps = safe_rows_per_chunk(m_spec);
         // FIXME: does the above search of metadata have a significant cost?
     }
     if (spec.image_bytes() < 1) {
@@ -417,7 +422,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                                             : format.size() * nchans;
     stride_t buffer_scanline_bytes = native ? native_scanline_bytes
                                             : buffer_pixel_bytes * spec.width;
-    bool contiguous                = (xstride == (stride_t)buffer_pixel_bytes
+    bool contiguous = (xstride == (stride_t)buffer_pixel_bytes
                        && ystride == (stride_t)buffer_scanline_bytes);
 
     auto dataspan = make_span(static_cast<std::byte*>(data),
@@ -438,7 +443,7 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
     // No such luck.  Read scanlines in chunks.
 
     // Split into reasonable chunks -- try to use around 64 MB, but
-    // round up to a multiple of the TIFF rows per strip (or 64).
+    // round up to a multiple of the file's rows per chunk (or 64).
     int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
     chunk     = std::max(chunk, int(oiio_read_chunk));
     chunk     = round_to_multiple(chunk, rps);
@@ -644,10 +649,10 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
                                       ? native_pixel_bytes
                                       : format.size() * m_spec.nchannels;
     // Do the strides indicate that the data area is contiguous?
-    bool contiguous
-        = xstride == buffer_pixel_bytes
-          && (ystride == xstride * m_spec.tile_width
-              && (zstride == ystride * m_spec.tile_height || zstride == 0));
+    bool contiguous = xstride == buffer_pixel_bytes
+                      && (ystride == xstride * m_spec.tile_width
+                          && (zstride == ystride * m_spec.tile_height
+                              || zstride == 0));
 
     // If user's format and strides are set up to accept the native data
     // layout, read the tile directly into the user's buffer.
@@ -755,9 +760,9 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
     bool contiguous = (native_data && xstride == native_pixel_bytes)
                       || (!native_data
                           && xstride == (stride_t)spec.pixel_bytes(false));
-    contiguous
-        &= (ystride == xstride * (xend - xbegin)
-            && (zstride == ystride * (yend - ybegin) || (zend - zbegin) <= 1));
+    contiguous &= (ystride == xstride * (xend - xbegin)
+                   && (zstride == ystride * (yend - ybegin)
+                       || (zend - zbegin) <= 1));
 
     int nxtiles = (xend - xbegin + spec.tile_width - 1) / spec.tile_width;
     int nytiles = (yend - ybegin + spec.tile_height - 1) / spec.tile_height;
@@ -781,12 +786,12 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
     }
 
     // No such luck.  Just punt and read tiles individually.
-    bool ok                        = true;
-    stride_t pixelsize             = native_data ? native_pixel_bytes
-                                                 : (format.size() * nchans);
-    stride_t native_pixelsize      = spec.pixel_bytes(true);
-    stride_t full_pixelsize        = native_data ? native_pixelsize
-                                                 : (format.size() * spec.nchannels);
+    bool ok                   = true;
+    stride_t pixelsize        = native_data ? native_pixel_bytes
+                                            : (format.size() * nchans);
+    stride_t native_pixelsize = spec.pixel_bytes(true);
+    stride_t full_pixelsize   = native_data ? native_pixelsize
+                                            : (format.size() * spec.nchannels);
     stride_t full_tilewidthbytes   = full_pixelsize * spec.tile_width;
     stride_t full_tilewhbytes      = full_tilewidthbytes * spec.tile_height;
     stride_t full_tilebytes        = full_tilewhbytes * spec.tile_depth;
@@ -1133,7 +1138,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = safe_rows_per_strip(m_spec);
+            rps = safe_rows_per_chunk(m_spec);
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
@@ -1183,7 +1188,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     } else {  // Scanline image -- rely on read_scanlines.
         // Split into reasonable chunks -- try to use around 64 MB or the
         // oiio_read_chunk value, which ever is bigger, but also round up to
-        // a multiple of the TIFF rows per strip (or 64).
+        // a multiple of the file's rows per chunk (or 64).
         int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
         chunk     = std::max(chunk, int(oiio_read_chunk));
         chunk     = round_to_multiple(chunk, rps);
@@ -1226,7 +1231,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         spec.copy_dimensions(m_spec);
         // For scanline files, we also need one piece of metadata
         if (!spec.tile_width)
-            rps = safe_rows_per_strip(m_spec);
+            rps = safe_rows_per_chunk(m_spec);
     }
     if (spec.image_bytes() < 1) {
         errorfmt("Invalid image size {} x {} ({} chans)", m_spec.width,
@@ -1267,7 +1272,7 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
     } else {  // Scanline image -- rely on read_scanlines.
         // Split into reasonable chunks -- try to use around 64 MB or the
         // oiio_read_chunk value, which ever is bigger, but also round up to
-        // a multiple of the TIFF rows per strip (or 64).
+        // a multiple of the file's rows per chunk (or 64).
         int chunk = std::max(1, (1 << 26) / int(spec.scanline_bytes(true)));
         chunk     = std::max(chunk, int(oiio_read_chunk));
         chunk     = round_to_multiple(chunk, rps);
@@ -1315,10 +1320,10 @@ pvt::test_read_image(ImageInput& inp, int subimage, int miplevel,
         // deep) per iteration. Tile extents are clamped to the image so a
         // corrupt header claiming a giant tile cannot force a giant buffer;
         // read_tiles accepts the image edge in place of a tile boundary.
-        const int th = std::min(spec.tile_height > 0 ? spec.tile_height : 1,
-                                spec.height);
-        const int td = std::min(spec.tile_depth > 0 ? spec.tile_depth : 1,
-                                spec.depth);
+        const int th     = std::min(spec.tile_height > 0 ? spec.tile_height : 1,
+                                    spec.height);
+        const int td     = std::min(spec.tile_depth > 0 ? spec.tile_depth : 1,
+                                    spec.depth);
         const int xbegin = spec.x;
         const int xend   = spec.x + spec.width;
         std::vector<std::byte> buf(size_t(spec.width) * th * td * pixel_bytes);

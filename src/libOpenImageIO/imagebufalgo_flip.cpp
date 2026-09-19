@@ -1082,11 +1082,11 @@ flip_impl(ImageBuf& dst, ImageBuf* exposuremap, FLIPResults* result,
     float ppd           = options.get_float("ppd", FLIP_ppd_default);
     int hdr             = options.get_int("hdr", 1);
     string_view tmapper = options.get_string("tonemapper", "aces");
-    float startExp      = options.get_float("startExposure",
-                                            std::numeric_limits<float>::quiet_NaN());
-    float stopExp       = options.get_float("stopExposure",
-                                            std::numeric_limits<float>::quiet_NaN());
-    int numExp          = options.get_int("numExposures", 0);
+    float startExp = options.get_float("startExposure",
+                                       std::numeric_limits<float>::quiet_NaN());
+    float stopExp  = options.get_float("stopExposure",
+                                       std::numeric_limits<float>::quiet_NaN());
+    int numExp     = options.get_int("numExposures", 0);
 
     // Validate inputs
     if (!ref.initialized() || !test.initialized()) {
@@ -1236,5 +1236,26 @@ ImageBufAlgo::FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
     // Ignoring error return is ok here because the error is reported in dst
     return dst;
 }
+
+
+// These are just for link compatibility with 3.1 and 3.2 "main" before
+// release, when these were in the experimental namespace.
+namespace ImageBufAlgo {
+namespace experimental {
+    bool OIIO_API FLIP_diff(ImageBuf& dst, const ImageBuf& ref,
+                            const ImageBuf& test, KWArgs options, ROI roi,
+                            int nthreads)
+    {
+        return ImageBufAlgo::FLIP_diff(dst, ref, test, options, roi, nthreads);
+    }
+
+
+    ImageBuf OIIO_API FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
+                                KWArgs options, ROI roi, int nthreads)
+    {
+        return ImageBufAlgo::FLIP_diff(ref, test, options, roi, nthreads);
+    }
+}  // namespace experimental
+}  // namespace ImageBufAlgo
 
 OIIO_NAMESPACE_3_1_END

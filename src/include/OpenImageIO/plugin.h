@@ -28,8 +28,7 @@ typedef void* Handle;
 
 /// Return the platform-dependent suffix for plug-ins ("dll" on
 /// Windows, "so" on Linux and Mac OS X.
-OIIO_UTIL_API const char*
-plugin_extension(void);
+OIIO_UTIL_API const char* plugin_extension(void);
 
 /// Open the named plugin, return its handle.  If it could not be
 /// opened, return 0 and the next call to geterror() will contain
@@ -37,8 +36,7 @@ plugin_extension(void);
 /// symbols from the plugin will be available to the app (on Unix-like
 /// platforms; this has no effect on Windows).
 /// Note: This is more or less dlopen() on Unix-like systems.
-OIIO_UTIL_API Handle
-open(const char* plugin_filename, bool global = true);
+OIIO_UTIL_API Handle open(const char* plugin_filename, bool global = true);
 
 inline Handle
 open(const std::string& plugin_filename, bool global = true)
@@ -50,16 +48,15 @@ open(const std::string& plugin_filename, bool global = true)
 /// success.  If some error occurred, return false and the next call to
 /// geterror() will contain an explanatory message.
 /// Note: This is more or less dlclose() on Unix-like systems.
-OIIO_UTIL_API bool
-close(Handle plugin_handle);
+OIIO_UTIL_API bool close(Handle plugin_handle);
 
 /// Get the address of the named symbol from the open plugin handle.  If
 /// some error occurred, return nullptr and the next call to
 /// geterror() will contain an explanatory message (unless report_error
 /// is false, in which case the error message will be suppressed).
 /// Note: This is more or less dlsym() on Unix-like systems.
-OIIO_UTIL_API void*
-getsym(Handle plugin_handle, const char* symbol_name, bool report_error = true);
+OIIO_UTIL_API void* getsym(Handle plugin_handle, const char* symbol_name,
+                           bool report_error = true);
 
 inline void*
 getsym(Handle plugin_handle, const std::string& symbol_name,
@@ -72,8 +69,7 @@ getsym(Handle plugin_handle, const std::string& symbol_name,
 /// open, close, or getsym from the same thread.
 /// Note: This is more or less returning the last result of dlerror() on
 /// Unix-like systems.
-OIIO_UTIL_API std::string
-geterror(bool clear = true);
+OIIO_UTIL_API std::string geterror(bool clear = true);
 
 
 

@@ -43,10 +43,8 @@ OIIO_NAMESPACE_END
 
 OIIO_NAMESPACE_3_1_BEGIN
 namespace pvt {
-const char*
-texture_format_name(TexFormat f);
-const char*
-texture_type_name(TexFormat f);
+const char* texture_format_name(TexFormat f);
+const char* texture_type_name(TexFormat f);
 }  // namespace pvt
 
 

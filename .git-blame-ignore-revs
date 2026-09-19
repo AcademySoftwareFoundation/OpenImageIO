@@ -43,3 +43,6 @@ b88b82ffe9b3c4fcf04bf17bacc4ee77b2d1ed92
 
 # style: Turn on clang-format for ivmain.cpp (#4382)
 55872131ada91e0fa3b8bc4519e335b352d284df
+
+# style: formatting changes needed after the switch to clang 22 (#5426)
+bc11cc78e30a968767fd2172f4f6b4c74ec1d9b4

@@ -146,8 +146,8 @@ add_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         // Use native integer path for scale-invariant add when all types
         // match and are integer types (much faster: 6-12x vs 3-5x with
         // float conversion).
-        constexpr bool all_same = std::is_same_v<Rtype, Atype>
-                                  && std::is_same_v<Atype, Btype>;
+        constexpr bool all_same   = std::is_same_v<Rtype, Atype>
+                                    && std::is_same_v<Atype, Btype>;
         constexpr bool is_integer = std::is_integral_v<Rtype>;
         if constexpr (all_same && is_integer)
             return add_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);
@@ -219,9 +219,8 @@ sub_impl_hwy(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
 #endif  // OIIO_USE_HWY
 
 template<class Rtype, class Atype, class Btype>
-static bool
-sub_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
-                int nthreads);
+static bool sub_impl_scalar(ImageBuf& R, const ImageBuf& A, const ImageBuf& B,
+                            ROI roi, int nthreads);
 
 template<class Rtype, class Atype, class Btype>
 static bool
@@ -236,8 +235,8 @@ sub_impl(ImageBuf& R, const ImageBuf& A, const ImageBuf& B, ROI roi,
         // Use native integer path for scale-invariant sub when all types
         // match and are integer types (much faster: 6-12x vs 3-5x with
         // float conversion).
-        constexpr bool all_same = std::is_same_v<Rtype, Atype>
-                                  && std::is_same_v<Atype, Btype>;
+        constexpr bool all_same   = std::is_same_v<Rtype, Atype>
+                                    && std::is_same_v<Atype, Btype>;
         constexpr bool is_integer = std::is_integral_v<Rtype>;
         if constexpr (all_same && is_integer)
             return sub_impl_hwy_native_int<Rtype>(R, A, B, roi, nthreads);

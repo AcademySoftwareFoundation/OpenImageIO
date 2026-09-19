@@ -8,6 +8,7 @@ src/separate.tif     :  128 x  128, 3 channel, uint8 tiff
     planarconfig: "separate"
     Software: "OpenImageIO 2.3.0dev : oiiotool --pattern fill:topleft=0,0,0:topright=1,0,0:bottomleft=0,1,0:bottomright=1,1,1 128x128 3 --planarconfig separate -scanline -attrib tiff:rowsperstrip 17 -d uint8 -o separate.tif"
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 7
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -50,6 +51,7 @@ gps.tif              :   64 x   64, 3 channel, uint8 tiff
     GPS:TrackRef: "T" (true north)
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "srgb_rec709_scene"
+    oiio:RowsPerChunk: 32
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -68,6 +70,7 @@ src/crash-cmyk-1bit.tif :   73 x   43, 3 channel, uint1 tiff
     XResolution: 0
     YResolution: 72
     oiio:BitsPerSample: 1
+    oiio:RowsPerChunk: 28
     tiff:ColorSpace: "CMYK"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 5

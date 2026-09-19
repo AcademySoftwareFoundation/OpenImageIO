@@ -98,7 +98,10 @@ OIIO_EXPORT const char* rla_output_extensions[] = { "rla", nullptr };
 OIIO_PLUGIN_EXPORTS_END
 
 
-RLAOutput::RLAOutput() { init(); }
+RLAOutput::RLAOutput()
+{
+    init();
+}
 
 
 

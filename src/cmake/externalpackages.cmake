@@ -52,21 +52,25 @@ endif ()
 # IlmBase & OpenEXR
 checked_find_package (Imath REQUIRED
     VERSION_MIN 3.1
-    PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
 )
 
-checked_find_package (OpenEXR REQUIRED
+checked_find_package (OpenEXR REQUIRED CONFIG
     VERSION_MIN 3.1
     NO_FP_RANGE_CHECK
-    PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
     )
+
+# Set variables for two things that imported targets can't express: the global
+# ordering below, and the PUBLIC/PRIVATE choice for Imath in libOpenImageIO.
+# Everything else uses the targets.
+get_target_property (IMATH_INCLUDES Imath::Imath
+                     INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property (OPENEXR_INCLUDES OpenEXR::OpenEXR
+                     INTERFACE_INCLUDE_DIRECTORIES)
 
 # Force Imath includes to be before everything else to ensure that we have
 # the right Imath/OpenEXR version, not some older version in the system
 # library.
 include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
-set (OPENIMAGEIO_IMATH_TARGETS Imath::Imath)
-set (OPENIMAGEIO_OPENEXR_TARGETS OpenEXR::OpenEXR)
 set (OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY "PRIVATE" CACHE STRING
      "Should we expose Imath library dependency as PUBLIC or PRIVATE")
 set (OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH OFF CACHE BOOL
@@ -82,7 +86,8 @@ if (TARGET libjpeg-turbo::jpeg) # Try to find the non-turbo version
     set (JPEG_FOUND TRUE)
 else ()
     # Try to find the non-turbo version
-    checked_find_package (JPEG REQUIRED)
+    checked_find_package (JPEG REQUIRED
+                          VERSION_MIN 9.0)
 endif ()
 
 
@@ -101,6 +106,9 @@ if (NOT TARGET Deflate::Deflate)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_static)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_shared)
 endif ()
+
+# WebP must be found before TIFF, so that an auto-built libtiff can use it.
+checked_find_package (WebP VERSION_MIN 1.1)
 
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.1
@@ -137,7 +145,8 @@ endif ()
 if (USE_PYTHON AND OIIO_BUILD_PYTHON_NANOBIND)
     discover_nanobind_cmake_dir()
     checked_find_package (nanobind CONFIG REQUIRED
-                          VERSION_MIN 2.8.0
+                          VERSION_MIN 2.8.0 VERSION_MAX 3.9
+                          NO_FP_RANGE_CHECK
                           BUILD_LOCAL missing)
 endif ()
 
@@ -177,7 +186,7 @@ checked_find_package (TBB 2017
                       PREFER_CONFIG)
 
 # DCMTK is used to read DICOM images
-checked_find_package (DCMTK CONFIG VERSION_MIN 3.6.1)
+checked_find_package (DCMTK CONFIG VERSION_MIN 3.6.2)
 
 checked_find_package (FFmpeg VERSION_MIN 4.0)
 
@@ -216,8 +225,6 @@ if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
     unset (Ptex_FOUND)
     checked_find_package (Ptex)
 endif ()
-
-checked_find_package (WebP VERSION_MIN 1.1)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera

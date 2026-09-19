@@ -17,7 +17,6 @@ struct BlendOp {
     tagged_ptr<RGBA> output_buffer = nullptr;
 };
 
-void
-blend_kernel(int x, int y, tagged_ptr<void> data);
+void blend_kernel(int x, int y, tagged_ptr<void> data);
 
 }  // namespace texture_device

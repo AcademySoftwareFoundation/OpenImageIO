@@ -110,3 +110,20 @@ ref/vp9_rec2100_pq.mkv :  384 x  216, 3 channel, uint10 FFmpeg movie
     oiio:ColorSpace: "pq_rec2020_display"
     oiio:Movie: 1
     oiio:subimages: 2
+oiiotool WARNING : oiiotool produced no output. Did you forget -o?
+src/gray8.avi        :  128 x   64, 1 channel, uint8 FFmpeg movie
+oiiotool WARNING : oiiotool produced no output. Did you forget -o?
+src/gray16.avi       :  128 x   64, 1 channel, uint16 FFmpeg movie
+oiiotool WARNING : oiiotool produced no output. Did you forget -o?
+oiiotool ERROR: read : "src/bomb-16384x9000.avi": FFmpeg movie header claims a 1125 MB image from a 6592 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info --hash src/bomb-16384x9000.avi
+oiiotool ERROR: read : "src/truncated.avi" could not open input
+Full command line was:
+> oiiotool --info --hash src/truncated.avi
+src/resolution-change.mkv :  320 x  240, 3 channel, uint8 FFmpeg movie (4 subimages)
+    SHA-1: "src/resolution-change.mkv" frame 0 does not match the 320x240 format declared by the header
+iinfo ERROR: "src/resolution-change.mkv" : "src/resolution-change.mkv" frame 0 does not match the 320x240 format declared by the header
+src/bframes.mp4      :   32 x   32, 3 channel, uint8 FFmpeg movie (10 subimages)
+src/audio-track.mkv  :   32 x   32, 3 channel, uint8 FFmpeg movie (10 subimages)
+src/start-offset.mkv :   32 x   32, 3 channel, uint8 FFmpeg movie (10 subimages)

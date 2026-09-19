@@ -22,8 +22,7 @@
 /* DEPRECATED -- remove at next ABI compatibility boundary */
 OIIO_NAMESPACE_3_1_BEGIN
 namespace pvt {
-OIIO_UTIL_API void
-log_fmt_error(const char* message);
+OIIO_UTIL_API void log_fmt_error(const char* message);
 };
 OIIO_NAMESPACE_3_1_END
 #endif

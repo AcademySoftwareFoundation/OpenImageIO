@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause and Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #ifndef _WIN32
@@ -28,6 +29,7 @@
 #include <QProgressBar>
 #include <QResizeEvent>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStatusBar>
 #include <QTimer>
@@ -405,6 +407,12 @@ ImageViewer::createActions()
     //    toggleImageAct->setEnabled(true);
     connect(toggleImageAct, SIGNAL(triggered()), this, SLOT(toggleImage()));
 
+    comparisonAct = new QAction(tr("Wipe comparison"), this);
+    comparisonAct->setCheckable(true);
+    comparisonAct->setShortcut(tr("W"));
+    connect(comparisonAct, &QAction::toggled, this,
+            &ImageViewer::toggleComparison);
+
     toggleWindowGuidesAct
         = new QAction(tr("Show display and data window borders"), this);
     toggleWindowGuidesAct->setCheckable(true);
@@ -757,6 +765,7 @@ ImageViewer::createMenus()
     viewMenu->addAction(prevImageAct);
     viewMenu->addAction(nextImageAct);
     viewMenu->addAction(toggleImageAct);
+    viewMenu->addAction(comparisonAct);
     viewMenu->addAction(toggleWindowGuidesAct);
     viewMenu->addSeparator();
     viewMenu->addAction(zoomInAct);
@@ -844,7 +853,6 @@ ImageViewer::createStatusBar()
     mouseModeComboBox = new QComboBox;
     mouseModeComboBox->addItem(tr("Zoom"));
     mouseModeComboBox->addItem(tr("Pan"));
-    mouseModeComboBox->addItem(tr("Wipe"));
     mouseModeComboBox->addItem(tr("Select"));
     mouseModeComboBox->addItem(tr("Annotate"));
     // Note: the order of the above MUST match the order of enum MouseMode
@@ -1064,6 +1072,7 @@ ImageViewer::add_image(const std::string& filename)
         displayCurrentImage();
         fitWindowToImage(true, true);
     }
+    updateActions();
 }
 
 
@@ -1165,6 +1174,21 @@ ImageViewer::updateStatusBar()
                                    (int)m_images.size());
     message += cur()->shortinfo();
     statusImgInfo->setText(message.c_str());
+    if (m_comparison_image) {
+        std::string first_name  = Filesystem::filename(cur()->name());
+        std::string second_name = Filesystem::filename(
+            m_comparison_image->name());
+        if (first_name == second_name) {
+            first_name  = cur()->name();
+            second_name = m_comparison_image->name();
+        }
+        const char* first_side  = glwin->wipe_horizontal() ? "top" : "left";
+        const char* second_side = glwin->wipe_horizontal() ? "bottom" : "right";
+        message += Strutil::format("  |  {}: {}  {}: {}  (inspecting {})",
+                                   first_side, first_name, second_side,
+                                   second_name, first_side);
+        statusImgInfo->setText(message.c_str());
+    }
 
     message.clear();
     switch (m_color_mode) {
@@ -1218,12 +1242,8 @@ ImageViewer::updateStatusBar()
 
 
 bool
-ImageViewer::loadCurrentImage(int subimage, int miplevel)
+ImageViewer::loadImage(IvImage* img, int subimage, int miplevel)
 {
-    if (m_current_image < 0 || m_current_image >= (int)m_images.size()) {
-        m_current_image = 0;
-    }
-    IvImage* img = cur();
     if (img) {
         // We need the spec available to compare the image format with
         // opengl's capabilities.
@@ -1309,6 +1329,17 @@ ImageViewer::loadCurrentImage(int subimage, int miplevel)
 
 
 
+bool
+ImageViewer::loadCurrentImage(int subimage, int miplevel)
+{
+    if (m_current_image < 0 || m_current_image >= (int)m_images.size()) {
+        m_current_image = 0;
+    }
+    return loadImage(cur(), subimage, miplevel);
+}
+
+
+
 void
 ImageViewer::displayCurrentImage(bool update)
 {
@@ -1316,6 +1347,11 @@ ImageViewer::displayCurrentImage(bool update)
         m_current_image = 0;
     IvImage* img = cur();
     if (img) {
+        if (m_comparison_image == img && m_images.size() > 1) {
+            int previous       = (m_current_image + (int)m_images.size() - 1)
+                                 % (int)m_images.size();
+            m_comparison_image = m_images[previous];
+        }
         if (!img->image_valid()) {
             bool load_result = false;
 
@@ -1329,6 +1365,20 @@ ImageViewer::displayCurrentImage(bool update)
             if (load_result) {
                 update = true;
             } else {
+                return;
+            }
+        }
+        if (m_comparison_image && m_comparison_image != img
+            && !m_comparison_image->image_valid()) {
+            if (!loadImage(m_comparison_image,
+                           std::max(0, m_comparison_image->subimage()),
+                           std::max(0, m_comparison_image->miplevel()))) {
+                m_comparison_image = nullptr;
+                QSignalBlocker blocker(comparisonAct);
+                comparisonAct->setChecked(false);
+                glwin->reset_wipe();
+                glwin->update();
+                updateActions();
                 return;
             }
         }
@@ -1391,6 +1441,9 @@ ImageViewer::current_image(int newimage)
     if (m_images.empty() || newimage < 0 || newimage >= (int)m_images.size())
         m_current_image = 0;
     if (m_current_image != newimage) {
+        IvImage* old_image = cur();
+        if (m_comparison_image && old_image)
+            m_comparison_image = old_image;
         m_last_image    = (m_current_image >= 0) ? m_current_image : newimage;
         m_current_image = newimage;
         displayCurrentImage();
@@ -1434,7 +1487,41 @@ ImageViewer::nextImage()
 void
 ImageViewer::toggleImage()
 {
-    current_image(m_last_image);
+    if (m_comparison_image) {
+        auto found = std::find(m_images.begin(), m_images.end(),
+                               m_comparison_image);
+        if (found != m_images.end())
+            current_image(int(found - m_images.begin()));
+    } else {
+        current_image(m_last_image);
+    }
+}
+
+void
+ImageViewer::toggleComparison(bool enabled)
+{
+    if (enabled) {
+        if (!glwin->is_glsl_capable() || m_images.size() < 2 || !cur()) {
+            QSignalBlocker blocker(comparisonAct);
+            comparisonAct->setChecked(false);
+            return;
+        }
+        int index = m_last_image;
+        if (index < 0 || index >= (int)m_images.size()
+            || index == m_current_image)
+            index = (m_current_image + (int)m_images.size() - 1)
+                    % (int)m_images.size();
+        m_comparison_image = m_images[index];
+        glwin->reset_wipe();
+        displayCurrentImage();
+    } else {
+        m_comparison_image = nullptr;
+        if (comparisonAct && comparisonAct->isChecked()) {
+            QSignalBlocker blocker(comparisonAct);
+            comparisonAct->setChecked(false);
+        }
+        displayCurrentImage();
+    }
 }
 
 
@@ -1584,9 +1671,9 @@ ImageViewer::viewChannel(int c, COLOR_MODE colormode)
         if (!glwin->is_glsl_capable()) {
             IvImage* img = cur();
             if (img) {
-                bool srgb_transform
-                    = (!glwin->is_srgb_capable()
-                       && is_colorspace_srgb(img->spec(), false));
+                bool srgb_transform = (!glwin->is_srgb_capable()
+                                       && is_colorspace_srgb(img->spec(),
+                                                             false));
                 img->pixel_transform(srgb_transform, (int)colormode, c);
             }
         } else {
@@ -2022,6 +2109,10 @@ ImageViewer::keyPressEvent(QKeyEvent* event)
     case Qt::Key_Down:
     case Qt::Key_PageDown: nextImage(); return;  //break;
     case Qt::Key_Escape:
+        if (m_comparison_image) {
+            toggleComparison(false);
+            return;
+        }
         if (m_fullscreen)
             fullScreenToggle();
         return;
@@ -2204,8 +2295,8 @@ ImageViewer::fitWindowToImage(bool zoomok, bool minsize)
     // (or we failed to open it).
     if (!img || !img->image_valid())
         return;
-        // FIXME -- figure out a way to make it exactly right, even for the
-        // main window border, etc.
+    // FIXME -- figure out a way to make it exactly right, even for the
+    // main window border, etc.
 #ifdef __APPLE__
     int extraw = 0;  //12; // width() - minimumWidth();
     int extrah = statusBar()->height()
@@ -2331,6 +2422,17 @@ ImageViewer::updateActions()
     //    zoomInAct->setEnabled(!fitImageToWindowAct->isChecked());
     //    zoomOutAct->setEnabled(!fitImageToWindowAct->isChecked());
     //    normalSizeAct->setEnabled(!fitImageToWindowAct->isChecked());
+    const bool can_compare = m_images.size() >= 2 && glwin->is_glsl_capable();
+    if (comparisonAct) {
+        comparisonAct->setEnabled(can_compare);
+        QSignalBlocker blocker(comparisonAct);
+        comparisonAct->setChecked(can_compare && m_comparison_image);
+    }
+    if (!can_compare && m_comparison_image) {
+        m_comparison_image = nullptr;
+        glwin->reset_wipe();
+        glwin->update();
+    }
 }
 
 
@@ -2341,7 +2443,7 @@ calc_subimage_from_zoom(const IvImage* img, int& subimage, float& zoom,
 {
     int rel_subimage = std::trunc(std::log2(1.0f / zoom));
     subimage         = clamp<int>(img->subimage() + rel_subimage, 0,
-                          img->nsubimages() - 1);
+                                  img->nsubimages() - 1);
     if (!(img->subimage() == 0 && zoom > 1)
         && !(img->subimage() == img->nsubimages() - 1 && zoom < 1)) {
         float pow_zoom = powf(2.0f, (float)rel_subimage);
@@ -2381,7 +2483,7 @@ ImageViewer::view(float xcenter, float ycenter, float newzoom, bool smooth,
         }
     }
 
-    if (img->auto_subimage()) {
+    if (img->auto_subimage() && !m_comparison_image) {
         int subimage = 0;
         calc_subimage_from_zoom(img, subimage, m_zoom, xcenter, ycenter);
         if (subimage != img->subimage()) {

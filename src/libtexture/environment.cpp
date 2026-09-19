@@ -437,7 +437,7 @@ TextureSystemImpl::environment(TextureHandle* texture_handle_,
 
     TextureOpt::MipMode mipmode = options.mipmode;
     bool aniso                  = (mipmode == TextureOpt::MipModeDefault
-                  || mipmode == TextureOpt::MipModeAniso);
+                                   || mipmode == TextureOpt::MipModeAniso);
 
     float aspect, trueaspect, filtwidth;
     int nsamples;

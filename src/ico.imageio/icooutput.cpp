@@ -107,7 +107,10 @@ OIIO_PLUGIN_EXPORTS_END
 
 
 
-ICOOutput::ICOOutput() { init(); }
+ICOOutput::ICOOutput()
+{
+    init();
+}
 
 
 
@@ -136,7 +139,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
     // are 8-bit
     const ParamValue* p = m_spec.find_attribute("ico:PNG", TypeInt);
     m_want_png          = (p && *(int*)p->data()) || m_spec.width == 256
-                 || m_spec.height == 256;
+                          || m_spec.height == 256;
 
     if (m_want_png) {
         std::string s = PNG_pvt::create_write_struct(m_png, m_info,
@@ -159,7 +162,7 @@ ICOOutput::open(const std::string& name, const ImageSpec& userspec,
         }
 
         m_bpp     = (m_color_type == PNG_COLOR_TYPE_GRAY_ALPHA
-                 || m_color_type == PNG_COLOR_TYPE_RGB_ALPHA)
+                     || m_color_type == PNG_COLOR_TYPE_RGB_ALPHA)
                         ? 32
                         : 24;
         m_xor_slb = (m_spec.width * m_bpp + 7) / 8  // real data bytes

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include <cstdarg>
 #include <cstdio>
 #include <vector>
 
@@ -338,8 +337,13 @@ Jpeg2000Input::ojph_read_header()
     int ch              = siz.get_num_components();
     const int w         = siz.get_recon_width(0);
     const int h         = siz.get_recon_height(0);
-    TypeDesc dtype;
+    TypeDesc dtype      = TypeDesc::UINT8;
 
+    if (ch < 1) {
+        errorfmt("No components in HTJ2K codestream");
+        close();
+        return false;
+    }
     if (ch > 4)
         ch = 4;  // Only do the first 4 channels.
     m_bpp.resize(ch);
@@ -347,14 +351,14 @@ Jpeg2000Input::ojph_read_header()
     for (int c = 0; c < ch; c++) {
         switch (siz.get_bit_depth(c)) {
         case 8:
-            dtype    = TypeDesc::UCHAR;
+            dtype    = TypeDesc::UINT8;
             m_bpp[c] = 1;
             break;
         case 10:
         case 12:
         case 16:
             m_bpp[c] = 2;
-            dtype    = TypeDesc::USHORT;
+            dtype    = TypeDesc::UINT16;
             break;
         case 32:
             m_bpp[c] = 4;
@@ -374,6 +378,17 @@ Jpeg2000Input::ojph_read_header()
     }
 
     m_spec = ImageSpec(w, h, ch, dtype);
+
+    // The dimensions come straight from the SIZ marker, and ojph_read_image()
+    // allocates the whole image up front, so the size has to be vetted here --
+    // the guards on the OpenJPEG path below do not run for HTJ2K files.
+    if (!check_open(m_spec, { 0, std::numeric_limits<int>::max(), 0,
+                              std::numeric_limits<int>::max(), 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, ioproxy() ? ioproxy()->size() : 0)) {
+        close();
+        return false;
+    }
+
     m_spec.default_channel_names();
     m_spec.attribute("oiio:BitsPerSample", siz.get_bit_depth(0));
     m_spec.set_colorspace("srgb_rec709_scene");
@@ -395,11 +410,12 @@ Jpeg2000Input::ojph_read_image()
     const size_t bufsize
         = clamped_mult64(clamped_mult64(uint64_t(w), uint64_t(h)),
                          clamped_mult64(uint64_t(ch), uint64_t(buffer_bpp)));
-    m_buf.resize(bufsize);
     try {
+        m_buf.resize(bufsize);
         codestream.create();
-    } catch (const std::runtime_error& e) {
+    } catch (const std::exception& e) {
         errorfmt("openjph exception {}", e.what());
+        return false;
     }
 
     int file_bit_depth = siz.get_bit_depth(0);  // Assuming RGBA are the same.
@@ -413,20 +429,25 @@ Jpeg2000Input::ojph_read_image()
                 ojph::line_buf* line = nullptr;
                 try {
                     line = codestream.pull(comp_num);
-                } catch (const std::runtime_error& e) {
+                } catch (const std::exception& e) {
                     errorfmt("openjph exception {}", e.what());
+                }
+                if (!line) {
+                    if (!has_error())
+                        errorfmt("Could not pull HTJ2K scanline");
+                    return false;
                 }
 
                 const ojph::si32* sp = line->i32;
                 OIIO_DASSERT(int(comp_num) == c);
-                if (m_spec.format == TypeDesc::UCHAR) {
+                if (m_spec.format == TypeDesc::UINT8) {
                     unsigned char* dout = &m_buf[i * w * ch];
                     dout += c;
                     for (int j = w; j > 0; j--, dout += ch) {
                         *dout = *sp++;
                     }
                 }
-                if (m_spec.format == TypeDesc::USHORT) {
+                if (m_spec.format == TypeDesc::UINT16) {
                     unsigned short* dout
                         = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
                     dout += c;
@@ -443,20 +464,25 @@ Jpeg2000Input::ojph_read_image()
                 ojph::line_buf* line = nullptr;
                 try {
                     line = codestream.pull(comp_num);
-                } catch (const std::runtime_error& e) {
+                } catch (const std::exception& e) {
                     errorfmt("openjph exception {}", e.what());
+                }
+                if (!line) {
+                    if (!has_error())
+                        errorfmt("Could not pull HTJ2K scanline");
+                    return false;
                 }
 
                 const ojph::si32* sp = line->i32;
                 OIIO_DASSERT(int(comp_num) == c);
-                if (m_spec.format == TypeDesc::UCHAR) {
+                if (m_spec.format == TypeDesc::UINT8) {
                     unsigned char* dout = &m_buf[i * w * ch];
                     dout += c;
                     for (int j = w; j > 0; j--, dout += ch) {
                         *dout = *sp++;
                     }
                 }
-                if (m_spec.format == TypeDesc::USHORT) {
+                if (m_spec.format == TypeDesc::UINT16) {
                     unsigned short* dout
                         = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
                     dout += c;
@@ -475,28 +501,40 @@ Jpeg2000Input::ojph_read_image()
 
 
 
-class Oiio_Reader_Error_handler : public ojph::message_error {
-    // This is a special error handler, since in this case, if we get the error-code for not a J2K file, we dont
-    // want to print out anything. If not, we fall through to the regular error handler.
-    ojph::message_error* default_error;
-
+// Custom OpenJPH error handler. OpenJPH requires the handler to throw; we
+// turn every reported error into a std::runtime_error that open() catches so
+// it can fall through to the OpenJPEG code path. The message text is not
+// forwarded: relaying a va_list through another C-varargs call is undefined
+// behavior, and OpenJPH's error stream is disabled process-wide anyway.
+class Oiio_Reader_Error_handler final : public ojph::message_error {
 public:
-    Oiio_Reader_Error_handler(ojph::message_error* error)
+    void operator()(int error_code, const char* file_name, int line_num,
+                    const char* /*fmt*/, ...) override
     {
-        default_error = error;
-    }
-    virtual void operator()(int error_code, const char* file_name, int line_num,
-                            const char* fmt, ...)
-    {
-        if (error_code == 0x00050044) {
-            throw std::runtime_error("ojph error: not HTJ2K file");
-        }
-        va_list args;
-        va_start(args, fmt);
-        default_error[0](error_code, file_name, line_num, fmt, args);
-        va_end(args);
+        throw std::runtime_error(
+            Strutil::format("ojph error 0x{:08X} at {}:{}", error_code,
+                            file_name ? file_name : "", line_num));
     }
 };
+
+
+// OpenJPH's error handling is process-global: set_error_stream and
+// configure_error write plain globals that every OpenJPH call reads. The
+// handler must therefore outlive every OpenJPH call in the process --
+// including scanline decodes that run long after open() returns -- and the
+// globals must not be written while another thread is decoding. Install once,
+// from a thread-safe static initializer, and never restore.
+static void
+ojph_install_error_handler()
+{
+    static const bool installed = []() {
+        static Oiio_Reader_Error_handler handler;
+        ojph::set_error_stream(nullptr);
+        ojph::configure_error(&handler);
+        return true;
+    }();
+    (void)installed;
+}
 
 #endif  // USE_OPENJPH
 
@@ -510,19 +548,13 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
 
 #ifdef USE_OPENJPH
     m_jphinfile.reset(new jph_infile(ioproxy()));
-    ojph_reader                        = true;
-    ojph::message_error* default_error = ojph::get_error();
-    // Disable the default OpenJPH error stream to prevent unwanted error output.
-    // Errors will be handled by the custom error handler (Oiio_Reader_Error_handler) configured below.
-    ojph::set_error_stream(nullptr);
+    ojph_reader = true;
+    ojph_install_error_handler();
 
     try {
-        Oiio_Reader_Error_handler error_handler(default_error);
-        ojph::configure_error(&error_handler);
         codestream.read_headers(m_jphinfile.get());
         return ojph_read_header();
     } catch (const std::runtime_error& e) {
-        ojph::configure_error(default_error);
         ojph_reader = false;
         m_jphinfile.reset();
     }
@@ -737,11 +769,19 @@ Jpeg2000Input::read_native_scanline(int subimage, int miplevel, int y, int z,
 
 #ifdef USE_OPENJPH
     if (ojph_reader) {
-        if (!ojph_image_read)
-            ojph_read_image();
-        unsigned char* start
-            = &m_buf[buffer_bpp * (y * m_spec.width * m_spec.nchannels)];
-        memcpy(data, start, buffer_bpp * m_spec.width * m_spec.nchannels);
+        if (!ojph_image_read && !ojph_read_image())
+            return false;
+        // The whole image is buffered up front, so a failed or short decode
+        // must not be copied out of regardless.
+        const int64_t scanline_size = int64_t(buffer_bpp) * m_spec.width
+                                      * m_spec.nchannels;
+        const int64_t offset        = scanline_size * y;
+        if (y < 0 || offset < 0
+            || offset + scanline_size > int64_t(m_buf.size())) {
+            errorfmt("Scanline {} is outside the decoded HTJ2K image", y);
+            return false;
+        }
+        memcpy(data, &m_buf[offset], scanline_size);
     } else {
 #endif  // USE_OPENJPH
 

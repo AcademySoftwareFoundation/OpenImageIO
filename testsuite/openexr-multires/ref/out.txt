@@ -246,6 +246,7 @@ Reading ../openexr-images/MultiResolution/WavyLinesSphere.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiResolution/WavyLinesSphere.exr" and "WavyLinesSphere.exr"
@@ -263,6 +264,7 @@ Reading ../openexr-images/MultiView/Adjuster.exr
     screenWindowWidth: 1
     XResolution: 100
     YResolution: 100
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiView/Adjuster.exr" and "Adjuster.exr"
@@ -279,6 +281,7 @@ Reading ../openexr-images/MultiView/Balls.exr
     screenWindowWidth: 1
     XResolution: 100
     YResolution: 100
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiView/Balls.exr" and "Balls.exr"
@@ -299,6 +302,7 @@ Reading ../openexr-images/MultiView/Fog.exr
     screenWindowWidth: 1
     XResolution: 100
     YResolution: 100
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiView/Fog.exr" and "Fog.exr"
@@ -341,6 +345,7 @@ Reading ../openexr-images/MultiView/LosPadres.exr
     screenWindowWidth: 1
     XResolution: 100
     YResolution: 100
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/MultiView/LosPadres.exr" and "LosPadres.exr"

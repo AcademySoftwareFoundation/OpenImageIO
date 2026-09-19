@@ -48,8 +48,7 @@ public:
     // in bytes, between subsequent color channels, pixels, and scanlines.
     virtual void apply(float* data, int width, int height, int channels,
                        stride_t chanstride, stride_t xstride,
-                       stride_t ystride) const
-        = 0;
+                       stride_t ystride) const = 0;
     // Convert a single 3-color
     void apply(float* data)
     {
@@ -398,10 +397,9 @@ public:
     /// the OCIO config's default color space. If `cs_name_match` is
     /// true, additionally attempt to match the color space name in the
     /// filename, if the OCIO config heuristics fail to find a match.
-    OIIO_NODISCARD string_view getColorSpaceFromFilepath(string_view str,
-                                                         string_view default_cs,
-                                                         bool cs_name_match
-                                                         = false) const;
+    OIIO_NODISCARD string_view
+    getColorSpaceFromFilepath(string_view str, string_view default_cs,
+                              bool cs_name_match = false) const;
 
     /// Given a filepath, returns whether the result of
     /// getColorSpaceFromFilepath() is the failover condition, due

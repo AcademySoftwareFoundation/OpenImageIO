@@ -1509,8 +1509,9 @@ OIIO_FORCEINLINE OIIO_HOSTDEVICE float safe_fmod (float a, float b)
 /// confusion.
 OIIO_FORCEINLINE OIIO_HOSTDEVICE int fast_rint (float x) {
     // used by sin/cos/tan range reduction
-#if OIIO_SIMD_SSE >= 4
-    // single roundps instruction on SSE4.1+ (for gcc/clang at least)
+#if OIIO_SIMD_SSE >= 4 || OIIO_SIMD_NEON
+    // single roundps instruction on SSE4.1+ (for gcc/clang at least), and a
+    // single frintx/fcvtns on aarch64
     return static_cast<int>(std::rint(x));
 #else
     // emulate rounding by adding/subtracting 0.5

@@ -158,8 +158,7 @@ struct oiio_py_buffer_view {
     std::string format;
 };
 
-oiio_py_buffer_view
-oiio_py_request_buffer(const py::object& obj);
+oiio_py_buffer_view oiio_py_request_buffer(const py::object& obj);
 
 // Struct that holds OIIO style buffer info, constructed from a buffer object.
 struct oiio_bufinfo {
@@ -633,9 +632,8 @@ attribute_onearg(T& myobj, string_view name, const py::object& obj)
 
 // `data` points to values of `type`. Make a python object that represents
 // them.
-py::object
-make_pyobject(const void* data, TypeDesc type, int nvalues = 1,
-              py::object defaultvalue = py::none());
+py::object make_pyobject(const void* data, TypeDesc type, int nvalues = 1,
+                         py::object defaultvalue = py::none());
 
 
 
@@ -661,13 +659,11 @@ getattribute_typed(const T& obj, const std::string& name,
 // N.B. There is some evidence that this doesn't work properly with
 // non-float arrays. Maybe a limitation of pybind11?
 template<class T>
-py::object
-make_numpy_array(T* data, int dims, size_t chans, size_t width, size_t height,
-                 size_t depth = 1);
+py::object make_numpy_array(T* data, int dims, size_t chans, size_t width,
+                            size_t height, size_t depth = 1);
 
-py::object
-make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
-                 size_t width, size_t height, size_t depth = 1);
+py::object make_numpy_array(TypeDesc format, void* data, int dims, size_t chans,
+                            size_t width, size_t height, size_t depth = 1);
 
 
 

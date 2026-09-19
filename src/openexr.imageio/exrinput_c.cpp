@@ -156,6 +156,9 @@ public:
 
 private:
     const ImageSpec& init_part(int subimage, int miplevel);
+    bool read_cached_chunk(int subimage, int miplevel, int ybegin, int yend,
+                           int chbegin, int chend, int cbegin, int cend,
+                           size_t scanlinebytes, void* data);
     struct PartInfo {
         std::atomic_bool initialized;
         ImageSpec spec;
@@ -208,6 +211,8 @@ private:
     exr_context_t m_exr_context = nullptr;
     oiioexr_filebuf_struct m_userdata;
 
+    ExrChunkCache m_chunkcache;
+
     std::unique_ptr<Filesystem::IOProxy> m_local_io;
     int m_nsubimages;                   ///< How many subimages are there?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
@@ -223,6 +228,7 @@ private:
         m_missingcolor.clear();
         m_filename.clear();
         m_file_color_interop_id.clear();
+        m_chunkcache.clear();
     }
 
     bool valid_file_or_proxy(const std::string& filename,
@@ -298,7 +304,10 @@ static std::map<std::string, std::string> cexr_tag_to_oiio_std {
 
 
 
-OpenEXRCoreInput::OpenEXRCoreInput() { init(); }
+OpenEXRCoreInput::OpenEXRCoreInput()
+{
+    init();
+}
 
 
 
@@ -600,6 +609,17 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
         }
         if (comp)
             spec.attribute("compression", comp);
+    }
+
+    if (spec.tile_width == 0) {
+        // Scanline file: advertise how many scanlines are packed into each
+        // compressed chunk, so that callers can align their reads to whole
+        // chunks (see ImageInput::read_image, read_scanlines).
+        int32_t scansperchunk = 1;
+        if (exr_get_scanlines_per_chunk(ctxt, subimage, &scansperchunk)
+                == EXR_ERR_SUCCESS
+            && scansperchunk > 1)
+            spec.attribute("oiio:RowsPerChunk", scansperchunk);
     }
 
     int32_t attrcount = 0;
@@ -1276,6 +1296,33 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
 
 
+// Serve scanlines [ybegin,yend) out of the chunk [cbegin,cend), which is a
+// full chunk of the file, decoding that chunk if we don't already have it in
+// hand. Only called when the request is a proper subset of the chunk.
+bool
+OpenEXRCoreInput::read_cached_chunk(int subimage, int miplevel, int ybegin,
+                                    int yend, int chbegin, int chend,
+                                    int cbegin, int cend, size_t scanlinebytes,
+                                    void* data)
+{
+    if (m_chunkcache.fetch(subimage, miplevel, cbegin, cend, chbegin, chend,
+                           ybegin, yend, scanlinebytes, data))
+        return true;
+
+    // Cache miss. Decode the whole chunk. This recursive call asks for
+    // exactly one full chunk, so it won't come back here.
+    default_init_vector<uint8_t> chunk(scanlinebytes * size_t(cend - cbegin));
+    if (!read_native_scanlines(subimage, miplevel, cbegin, cend, 0, chbegin,
+                               chend, chunk.data()))
+        return false;
+    memcpy(data, chunk.data() + scanlinebytes * size_t(ybegin - cbegin),
+           scanlinebytes * size_t(yend - ybegin));
+    m_chunkcache.adopt(subimage, miplevel, cbegin, cend, chbegin, chend, chunk);
+    return true;
+}
+
+
+
 bool
 OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                         int yend, int /*z*/, int chbegin,
@@ -1307,10 +1354,26 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
            m_userdata.m_io->filename(), subimage, miplevel, ybegin, yend,
            yend - ybegin, chbegin, chend - 1, pixelbytes, scanlinebytes,
            scansperchunk);
-    int endy        = spec.y + spec.height;
-    yend            = std::min(endy, yend);
+    int endy = spec.y + spec.height;
+    yend     = std::min(endy, yend);
+    if (ybegin >= yend)
+        return true;
+
     int ychunkstart = spec.y
                       + round_down_to_multiple(ybegin - spec.y, scansperchunk);
+
+    // If the request is only part of a single chunk, go through the chunk
+    // cache: decoding a whole chunk to hand back a few of its scanlines is
+    // expensive, and a client that reads a scanline (or any other sub-chunk
+    // swath) at a time will ask for the rest of that chunk next.
+    if (scansperchunk > 1 && ybegin >= spec.y) {
+        int ychunkend = std::min(ychunkstart + scansperchunk, endy);
+        if (yend <= ychunkend && (ybegin > ychunkstart || yend < ychunkend))
+            return read_cached_chunk(subimage, miplevel, ybegin, yend, chbegin,
+                                     chend, ychunkstart, ychunkend,
+                                     scanlinebytes, data);
+    }
+
     std::atomic<bool> ok(true);
     parallel_for_chunked(
         ychunkstart, yend, scansperchunk,
@@ -1768,7 +1831,7 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
                 curchan.user_bytes_per_element = ud->deepdata->samplesize();
                 curchan.user_pixel_stride      = size_t(chans) * sizeof(void*);
                 curchan.user_line_stride       = (size_t(w) * size_t(chans)
-                                            * sizeof(void*));
+                                                  * sizeof(void*));
                 chanoffset += 1;
                 break;
             }
@@ -2039,7 +2102,7 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
                 } else {
                     uint32_t* allsampdata = all_samples.data()
                                             + ty * width * tileh;
-                    int sw = tilew;
+                    int sw                = tilew;
                     if ((size_t(tx) * size_t(tilew) + size_t(tilew)) > width)
                         sw = width - (tx * tilew);
                     int nlines = tileh;
@@ -2069,10 +2132,11 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
             exr_decode_pipeline_t decoder = EXR_DECODE_PIPELINE_INITIALIZER;
             DecoderDestroyer dd(m_exr_context, &decoder);
             // Note: the decoder will be destroyed by dd exiting scope
-            exr_result_t rv
-                = exr_read_tile_chunk_info(m_exr_context, subimage,
-                                           firstxtile + tx, firstytile + ty,
-                                           miplevel, miplevel, &cinfo);
+            exr_result_t rv = exr_read_tile_chunk_info(m_exr_context, subimage,
+                                                       firstxtile + tx,
+                                                       firstytile + ty,
+                                                       miplevel, miplevel,
+                                                       &cinfo);
             if (rv == EXR_ERR_SUCCESS)
                 rv = exr_decoding_initialize(m_exr_context, subimage, &cinfo,
                                              &decoder);

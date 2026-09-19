@@ -57,7 +57,7 @@ template<unsigned BASE_CAPACITY, unsigned POOL_SIZE> struct TableRepMap {
 
     TableRepMap()
         : entries(static_cast<ustring::TableRep**>(
-            calloc(BASE_CAPACITY, sizeof(ustring::TableRep*))))
+              calloc(BASE_CAPACITY, sizeof(ustring::TableRep*))))
         , pool(static_cast<char*>(malloc(POOL_SIZE)))
         , memory_usage(sizeof(*this) + POOL_SIZE
                        + sizeof(ustring::TableRep*) * BASE_CAPACITY)
@@ -459,8 +459,8 @@ ustring::TableRep::TableRep(string_view strref, ustring::hash_t hash)
     // the length), we construct it ourselves, forcing the pointer to point
     // to the characters in the TableRep we allocated.
     if (length >= libcpp_string__min_cap /* it'll be a "long string" */) {
-        ((libcpp_string__long*)&str)->__cap_ = libcpp_string__long_mask
-                                               | (length + 1);
+        ((libcpp_string__long*)&str)->__cap_  = libcpp_string__long_mask
+                                                | (length + 1);
         ((libcpp_string__long*)&str)->__size_ = length;
         ((libcpp_string__long*)&str)->__data_ = (char*)c_str();
         OIIO_DASSERT(str.c_str() == c_str() && str.size() == length);

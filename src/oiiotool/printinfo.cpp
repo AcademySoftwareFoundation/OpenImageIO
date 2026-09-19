@@ -34,18 +34,14 @@ using namespace OIIO::pvt;
 using namespace OiioTool;
 using namespace ImageBufAlgo;
 
-
-// clang-format off
 #if defined(FMT_VERSION) && !defined(OIIO_HALF_FORMATTER)
-#if FMT_VERSION >= 100000
-#define OIIO_HALF_FORMATTER
+#    if FMT_VERSION >= 100000
+#        define OIIO_HALF_FORMATTER
 FMT_BEGIN_NAMESPACE
-template<> struct formatter<half> : ostream_formatter { };
+template<> struct formatter<half> : ostream_formatter {};
 FMT_END_NAMESPACE
+#    endif
 #endif
-#endif
-// clang-format on
-
 
 template<typename T>
 static void

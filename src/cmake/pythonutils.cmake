@@ -8,10 +8,10 @@ set (PYTHON_VERSION "" CACHE STRING "Target version of python to find")
 option (PYLIB_INCLUDE_SONAME "If ON, soname/soversion will be set for Python module library" OFF)
 option (PYLIB_LIB_PREFIX "If ON, prefix the Python module with 'lib'" OFF)
 set (PYMODULE_SUFFIX "" CACHE STRING "Suffix to add to Python module init namespace")
-set_cache (OIIO_PYTHON_BINDINGS_BACKEND "pybind11"
-     "Which Python binding backend(s) to build: pybind11, nanobind, or both" VERBOSE)
+set_cache (OIIO_PYTHON_BINDINGS_BACKEND "nanobind"
+     "Which Python binding backend(s) to build: nanobind, pybind11, or both" VERBOSE)
 set_property (CACHE OIIO_PYTHON_BINDINGS_BACKEND PROPERTY STRINGS
-              pybind11 nanobind both)
+              nanobind pybind11 both)
 
 # Normalize and validate the user-facing backend selector early so the rest
 # of the file can make simple boolean decisions.

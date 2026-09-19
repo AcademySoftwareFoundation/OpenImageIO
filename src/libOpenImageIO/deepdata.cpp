@@ -48,9 +48,9 @@ public:
     std::vector<char> m_data;  // for each sample [p][s][c]
     std::vector<std::string> m_channelnames;  // For each channel[c]
     std::vector<int> m_myalphachannel;        // For each channel[c], its alpha
-        // myalphachannel[c] gives the alpha channel corresponding to channel
-        // c, or c if it is itself an alpha, or -1 if it doesn't appear to
-        // be a color channel at all.
+    // myalphachannel[c] gives the alpha channel corresponding to channel
+    // c, or c if it is itself an alpha, or -1 if it doesn't appear to
+    // be a color channel at all.
     size_t m_samplesize;
     int m_z_channel, m_zback_channel;
     int m_alpha_channel;
@@ -164,7 +164,10 @@ DeepData::DeepData(const ImageSpec& spec)
 
 
 
-DeepData::~DeepData() { delete m_impl; }
+DeepData::~DeepData()
+{
+    delete m_impl;
+}
 
 
 
@@ -799,8 +802,8 @@ DeepData::set_deep_value(int64_t pixel, int channel, int sample, uint32_t value)
         DataArrayProxy<char, uint32_t>((char*)ptr)[0] = value;
         break;
     case TypeDesc::UINT16:
-        DataArrayProxy<unsigned short, uint32_t>((unsigned short*)ptr)[0]
-            = value;
+        DataArrayProxy<unsigned short, uint32_t>(
+            (unsigned short*)ptr)[0] = value;
         break;
     case TypeDesc::INT16:
         DataArrayProxy<short, uint32_t>((short*)ptr)[0] = value;

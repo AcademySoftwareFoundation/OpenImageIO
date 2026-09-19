@@ -1,5 +1,9 @@
 pixels holds unassociated alpha
 resolution is 512x384
+example_perpixel_op
+perpixel_op standalone: 5 7 9
+perpixel_op functor: 5 7 9
+perpixel_op lambda: 5 7 9
 example_output_error1
 error: Uninitialized input image
 example_output_error2

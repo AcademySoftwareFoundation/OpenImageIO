@@ -97,7 +97,7 @@ Reading ../oiio-images/heif/greyhounds-looking-for-a-table.heic
     GPS:Speed: 0.171966
     GPS:SpeedRef: "K" (km/hour)
     oiio:ColorSpace: "srgb_rec709_scene"
-    oiio:OriginalOrientation: 6
+    oiio:OriginalOrientation: 8
 Reading ../oiio-images/heif/sewing-threads.heic
 ../oiio-images/heif/sewing-threads.heic : 4000 x 3000, 3 channel, uint8 heif
     SHA-1: 44551A0A8AADD2C71B504681F2BAE3F7863EF9B9

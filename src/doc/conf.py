@@ -69,8 +69,27 @@ sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), '../
 
 extensions = [
               'breathe',
-              'sphinx_tabs.tabs'
+              'sphinx_tabs.tabs',
+              'myst_parser',
  ]
+
+# The prose documentation is authored in MyST-flavored Markdown (.md),
+# parsed by myst_parser. See https://myst-parser.readthedocs.io
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+myst_enable_extensions = [
+    'colon_fence',    # ::: fences, easier to nest than ```
+    'deflist',        # definition lists
+    'fieldlist',      # :field: lists
+    'substitution',   # {{ version }} etc.
+]
+myst_heading_anchors = 4
+myst_substitutions = {
+    'version': version,
+    'release': release,
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -78,7 +97,8 @@ templates_path = ['templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+# Building_the_docs.md is meant to be read on GitHub, not built as a page.
+exclude_patterns = ['Building_the_docs.md']
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -95,6 +115,7 @@ html_theme = 'furo'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_css_files = ['css/custom.css']
 
 
 # Breathe options

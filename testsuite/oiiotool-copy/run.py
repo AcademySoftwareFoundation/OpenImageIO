@@ -14,8 +14,10 @@
 redirect = " >> out.txt 2>&1 "
 
 # Create some test images we need
-command += oiiotool("-pattern constant:color=.25,.5,.75 64x64 3 -d half -o rgb64.exr")
-command += oiiotool("-pattern constant:color=.25,.5,.75 64x64 3 -pattern constant:color=42 64x64 1 --chnames Z --siappend -d half -o rgb-z-parts64.exr")
+command += run_commands("""
+    oiiotool -pattern constant:color=.25,.5,.75 64x64 3 -d half -o rgb64.exr
+    oiiotool -pattern constant:color=.25,.5,.75 64x64 3 -pattern constant:color=42 64x64 1 --chnames Z --siappend -d half -o rgb-z-parts64.exr
+    """)
 
 
 # Test -i to read specific channels

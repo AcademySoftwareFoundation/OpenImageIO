@@ -2,6 +2,7 @@ Policy on AI Coding Assistants
 ==============================
 
 - Initial policy merged 23-Mar-2026
+- Revised: 2-Sep-2026
 
 
 Use of "AI coding assistants" is permitted on this project, with the following
@@ -71,28 +72,15 @@ comment and PR description body:
 
     Assisted-by: TOOL / MODEL
 
-Ideally, to the extent practical, the PR description should also have a brief
-description of how the tool was used, including the gist of key prompts or
-summarizing the direction of the dialog. A full log is not necessary; a short
-summary will do.
+This is absolutely required when an LLM materially helped with the change
+(drafted code, helped design the approach, found the bug, suggested the
+specific fix, etc.). You may omit for any of the reasons listed in the
+"Exceptions" section below.
 
-There are several reasons for this disclosure/documentation, even though it
-will sometimes be inconvenient:
-- Reproducibility: We want even automated work to be reproducible by others in
-  principle, just like a scientific paper.
-- Education: We want to actively teach each other what tools, prompts, or
-  methods are successful at making high quality results for the project.
-- Metrics: We would like the ability to look back and compare assisted vs
-  non-assisted code for things like defect rate (how often were new bugs
-  introduced or commits needed to be reverted), whether people are more likely
-  to write comprehensive tests when using assistants, etc.
-- Compliance: Many key users and developers are in companies where they need
-  to disclose how AI tools were used in their work, and in other software that
-  they use. Let's make it easy for them.
-- Insurance: Should future legal decisions radically change the IP status of
-  AI-generated code, or if particular models are implicated in copyright
-  violations, we want a way to find out which contributions might need to be
-  revisited in order to bring the project back into compliance.
+If you used the coding assistant in an unusual way that others could learn
+from, feel free to briefly say how you used the tool. But this is not required
+and we understand that it's often infeasibly difficult to describe accurately
+in any detail.
 
 ### Intellectual Property
 
@@ -138,6 +126,9 @@ with your own brain to maximize the learning experience.
 This AI tool use policy is not meant to encompass cases such as:
 - "Smart auto-complete", spell-checking, grammar checking, or other uses that
   aren't really contributing substantively to authorship.
+- Purely mechanical assistance and light refactoring, such as moving code
+  around or renaming things, enforcing formatting or coding style -- the
+  kind of thing that IDEs could do for you even before LLMs.
 - Use of LLMs to explain code or learn about the codebase, answer basic
   programming questions, help with background research, or audit the code
   for bugs that are subsequently confirmed and fixed by people.
@@ -146,7 +137,8 @@ This AI tool use policy is not meant to encompass cases such as:
 - Trivial or de-minimis fixes such as fixing a typo, obviously wrong variable
   use, etc.
 - Reviewing your own code for mistakes prior to submitting a PR (as long as it
-  isn't making the fixes for you).
+  isn't making substantive fixes for you).
+
 
 ### Creative contributions -- out of scope
 
@@ -162,9 +154,17 @@ guidance.
 ### References and inspiration
 
 Our policy has been informed and inspired by the following efforts in other communities:
+
 - [LLVM AI Tool Policy](https://llvm.org/docs/AIToolPolicy.html)
 - [Fedora Project policy on AI-assisted contributions](https://communityblog.fedoraproject.org/council-policy-proposal-policy-on-ai-assisted-contributions/)
 - [Linux Foundation policy on Generative AI](https://www.linuxfoundation.org/legal/generative-ai)
 - [Rust policy on rejecting burdensome PRs](https://github.com/rust-lang/compiler-team/issues/893)
-- The METR paper [Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/)
 - [GitHub Blog: Rethinking open source mentorship in the AI era](https://github.blog/open-source/maintainers/rethinking-open-source-mentorship-in-the-ai-era/)
+- [The Leiden Declaration on AI](https://leidendeclaration.ai/) -- from the research mathematics community, but their "Recommendations" section is very relevant. Also see Terence Tao's very readable [Mathematics in the age of AI](https://arxiv.org/abs/2608.16753).
+
+And here is some food for thought about the wisdom of which tasks to
+outsource to machines:
+
+- The METR paper [Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/)
+- [AI Can Write Your Code. It Can’t Do Your Job.](https://terriblesoftware.org/2025/12/11/ai-can-write-your-code-it-cant-do-your-job/)
+  

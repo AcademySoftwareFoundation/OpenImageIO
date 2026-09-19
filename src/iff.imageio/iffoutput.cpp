@@ -330,7 +330,7 @@ IffOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     data = to_native_scanline(format, data, xstride, scratch, m_dither, y, z);
     size_t scanlinesize = m_header.scanline_bytes();
     size_t offset       = scanlinesize * (y - m_header.y)
-                    + scanlinesize * m_header.height * (z - m_header.z);
+                          + scanlinesize * m_header.height * (z - m_header.z);
     memcpy(&m_buf[offset], data, scanlinesize);
     return false;
 }
@@ -551,18 +551,18 @@ IffOutput::close(void)
                             if (littleendian()) {
                                 uint8_t rgb16[]  = { 0, 2, 4, 1, 3, 5 };
                                 uint8_t rgba16[] = { 0, 2, 4, 7, 1, 3, 5, 6 };
-                                map              = (m_header.rgba_count == 3)
-                                                       ? std::vector<uint8_t>(rgb16,
+                                map = (m_header.rgba_count == 3)
+                                          ? std::vector<uint8_t>(rgb16,
                                                                  rgb16 + 6)
-                                                       : std::vector<uint8_t>(rgba16,
+                                          : std::vector<uint8_t>(rgba16,
                                                                  rgba16 + 8);
                             } else {
                                 uint8_t rgb16[]  = { 1, 3, 5, 0, 2, 4 };
                                 uint8_t rgba16[] = { 1, 3, 5, 7, 0, 2, 4, 6 };
-                                map              = (m_header.rgba_count == 3)
-                                                       ? std::vector<uint8_t>(rgb16,
+                                map = (m_header.rgba_count == 3)
+                                          ? std::vector<uint8_t>(rgb16,
                                                                  rgb16 + 6)
-                                                       : std::vector<uint8_t>(rgba16,
+                                          : std::vector<uint8_t>(rgba16,
                                                                  rgba16 + 8);
                             }
 
