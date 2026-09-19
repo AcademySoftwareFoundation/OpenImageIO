@@ -40,9 +40,12 @@ public:
     DICOMInput() {}
     ~DICOMInput() override { close(); }
     const char* format_name(void) const override { return "dicom"; }
-    int supports(string_view /*feature*/) const override
+    int supports(string_view feature) const override
     {
-        return false;  // we don't support any optional features
+        return (feature == "arbitrary_metadata"
+                || feature == "exif"  // Because of arbitrary_metadata
+                || feature == "iptc"  // Because of arbitrary_metadata
+                || feature == "multiimage");
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
