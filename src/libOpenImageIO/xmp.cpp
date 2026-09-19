@@ -5,6 +5,7 @@
 
 #include <iostream>
 
+#include <limits>
 #include <tsl/robin_map.h>
 
 #include <OpenImageIO/fmath.h>
@@ -675,7 +676,9 @@ stringize(const ParamValue& p, const XMPtag& xmptag)
     } else if (p.type() == TypeDesc::FLOAT) {
         if (xmptag.special & Rational) {
             unsigned int num, den;
-            float_to_rational(p.get<float>(), num, den);
+            float f = clamp(p.get<float>(), 0.0f,
+                            std::numeric_limits<float>::max());
+            float_to_rational(f, num, den);
             return Strutil::fmt::format("{}/{}", num, den);
         } else {
             return p.get_string();
