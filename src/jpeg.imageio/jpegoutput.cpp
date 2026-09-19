@@ -491,8 +491,11 @@ JpgOutput::resmeta_to_density()
             YRes = XRes / aspect;
         }
     }
-    int X_density     = clamp(int(XRes + 0.5f), 1, 65535);
-    int Y_density     = clamp(int(YRes + 0.5f), 1, 65535);
+    // Clamp as float before the cast. Corrupt input files can leave the
+    // resolution attributes infinite or NaN, and the cast would then be
+    // undefined behavior.
+    int X_density     = int(clamp(XRes + 0.5f, 1.0f, 65535.0f));
+    int Y_density     = int(clamp(YRes + 0.5f, 1.0f, 65535.0f));
     m_cinfo.X_density = X_density;
     m_cinfo.Y_density = Y_density;
 }
