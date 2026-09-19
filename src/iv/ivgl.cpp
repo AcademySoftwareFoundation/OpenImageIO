@@ -2187,6 +2187,41 @@ IvGL::get_given_image_pixel(int& x, int& y, int mouseX, int mouseY)
 
 
 void
+IvGL::get_visible_image_roi(ROI& roi)
+{
+    roi          = ROI();
+    IvImage* img = m_current_image;
+    if (!img || !img->image_valid())
+        return;
+    const ImageSpec& spec(img->spec());
+
+    // The two opposite corners of the viewport, in image pixel coordinates
+    int x0, y0, x1, y1;
+    get_given_image_pixel(x0, y0, 0, 0);
+    get_given_image_pixel(x1, y1, width() - 1, height() - 1);
+
+    // Rotating or flipping the display may send the corners anywhere, so map
+    // both of them and then sort out which is the min and which is the max.
+    float scale_x = 1.0f, scale_y = 1.0f, rotate_z = 0.0f;
+    float x0_img = x0, y0_img = y0, x1_img = x1, y1_img = y1;
+    handle_orientation(img->orientation(), spec.width, spec.height, scale_x,
+                       scale_y, rotate_z, x0_img, y0_img, true);
+    handle_orientation(img->orientation(), spec.width, spec.height, scale_x,
+                       scale_y, rotate_z, x1_img, y1_img, true);
+
+    ROI visible((int)floorf(std::min(x0_img, x1_img)),
+                (int)floorf(std::max(x0_img, x1_img)) + 1,
+                (int)floorf(std::min(y0_img, y1_img)),
+                (int)floorf(std::max(y0_img, y1_img)) + 1, 0, 1, 0,
+                spec.nchannels);
+
+    // The window may show more than the image, so keep only real pixels.
+    roi = roi_intersection(visible, img->roi());
+}
+
+
+
+void
 IvGL::get_focus_image_pixel(int& x, int& y)
 {
     // w,h are the dimensions of the visible window, in pixels
