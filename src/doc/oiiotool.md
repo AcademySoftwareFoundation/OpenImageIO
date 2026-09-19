@@ -3423,6 +3423,107 @@ current top image.
 > This command was added in OIIO 2.4.
 
 ```{eval-rst}
+.. option:: --decorrstretch
+
+    Apply a "decorrelation stretch" to the color channels, which exaggerates
+    subtle color variation in images whose channels are highly correlated,
+    such as hazy aerial photographs, rock faces, or faded pigments.
+
+    The transformation is computed from the image itself: the covariance
+    matrix of the color channels is diagonalized, the pixel values are
+    rotated into the coordinate system of its principal axes, each axis is
+    scaled so that all of them have equal variance, and then the values are
+    rotated back and rescaled so that each channel ends up with the mean and
+    standard deviation it started with. The result has the same overall color
+    balance and contrast as the original, but the color differences that were
+    nearly invisible are amplified until they are as prominent as the
+    dominant one.
+
+    Because the transformation depends on the image content, stretching the
+    frames of a sequence separately will not apply the same transformation to
+    each of them.
+
+    Optional appended modifiers include:
+
+      `:firstchannel=` *n*
+        The first channel of the correlated set to stretch (default: 0).
+
+      `:nchannels=` *n*
+        The number of channels, starting with `firstchannel`, to stretch
+        jointly. The default uses the first three channels, or however many
+        of them exist, but never the alpha or z channel.
+
+      `:scale=` *f*
+        An additional multiplier on the standard deviation of each output
+        channel (default: 1.0, which preserves the contrast of the original).
+
+      `:sigma=` *f*
+        If nonzero, give every output channel this standard deviation,
+        instead of each one retaining the standard deviation it had.
+
+      `:mean=` *f*
+        If supplied, center every output channel on this value, instead of
+        each one retaining the mean it had.
+
+      `:mode=` *covariance|correlation*
+        Which matrix to diagonalize: `covariance` (the default) weights each
+        channel by its own variance, so a channel that barely varies stays
+        subordinate; `correlation` first divides each channel by its own
+        standard deviation, giving all of them equal say. The two agree when
+        the channels have equal variance.
+
+      `:percentile=` *f*
+        If nonzero, finish with a per-channel linear contrast stretch that
+        maps this percentile and its complement onto the [0,1] range,
+        saturating everything beyond them. For example, 1 stretches the 1st
+        through 99th percentiles to fill [0,1], clipping 1% of the pixels at
+        each end. Must be less than 50. Many published decorrelation
+        stretches include this finishing step, and it is what makes the
+        result fill the display range. It makes `scale`, `sigma`, and `mean`
+        irrelevant.
+
+      `:subimages=` *indices-or-names*
+        Include/exclude subimages (see :ref:`sec-oiiotool-subimage-modifier`).
+
+    Examples::
+
+        oiiotool hazy.exr --decorrstretch -o stretched.exr
+        oiiotool hazy.exr --decorrstretch:scale=2 -o morecolorful.exr
+        oiiotool hazy.exr --decorrstretch:percentile=1 -o fullrange.exr
+```
+
+The example below starts from a hazy gradient hiding two lines of text that
+differ from their surroundings by only a few thousandths, along two different
+color directions. Neither is visible in the original, nor survives rounding
+to 8 bits, yet the stretch recovers both, in two different colors.
+
+::::{list-table}
+
+* - ```{image} figures/decorrstretch-original.jpg
+    :width: 1.5 in
+    :alt: dcsimage1
+    ```
+  - ```{image} figures/decorrstretch.jpg
+    :width: 1.5 in
+    :alt: dcsimage2
+    ```
+  - ```{image} figures/decorrstretch-percentile.jpg
+    :width: 1.5 in
+    :alt: dcsimage3
+    ```
+  - ```{image} figures/decorrstretch-correlation.jpg
+    :width: 1.5 in
+    :alt: dcsimage4
+    ```
+* - original
+  - decorrstretch
+  - percentile=1
+  - mode=correlation
+::::
+
+> This command was added in OIIO 3.2.
+
+```{eval-rst}
 .. option:: --colormap <mapname>
 
     Creates an RGB color map based on the luminance of the input image. The
