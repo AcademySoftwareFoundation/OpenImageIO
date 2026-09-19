@@ -155,16 +155,20 @@ public:
     }
 
 private:
-    const ImageSpec& init_part(int subimage, int miplevel);
+    const ImageSpec& init_part(int subimage, int miplevel, bool& ok);
     bool read_cached_chunk(int subimage, int miplevel, int ybegin, int yend,
                            int chbegin, int chend, int cbegin, int cend,
                            size_t scanlinebytes, void* data);
     struct PartInfo {
+        // Set initialized once the header has been parsed into the fields
+        // below, and validated once that parsed spec has also passed
+        // seek_subimage()'s checks. Only a validated part may be handed out
+        // -- as the current subimage, from init_part() for a read, or from
+        // the spec() query that reads this cache without seeking. validated
+        // is published after the spec, so a reader that sees it set sees a
+        // spec that was checked.
         std::atomic_bool initialized;
-        // Set rejected if this part's spec failed validation, so that we
-        // never hand it out again -- not as the current subimage, and not
-        // from the spec() query that reads this cache without seeking.
-        std::atomic_bool rejected;
+        std::atomic_bool validated;
         ImageSpec spec;
         int topwidth;                        ///< Width of top mip level
         int topheight;                       ///< Height of top mip level
@@ -179,12 +183,12 @@ private:
 
         PartInfo()
             : initialized(false)
-            , rejected(false)
+            , validated(false)
         {
         }
         PartInfo(const PartInfo& p)
             : initialized((bool)p.initialized)
-            , rejected((bool)p.rejected)
+            , validated((bool)p.validated)
             , spec(p.spec)
             , topwidth(p.topwidth)
             , topheight(p.topheight)
@@ -226,6 +230,12 @@ private:
 
     void init()
     {
+        // The cached part specs describe the file we're leaving behind, and
+        // with them gone nothing may index m_parts until open() refills it.
+        m_parts.clear();
+        m_nsubimages     = 0;
+        m_subimage       = -1;
+        m_miplevel       = -1;
         m_exr_context    = nullptr;
         m_userdata.m_img = this;
         m_userdata.m_io  = nullptr;
@@ -476,22 +486,36 @@ OpenEXRCoreInput::open(const std::string& name, ImageSpec& newspec,
 
 
 
+// Return the spec of the subimage we're about to read, having made sure it
+// has been parsed and has passed seek_subimage()'s validation. The read paths
+// below deliberately avoid seeking, so this is where a part they were handed
+// gets checked -- including the -1 that a rejected seek leaves behind and
+// that ImageInput::read_scanline() passes straight through. Sets `ok`, and
+// the returned spec is only meaningful when it is true.
 const ImageSpec&
-OpenEXRCoreInput::init_part(int subimage, int miplevel)
+OpenEXRCoreInput::init_part(int subimage, int miplevel, bool& ok)
 {
+    static const ImageSpec emptyspec;
+    ok = false;
+    if (subimage < 0 || subimage >= m_nsubimages) {
+        errorfmt("Invalid subimage {}", subimage);
+        return emptyspec;
+    }
     const PartInfo& part(m_parts[subimage]);
-    if (!part.initialized) {
-        // Only if this subimage hasn't yet been inventoried do we need
-        // to lock and seek, but that is only so we don't have to re-look values up
+    if (!part.validated) {
+        // Only if this subimage hasn't yet been inventoried and validated do
+        // we need to lock and seek, but that is only so we don't have to
+        // re-look values up
         lock_guard lock(*this);
-        if (!part.initialized) {
+        if (!part.validated) {
             if (!seek_subimage(subimage, miplevel)) {
                 errorfmt("Unable to initialize part");
-                return part.spec;
+                return emptyspec;
             }
         }
     }
 
+    ok = true;
     return part.spec;
 }
 
@@ -1151,13 +1175,6 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
         }
         part.initialized = true;
     }
-    if (part.rejected) {
-        // We've already validated this part and refused it. Don't re-parse
-        // it just to refuse it again.
-        errorfmt("Could not seek to subimage={}: subimage was rejected",
-                 subimage);
-        return false;
-    }
 
     if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
         return false;
@@ -1172,10 +1189,8 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     // The checks below reject this subimage, so don't leave it as the
-    // current one with a spec that failed validation, and mark the part so
-    // that spec() doesn't keep serving that spec out of the part cache.
+    // current one with a spec that failed validation.
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 })) {
-        part.rejected = true;
         invalidate_current();
         return false;
     }
@@ -1185,10 +1200,13 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     imagesize_t filesize = m_userdata.m_io ? m_userdata.m_io->size()
                                            : Filesystem::file_size(m_filename);
     if (!check_compression_ratio(m_spec, filesize)) {
-        part.rejected = true;
         invalidate_current();
         return false;
     }
+
+    // The part passed. Only now may init_part() and spec() use its cached
+    // spec without repeating this.
+    part.validated = true;
 
     if (miplevel == 0 && part.levelmode == EXR_TILE_ONE_LEVEL) {
         return true;
@@ -1212,17 +1230,15 @@ OpenEXRCoreInput::spec(int subimage, int miplevel)
     if (subimage < 0 || subimage >= m_nsubimages)
         return ret;  // invalid
     const PartInfo& part(m_parts[subimage]);
-    if (!part.initialized) {
-        // Only if this subimage hasn't yet been inventoried do we need
-        // to lock and seek.
+    if (!part.validated) {
+        // Only if this subimage hasn't yet been inventoried and validated do
+        // we need to lock and seek.
         lock_guard lock(*this);
-        if (!part.initialized) {
+        if (!part.validated) {
             if (!seek_subimage(subimage, miplevel))
                 return ret;
         }
     }
-    if (part.rejected)
-        return ret;  // failed validation, never hand its spec out
     if (miplevel < 0 || miplevel >= part.nmiplevels)
         return ret;  // invalid
     ret = part.spec;
@@ -1241,15 +1257,13 @@ OpenEXRCoreInput::spec_dimensions(int subimage, int miplevel)
     if (subimage < 0 || subimage >= m_nsubimages)
         return ret;  // invalid
     const PartInfo& part(m_parts[subimage]);
-    if (!part.initialized) {
-        // Only if this subimage hasn't yet been inventoried do we need
-        // to lock and seek.
+    if (!part.validated) {
+        // Only if this subimage hasn't yet been inventoried and validated do
+        // we need to lock and seek.
         lock_guard lock(*this);
-        if (!seek_subimage(subimage, miplevel))
+        if (!part.validated && !seek_subimage(subimage, miplevel))
             return ret;
     }
-    if (part.rejected)
-        return ret;  // failed validation, never hand its spec out
     if (miplevel < 0 || miplevel >= part.nmiplevels)
         return ret;  // invalid
     ret.copy_dimensions(part.spec);
@@ -1279,7 +1293,10 @@ OpenEXRCoreInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         return false;
     }
 
-    const ImageSpec& spec = init_part(subimage, miplevel);
+    bool part_ok          = false;
+    const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
+    if (!part_ok)
+        return false;
 
     return read_native_scanlines(subimage, miplevel, y, y + 1, z, 0,
                                  spec.nchannels, data);
@@ -1297,7 +1314,10 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
-    const ImageSpec& spec = init_part(subimage, miplevel);
+    bool part_ok          = false;
+    const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
+    if (!part_ok)
+        return false;
 
     return read_native_scanlines(subimage, miplevel, ybegin, yend, z, 0,
                                  spec.nchannels, data);
@@ -1346,7 +1366,10 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
     // information is not valid!!!! instead, we will use the library
     // which has an internal thread-safe cache of the sizes if needed
-    const ImageSpec& spec = init_part(subimage, miplevel);
+    bool part_ok          = false;
+    const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
+    if (!part_ok)
+        return false;
 
     chend = clamp(chend, chbegin + 1, spec.nchannels);
 
@@ -1522,7 +1545,10 @@ OpenEXRCoreInput::read_native_tile(int subimage, int miplevel, int x, int y,
     // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
     // information not valid!!!! instead, we will use the library
     // which has an internal thread-safe cache of the sizes
-    const ImageSpec& spec = init_part(subimage, miplevel);
+    bool part_ok          = false;
+    const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
+    if (!part_ok)
+        return false;
     exr_result_t rv;
 
     int32_t tilew = spec.tile_width;
@@ -1608,7 +1634,10 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
         return false;
     }
 
-    const ImageSpec& spec = init_part(subimage, miplevel);
+    bool part_ok          = false;
+    const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
+    if (!part_ok)
+        return false;
 
     return read_native_tiles(subimage, miplevel, xbegin, xend, ybegin, yend,
                              zbegin, zend, 0, spec.nchannels, data);
@@ -1630,7 +1659,10 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
     // information not valid!!!! instead, we will use the library
     // which has an internal thread-safe cache of the sizes
-    const ImageSpec& spec = init_part(subimage, miplevel);
+    bool part_ok          = false;
+    const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
+    if (!part_ok)
+        return false;
 
     int32_t tilew = spec.tile_width;
     int32_t tileh = spec.tile_height;
@@ -1865,7 +1897,10 @@ OpenEXRCoreInput::read_native_deep_scanlines(int subimage, int miplevel,
     // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
     // information is not valid!!!! instead, we will use the library
     // which has an internal thread-safe cache of the sizes if needed
-    const ImageSpec& spec = init_part(subimage, miplevel);
+    bool part_ok          = false;
+    const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
+    if (!part_ok)
+        return false;
 
     chend = clamp(chend, chbegin + 1, spec.nchannels);
 
@@ -2032,8 +2067,11 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
     // NB: to prevent locking, we use the SUBIMAGE spec, so the mip
     // information not valid!!!! instead, we will use the library
     // which has an internal thread-safe cache of the sizes
-    const ImageSpec& spec = init_part(subimage, miplevel);
-    exr_result_t rv       = EXR_ERR_SUCCESS;
+    bool part_ok          = false;
+    const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
+    if (!part_ok)
+        return false;
+    exr_result_t rv = EXR_ERR_SUCCESS;
 
     int32_t tilew = spec.tile_width;
     int32_t tileh = spec.tile_height;

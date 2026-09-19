@@ -1091,13 +1091,6 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
         }
         part.initialized = true;
     }
-    if (part.rejected) {
-        // We've already validated this part and refused it. Don't re-parse
-        // it just to refuse it again.
-        errorfmt("Could not seek to subimage={}: subimage was rejected",
-                 subimage);
-        return false;
-    }
 
     // Check this before touching anything below, so that probing for a
     // miplevel that doesn't exist leaves the reader exactly as it was.
@@ -1172,12 +1165,10 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     // if (m_miplevel == 0 && part.nmiplevels > 1)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
-    // The checks below reject this subimage. Mark the part as refused and
-    // invalidate rather than leave it as the current one: otherwise a repeat
-    // of this same seek would take the early out above, and spec() would keep
-    // serving the part's cached spec without ever consulting these checks.
+    // The checks below reject this subimage. Invalidate rather than leave it
+    // as the current one, or a repeat of this same seek would take the early
+    // out above and hand back the spec we just refused.
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 })) {
-        part.rejected = true;
         invalidate_current();
         return false;
     }
@@ -1187,10 +1178,13 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     imagesize_t filesize = m_io ? m_io->size()
                                 : Filesystem::file_size(m_filename);
     if (!check_compression_ratio(m_spec, filesize)) {
-        part.rejected = true;
         invalidate_current();
         return false;
     }
+
+    // The part passed. Only now may spec() serve its cached spec without
+    // repeating this.
+    part.validated = true;
 
     if (miplevel == 0 && part.levelmode == Imf::ONE_LEVEL) {
         return true;
@@ -1212,17 +1206,15 @@ OpenEXRInput::spec(int subimage, int miplevel)
     if (subimage < 0 || subimage >= m_nsubimages)
         return ret;  // invalid
     const PartInfo& part(m_parts[subimage]);
-    if (!part.initialized) {
-        // Only if this subimage hasn't yet been inventoried do we need
-        // to lock and seek.
+    if (!part.validated) {
+        // Only if this subimage hasn't yet been inventoried and validated do
+        // we need to lock and seek.
         lock_guard lock(*this);
-        if (!part.initialized) {
+        if (!part.validated) {
             if (!seek_subimage(subimage, miplevel))
                 return ret;
         }
     }
-    if (part.rejected)
-        return ret;  // failed validation, never hand its spec out
     if (miplevel < 0 || miplevel >= part.nmiplevels)
         return ret;  // invalid
     ret = part.spec;
@@ -1239,15 +1231,13 @@ OpenEXRInput::spec_dimensions(int subimage, int miplevel)
     if (subimage < 0 || subimage >= m_nsubimages)
         return ret;  // invalid
     const PartInfo& part(m_parts[subimage]);
-    if (!part.initialized) {
-        // Only if this subimage hasn't yet been inventoried do we need
-        // to lock and seek.
+    if (!part.validated) {
+        // Only if this subimage hasn't yet been inventoried and validated do
+        // we need to lock and seek.
         lock_guard lock(*this);
-        if (!seek_subimage(subimage, miplevel))
+        if (!part.validated && !seek_subimage(subimage, miplevel))
             return ret;
     }
-    if (part.rejected)
-        return ret;  // failed validation, never hand its spec out
     if (miplevel < 0 || miplevel >= part.nmiplevels)
         return ret;  // invalid
     ret.copy_dimensions(part.spec);

@@ -290,11 +290,14 @@ public:
 
 private:
     struct PartInfo {
+        // Set initialized once the header has been parsed into the fields
+        // below, and validated once that parsed spec has also passed
+        // seek_subimage()'s checks. Only a validated part may be handed out
+        // -- as the current subimage, or from the spec() query that reads
+        // this cache without seeking. validated is published after the spec,
+        // so a reader that sees it set sees a spec that was checked.
         std::atomic_bool initialized;
-        // Set rejected if this part's spec failed validation, so that we
-        // never hand it out again -- not as the current subimage, and not
-        // from the spec() query that reads this cache without seeking.
-        std::atomic_bool rejected;
+        std::atomic_bool validated;
         ImageSpec spec;
         int topwidth;           ///< Width of top mip level
         int topheight;          ///< Height of top mip level
@@ -311,12 +314,12 @@ private:
 
         PartInfo()
             : initialized(false)
-            , rejected(false)
+            , validated(false)
         {
         }
         PartInfo(const PartInfo& p)
             : initialized((bool)p.initialized)
-            , rejected((bool)p.rejected)
+            , validated((bool)p.validated)
             , spec(p.spec)
             , topwidth(p.topwidth)
             , topheight(p.topheight)
@@ -359,6 +362,10 @@ private:
     void init()
     {
         m_chunkcache.clear();
+        // The cached part specs describe the file we're leaving behind, and
+        // with them gone nothing may index m_parts until open() refills it.
+        m_parts.clear();
+        m_nsubimages               = 0;
         m_input_stream             = NULL;
         m_input_multipart          = NULL;
         m_scanline_input_part      = NULL;

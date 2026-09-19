@@ -458,10 +458,17 @@ GIFInput::seek_subimage(int subimage, int miplevel)
         return true;
     }
 
+    // We're about to overwrite m_spec and the canvas, and possibly to close
+    // the file, so give up the current subimage before anything below can
+    // fail. Every failure then leaves us on no subimage, rather than on one
+    // whose spec and canvas no longer describe what the reader holds.
+    m_subimage = -1;
+
     if (m_stream_subimage < 0 || m_stream_subimage > subimage) {
         // The requested subimage is behind the stream position, or we don't
         // know where the stream is. giflib only reads forward, so the file
         // needs to be reopened.
+        m_stream_subimage = -1;
         if (m_gif_file && !close()) {
             return false;
         }
@@ -479,13 +486,10 @@ GIFInput::seek_subimage(int subimage, int miplevel)
         m_stream_subimage = 0;
     }
 
-    // We're about to overwrite m_spec and the canvas and to advance through
-    // the stream, so give up the current subimage and the stream position
-    // first. Failing partway then leaves us on no subimage, rather than on
-    // one whose spec and canvas were never validated, and makes the next seek
-    // reopen the file rather than trust a half-read stream.
+    // Reading forward through the stream from here invalidates the position
+    // we recorded, so forget it too: a failure partway then makes the next
+    // seek reopen the file rather than trust a half-read stream.
     int pos           = m_stream_subimage;
-    m_subimage        = -1;
     m_stream_subimage = -1;
 
     // skip subimages preceding the requested one
