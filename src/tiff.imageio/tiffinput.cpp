@@ -919,13 +919,16 @@ TIFFInput::open(const std::string& name, ImageSpec& newspec,
 bool
 TIFFInput::seek_subimage(int subimage, int miplevel)
 {
+    // Range check before the "already there" early out, so that the -1 pair
+    // we leave behind on a rejected seek can't satisfy it.
+    if (subimage < 0 || miplevel < 0)  // Illegal
+        return false;
+
     if (subimage == m_subimage && miplevel == m_miplevel) {
         // We're already pointing to the right subimage
         return true;
     }
 
-    if (subimage < 0 || miplevel < 0)  // Illegal
-        return false;
     int orig_subimage = subimage;  // the original request
     if (m_emulate_mipmap) {
         // Emulating MIPmap?  Pretend one subimage, many MIP levels.
@@ -1043,13 +1046,6 @@ TIFFInput::readspec_validated(int subimage, bool read_meta)
         errorfmt("No support for this flavor of TIFF file ({})", emsg);
         return false;
     }
-    if (size_t(subimage) >= m_subimage_specs.size())  // make room
-        m_subimage_specs.resize(
-            subimage > 0 ? round_to_multiple(subimage + 1, 4) : 1);
-    if (m_subimage_specs[subimage].undefined()) {
-        // haven't cached this spec yet
-        m_subimage_specs[subimage] = m_spec;
-    }
     if (m_spec.format == TypeDesc::UNKNOWN) {
         errorfmt("No support for data format of \"{}\"", m_filename);
         return false;
@@ -1065,6 +1061,16 @@ TIFFInput::readspec_validated(int subimage, bool read_meta)
                                      : Filesystem::file_size(m_filename);
     if (!check_compression_ratio(m_spec, filesize))
         return false;
+
+    // Only cache the spec once it has passed every check above. spec() reads
+    // this cache without seeking, so a spec we refused must never enter it.
+    if (size_t(subimage) >= m_subimage_specs.size())  // make room
+        m_subimage_specs.resize(
+            subimage > 0 ? round_to_multiple(subimage + 1, 4) : 1);
+    if (m_subimage_specs[subimage].undefined()) {
+        // haven't cached this spec yet
+        m_subimage_specs[subimage] = m_spec;
+    }
 
     return true;
 }

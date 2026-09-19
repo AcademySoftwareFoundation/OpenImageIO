@@ -185,10 +185,12 @@ DPXInput::seek_subimage(int subimage, int miplevel)
 {
     if (miplevel != 0)
         return false;
-    if (subimage == m_subimage)
-        return true;
+    // Range check before the "already there" early out, so that the -1 we
+    // leave behind on a rejected seek can't satisfy it.
     if (subimage < 0 || subimage >= m_dpx.header.ImageElementCount())
         return false;
+    if (subimage == m_subimage)
+        return true;
 
     // create imagespec
     TypeDesc typedesc;

@@ -161,6 +161,10 @@ private:
                            size_t scanlinebytes, void* data);
     struct PartInfo {
         std::atomic_bool initialized;
+        // Set rejected if this part's spec failed validation, so that we
+        // never hand it out again -- not as the current subimage, and not
+        // from the spec() query that reads this cache without seeking.
+        std::atomic_bool rejected;
         ImageSpec spec;
         int topwidth;                        ///< Width of top mip level
         int topheight;                       ///< Height of top mip level
@@ -175,10 +179,12 @@ private:
 
         PartInfo()
             : initialized(false)
+            , rejected(false)
         {
         }
         PartInfo(const PartInfo& p)
             : initialized((bool)p.initialized)
+            , rejected((bool)p.rejected)
             , spec(p.spec)
             , topwidth(p.topwidth)
             , topheight(p.topheight)
@@ -1145,6 +1151,13 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
         }
         part.initialized = true;
     }
+    if (part.rejected) {
+        // We've already validated this part and refused it. Don't re-parse
+        // it just to refuse it again.
+        errorfmt("Could not seek to subimage={}: subimage was rejected",
+                 subimage);
+        return false;
+    }
 
     if (miplevel < 0 || miplevel >= part.nmiplevels)  // out of range
         return false;
@@ -1159,8 +1172,10 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     // The checks below reject this subimage, so don't leave it as the
-    // current one with a spec that failed validation.
+    // current one with a spec that failed validation, and mark the part so
+    // that spec() doesn't keep serving that spec out of the part cache.
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 })) {
+        part.rejected = true;
         invalidate_current();
         return false;
     }
@@ -1170,6 +1185,7 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     imagesize_t filesize = m_userdata.m_io ? m_userdata.m_io->size()
                                            : Filesystem::file_size(m_filename);
     if (!check_compression_ratio(m_spec, filesize)) {
+        part.rejected = true;
         invalidate_current();
         return false;
     }
@@ -1205,6 +1221,8 @@ OpenEXRCoreInput::spec(int subimage, int miplevel)
                 return ret;
         }
     }
+    if (part.rejected)
+        return ret;  // failed validation, never hand its spec out
     if (miplevel < 0 || miplevel >= part.nmiplevels)
         return ret;  // invalid
     ret = part.spec;
@@ -1230,6 +1248,8 @@ OpenEXRCoreInput::spec_dimensions(int subimage, int miplevel)
         if (!seek_subimage(subimage, miplevel))
             return ret;
     }
+    if (part.rejected)
+        return ret;  // failed validation, never hand its spec out
     if (miplevel < 0 || miplevel >= part.nmiplevels)
         return ret;  // invalid
     ret.copy_dimensions(part.spec);

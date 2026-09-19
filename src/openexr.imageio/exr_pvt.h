@@ -291,6 +291,10 @@ public:
 private:
     struct PartInfo {
         std::atomic_bool initialized;
+        // Set rejected if this part's spec failed validation, so that we
+        // never hand it out again -- not as the current subimage, and not
+        // from the spec() query that reads this cache without seeking.
+        std::atomic_bool rejected;
         ImageSpec spec;
         int topwidth;           ///< Width of top mip level
         int topheight;          ///< Height of top mip level
@@ -307,10 +311,12 @@ private:
 
         PartInfo()
             : initialized(false)
+            , rejected(false)
         {
         }
         PartInfo(const PartInfo& p)
             : initialized((bool)p.initialized)
+            , rejected((bool)p.rejected)
             , spec(p.spec)
             , topwidth(p.topwidth)
             , topheight(p.topheight)

@@ -354,18 +354,21 @@ PtexInput::open(const std::string& name, ImageSpec& newspec)
 bool
 PtexInput::seek_subimage(int subimage, int miplevel)
 {
+    // Range check before the "already there" early out, so that the -1 pair
+    // we leave behind on a rejected seek can't satisfy it.
+    if (subimage < 0 || subimage >= m_numFaces || miplevel < 0)
+        return false;
+
     if (m_subimage == subimage && m_miplevel == miplevel)
         return true;  // Already fine
 
-    if (subimage < 0 || subimage >= m_numFaces)
-        return false;
     const Ptex::FaceInfo& pface = m_ptex->getFaceInfo(subimage);
     Ptex::Res faceres           = pface.res;
 
     // Check the miplevel before adopting the new face, so that probing for a
     // level this face doesn't have leaves the reader on the one it was on.
     int nmiplevels = std::max(faceres.ulog2, faceres.vlog2) + 1;
-    if (miplevel < 0 || miplevel > nmiplevels - 1)
+    if (miplevel > nmiplevels - 1)
         return false;
 
     TypeDesc format = TypeDesc::UNKNOWN;
