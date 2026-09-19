@@ -158,7 +158,7 @@ grey.dpx             :  512 x  512, 1 channel, uint10 dpx
     oiio:subimages: 1
 Comparing "grey.dpx" and "ref/grey.tif"
 PASS
-oiiotool ERROR: read : "src/crash-badusersize.dpx": Corrupt userbuf: size claims 4160749568 but whole file size is 2054
+oiiotool ERROR: read : "src/crash-badusersize.dpx": Corrupt userbuf: 4160749568 bytes of user data at offset 2048 run past the 2054 byte file
 Full command line was:
 > oiiotool src/crash-badusersize.dpx -o test.tif
 Reading src/crash-1chan-10bit-filled-methodA.dpx
@@ -222,3 +222,6 @@ src/crash-1chan-10bit-filled-methodA.dpx :   80 x   60, 3 channel, uint10 dpx
 oiiotool ERROR: read : "src/bomb-46341.dpx": dpx header claims a 12288 MB image from a 21248 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/bomb-46341.dpx
+oiiotool ERROR: read : "src/truncated-userdata.dpx": Corrupt userbuf: 2000 bytes of user data at offset 2048 run past the 2100 byte file
+Full command line was:
+> oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/truncated-userdata.dpx
