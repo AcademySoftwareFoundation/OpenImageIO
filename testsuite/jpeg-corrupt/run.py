@@ -83,6 +83,15 @@ iconvert short-icc-app2-len13.jpg out.null && echo short-icc-app2-len13-ok
 # This file had corrupted IPTC data
 command += oiiotool("-oiioattrib imageinput:strict 1 -info -v src/corrupt-iptc-8011.jpg")
 
+# These files' Exif blocks hold a thumbnail stream with a bogus marker segment
+# length: one too small to cover its own length field, one running past the end
+# of the Exif block. Both used to be papered over, the scan resyncing at an
+# arbitrary offset. Strict mode must now reject them.
+command += oiiotool("-oiioattrib imageinput:strict 1 -info -v thumbnail-sof-len0.jpg")
+command += oiiotool("-oiioattrib imageinput:strict 1 -info -v thumbnail-dqt-len-overflow.jpg")
+# Without strict mode, the thumbnail is simply dropped and the file still reads.
+command += oiiotool("-info thumbnail-sof-len0.jpg thumbnail-dqt-len-overflow.jpg")
+
 # This file's SOF0 header declares a ~12 GB image (65500x65500x3) but holds
 # only a few bytes of entropy-coded data: a classic decompression bomb. The
 # reader's compression-ratio guard must reject it cleanly with a bounded
