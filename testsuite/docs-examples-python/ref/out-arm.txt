@@ -1,3 +1,8 @@
+example_channel_names_basic
+R G B
+example_channel_names_8
+8
+R G B opacityR opacityG opacityB texture_s texture_t
 docs-examples-imageioapi.py
 docs-examples-imageoutput.py
 docs-examples-imageinput.py
