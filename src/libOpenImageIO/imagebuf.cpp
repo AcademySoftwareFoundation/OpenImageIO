@@ -333,6 +333,10 @@ public:
     void set_thumbnail(const ImageBuf& thumb, DoLock do_lock = DoLock(true));
     std::shared_ptr<ImageBuf> get_thumbnail(DoLock do_lock = DoLock(true)) const;
 
+    // Count the MIP levels of the current subimage by iterating with
+    // spec_dimensions(), storing the result in m_nmiplevels (0 on failure).
+    void count_nmiplevels(DoLock do_lock = DoLock(true));
+
 private:
     ImageBuf::IBStorage m_storage
         = ImageBuf::UNINITIALIZED;  // Pixel storage class
@@ -562,9 +566,11 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
         m_nsubimages       = 1;
         m_current_subimage = 0;
         m_current_miplevel = 0;
-        m_nmiplevels       = 0;
+        m_nmiplevels       = 1;
         m_spec.erase_attribute("oiio:subimages");
         m_nativespec.erase_attribute("oiio:subimages");
+        m_spec.erase_attribute("oiio:miplevels");
+        m_nativespec.erase_attribute("oiio:miplevels");
         m_pixels_read = true;
     }
     if (src.m_configspec)
@@ -871,6 +877,7 @@ ImageBufImpl::clear()
     m_name.clear();
     m_fileformat.clear();
     m_nsubimages       = 0;
+    m_nmiplevels       = 0;
     m_current_subimage = -1;
     m_current_miplevel = -1;
     m_spec             = ImageSpec();
@@ -1304,6 +1311,16 @@ ImageBufImpl::init_spec(string_view filename, int subimage, int miplevel,
         m_current_subimage = subimage;
         m_current_miplevel = miplevel;
         m_pixelaspect = m_spec.get_float_attribute("pixelaspectratio", 1.0f);
+
+        // Set only for formats that don't support mipmaps or whose MIP level
+        // count is known up front. Otherwise, it stays 0, and nmiplevels()
+        // counts the levels lazily by iterating.
+        if (!input->supports("mipmap")) {
+            m_nmiplevels = 1;
+        } else {
+            m_nmiplevels = m_spec.get_int_attribute("oiio:miplevels");
+        }
+
         atomic_fetch_add(OIIO::pvt::IB_total_open_time, float(timer()));
         // Set last, after every field above is written -- see the comment
         // on m_spec_valid's declaration.
@@ -2106,10 +2123,48 @@ ImageBuf::miplevel() const
 }
 
 
+void
+ImageBufImpl::count_nmiplevels(DoLock do_lock)
+{
+    lock_t lock(m_mutex, std::defer_lock_t());
+    if (do_lock)
+        lock.lock();
+    if (!validate_spec(DoLock(false) /* we already hold the lock */)) {
+        m_nmiplevels = 0;
+        return;
+    }
+
+    auto input = ImageInput::open(m_name.string(), m_configspec.get(),
+                                  m_rioproxy);
+    if (!input) {
+        error("Could not open file: {}", OIIO::geterror());
+        m_nmiplevels = 0;
+        return;
+    }
+
+    // Count until spec_dimensions() returns a spec whose format is unknown.
+    int nmip = 0;
+    while (input->spec_dimensions(m_current_subimage, nmip).format
+           != TypeUnknown) {
+        ++nmip;
+    }
+    m_nmiplevels = nmip;
+}
+
+
 int
 ImageBuf::nmiplevels() const
 {
-    m_impl->validate_spec();
+    if (!m_impl->validate_spec()) {
+        m_impl->m_nmiplevels = 0;
+    } else if (m_impl->m_name.empty() || m_impl->m_fileformat.empty()) {
+        // No direct reference to a file, so 1 as documented.
+        m_impl->m_nmiplevels = 1;
+    } else if (m_impl->m_nmiplevels < 1) {
+        // Count MIP levels by iteration, only for files whose MIP level count
+        // was not known up front in init_spec().
+        m_impl->count_nmiplevels();
+    }
     return m_impl->m_nmiplevels;
 }
 
@@ -2389,9 +2444,11 @@ ImageBuf::copy_pixels(const ImageBuf& src)
     m_impl->m_nsubimages       = 1;
     m_impl->m_current_subimage = 0;
     m_impl->m_current_miplevel = 0;
-    m_impl->m_nmiplevels       = 0;
+    m_impl->m_nmiplevels       = 1;
     m_impl->m_spec.erase_attribute("oiio:subimages");
     m_impl->m_nativespec.erase_attribute("oiio:subimages");
+    m_impl->m_spec.erase_attribute("oiio:miplevels");
+    m_impl->m_nativespec.erase_attribute("oiio:miplevels");
 
     return ok;
 }
