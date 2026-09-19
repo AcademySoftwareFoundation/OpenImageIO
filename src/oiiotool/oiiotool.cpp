@@ -3990,6 +3990,22 @@ OIIOTOOL_OP(demosaic, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
 });
 
 
+// --decorrstretch
+OIIOTOOL_OP(decorrstretch, 1, [&](OiiotoolOp& op, span<ImageBuf*> img) {
+    ParamValueList list;
+    const std::vector<std::string> keys = { "firstchannel", "nchannels",
+                                            "scale",        "sigma",
+                                            "mean",         "percentile",
+                                            "mode" };
+    for (const auto& key : keys) {
+        auto iter = op.options().find(key);
+        if (iter != op.options().cend())
+            list.push_back(iter[0]);
+    }
+    return ImageBufAlgo::decorr_stretch(*img[0], *img[1], KWArgs(list));
+});
+
+
 // --st_warp
 OIIOTOOL_OP(st_warp, 2, [&](OiiotoolOp& op, span<ImageBuf*> img) {
     std::string filtername = op.options()["filter"];
@@ -7509,6 +7525,9 @@ Oiiotool::getargs(int argc, char* argv[])
     ap.arg("--saturate %f:SCALE")
       .help("Scale saturation of the color channels")
       .OTACTION(action_saturate);
+    ap.arg("--decorrstretch")
+      .help("Decorrelation stretch, exaggerating subtle color variation (options: firstchannel=0, nchannels=, scale=1.0, sigma=, mean=, percentile=, mode=covariance|correlation)")
+      .OTACTION(action_decorrstretch);
     ap.arg("--rangecompress")
       .help("Compress the range of pixel values with a log scale (options: luma=0|1)")
       .OTACTION(action_rangecompress);

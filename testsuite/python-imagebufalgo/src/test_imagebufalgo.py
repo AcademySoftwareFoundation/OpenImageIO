@@ -358,6 +358,16 @@ try:
     b = test_iba (ImageBufAlgo.saturate, tahoetiny, scale = 2.0)
     write (b, "saturate-2.tif")
 
+    b = ImageBufAlgo.decorr_stretch (tahoetiny)
+    write (b, "decorr_stretch.tif")
+    b = test_iba (ImageBufAlgo.decorr_stretch, tahoetiny, scale = 2.0,
+                  mean = 0.5)
+    write (b, "decorr_stretch-scale2.tif")
+    b = test_iba (ImageBufAlgo.decorr_stretch, tahoetiny, percentile = 1.0)
+    write (b, "decorr_stretch-percentile.tif")
+    b = test_iba (ImageBufAlgo.decorr_stretch, tahoetiny, mode = "correlation")
+    write (b, "decorr_stretch-correlation.tif")
+
     b = ImageBuf (OIIO_TESTSUITE_ROOT+"/common/tahoe-small.tif")
     b = test_iba (ImageBufAlgo.rangecompress, b)
     write (b, "rangecompress.tif", oiio.UINT8)

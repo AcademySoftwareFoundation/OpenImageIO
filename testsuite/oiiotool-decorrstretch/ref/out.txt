@@ -1,0 +1,24 @@
+oiiotool ERROR: -decorrstretch : ImageBufAlgo::decorr_stretch() percentile must be at least 0 and less than 50, not 60
+Full command line was:
+> oiiotool hazy.exr --decorrstretch:percentile=60 -o out.tif
+oiiotool ERROR: -decorrstretch : ImageBufAlgo::decorr_stretch() mode must be "covariance" or "correlation", not "bogus"
+Full command line was:
+> oiiotool hazy.exr --decorrstretch:mode=bogus -o out.tif
+Comparing "hazy.exr" and "ref/hazy.exr"
+PASS
+Comparing "decorr-original.tif" and "ref/decorr-original.tif"
+PASS
+Comparing "decorr-default.tif" and "ref/decorr-default.tif"
+PASS
+Comparing "decorr-scale2.tif" and "ref/decorr-scale2.tif"
+PASS
+Comparing "decorr-percentile.tif" and "ref/decorr-percentile.tif"
+PASS
+Comparing "decorr-sigma.tif" and "ref/decorr-sigma.tif"
+PASS
+Comparing "decorr-correlation.tif" and "ref/decorr-correlation.tif"
+PASS
+Comparing "decorr-corrpercentile.tif" and "ref/decorr-corrpercentile.tif"
+PASS
+Comparing "decorr-greenblue.tif" and "ref/decorr-greenblue.tif"
+PASS

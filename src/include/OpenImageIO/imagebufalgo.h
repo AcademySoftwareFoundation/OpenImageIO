@@ -1281,6 +1281,143 @@ bool OIIO_API saturate(ImageBuf& dst, const ImageBuf& src, float scale = 0.0f,
 /// @}
 
 
+/// @defgroup decorr_stretch (Decorrelation stretch)
+/// @{
+///
+/// Decorrelation stretch: exaggerate subtle color variation.
+///
+/// Return (or copy into `dst`) the pixels of `src` within the ROI, with a
+/// "decorrelation stretch" applied to a set of channels. This is a standard
+/// technique in remote sensing, geology, and archaeology for revealing the
+/// subtle color differences in images whose channels are highly correlated,
+/// such as hazy aerial photographs, rock faces, or faded pigments.
+///
+/// The transformation is derived from the statistics of the pixels in the
+/// ROI itself:
+///
+/// 1. Compute the mean and the covariance matrix of the `nchannels`
+///    channels starting with `firstchannel`.
+/// 2. Diagonalize the covariance matrix. Its eigenvectors are the principal
+///    axes of the color distribution and its eigenvalues are the variances
+///    along those axes.
+/// 3. Rotate the mean-subtracted pixel values into that basis, scale each
+///    axis to unit variance (this is the "decorrelation"), then rotate
+///    back.
+/// 4. Scale each channel to the desired standard deviation (by default, the
+///    one it started with) and add back the desired mean (by default, the
+///    one it started with).
+/// 5. Optionally (see the "percentile" option), finish with a per-channel
+///    linear contrast stretch that saturates a fixed fraction of the pixels
+///    at each end of the [0,1] range.
+///
+/// Without step 5, the result has the same overall color balance and
+/// per-channel contrast as the original, but the axes of least variation,
+/// which ordinarily carry the interesting yet nearly invisible color
+/// differences, are amplified until they are as prominent as the dominant
+/// axis. Note that the transformation depends on the image content, so
+/// stretching two images (or two frames of a sequence) separately will not
+/// generally apply the same transformation to each.
+///
+/// Channels within the ROI but outside the range `firstchannel` to
+/// `firstchannel+nchannels-1` are simply copied unaltered. It is an error for
+/// the alpha or z channel to be one of the stretched channels. In-place
+/// operation (`dst` == `src`) is supported.
+///
+/// The `options` list contains optional ParamValue's that control the
+/// operation. The following options are recognized:
+///
+///   - "firstchannel" : int (default: 0)
+///
+///     The first channel of the correlated set to stretch.
+///
+///   - "nchannels" : int (default: 0)
+///
+///     The number of channels, starting with `firstchannel`, to jointly
+///     decorrelate. If 0 or not supplied, up to three channels will be
+///     stretched (the usual case of the color channels of an RGB or RGBA
+///     image), stopping short of the alpha or z channel. Any number is
+///     allowed, for example the bands of a multispectral image.
+///
+///   - "scale" : float (default: 1.0)
+///
+///     An additional multiplier on the standard deviation of each output
+///     channel. A value of 1.0 preserves the contrast of the original image,
+///     larger values exaggerate it further.
+///
+///   - "sigma" : float (default: 0.0)
+///
+///     If nonzero, every output channel is given this standard deviation,
+///     instead of each one retaining the standard deviation it had in `src`.
+///
+///   - "mean" : float (default: unset)
+///
+///     If supplied, every output channel is centered on this value, instead
+///     of each one retaining the mean it had in `src`.
+///
+///   - "mode" : string (default: "covariance")
+///
+///     Which matrix to diagonalize in step 2: "covariance" weights each
+///     channel by its own variance, so a channel that barely varies stays
+///     subordinate; "correlation" first divides each channel by its own
+///     standard deviation, giving all of them equal say in the result. The
+///     two are identical when the channels have equal variance, and differ
+///     most when one channel dominates the others.
+///
+///   - "percentile" : float (default: 0.0)
+///
+///     If nonzero, finish with a per-channel linear contrast stretch that
+///     maps this percentile of each channel and its complement onto the [0,1]
+///     range, saturating everything beyond them. A value of 1.0, for example,
+///     stretches the 1st through 99th percentiles to fill [0,1], so that 1%
+///     of the pixels clip at each end. Must be less than 50. This is the
+///     finishing step that many published decorrelation stretches include,
+///     and it is what makes the result fill the display range. Note that it
+///     makes `scale`, `sigma`, and `mean` irrelevant: those only scale and
+///     shift each channel, which the percentile stretch then undoes.
+///
+/// Step 2 may use either the covariance matrix of the channels, which weights
+/// each channel in proportion to its own variance, or their correlation
+/// matrix, which gives every channel equal weight no matter how much it
+/// varies (see the "mode" option). Note that the published implementations
+/// cited below default to the correlation matrix, whereas this function
+/// defaults to the covariance matrix.
+///
+/// References:
+///
+/// - J. M. Soha and A. A. Schwartz, "Multispectral histogram normalization
+///   contrast enhancement," Proc. 5th Canadian Symposium on Remote Sensing,
+///   Victoria, BC, 1978, pp. 86-93. The original description of the
+///   technique, from JPL.
+/// - A. R. Gillespie, A. B. Kahle, and R. E. Walker, "Color enhancement of
+///   highly correlated images. I. Decorrelation and HSI contrast stretches,"
+///   Remote Sensing of Environment, 20(3):209-235, 1986. The standard
+///   reference, and the source of the name.
+/// - N. A. Campbell, "The decorrelation stretch transformation,"
+///   International Journal of Remote Sensing, 17(10):1939-1949, 1996. A
+///   careful derivation of the matrix form, and of how the choice of output
+///   scaling affects the result.
+/// - R. E. Alley, "Algorithm Theoretical Basis Document for Decorrelation
+///   Stretch," Version 2.2, Jet Propulsion Laboratory, 1996. The
+///   implementation notes for the ASTER decorrelation stretch product, and
+///   the most practical description of the algorithm.
+///   (https://www.dstretch.com/DecorrelationStretch.pdf)
+/// - Widely used implementations include the MATLAB Image Processing
+///   Toolbox function `decorrstretch`, whose `Tol` option is our
+///   "percentile" divided by 100, and Jon Harman's DStretch
+///   (https://dstretch.com), which brought the technique to rock art
+///   documentation.
+///
+/// @version 3.2+
+
+ImageBuf OIIO_API decorr_stretch(const ImageBuf& src, KWArgs options = {},
+                                 ROI roi = {}, int nthreads = 0);
+/// Write to an existing image `dst` (allocating if it is uninitialized).
+bool OIIO_API decorr_stretch(ImageBuf& dst, const ImageBuf& src,
+                             KWArgs options = {}, ROI roi = {},
+                             int nthreads = 0);
+/// @}
+
+
 
 /// @defgroup color_map (Remap value range by spline or name)
 /// @{

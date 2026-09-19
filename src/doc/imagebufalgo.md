@@ -2100,6 +2100,37 @@ pre-allocated `dst` nor a non-default ROI.
   - sat scale = 2
 ::::
 
+:::{doxygengroup} decorr_stretch
+:::
+
+%
+
+> Examples:
+>
+> ```{eval-rst}
+> .. tabs::
+>
+>   .. code-tab:: c++
+>
+>       ImageBuf img("hazy.exr");
+>       ImageBuf stretched = ImageBufAlgo::decorr_stretch(img);
+>       // Fill the display range, clipping 1% of the pixels at each end:
+>       ImageBuf full = ImageBufAlgo::decorr_stretch (img, { ParamValue("percentile", 1.0f) });
+>
+>   .. code-tab:: py
+>
+>       img = ImageBuf("hazy.exr")
+>       stretched = ImageBufAlgo.decorr_stretch(img)
+>       # Fill the display range, clipping 1% of the pixels at each end:
+>       full = ImageBufAlgo.decorr_stretch(img, percentile=1.0)
+>
+>   .. code-tab:: shell oiiotool
+>
+>       oiiotool hazy.exr --decorrstretch -o stretched.exr
+>       oiiotool hazy.exr --decorrstretch:percentile=1 -o full.exr
+>
+> ```
+
 :::{doxygengroup} color_map
 :::
 
