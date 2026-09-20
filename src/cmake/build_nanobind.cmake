@@ -36,12 +36,19 @@ set (nanobind_LOCAL_SOURCE_DIR "${${PROJECT_NAME}_LOCAL_DEPS_ROOT}/nanobind")
 if (NOT IS_DIRECTORY "${nanobind_LOCAL_SOURCE_DIR}")
     find_package (Git REQUIRED)
     message (STATUS "Cloning ${nanobind_GIT_REPOSITORY} @ ${nanobind_GIT_TAG}")
-    execute_process (COMMAND ${GIT_EXECUTABLE} clone -q
-                        -b ${nanobind_GIT_TAG} --depth 1
-                        ${nanobind_GIT_REPOSITORY} ${nanobind_LOCAL_SOURCE_DIR})
-    execute_process (COMMAND ${GIT_EXECUTABLE} submodule update --init --depth 1
-                        -- ext/robin_map
-                      WORKING_DIRECTORY ${nanobind_LOCAL_SOURCE_DIR})
+    execute_process_with_retry (
+        COMMAND ${GIT_EXECUTABLE} clone -q
+                -b ${nanobind_GIT_TAG} --depth 1
+                ${nanobind_GIT_REPOSITORY} ${nanobind_LOCAL_SOURCE_DIR}
+        CLEANUP ${nanobind_LOCAL_SOURCE_DIR}
+        RETRIES ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES}
+        RETRY_DELAY ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY})
+    execute_process_with_retry (
+        COMMAND ${GIT_EXECUTABLE} submodule update --init --depth 1
+                -- ext/robin_map
+        WORKING_DIRECTORY ${nanobind_LOCAL_SOURCE_DIR}
+        RETRIES ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES}
+        RETRY_DELAY ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY})
 endif ()
 
 build_dependency_with_cmake(nanobind
