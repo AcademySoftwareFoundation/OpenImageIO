@@ -1029,6 +1029,7 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         m_subimage        = -1;
         m_miplevel        = -1;
         m_actual_subimage = -1;
+        m_spec            = ImageSpec();
         return false;
     }
 }

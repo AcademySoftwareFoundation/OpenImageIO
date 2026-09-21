@@ -189,6 +189,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     // current subimage first. Every failure below then leaves us on none,
     // rather than on one whose spec and offsets don't match.
     m_subimage = -1;
+    m_spec     = ImageSpec();
 
     // read subimage header
     ioseek(sizeof(ico_header) + subimage * sizeof(ico_subimage), SEEK_SET);
@@ -251,6 +252,9 @@ ICOInput::seek_subimage(int subimage, int miplevel)
         if (!ok || m_err
             || !check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 4 })
             || !check_compression_ratio(m_spec, ioproxy()->size())) {
+            // Nor keep the spec we refused: spec() would report it, and
+            // read_scanline() would size its buffer from it. Same below.
+            m_spec = ImageSpec();
             return false;
         }
 
@@ -289,8 +293,10 @@ ICOInput::seek_subimage(int subimage, int miplevel)
     m_spec = ImageSpec(subimg.width(), subimg.height(), 4 /* always RGBA */,
                        TypeDesc::UINT8);  // 4- and 16-bit are expanded to 8bpp
     m_spec.default_channel_names();
-    if (!check_open(m_spec, { 0, 256, 0, 256, 0, 1, 0, 4 }))
+    if (!check_open(m_spec, { 0, 256, 0, 256, 0, 1, 0, 4 })) {
+        m_spec = ImageSpec();
         return false;
+    }
 
     // copy off values for later use
     m_bpp = bmi.bpp;
@@ -300,6 +306,7 @@ ICOInput::seek_subimage(int subimage, int miplevel)
         /*&& m_bpp != 16*/
         && m_bpp != 24 && m_bpp != 32) {
         errorfmt("Unsupported image color depth, probably corrupt file");
+        m_spec = ImageSpec();
         return false;
     }
     m_offset        = subimg.ofs;

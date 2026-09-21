@@ -211,18 +211,19 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     case dpx::kDouble: typedesc = TypeDesc::DOUBLE; break;
     default: errorfmt("Invalid component data size"); return false;
     }
-    m_spec = ImageSpec(m_dpx.header.Width(), m_dpx.header.Height(),
-                       m_dpx.header.ImageElementComponentCount(subimage),
-                       typedesc);
+    // We're about to overwrite m_spec, so give up the current element first.
+    // Every failure below then leaves us on none, rather than on one whose
+    // spec describes a different element -- the early out above would hand
+    // that spec back on a repeat of this same seek.
+    m_subimage = -1;
+    m_spec     = ImageSpec(m_dpx.header.Width(), m_dpx.header.Height(),
+                           m_dpx.header.ImageElementComponentCount(subimage),
+                           typedesc);
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 8 })
         || !check_compression_ratio(m_spec, m_filesize)) {
-        // Don't adopt an element we just refused: the early out above would
-        // hand its spec back on a repeat of this same seek.
-        m_subimage = -1;
-        m_spec     = ImageSpec();
+        m_spec = ImageSpec();
         return false;
     }
-    m_subimage = subimage;
 
     // xOffset/yOffset are defined as unsigned 32-bit integers, but m_spec.x/y are signed
     // avoid casts that would result in negative values
@@ -568,6 +569,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
             errorfmt(
                 "Corrupt userbuf: {} bytes of user data at offset {} run past the {} byte file",
                 m_dpx.header.UserSize(), userdata_offset, m_filesize);
+            m_spec = ImageSpec();
             return false;
         }
         m_userBuf.resize(m_dpx.header.UserSize());
@@ -576,6 +578,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
             // about to be handed out as metadata. Don't let that escape.
             errorfmt("Corrupt userbuf: could not read {} bytes of user data",
                      m_dpx.header.UserSize());
+            m_spec = ImageSpec();
             return false;
         }
     }
@@ -589,6 +592,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     if (m_spec.nchannels == 1)
         m_rawcolor = true;
 
+    m_subimage = subimage;
     return true;
 }
 

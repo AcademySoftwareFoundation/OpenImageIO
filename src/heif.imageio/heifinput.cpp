@@ -87,6 +87,9 @@ public:
                        stride_t xstride) override;
 
 private:
+    // Set up the decode state and m_spec for one subimage.
+    bool read_subimage_spec(int subimage);
+
     std::string m_filename;
     int m_subimage                 = -1;
     int m_num_subimages            = 0;
@@ -262,7 +265,27 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     // a later seek to a different (valid) one.
     m_subimage = -1;
     m_himage   = heif::Image();
+    m_spec     = ImageSpec();
 
+    if (!read_subimage_spec(subimage)) {
+        // Nor keep the spec of an image we refused or could not decode:
+        // spec() would report it, and read_scanline() would size its
+        // buffer from it.
+        m_spec = ImageSpec();
+        return false;
+    }
+
+    m_subimage = subimage;
+    return true;
+}
+
+
+
+// Set up the decode state and m_spec for one subimage. On failure m_spec
+// is left partly filled; the caller clears it.
+bool
+HeifInput::read_subimage_spec(int subimage)
+{
     // m_item_ids[0] is the primary image; the rest follow in file order.
     auto id   = m_item_ids[subimage];
     m_ihandle = m_ctx->get_image_handle(id);
@@ -529,7 +552,6 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         }
     }
 
-    m_subimage = subimage;
     return true;
 }
 

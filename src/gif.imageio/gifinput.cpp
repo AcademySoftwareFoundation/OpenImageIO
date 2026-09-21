@@ -463,6 +463,7 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     // fail. Every failure then leaves us on no subimage, rather than on one
     // whose spec and canvas no longer describe what the reader holds.
     m_subimage = -1;
+    m_spec     = ImageSpec();
 
     if (m_stream_subimage < 0 || m_stream_subimage > subimage) {
         // The requested subimage is behind the stream position, or we don't
@@ -492,19 +493,25 @@ GIFInput::seek_subimage(int subimage, int miplevel)
     int pos           = m_stream_subimage;
     m_stream_subimage = -1;
 
-    // skip subimages preceding the requested one
+    // skip subimages preceding the requested one. Every failure from here
+    // on clears m_spec: read_subimage_header() parses into it before the
+    // limit checks, so a refused frame must not be left for spec() to
+    // report or for read_scanline() to size its buffer from.
     for (; pos < subimage; ++pos) {
         if (!read_subimage_header(m_spec) || !read_subimage_data(pos)) {
+            m_spec = ImageSpec();
             return false;
         }
     }
 
     if (!read_subimage_header(m_spec)) {
+        m_spec = ImageSpec();
         return false;
     }
 
     // draw subimage on canvas
     if (!read_subimage_data(subimage)) {
+        m_spec = ImageSpec();
         return false;
     }
 
