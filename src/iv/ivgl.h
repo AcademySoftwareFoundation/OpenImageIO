@@ -87,6 +87,10 @@ public:
     ///
     void get_given_image_pixel(int& x, int& y, int mouseX, int mouseY);
 
+    /// Which region of the current image is currently visible in the
+    /// viewport?
+    void get_visible_image_roi(ROI& roi);
+
     /// What are the min/max/avg values of each channel in the selected area?
     void update_area_probe_text();
 
