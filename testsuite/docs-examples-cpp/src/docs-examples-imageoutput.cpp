@@ -157,8 +157,8 @@ channel_names_basic()
 
     // BEGIN-imageoutput-channelnamesbasic
     int channels = 3;
-    ImageSpec spec (width, length, channels, TypeDesc::UINT8);
-    spec.channelnames.assign ({ "R", "G", "B" });
+    ImageSpec spec(width, length, channels, TypeDesc::UINT8);
+    spec.channelnames.assign({ "R", "G", "B" });
     // END-imageoutput-channelnamesbasic
     print("{}\n", Strutil::join(spec.channelnames, " "));
 }
@@ -173,14 +173,13 @@ channel_names_8()
 
     // BEGIN-imageoutput-channelnames8
     int channels = 8;
-    ImageSpec spec (width, length, channels, TypeDesc::UINT8);
-    spec.channelnames.clear ();
-    spec.channelnames.assign ({ "R", "G", "B", "opacityR", "opacityG",
-                                "opacityB", "texture_s", "texture_t" });
+    ImageSpec spec(width, length, channels, TypeDesc::UINT8);
+    spec.channelnames.clear();
+    spec.channelnames.assign({ "R", "G", "B", "opacityR", "opacityG",
+                               "opacityB", "texture_s", "texture_t" });
     // END-imageoutput-channelnames8
     print("{}\n", spec.nchannels);
     print("{}\n", Strutil::join(spec.channelnames, " "));
-
 }
 
 
