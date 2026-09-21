@@ -158,7 +158,7 @@ declare_paramvalue(py_module& m)
     py::class_<ParamValue>(m, "ParamValue")
         .OIIO_PY_PROP_RO("name",
                          [](const ParamValue& self) {
-                             return oiio_py::str(self.name().string());
+                             return py_str_escaped(self.name().string());
                          })
         .OIIO_PY_PROP_RO("type",
                          [](const ParamValue& self) { return self.type(); })
