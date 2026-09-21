@@ -159,7 +159,7 @@ declare_imagespec(py_module& m)
                                  int chan) { return spec.channelformat(chan); })
         .def("channel_name",
              [](const ImageSpec& spec, int chan) {
-                 return oiio_py::str(spec.channel_name(chan));
+                 return py_str_escaped(spec.channel_name(chan));
              })
         .def("channelindex",
              [](const ImageSpec& spec, const std::string& name) {
@@ -200,7 +200,7 @@ declare_imagespec(py_module& m)
             "get_string_attribute",
             [](const ImageSpec& spec, const std::string& name,
                const std::string& def) {
-                return oiio_py::str(spec.get_string_attribute(name, def));
+                return py_str_escaped(spec.get_string_attribute(name, def));
             },
             "name"_a, "defaultval"_a = "")
         .def(
@@ -233,7 +233,7 @@ declare_imagespec(py_module& m)
         .def_static(
             "metadata_val",
             [](const ParamValue& p, bool human) {
-                return oiio_py::str(ImageSpec::metadata_val(p, human));
+                return py_str_escaped(ImageSpec::metadata_val(p, human));
             },
             "param"_a, "human"_a = false)
         .def(
@@ -250,11 +250,11 @@ declare_imagespec(py_module& m)
                     verb = ImageSpec::SerialDetailed;
                 else if (Strutil::iequals(verbose, "detailedhuman"))
                     verb = ImageSpec::SerialDetailedHuman;
-                return oiio_py::str(spec.serialize(fmt, verb));
+                return py_str_escaped(spec.serialize(fmt, verb));
             },
             "format"_a = "text", "verbose"_a = "detailed")
         .def("to_xml",
-             [](const ImageSpec& spec) { return oiio_py::str(spec.to_xml()); })
+             [](const ImageSpec& spec) { return py_str_escaped(spec.to_xml()); })
         .def("from_xml",
              [](ImageSpec& self, const std::string& xml) {
                  self.from_xml(xml.c_str());
