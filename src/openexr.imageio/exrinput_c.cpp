@@ -541,6 +541,7 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     if (!query_channels(in, ctxt, subimage))  // also sets format
         return false;
 
+    spec.attribute("oiio:miplevels", nmiplevels);
     spec.deep = (storage == EXR_STORAGE_DEEP_TILED
                  || storage == EXR_STORAGE_DEEP_SCANLINE);
 
@@ -1143,11 +1144,6 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
 
     m_miplevel = miplevel;
     m_spec     = part.spec;
-
-    //! Add the number of miplevels as an attribute for the first miplevel.
-    //! TOFIX: adding the following attribute breaks unit tests
-    // if (m_miplevel == 0 && part.nmiplevels > 1)
-    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 1 << 12 }))
         return false;
