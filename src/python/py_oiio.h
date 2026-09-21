@@ -473,6 +473,11 @@ py_to_stdvector(std::vector<T>& vals, const py::object& obj)
 // error handling for any non-UTF-8 byte sequences. Compared to calling
 // `py::str` directly, this avoids raising a `UnicodeDecodeError` if the input
 // is not valid UTF-8.
+//
+// It is important to do this for string return values that come from
+// "untrusted" sources, such as being read from other files, so that we ensure
+// that we are returning valid UTF-8 str's to the calling Python so that
+// exceptions are not raised.
 inline py::str
 py_str_escaped(string_view value)
 {
