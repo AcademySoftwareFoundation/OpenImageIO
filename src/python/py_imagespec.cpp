@@ -250,11 +250,11 @@ declare_imagespec(py_module& m)
                     verb = ImageSpec::SerialDetailed;
                 else if (Strutil::iequals(verbose, "detailedhuman"))
                     verb = ImageSpec::SerialDetailedHuman;
-                return oiio_py::str(spec.serialize(fmt, verb));
+                return py_str_escaped(spec.serialize(fmt, verb));
             },
             "format"_a = "text", "verbose"_a = "detailed")
         .def("to_xml",
-             [](const ImageSpec& spec) { return oiio_py::str(spec.to_xml()); })
+             [](const ImageSpec& spec) { return py_str_escaped(spec.to_xml()); })
         .def("from_xml",
              [](ImageSpec& self, const std::string& xml) {
                  self.from_xml(xml.c_str());
