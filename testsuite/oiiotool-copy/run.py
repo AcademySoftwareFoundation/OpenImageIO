@@ -108,6 +108,55 @@ command += oiiotool ("ch-rgba.exr ch-z.exr --chappend -o chappend-rgbaz.exr")
 command += oiiotool ("src/rgbaz.exr --chnames Red,,,,Depth -o chname.exr")
 command += info_command ("chname.exr", safematch=1)
 
+
+# The oiiotool command lines in the BEGIN-docs/END-docs brackets below are
+# the same lines that appear verbatim in the "Channel reordering and
+# padding" section of the docs -- src/doc/oiiotool.md literalincludes each
+# command between its markers, so any change made here must be made in the
+# docs as well, and vice versa. The setup images use asymmetric per-channel
+# colors on purpose: with the default black/white checker, R and B are
+# identical in every pixel, which would make the swap and alpha-from-R
+# examples produce outputs indistinguishable by content hash.
+command += run_commands("""
+    oiiotool -pattern checker:color1=0.9,0.2,0.1,1:color2=0.1,0.4,0.9,1 64x64 4 -d uint8 -o rgba.tif
+    oiiotool -pattern constant:color=0.25,0.5,0.75,0.8 64x64 4 -d half -o rgba.exr
+    oiiotool -pattern constant:color=0.1,0.5,0.9,0.3,0.7 64x64 5 -d half --chnames R,G,B,A,Z -o manychannels.exr
+    """)
+
+command += run_commands("""
+    # BEGIN-docs-channels-copy-color
+    oiiotool rgba.tif --ch R,G,B -o rgb.tif
+    # END-docs-channels-copy-color
+    # BEGIN-docs-channels-zero-rg
+    oiiotool rgb.tif --ch R=0,G=0,B -o justblue.tif
+    # END-docs-channels-zero-rg
+    # BEGIN-docs-channels-swap-rb
+    oiiotool rgba.tif --ch R=B,G,B=R,A -o bgra.tif
+    # END-docs-channels-swap-rb
+    # BEGIN-docs-channels-extract
+    oiiotool -i:ch=R,G,B manychannels.exr -o rgb.exr
+    # END-docs-channels-extract
+    # BEGIN-docs-channels-add-alpha-const
+    oiiotool rgb.tif --ch R,G,B,A=1.0 -o rgba.tif
+    # END-docs-channels-add-alpha-const
+    # BEGIN-docs-channels-add-alpha-from-r
+    oiiotool rgb.tif --ch R,G,B,A=R -o rgba.tif
+    # END-docs-channels-add-alpha-from-r
+    # BEGIN-docs-channels-add-z
+    oiiotool rgba.exr --ch R,G,B,A,Z=3.0 -o rgbaz.exr
+    # END-docs-channels-add-z
+    """)
+
+# Verify the results of the documented examples by content hash, so that any
+# change in the documented behavior turns this test red.
+command += info_command("rgb.tif", verbose=False, hash=True)
+command += info_command("justblue.tif", verbose=False, hash=True)
+command += info_command("bgra.tif", verbose=False, hash=True)
+command += info_command("rgb.exr", verbose=False, hash=True)
+command += info_command("rgba.tif", verbose=False, hash=True)
+command += info_command("rgbaz.exr", verbose=False, hash=True)
+
+
 # test --crop
 command += oiiotool ("../common/grid.tif --crop 100x400+50+200 -o crop.tif")
 
