@@ -1035,13 +1035,24 @@ ImageViewer::add_image(const std::string& filename)
     if (filename.empty())
         return;
     IvImage* newimage = nullptr;
+    ImageSpec config;
+    bool have_config = false;
     if (rawcolor()) {
-        ImageSpec config;
         config.attribute("oiio:RawColor", 1);
-        newimage = new IvImage(filename, &config);
-    } else {
-        newimage = new IvImage(filename);
+        have_config = true;
     }
+    if (tolerate_missing_pixels()) {
+        // Ask readers that support it (OpenEXR) to fill unreadable
+        // scanlines or tiles of a partially-written file with black
+        // instead of failing the read. Readers without that support
+        // ignore the option.
+        config.attribute("oiio:missingcolor", "0");
+        have_config = true;
+    }
+    if (have_config)
+        newimage = new IvImage(filename, &config);
+    else
+        newimage = new IvImage(filename);
     newimage->gamma(m_default_gamma);
     m_images.push_back(newimage);
     addRecentFile(filename);

@@ -6,11 +6,9 @@
 #define OPENIMAGEIO_IV_UTILS_H
 
 #include <algorithm>
-#include <cstring>
 #include <string>
 #include <vector>
 
-#include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/oiioversion.h>
 
@@ -41,24 +39,24 @@ floor2f(float f)
 }
 
 
-/// Probe whether all of the pixel data of the image named `filename` is
-/// readable, without reading the whole image: attempt to read only the
-/// last scanline (for scanline files) or the last tile (for tiled files),
-/// which is the most likely region to be missing from a file that was
-/// only partially written. This is cheap enough to use as a check on
-/// files that were read through an ImageCache, where the pixel data is
-/// not touched until it is needed for display, at which point read
-/// failures are much less gracefully handled.
-///
-/// Returns true if the last scanline/tile could be read (and therefore it
-/// is likely that the entire pixel data block is intact), false if it
-/// could not (meaning that the file is probably truncated or otherwise
-/// partially written).
+// Probe whether all of the pixel data of the image named `filename` is
+// readable, without reading the whole image: attempt to read only the
+// last scanline (for scanline files) or the last tile (for tiled files),
+// which is the most likely region to be missing from a file that was
+// only partially written. This is cheap enough to use after a read that
+// tolerates missing pixels (see the "oiio:missingcolor" input config
+// option), only to find out whether the fill color was actually needed,
+// so that the user can be notified. The file is probed strictly, without
+// any config, so that unreadable regions fail rather than being filled.
+//
+// Returns true if the last scanline/tile could be read (and therefore it
+// is likely that the entire pixel data block is intact), false if it
+// could not (meaning that the file is probably truncated or otherwise
+// partially written).
 inline bool
-image_data_readable(string_view filename, const ImageSpec* config, int subimage,
-                    int miplevel)
+image_data_readable(string_view filename, int subimage, int miplevel)
 {
-    auto in = ImageInput::open(filename, config);
+    auto in = ImageInput::open(filename);
     if (!in)
         return false;
     if (!in->seek_subimage(subimage, miplevel)) {
