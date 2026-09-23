@@ -348,6 +348,7 @@ private:
     int m_miplevel;                     ///< What MIP level are we looking at?
     std::vector<float> m_missingcolor;  ///< Color for missing tile/scanline
     std::string m_filename;             // filename, if known
+    std::string m_file_color_interop_id;
     ExrChunkCache m_chunkcache;
 
     void init()
@@ -366,6 +367,7 @@ private:
         m_local_io.reset();
         m_missingcolor.clear();
         m_filename.clear();
+        m_file_color_interop_id.clear();
     }
 
     // Read scanlines [ybegin,yend) out of the chunk [cbegin,cend), decoding
