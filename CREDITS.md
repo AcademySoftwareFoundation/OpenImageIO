@@ -261,6 +261,7 @@ the project.
 * Tim Grant
 * Todica Ionut
 * Tom Knowles
+* TomRoyls
 * Troy James Sobotka
 * Valery Angelique
 * Vanessa Valderrama
@@ -278,6 +279,7 @@ the project.
 * Yann Lanthony
 * Zach Lewis
 * Ziad Khouri
+* Zitong Yang
 * zomgrolf
 
 
