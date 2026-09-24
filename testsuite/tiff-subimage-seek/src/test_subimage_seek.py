@@ -29,6 +29,10 @@ def test_seek_back_after_rejection () :
     # find out how many subimages a file has.
     print ("  seek to subimage 1 rejected:", not input.seek_subimage (1, 0))
     input.geterror()
+    # No subimage is current now, so spec() must not still describe the one
+    # that was refused -- callers size buffers from it.
+    spec = input.spec()
+    print ("  spec after rejection is empty:", (spec.width, spec.height) == (0, 0))
     print ("  seek back to subimage 0 ok:", input.seek_subimage (0, 0))
     spec = input.spec()
     print ("  spec is subimage 0's:", (spec.width, spec.height) == (1, 1))
