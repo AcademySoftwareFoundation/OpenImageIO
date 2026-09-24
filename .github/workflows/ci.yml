@@ -372,7 +372,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.14
+            openexr_ver: v3.4.15
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
@@ -479,7 +479,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.14
+            openexr_ver: v3.4.15
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
@@ -504,7 +504,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.14
+            openexr_ver: v3.4.15
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
