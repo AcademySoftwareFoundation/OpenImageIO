@@ -110,9 +110,15 @@ IvGL_OCIO::update_state()
             shaderDesc->setFunctionName("ColorFunc");
             shaderDesc->setResourcePrefix("ocio_");
 
+            auto optflags = OCIO::OPTIMIZATION_DEFAULT;
+#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 5, 0)
+            // OCIO 2.3/2.4 compose back-to-back gamma ops in the wrong
+            // direction (fixed in 2.5.0 by OpenColorIO#2154).
+            optflags = OCIO::OptimizationFlags(
+                optflags & ~OCIO::OPTIMIZATION_COMP_GAMMA);
+#endif
             OCIO::ConstGPUProcessorRcPtr gpuProcessor
-                = processor->getOptimizedGPUProcessor(
-                    OCIO::OPTIMIZATION_DEFAULT);
+                = processor->getOptimizedGPUProcessor(optflags);
             gpuProcessor->extractGpuShaderInfo(shaderDesc);
 
             m_shader_desc = shaderDesc;
