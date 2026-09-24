@@ -4,6 +4,13 @@
 
 include (CTest)
 
+# New compression tests of zstd and lj2k require OpenEXR main branch, or latest release or at least V3.5.0 
+if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.5)
+    set (_openexr_new_compression "1")
+else ()
+    set (_openexr_new_compression "0")
+endif ()
+
 # Make a build/platform/testsuite directory, and copy the master runtest.py
 # there. The rest is up to the tests themselves.
 file (MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
@@ -442,7 +449,10 @@ macro (oiio_add_all_tests)
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
         # OpenEXR 3.1.10 is the first release where the exr core library
         # properly supported all compression types (DWA in particular).
-        list (APPEND all_openexr_tests openexr-compression)
+        
+        # openexr-compression is added separately below so that its
+        # OpenEXR-3.5-specific cases can be selected conditionally.
+        
         # openexr-scanlines reads a DWA-compressed file, so it needs the same
         # minimum as openexr-compression for the core-library test variant.
         if (USE_PYTHON AND NOT SANITIZE)
@@ -461,14 +471,37 @@ macro (oiio_add_all_tests)
                     ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0 "${_pybind_tests_pythonpath}"
                     IMAGEDIR openexr-images
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
-    # For OpenEXR >= 3.1, be sure to test with the core option on
+
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
+        # For OpenEXR >= 3.5 we need to add the new compression tests
+        oiio_add_tests (openexr-compression
+                        ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0
+                                    "OIIO_OPENEXR_NEW_COMPRESSION=${_openexr_new_compression}"
+                                    "${_pybind_tests_pythonpath}"
+                        IMAGEDIR openexr-images
+                        URL http://github.com/AcademySoftwareFoundation/openexr-images)
+    endif ()
+    
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1)
+        # For OpenEXR >= 3.5 we need to add the new compression tests, with the core library
         oiio_add_tests (${all_openexr_tests}
                         SUFFIX ".core"
                         ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=1 "${_pybind_tests_pythonpath}"
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
+
+    # For OpenEXR >= 3.5
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1.10)
+        oiio_add_tests (openexr-compression
+                        SUFFIX ".core"
+                        ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=1
+                                    "OIIO_OPENEXR_NEW_COMPRESSION=${_openexr_new_compression}"
+                                    "${_pybind_tests_pythonpath}"
+                        IMAGEDIR openexr-images
+                        URL http://github.com/AcademySoftwareFoundation/openexr-images)
+    endif ()
+    
     # Regression test (compiles its own helper and generates its own image)
     # for a partial edge-tile heap overflow in the OpenEXR readers.
     oiio_add_tests (openexr-partialtile)
