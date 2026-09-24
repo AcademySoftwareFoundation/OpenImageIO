@@ -17,6 +17,7 @@
 #include "exr_pvt.h"
 
 #include <OpenEXR/openexr.h>
+#include <OpenEXR/ImfCRgbaFile.h>
 
 #include "imageio_pvt.h"
 #include <OpenImageIO/color.h>
@@ -644,6 +645,12 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 #endif
 #ifdef IMF_HTJ2K32_COMPRESSION
         case EXR_COMPRESSION_HTJ2K32: comp = "htj2k32"; break;
+#endif
+#ifdef IMF_LJ2K_COMPRESSION
+        case EXR_COMPRESSION_LJ2K: comp = "lj2k"; break;
+#endif
+#ifdef IMF_ZSTD_COMPRESSION
+        case EXR_COMPRESSION_ZSTD: comp = "zstd"; break;
 #endif
         default: break;
         }
