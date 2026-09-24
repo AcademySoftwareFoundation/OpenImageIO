@@ -24,6 +24,17 @@
     (PNG_LIBPNG_VER_MAJOR * 10000 + PNG_LIBPNG_VER_MINOR * 100 \
      + PNG_LIBPNG_VER_RELEASE)
 
+// libpng added the mDCV chunk in 1.6.46, and fixed its floating-point mDCV
+// setter in 1.6.48, so a libpng built without the fixed-point API needs that
+// later release. Keep these versions in sync with the mdcv_* documentation in
+// stdmetadata.md and builtinplugins.md.
+#if defined(PNG_mDCV_SUPPORTED)                                              \
+    && ((defined(PNG_FIXED_POINT_SUPPORTED) && OIIO_LIBPNG_VERSION >= 10646) \
+        || (defined(PNG_FLOATING_POINT_SUPPORTED)                            \
+            && OIIO_LIBPNG_VERSION >= 10648))
+#    define OIIO_PNG_MDCV_SUPPORTED 1
+#endif
+
 
 /*
 This code has been extracted from the PNG plugin so as to provide access to PNG
@@ -339,6 +350,52 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
             if (!interop_id.empty())
                 spec.attribute("oiio:ColorSpace", interop_id);
         }
+    }
+#endif
+
+#ifdef OIIO_PNG_MDCV_SUPPORTED
+    // Preserve the mastering-display record as its ten integer wire values.
+    // These primaries describe the mastering display, not the pixel encoding.
+    static constexpr const char* names[]
+        = { "mdcv_red_x",        "mdcv_red_y",   "mdcv_green_x",
+            "mdcv_green_y",      "mdcv_blue_x",  "mdcv_blue_y",
+            "mdcv_white_x",      "mdcv_white_y", "mdcv_max_luminance",
+            "mdcv_min_luminance" };
+#    ifdef PNG_FIXED_POINT_SUPPORTED
+    // libpng drops the whole record when either luminance exceeds
+    // 0x7fffffff, so the values below always fit in an int.
+    png_fixed_point wx, wy, rx, ry, gx, gy, bx, by;
+    png_uint_32 max_luminance, min_luminance;
+    if (png_get_mDCV_fixed(sp, ip, &wx, &wy, &rx, &ry, &gx, &gy, &bx, &by,
+                           &max_luminance, &min_luminance)) {
+        const int values[] = { rx / 2,
+                               ry / 2,
+                               gx / 2,
+                               gy / 2,
+                               bx / 2,
+                               by / 2,
+                               wx / 2,
+                               wy / 2,
+                               static_cast<int>(max_luminance),
+                               static_cast<int>(min_luminance) };
+#    else
+    double wx, wy, rx, ry, gx, gy, bx, by, max_luminance, min_luminance;
+    if (png_get_mDCV(sp, ip, &wx, &wy, &rx, &ry, &gx, &gy, &bx, &by,
+                     &max_luminance, &min_luminance)) {
+        const int values[]
+            = { static_cast<int>(std::lround(rx * 50000.0)),
+                static_cast<int>(std::lround(ry * 50000.0)),
+                static_cast<int>(std::lround(gx * 50000.0)),
+                static_cast<int>(std::lround(gy * 50000.0)),
+                static_cast<int>(std::lround(bx * 50000.0)),
+                static_cast<int>(std::lround(by * 50000.0)),
+                static_cast<int>(std::lround(wx * 50000.0)),
+                static_cast<int>(std::lround(wy * 50000.0)),
+                static_cast<int>(std::lround(max_luminance * 10000.0)),
+                static_cast<int>(std::lround(min_luminance * 10000.0)) };
+#    endif
+        for (int i = 0; i < 10; ++i)
+            spec.attribute(names[i], values[i]);
     }
 #endif
 
@@ -733,6 +790,74 @@ write_info(png_structp& sp, png_infop& ip, int& color_type, ImageSpec& spec,
         png_set_cICP(sp, ip, vals[0], vals[1], (png_byte)0, vals[3]);
     }
 #endif
+
+    static constexpr const char* mdcv_names[]
+        = { "mdcv_red_x",        "mdcv_red_y",   "mdcv_green_x",
+            "mdcv_green_y",      "mdcv_blue_x",  "mdcv_blue_y",
+            "mdcv_white_x",      "mdcv_white_y", "mdcv_max_luminance",
+            "mdcv_min_luminance" };
+    int mdcv_count = 0;
+    for (const char* name : mdcv_names)
+        mdcv_count += spec.find_attribute(name) != nullptr;
+    if (mdcv_count) {
+        // An unwritable record never fails the write: it is reported and
+        // the mDCV chunk is omitted. ImageOutput has no warning channel, so
+        // this uses debugfmt, as OpenEXR output does for metadata it drops.
+        std::string mdcv_error;
+#if defined(OIIO_PNG_MDCV_SUPPORTED) && defined(PNG_cICP_SUPPORTED)
+        int values[10];
+        mdcv_error = [&]() -> std::string {
+            if (mdcv_count != 10)
+                return "PNG mDCV metadata requires all ten mdcv_* attributes";
+            for (int i = 0; i < 10; ++i) {
+                const ParamValue* attribute = spec.find_attribute(
+                    mdcv_names[i]);
+                if (attribute->type() != TypeDesc::INT
+                    && attribute->type() != TypeDesc::UINT)
+                    return Strutil::fmt::format(
+                        "PNG mDCV attribute '{}' must be a scalar integer",
+                        mdcv_names[i]);
+                values[i] = attribute->get_int();
+            }
+            for (int i = 0; i < 8; ++i)
+                if (values[i] < 0 || values[i] > 50000)
+                    return Strutil::fmt::format(
+                        "PNG mDCV attribute '{}' must be in [0, 50000]",
+                        mdcv_names[i]);
+            if (values[8] < 1 || values[8] > 100000000)
+                return "PNG mDCV maximum luminance must be in [1, 100000000]";
+            if (values[9] < 0 || values[9] > 99999999)
+                return "PNG mDCV minimum luminance must be in [0, 99999999]";
+            if (values[9] >= values[8])
+                return "PNG mDCV minimum luminance must be less than maximum luminance";
+            if (!png_get_valid(sp, ip, PNG_INFO_cICP))
+                return "PNG mDCV metadata requires an accompanying cICP chunk";
+            return {};
+        }();
+        if (mdcv_error.empty()) {
+            if (setjmp(png_jmpbuf(sp)))  // NOLINT(cert-err52-cpp)
+                return "Could not set PNG mDCV chunk";
+#    ifdef PNG_FIXED_POINT_SUPPORTED
+            png_set_mDCV_fixed(sp, ip, values[6] * 2, values[7] * 2,
+                               values[0] * 2, values[1] * 2, values[2] * 2,
+                               values[3] * 2, values[4] * 2, values[5] * 2,
+                               static_cast<png_uint_32>(values[8]),
+                               static_cast<png_uint_32>(values[9]));
+#    else
+            png_set_mDCV(sp, ip, values[6] / 50000.0, values[7] / 50000.0,
+                         values[0] / 50000.0, values[1] / 50000.0,
+                         values[2] / 50000.0, values[3] / 50000.0,
+                         values[4] / 50000.0, values[5] / 50000.0,
+                         values[8] / 10000.0, values[9] / 10000.0);
+#    endif
+        }
+#else
+        mdcv_error = "PNG output does not support mDCV metadata";
+#endif
+        if (!mdcv_error.empty())
+            OIIO::debugfmt("OpenImageIO WARNING: {}; omitting the mDCV chunk\n",
+                           mdcv_error);
+    }
 
 #ifdef PNG_eXIf_SUPPORTED
     std::vector<char> exifBlob;

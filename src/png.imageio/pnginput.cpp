@@ -25,6 +25,9 @@ public:
 #ifdef PNG_cICP_SUPPORTED
                 || feature == "cicp"
 #endif
+#ifdef OIIO_PNG_MDCV_SUPPORTED
+                || feature == "mdcv"
+#endif
         );
     }
     bool valid_file(Filesystem::IOProxy* ioproxy) const override;
