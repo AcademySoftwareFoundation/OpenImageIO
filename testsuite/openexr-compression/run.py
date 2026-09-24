@@ -18,6 +18,8 @@ compressions = [
     "b44a",
     "dwaa",
     "dwab",
+    "lj2k",
+    "zstd"
 ]
 
 anymatch = True

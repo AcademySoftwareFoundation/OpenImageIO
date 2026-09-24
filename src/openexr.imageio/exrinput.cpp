@@ -465,6 +465,12 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 #ifdef IMF_HTJ2K32_COMPRESSION
         case Imf::HTJ2K32_COMPRESSION: comp = "htj2k32"; break;
 #endif
+#ifdef IMF_LJ2K_COMPRESSION
+        case Imf::LJ2K_COMPRESSION: comp = "lj2k"; break;
+#endif
+#ifdef IMF_ZSTD_COMPRESSION
+        case Imf::ZSTD_COMPRESSION: comp = "zstd"; break;
+#endif
         default: break;
         }
         if (comp)
