@@ -127,6 +127,19 @@ OIIO_API bool check_texture_metadata_sanity(ImageSpec& spec);
 /// gamma transfer function, return the gamma value. If not, return zero.
 OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec);
 
+/// Record on a spec just read from a file which file was opened
+/// ("oiio:SourcePath") and which format reader read it ("oiio:SourceFormat"),
+/// so that the answer travels with the spec after the reader is gone. See
+/// stdmetadata.md. ImageOutput::check_open() removes both again, so they are
+/// never written to a file.
+inline void
+set_source_provenance(ImageSpec& spec, string_view format_name,
+                      string_view filename)
+{
+    spec.attribute("oiio:SourceFormat", format_name);
+    spec.attribute("oiio:SourcePath", filename);
+}
+
 /// Get the timing report from log_time entries.
 OIIO_API std::string timing_report();
 
