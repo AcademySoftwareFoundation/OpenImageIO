@@ -29,8 +29,10 @@ for ext, nchans, attribs in [
     files += [ "colorconfig." + ext ]
     command += oiiotool (f"-pattern constant:color=0.5,0.5,0.5,0.5 32x32 {nchans} {attribs} -o colorconfig.{ext}",
                          failureok=True)
-# A PNG with a cICP chunk.
-files += [ "colorconfig-cicp.png" ]
+# PNGs with gAMA and cHRM chunks (linear Adobe RGB, which has no CICP code
+# point and whose primaries every libPNG accepts) and with a cICP chunk.
+files += [ "colorconfig-chrm.png", "colorconfig-cicp.png" ]
+command += oiiotool ("-pattern constant:color=0.5,0.5,0.5 32x32 3 -attrib oiio:ColorSpace lin_adobergb_scene -o colorconfig-chrm.png")
 command += oiiotool ("-pattern constant:color=0.5,0.5,0.5 32x32 3 -attrib oiio:ColorSpace pq_rec2020_display -o colorconfig-cicp.png")
 # An ACES container OpenEXR.
 files += [ "colorconfig-aces.exr" ]

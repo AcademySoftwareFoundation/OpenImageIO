@@ -265,22 +265,43 @@ just exist in the OIIO namespace as general utilities. (See
 ## Color space properties: `ColorSpaceInfo`
 
 `ColorConfig::get_color_space_info()` and
-`ColorConfig::derive_color_space_info()` describe a color space, named by any
-name `ColorConfig::resolve()` accepts, with a `ColorSpaceInfo`: its RGB
-primaries and white point, and the exponent of its transfer function when that
-is a pure power (1.0 for a linear one). Either property may be unavailable.
-They are taken from what the config declares: a `scene-linear` or
-`display-linear` encoding gives gamma 1.0, and a published Color Interop ID the
-config declares for the color space, as its `interop_id` (OpenColorIO 2.5 or
-newer) or as its name or one of its aliases, gives that ID's primaries and
-transfer function. For example, a color space declared as `lin_ap1_scene`
-reports gamma 1.0 and the ACES AP1 primaries, and one declared as
-`g22_rec709_scene` gamma 2.2 and the Rec.709 primaries. The sRGB curve is
-piecewise, so `srgb_rec709_scene` reports gamma 0. `derive_color_space_info()`
-may also derive properties the config does not declare by analyzing the color
-space's transforms; currently it derives nothing more. Neither call changes the
-config, an image, or its metadata. See {ref}`sec-pythoncolorconfig` for the
-Python bindings.
+`ColorConfig::derive_color_space_info()` describe a color space, named by
+anything `ColorConfig::resolve()` accepts (a name, alias, role or Color Interop
+ID), with a `ColorSpaceInfo`: its RGB primaries and white point, and the
+exponent of its transfer function when that is a pure power. The first
+returns only what is already known, and does not accept a name that
+`resolve()` can select only by comparing transforms. The second also compares
+the color space's transforms with OIIO's built-in interop-identities config,
+so it can describe a color space whose config states none of this. What the
+config does state is honored rather than measured: a color space declaring a
+linear encoding reports gamma 1.0 unless measurement contradicts it with a
+pure-power exponent of its own. Neither call changes the config, an image, or
+its metadata.
+
+::::{tabs}
+:::{tab} C++
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imageioapi.cpp
+:language: c++
+:start-after: BEGIN-imageioapi-colorspaceinfo
+:end-before: END-imageioapi-colorspaceinfo
+:dedent: 4
+```
+:::
+
+:::{tab} Python
+```{literalinclude} ../../testsuite/docs-examples-python/src/docs-examples-imageioapi.py
+:language: py
+:start-after: BEGIN-imageioapi-colorspaceinfo
+:end-before: END-imageioapi-colorspaceinfo
+:dedent: 4
+```
+:::
+::::
+
+`ACEScg` reports gamma 1 and the ACES AP1 primaries, and `g22_rec709_scene`
+gamma 2.2 and the Rec.709 primaries. The sRGB curve is piecewise, so
+`srgb_rec709_scene` reports gamma 0. See
+{ref}`sec-pythoncolorconfig` for the Python bindings.
 
 :::{doxygenclass} OIIO::ColorSpaceInfo
 :members:

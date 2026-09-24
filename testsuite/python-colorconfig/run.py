@@ -7,5 +7,10 @@
 
 import os
 
-command += pythonbin + " src/test_colorconfig.py > out.txt"
-
+command += run_app(pythonbin + " src/test_colorconfig.py")
+command += run_app(
+    pythonbin + ' src/test_normalization.py "' + OIIO_PROJECT_ROOT
+    + '/src/libOpenImageIO/interop-identities-config.ocio"')
+command += run_app(
+    pythonbin + ' src/test_properties_api.py "' + OIIO_PROJECT_ROOT
+    + '/src/libOpenImageIO/interop-identities-config.ocio"')

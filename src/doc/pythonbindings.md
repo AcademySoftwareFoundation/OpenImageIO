@@ -4042,24 +4042,24 @@ is provided for minimal color support.
 
 :::{py:method} get_color_space_info (colorspace)
 Return a `ColorSpaceInfo` with the properties of the named color space that
-the config declares, without analyzing its transforms. A name that does not
-resolve returns an invalid `ColorSpaceInfo`. See {ref}`sec-colorspaceinfo`.
+are already known, without analyzing its transforms. A name that does not
+resolve without that analysis returns an invalid `ColorSpaceInfo`. See {ref}`sec-colorspaceinfo`.
 
 This function was added in OpenImageIO 3.3.
 :::
 
 :::{py:method} derive_color_space_info (colorspace)
-Return a `ColorSpaceInfo` with the properties of the named color space, as
-`get_color_space_info()` does, plus any that can be derived by analyzing its
-transforms. Currently it derives nothing more.
+Return a `ColorSpaceInfo` with the properties of the named color space,
+deriving those its config does not declare by comparing its transforms with
+OIIO's built-in interop-identities config.
 
 Example:
 
-```python
-info = colorconfig.derive_color_space_info("ACEScg")
-if info.valid():
-    gamma = info.transfer_function_gamma()  # 1.0 for a linear encoding
-    xy = info.chromaticities()  # [] if the primaries are unknown
+```{literalinclude} ../../testsuite/docs-examples-python/src/docs-examples-imageioapi.py
+:language: py
+:start-after: BEGIN-imageioapi-colorspaceinfo
+:end-before: END-imageioapi-colorspaceinfo
+:dedent: 4
 ```
 
 This function was added in OpenImageIO 3.3.
@@ -4084,6 +4084,10 @@ This function was added in OpenImageIO 3.1.
 :::{py:method} get_color_interop_id (colorspace)
 Find color interop ID for the given colorspace.
 Returns empty string if not found.
+
+An authored or declared ID answers first. Otherwise, a supported configured
+definition may be recognized from its native response. This is the portable ID
+to write to a file.
 
 Example:
 
@@ -4128,7 +4132,9 @@ Bx, By, Wx, Wy, CIE 1931 xy), or an empty list if they are unavailable.
 :::{py:method} ColorSpaceInfo.transfer_function_gamma ()
 The exponent of a transfer function that decodes as a pure power, 1.0 for a
 linear one, or 0 if the transfer function is not a pure power or is unknown. A
-color space whose config declares a linear encoding reports 1.0.
+color space whose config declares a linear encoding is honored rather than
+measured, and reports 1.0 unless measurement contradicts it with a pure-power
+exponent of its own.
 :::
 
 (sec-pythonmiscapi)=

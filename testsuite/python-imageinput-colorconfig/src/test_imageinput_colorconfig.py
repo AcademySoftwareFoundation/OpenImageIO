@@ -49,8 +49,12 @@ for filename in sys.argv[1:]:
         while inp.seek_subimage(len(labels), 0):
             labels.append(inp.spec().getattribute("oiio:ColorSpace"))
         inp.close()
-        # Show that the OpenEXR color paths were read.
-        if filename.endswith(".exr"):
+        # Show that the color paths these files are here for were read
+        if filename.endswith("-chrm.png"):
+            data = open(filename, "rb").read()
+            print("PNG has gAMA and cHRM:",
+                  b"gAMA" in data and b"cHRM" in data)
+        elif filename.endswith(".exr"):
             print(os.path.basename(filename), "core", core, "labels:", *labels)
     if config_loaded():
         print("reading", filename, "loaded a color config")

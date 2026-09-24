@@ -434,10 +434,15 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     // Read CICP from color encoding. Custom primaries, custom white point and
-    // arbitrary gamma not supported currently.
+    // arbitrary gamma not supported currently. Nor is P3-D65 with libjxl's DCI
+    // transfer, a pure gamma 2.6: CICP 12,17 reads as DCDM, whose ST 428-1
+    // transfer also scales white.
     if (have_color_encoding && color_encoding.primaries != JXL_PRIMARIES_CUSTOM
         && color_encoding.white_point != JXL_WHITE_POINT_CUSTOM
-        && color_encoding.transfer_function != JXL_TRANSFER_FUNCTION_GAMMA) {
+        && color_encoding.transfer_function != JXL_TRANSFER_FUNCTION_GAMMA
+        && !(color_encoding.primaries == JXL_PRIMARIES_P3
+             && color_encoding.white_point == JXL_WHITE_POINT_D65
+             && color_encoding.transfer_function == JXL_TRANSFER_FUNCTION_DCI)) {
         int color_primaries = color_encoding.primaries;
         // JxlPrimaries enum only covers P3 primaries as value 11 and not 12
         // but CICP has separate code values based on white point.

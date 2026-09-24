@@ -31,6 +31,18 @@ def example1() -> None:
 
 # END-imageioapi-example1
 
+
+def example_colorspaceinfo() -> None:
+    print("example_colorspaceinfo")
+    # BEGIN-imageioapi-colorspaceinfo
+    config = oiio.ColorConfig.default_colorconfig()
+    for name in ("ACEScg", "g22_rec709_scene", "srgb_rec709_scene"):
+        # Derive whatever properties the config does not declare
+        info = config.derive_color_space_info(name)
+        print(f"{name}: gamma {info.transfer_function_gamma():.3g}, chromaticities",
+              *(f"{xy:.3f}" for xy in info.chromaticities()))
+    # END-imageioapi-colorspaceinfo
+
 #
 ############################################################################
 
@@ -43,3 +55,4 @@ if __name__ == '__main__':
     # Each example function needs to get called here, or it won't execute
     # as part of the test.
     example1()
+    example_colorspaceinfo()

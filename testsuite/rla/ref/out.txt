@@ -307,6 +307,34 @@ Reading ../oiio-images/rla/imgmake_rgba_nc8.rla
     rla:WhitePoint: 0.31, 0.31, 0.316
 Comparing "../oiio-images/rla/imgmake_rgba_nc8.rla" and "imgmake_rgba_nc8.rla"
 PASS
+Reading g22_adobergb_display.rla
+g22_adobergb_display.rla :    4 x    4, 3 channel, uint8 rla
+    channel list: R, G, B
+    compression: "rle"
+    PixelAspectRatio: 1
+    oiio:BitsPerSample: 8
+    rla:BlueChroma: 0.14, 0.33
+    rla:ColorChannel: "rgb"
+    rla:GreenChroma: 0.21, 0.71
+    rla:RedChroma: 0.67, 0.08
+    rla:WhitePoint: 0.31, 0.316
+Comparing "g22_adobergb_display.rla" and "gamma-src.tif"
+PASS
+Reading g22_rec709_scene.rla
+g22_rec709_scene.rla :    4 x    4, 3 channel, uint8 rla
+    channel list: R, G, B
+    compression: "rle"
+    PixelAspectRatio: 1
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "g22_rec709_scene"
+    oiio:Gamma: 2.2
+    rla:BlueChroma: 0.14, 0.33
+    rla:ColorChannel: "rgb"
+    rla:GreenChroma: 0.21, 0.71
+    rla:RedChroma: 0.67, 0.08
+    rla:WhitePoint: 0.31, 0.316
+Comparing "g22_rec709_scene.rla" and "gamma-src.tif"
+PASS
 oiiotool ERROR: read : "../oiio-images/rla/crash1.rla": 3 aux channels but 0 aux bits. Possible corrupt input?
 Full command line was:
 > oiiotool ../oiio-images/rla/crash1.rla -o crash1.exr

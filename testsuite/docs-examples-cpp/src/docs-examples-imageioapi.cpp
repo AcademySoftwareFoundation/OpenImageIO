@@ -28,6 +28,29 @@ example1()
 }
 // END-imageioapi-example1
 
+
+
+#include <OpenImageIO/color.h>
+
+void
+example_colorspaceinfo()
+{
+    print("example_colorspaceinfo\n");
+    // BEGIN-imageioapi-colorspaceinfo
+    const ColorConfig& config = ColorConfig::default_colorconfig();
+    for (string_view name :
+         { "ACEScg", "g22_rec709_scene", "srgb_rec709_scene" }) {
+        // Derive whatever properties the config does not declare
+        ColorSpaceInfo info = config.derive_color_space_info(name);
+        print("{}: gamma {:.3g}, chromaticities", name,
+              info.transfer_function_gamma());
+        for (float xy : info.chromaticities())
+            print(" {:.3f}", xy);
+        print("\n");
+    }
+    // END-imageioapi-colorspaceinfo
+}
+
 //
 ///////////////////////////////////////////////////////////////////////////
 
@@ -39,5 +62,6 @@ main(int /*argc*/, char** /*argv*/)
     // Each example function needs to get called here, or it won't execute
     // as part of the test.
     example1();
+    example_colorspaceinfo();
     return 0;
 }

@@ -1,5 +1,6 @@
 colorconfig.exr core 0 labels: lin_rec709_scene
 colorconfig.exr core 1 labels: lin_rec709_scene
+PNG has gAMA and cHRM: True
 colorconfig-aces.exr core 0 labels: lin_ap0_scene
 colorconfig-aces.exr core 1 labels: lin_ap0_scene
 multipart_colorspace_data_first.exr core 0 labels: data data lin_ap1_scene data
