@@ -12,7 +12,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-minisblack-02.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 2
-    oiio:RowsPerChunk: 431
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
@@ -37,7 +37,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-minisblack-04.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 4
-    oiio:RowsPerChunk: 221
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
@@ -62,7 +62,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-minisblack-06.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 6
-    oiio:RowsPerChunk: 148
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
@@ -87,7 +87,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-minisblack-08.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 112
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
@@ -112,7 +112,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-minisblack-10.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 10
-    oiio:RowsPerChunk: 89
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
@@ -137,7 +137,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-minisblack-12.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 12
-    oiio:RowsPerChunk: 74
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
@@ -162,7 +162,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-minisblack-14.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 14
-    oiio:RowsPerChunk: 64
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
@@ -187,7 +187,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-minisblack-16.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 16
-    oiio:RowsPerChunk: 56
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 1
     tiff:PlanarConfiguration: 1
@@ -262,7 +262,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-palette-02.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 431
+    oiio:RowsPerChunk: 43
     tiff:BitsPerSample: 2
     tiff:ColorSpace: "palette"
     tiff:Compression: 1
@@ -289,7 +289,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-palette-04.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 221
+    oiio:RowsPerChunk: 43
     tiff:BitsPerSample: 4
     tiff:ColorSpace: "palette"
     tiff:Compression: 1
@@ -316,7 +316,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-palette-08.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 112
+    oiio:RowsPerChunk: 43
     tiff:ColorSpace: "palette"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 3
@@ -342,7 +342,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-palette-16.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 16
-    oiio:RowsPerChunk: 56
+    oiio:RowsPerChunk: 43
     tiff:ColorSpace: "palette"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 3
@@ -368,7 +368,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-contig-02.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 2
-    oiio:RowsPerChunk: 148
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -393,7 +393,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-contig-04.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 4
-    oiio:RowsPerChunk: 74
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -593,7 +593,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-planar-02.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 2
-    oiio:RowsPerChunk: 431
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -618,7 +618,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-planar-04.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 4
-    oiio:RowsPerChunk: 221
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -643,7 +643,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-planar-08.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 112
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -668,7 +668,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-planar-10.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 10
-    oiio:RowsPerChunk: 89
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -693,7 +693,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-planar-12.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 12
-    oiio:RowsPerChunk: 74
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -718,7 +718,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-planar-14.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 14
-    oiio:RowsPerChunk: 64
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -743,7 +743,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-rgb-planar-16.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 16
-    oiio:RowsPerChunk: 56
+    oiio:RowsPerChunk: 43
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 2
@@ -870,7 +870,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-separated-planar-08.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 112
+    oiio:RowsPerChunk: 43
     tiff:ColorSpace: "CMYK"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 5
@@ -896,7 +896,7 @@ Reading ../oiio-images/libtiffpic/depth/flower-separated-planar-16.tif
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 16
-    oiio:RowsPerChunk: 56
+    oiio:RowsPerChunk: 43
     tiff:ColorSpace: "CMYK"
     tiff:Compression: 1
     tiff:PhotometricInterpretation: 5

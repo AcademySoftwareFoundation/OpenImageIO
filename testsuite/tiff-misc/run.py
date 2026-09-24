@@ -61,4 +61,10 @@ for base in [ "cmyk-1bit", "cmyk-4bit-planar", "cmyk-8bit", "cmyk-12bit",
               "cmyk-16bit", "rgb-24bit" ] :
     command += oiiotool ("src/{0}-tiled.tif src/{0}-strip.tif --diff".format(base))
 
+# Regression test: a RowsPerStrip far larger than the image height was passed
+# through unclamped as "oiio:RowsPerChunk", and reading with a data type
+# conversion then sized its scanline buffer from it (a 42 GB allocation for
+# this 32x32 image). Also at the end, to append to every ref variant.
+command += oiiotool ("-i:type=float src/rowsperstrip-huge.tif --echo \"RowsPerChunk={TOP['oiio:RowsPerChunk']} avg={TOP.AVGCOLOR}\"")
+
 outputs = [ "check1.tif", "out.txt" ]
