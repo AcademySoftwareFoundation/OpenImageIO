@@ -68,3 +68,17 @@ command += info_command("src/bomb-46341.dpx", safematch=True, failureok=True)
 # The bounds check now counts the offset and rejects the file up front.
 command += info_command("src/truncated-userdata.dpx", safematch=True,
                         failureok=True)
+
+# Regression test: a DPX whose pixel-data y origin is huge (0x7f000000) but
+# the data window (origin + size) still fits in int. read_image() used to
+# compute the scanline chunk range in int arithmetic, which overflowed to a
+# negative range and drove a heap buffer overflow while reading the pixels.
+# It must now read the pixels without overflowing.
+command += oiiotool("src/crash-large-origin.dpx -o crash-large-origin.tif",
+                    failureok=True)
+
+# Regression test: a DPX whose pixel-data y origin (INT_MAX) is so large that
+# origin + size overflows the int scanline coordinates used by the read path.
+# check_open() must reject it up front.
+command += info_command("src/crash-origin-overflow.dpx", safematch=True,
+                        failureok=True)

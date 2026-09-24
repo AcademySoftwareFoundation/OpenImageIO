@@ -2176,9 +2176,19 @@ PSDInput::setup()
         }
         m_specs.emplace_back(layer.width, layer.height, spec_channel_count,
                              m_type_desc);
-        ImageSpec& spec    = m_specs.back();
-        spec.x             = layer.left;
-        spec.y             = layer.top;
+        ImageSpec& spec = m_specs.back();
+        spec.x          = layer.left;
+        spec.y          = layer.top;
+        // Check that x+width and y+height are also going to fit inside an
+        // int32 (similarly to ImageInput::check_image).
+        if (int64_t(spec.x) + spec.width > std::numeric_limits<int>::max()
+            || int64_t(spec.y) + spec.height
+                   > std::numeric_limits<int>::max()) {
+            errorfmt(
+                "Layer data window origin+size is out of range: origin ({}, {}), size {}x{}. Possible corrupt input?",
+                spec.x, spec.y, spec.width, spec.height);
+            return false;
+        }
         spec.extra_attribs = m_common_attribs.extra_attribs;
         if (m_WantRaw)
             fill_channel_names(spec, transparency);

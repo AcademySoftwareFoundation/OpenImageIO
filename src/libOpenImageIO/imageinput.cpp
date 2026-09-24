@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -1169,16 +1170,16 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         // we may someday want to revisit this to batch multiple rows.
         for (int z = 0; z < spec.depth; z += spec.tile_depth) {
             for (int y = 0; y < spec.height && ok; y += spec.tile_height) {
-                ok &= read_tiles(subimage, miplevel, spec.x,
-                                 spec.x + spec.width, y + spec.y,
-                                 std::min(y + spec.y + spec.tile_height,
-                                          spec.y + spec.height),
-                                 z + spec.z,
-                                 std::min(z + spec.z + spec.tile_depth,
-                                          spec.z + spec.depth),
-                                 chbegin, chend, format,
-                                 (char*)data + z * zstride + y * ystride,
-                                 xstride, ystride, zstride);
+                ok &= read_tiles(
+                    subimage, miplevel, spec.x, spec.x + spec.width, y + spec.y,
+                    int(std::min<int64_t>(int64_t(y) + spec.y + spec.tile_height,
+                                          int64_t(spec.y) + spec.height)),
+                    z + spec.z,
+                    int(std::min<int64_t>(int64_t(z) + spec.z + spec.tile_depth,
+                                          int64_t(spec.z) + spec.depth)),
+                    chbegin, chend, format,
+                    (char*)data + z * zstride + y * ystride, xstride, ystride,
+                    zstride);
                 if (progress_callback
                     && progress_callback(progress_callback_data,
                                          (float)y / spec.height))
@@ -1194,7 +1195,9 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         chunk     = round_to_multiple(chunk, rps);
         for (int z = 0; z < spec.depth; ++z) {
             for (int y = 0; y < spec.height && ok; y += chunk) {
-                int yend = std::min(y + spec.y + chunk, spec.y + spec.height);
+                int yend = int(
+                    std::min<int64_t>(int64_t(y) + spec.y + chunk,
+                                      int64_t(spec.y) + spec.height));
                 ok &= read_scanlines(subimage, miplevel, y + spec.y, yend,
                                      z + spec.z, chbegin, chend, format,
                                      (char*)data + z * zstride + y * ystride,
@@ -1256,11 +1259,13 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         // parallelization purposes), but as typical core counts increase,
         // we may someday want to revisit this to batch multiple rows.
         for (int z = 0; z < spec.depth; z += spec.tile_depth) {
-            int zend = std::min(z + spec.z + spec.tile_depth,
-                                spec.z + spec.depth);
+            int zend = int(
+                std::min<int64_t>(int64_t(z) + spec.z + spec.tile_depth,
+                                  int64_t(spec.z) + spec.depth));
             for (int y = 0; y < spec.height && ok; y += spec.tile_height) {
-                int yend = std::min(y + spec.y + spec.tile_height,
-                                    spec.y + spec.height);
+                int yend = int(
+                    std::min<int64_t>(int64_t(y) + spec.y + spec.tile_height,
+                                      int64_t(spec.y) + spec.height));
                 ok &= read_tiles(subimage, miplevel, spec.x,
                                  spec.x + spec.width, y + spec.y, yend,
                                  z + spec.z, zend, chbegin, chend, format,
@@ -1278,7 +1283,9 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
         chunk     = round_to_multiple(chunk, rps);
         for (int z = 0; z < spec.depth; ++z) {
             for (int y = 0; y < spec.height && ok; y += chunk) {
-                int yend = std::min(y + spec.y + chunk, spec.y + spec.height);
+                int yend = int(
+                    std::min<int64_t>(int64_t(y) + spec.y + chunk,
+                                      int64_t(spec.y) + spec.height));
                 ok &= read_scanlines(subimage, miplevel, y + spec.y, yend,
                                      chbegin, chend, format,
                                      data.subspan(spec.x, spec.x + spec.width,
@@ -1727,6 +1734,19 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
             float(spec.image_bytes(true)) / float(1024 * 1024),
             OIIO::pvt::limit_imagesize_MB, spec.width, spec.height,
             spec.nchannels, spec.format);
+        return false;
+    }
+
+    // Reject an image origin so large that origin + size overflows the int
+    // coordinate system the scanline/tile read APIs use.
+    constexpr int64_t intmax = std::numeric_limits<int>::max();
+    if (int64_t(spec.x) + spec.width > intmax
+        || int64_t(spec.y) + spec.height > intmax
+        || int64_t(spec.z) + spec.depth > intmax) {
+        errorfmt(
+            "{} pixel data window origin+size is out of range: origin ({}, {}, {}), size {}x{}x{}. Possible corrupt input?",
+            format_name(), spec.x, spec.y, spec.z, spec.width, spec.height,
+            spec.depth);
         return false;
     }
 
