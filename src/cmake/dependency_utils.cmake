@@ -54,6 +54,10 @@ set_cache (${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES 5
            "Number of times to retry a failed dependency download" ADVANCED)
 set_cache (${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY 15
            "Seconds to wait before the first dependency download retry (doubles each retry)" ADVANCED)
+# Names of downloads that needed retries to succeed, one per line, so CI can
+# report them. Start fresh each configure.
+set (${PROJECT_NAME}_DOWNLOAD_RETRY_LOG "${CMAKE_BINARY_DIR}/clone-retries.txt")
+file (REMOVE ${${PROJECT_NAME}_DOWNLOAD_RETRY_LOG})
 
 
 # Track all build deps we find with checked_find_package
@@ -697,17 +701,21 @@ endfunction()
 #                               [RETRY_DELAY <seconds>] # default 15
 #                               [RESULT_VARIABLE <var>]
 #                               [ERROR_VARIABLE <var>]
+#                               [RETRY_COUNT_VARIABLE <var>]
 #                               [QUIET])
 #
 # CLEANUP names a directory holding partial results (such as a half-finished
 # clone) to remove after each failed attempt, including the last.
+#
+# RETRY_COUNT_VARIABLE receives the number of retries made (0 if the first
+# attempt succeeded).
 #
 function (execute_process_with_retry)
     cmake_parse_arguments(_epr   # prefix
         # noValueKeywords:
         "QUIET"
         # singleValueKeywords:
-        "WORKING_DIRECTORY;CLEANUP;RETRIES;RETRY_DELAY;RESULT_VARIABLE;ERROR_VARIABLE"
+        "WORKING_DIRECTORY;CLEANUP;RETRIES;RETRY_DELAY;RESULT_VARIABLE;ERROR_VARIABLE;RETRY_COUNT_VARIABLE"
         # multiValueKeywords:
         "COMMAND"
         # argsToParse:
@@ -755,11 +763,55 @@ function (execute_process_with_retry)
         math (EXPR _epr_delay "${_epr_delay} * 2")
     endwhile ()
 
-    if (_epr_RESULT_VARIABLE)
+    if (DEFINED _epr_RESULT_VARIABLE)
         set (${_epr_RESULT_VARIABLE} ${_epr_result} PARENT_SCOPE)
     endif ()
-    if (_epr_ERROR_VARIABLE)
+    if (DEFINED _epr_ERROR_VARIABLE)
         set (${_epr_ERROR_VARIABLE} "${_epr_errors}" PARENT_SCOPE)
+    endif ()
+    if (DEFINED _epr_RETRY_COUNT_VARIABLE)
+        set (${_epr_RETRY_COUNT_VARIABLE} ${_epr_tries} PARENT_SCOPE)
+    endif ()
+endfunction ()
+
+
+# git clone <repo> into <dir>, retrying on failure as
+# execute_process_with_retry does, with the retry settings from
+# ${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES/_RETRY_DELAY. If the clone
+# needed retries to succeed, <name> is appended to the file
+# ${PROJECT_NAME}_DOWNLOAD_RETRY_LOG so CI can report it.
+#
+# Usage:
+#   git_clone_with_retry (<name> <repo> <dir>
+#                         [GIT_ARGS <args>...]
+#                         [RESULT_VARIABLE <var>]
+#                         [ERROR_VARIABLE <var>]
+#                         [QUIET])
+#
+function (git_clone_with_retry name repo dir)
+    cmake_parse_arguments(_gcr "QUIET" "RESULT_VARIABLE;ERROR_VARIABLE"
+                          "GIT_ARGS" ${ARGN})
+    unset (_gcr_quiet)
+    if (_gcr_QUIET)
+        set (_gcr_quiet QUIET)
+    endif ()
+    execute_process_with_retry (
+        COMMAND ${GIT_EXECUTABLE} clone ${_gcr_GIT_ARGS} ${repo} ${dir}
+        CLEANUP ${dir}
+        RETRIES ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES}
+        RETRY_DELAY ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY}
+        RESULT_VARIABLE _gcr_result
+        ERROR_VARIABLE _gcr_errors
+        RETRY_COUNT_VARIABLE _gcr_retries
+        ${_gcr_quiet})
+    if (_gcr_result EQUAL 0 AND _gcr_retries GREATER 0)
+        file (APPEND ${${PROJECT_NAME}_DOWNLOAD_RETRY_LOG} "${name}\n")
+    endif ()
+    if (DEFINED _gcr_RESULT_VARIABLE)
+        set (${_gcr_RESULT_VARIABLE} ${_gcr_result} PARENT_SCOPE)
+    endif ()
+    if (DEFINED _gcr_ERROR_VARIABLE)
+        set (${_gcr_ERROR_VARIABLE} "${_gcr_errors}" PARENT_SCOPE)
     endif ()
 endfunction ()
 
@@ -827,13 +879,9 @@ macro (build_dependency_with_cmake pkgname)
         message (STATUS "COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY} "
                                 "${${pkgname}_LOCAL_SOURCE_DIR} "
                                 "${${pkgname}_GIT_CLONE_ARGS}")
-        execute_process_with_retry (
-            COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY}
-                    ${${pkgname}_LOCAL_SOURCE_DIR}
-                    ${${pkgname}_GIT_CLONE_ARGS}
-            CLEANUP ${${pkgname}_LOCAL_SOURCE_DIR}
-            RETRIES ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES}
-            RETRY_DELAY ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY}
+        git_clone_with_retry (${pkgname} ${_pkg_GIT_REPOSITORY}
+                              ${${pkgname}_LOCAL_SOURCE_DIR}
+            GIT_ARGS ${${pkgname}_GIT_CLONE_ARGS}
             RESULT_VARIABLE ${pkgname}_clone_result
             ERROR_VARIABLE ${pkgname}_clone_errors
             ${_pkg_retry_quiet})
@@ -898,9 +946,13 @@ macro (build_dependency_with_cmake pkgname)
             RETRY_DELAY ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY}
             RESULT_VARIABLE _pkg_submodule_result
             ERROR_VARIABLE  _pkg_submodule_errors
+            RETRY_COUNT_VARIABLE _pkg_submodule_retries
             ${_pkg_retry_quiet})
         if (NOT _pkg_submodule_result EQUAL 0)
             message (FATAL_ERROR "${pkgname}: git submodule update failed: ${_pkg_submodule_errors}")
+        endif ()
+        if (_pkg_submodule_retries GREATER 0)
+            file (APPEND ${${PROJECT_NAME}_DOWNLOAD_RETRY_LOG} "${pkgname} submodules\n")
         endif ()
     endif ()
 
