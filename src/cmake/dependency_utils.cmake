@@ -700,7 +700,7 @@ endfunction()
 #                               [QUIET])
 #
 # CLEANUP names a directory holding partial results (such as a half-finished
-# clone) to remove before each retry.
+# clone) to remove after each failed attempt, including the last.
 #
 function (execute_process_with_retry)
     cmake_parse_arguments(_epr   # prefix
@@ -741,6 +741,9 @@ function (execute_process_with_retry)
         if (_epr_result EQUAL 0)
             break ()
         endif ()
+        if (_epr_CLEANUP AND EXISTS ${_epr_CLEANUP})
+            file (REMOVE_RECURSE ${_epr_CLEANUP})
+        endif ()
         if (_epr_tries GREATER_EQUAL _epr_retries)
             break ()
         endif ()
@@ -748,9 +751,6 @@ function (execute_process_with_retry)
         message (STATUS "${ColorYellow}Failed: ${_epr_errors}${ColorReset}")
         message (STATUS "${ColorYellow}Retrying in ${_epr_delay} seconds "
                         "(retry ${_epr_tries} of ${_epr_retries})${ColorReset}")
-        if (_epr_CLEANUP AND EXISTS ${_epr_CLEANUP})
-            file (REMOVE_RECURSE ${_epr_CLEANUP})
-        endif ()
         execute_process (COMMAND ${CMAKE_COMMAND} -E sleep ${_epr_delay})
         math (EXPR _epr_delay "${_epr_delay} * 2")
     endwhile ()
