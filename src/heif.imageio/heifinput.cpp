@@ -87,6 +87,9 @@ public:
                        stride_t xstride) override;
 
 private:
+    // Set up the decode state and m_spec for one subimage.
+    bool read_subimage_spec(int subimage);
+
     std::string m_filename;
     int m_subimage                 = -1;
     int m_num_subimages            = 0;
@@ -244,7 +247,7 @@ HeifInput::close()
 bool
 HeifInput::seek_subimage(int subimage, int miplevel)
 {
-    if (miplevel != 0)
+    if (miplevel != 0 || subimage < 0)
         return false;
 
     if (subimage == m_subimage) {
@@ -255,17 +258,44 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         return false;
     }
 
-    auto id   = (subimage == 0) ? m_primary_id : m_item_ids[subimage - 1];
+    // We're about to overwrite the decode state and m_spec, so give up the
+    // current subimage first. Every failure below then leaves us on none,
+    // rather than on one whose spec and decoded pixels describe different
+    // images. The context stays open, so rejecting one subimage doesn't stop
+    // a later seek to a different (valid) one.
+    m_subimage = -1;
+    m_himage   = heif::Image();
+    m_spec     = ImageSpec();
+
+    if (!read_subimage_spec(subimage)) {
+        // Nor keep the spec of an image we refused or could not decode:
+        // spec() would report it, and read_scanline() would size its
+        // buffer from it.
+        m_spec = ImageSpec();
+        return false;
+    }
+
+    m_subimage = subimage;
+    return true;
+}
+
+
+
+// Set up the decode state and m_spec for one subimage. On failure m_spec
+// is left partly filled; the caller clears it.
+bool
+HeifInput::read_subimage_spec(int subimage)
+{
+    // m_item_ids[0] is the primary image; the rest follow in file order.
+    auto id   = m_item_ids[subimage];
     m_ihandle = m_ctx->get_image_handle(id);
 
     m_bitdepth = m_ihandle.get_luma_bits_per_pixel();
     if (m_bitdepth < 0) {
         errorfmt("Image has undefined bit depth");
-        m_ctx.reset();
         return false;
     } else if (!(m_bitdepth == 8 || m_bitdepth == 10 || m_bitdepth == 12)) {
         errorfmt("Image has unsupported bit depth {}", m_bitdepth);
-        m_ctx.reset();
         return false;
     }
 
@@ -310,10 +340,8 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     // limits:* policy and rejects degenerate (zero/negative) dimensions.
     m_spec = ImageSpec(m_ihandle.get_width(), m_ihandle.get_height(), nchannels,
                        (m_bitdepth > 8) ? TypeUInt16 : TypeUInt8);
-    if (!check_open(m_spec, { 0, 1 << 18, 0, 1 << 18, 0, 1, 0, 4 })) {
-        m_ctx.reset();
+    if (!check_open(m_spec, { 0, 1 << 18, 0, 1 << 18, 0, 1, 0, 4 }))
         return false;
-    }
 
 #if 0
     try {
@@ -340,7 +368,6 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         m_himage = heif::Image(img_tmp);
     if (herr.code != heif_error_Ok || !img_tmp) {
         errorfmt("Could not decode image ({})", herr.message);
-        m_ctx.reset();
         return false;
     }
 #endif
@@ -525,7 +552,6 @@ HeifInput::seek_subimage(int subimage, int miplevel)
         }
     }
 
-    m_subimage = subimage;
     return true;
 }
 

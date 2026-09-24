@@ -203,16 +203,24 @@ FitsInput::seek_subimage(int subimage, int miplevel)
         return true;
     }
 
-    // setting file pointer to the beginning of IMAGE extension
-    m_cur_subimage = subimage;
-    if (Filesystem::fseek(m_fd, m_subimages[m_cur_subimage].offset, SEEK_SET)) {
+    // We're about to overwrite m_spec and the file position, so give up the
+    // current subimage first. Failing partway then leaves us on none, rather
+    // than on one whose spec was never validated.
+    m_cur_subimage = -1;
+    m_spec         = ImageSpec();
+    if (Filesystem::fseek(m_fd, m_subimages[subimage].offset, SEEK_SET)) {
         errorfmt("Seek error");
         return false;
     }
 
-    if (!set_spec_info())
+    if (!set_spec_info()) {
+        // Nor keep the spec of an HDU we refused: spec() would report it,
+        // and read_scanline() would size its buffer from it.
+        m_spec = ImageSpec();
         return false;
+    }
 
+    m_cur_subimage = subimage;
     return true;
 }
 

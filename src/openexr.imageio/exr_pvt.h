@@ -294,7 +294,14 @@ public:
 
 private:
     struct PartInfo {
+        // Set initialized once the header has been parsed into the fields
+        // below, and validated once that parsed spec has also passed
+        // seek_subimage()'s checks. Only a validated part may be handed out
+        // -- as the current subimage, or from the spec() query that reads
+        // this cache without seeking. validated is published after the spec,
+        // so a reader that sees it set sees a spec that was checked.
         std::atomic_bool initialized;
+        std::atomic_bool validated;
         ImageSpec spec;
         int topwidth;           ///< Width of top mip level
         int topheight;          ///< Height of top mip level
@@ -311,10 +318,12 @@ private:
 
         PartInfo()
             : initialized(false)
+            , validated(false)
         {
         }
         PartInfo(const PartInfo& p)
             : initialized((bool)p.initialized)
+            , validated((bool)p.validated)
             , spec(p.spec)
             , topwidth(p.topwidth)
             , topheight(p.topheight)
@@ -358,6 +367,10 @@ private:
     void init()
     {
         m_chunkcache.clear();
+        // The cached part specs describe the file we're leaving behind, and
+        // with them gone nothing may index m_parts until open() refills it.
+        m_parts.clear();
+        m_nsubimages               = 0;
         m_input_stream             = NULL;
         m_input_multipart          = NULL;
         m_scanline_input_part      = NULL;
@@ -372,6 +385,16 @@ private:
         m_missingcolor.clear();
         m_filename.clear();
         m_file_color_interop_id.clear();
+    }
+
+    // Forget which subimage/miplevel we're on, for when a seek picks one and
+    // then rejects it. Leaving it current would let a later seek to it take
+    // seek_subimage's "no change" early out and skip the rejection.
+    void invalidate_current()
+    {
+        m_subimage = -1;
+        m_miplevel = -1;
+        m_spec     = ImageSpec();
     }
 
     // Read scanlines [ybegin,yend) out of the chunk [cbegin,cend), decoding

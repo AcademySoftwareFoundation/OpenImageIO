@@ -73,7 +73,11 @@ private:
     std::string m_filename;          ///< Stash the filename
     GifFileType* m_gif_file;         ///< GIFLIB handle
     int m_transparent_color;         ///< Transparent color index
-    int m_subimage;                  ///< Current subimage index
+    int m_subimage;                  ///< Current subimage index, or -1 if we
+                                     ///  aren't positioned on a valid one.
+    int m_stream_subimage;           ///< Subimage the giflib stream is next
+                                     ///  positioned to read, or -1 if the
+                                     ///  position is unknown.
     int m_disposal_method;           ///< Disposal method of current subimage.
                                      ///  Indicates what to do with canvas
                                      ///  before drawing the _next_ subimage.
@@ -92,9 +96,14 @@ private:
     ///
     bool read_subimage_metadata(ImageSpec& newspec);
 
-    /// Read current subimage data (ie. draw it on canvas).
-    ///
-    bool read_subimage_data(void);
+    // Read the header of the subimage the stream is positioned at: its
+    // metadata, the canvas dimensions, and the validity checks.
+    bool read_subimage_header(ImageSpec& newspec);
+
+    // Read the data of the subimage the stream is positioned at (ie. draw it
+    // on canvas). `subimage` is its index, which says whether it starts from
+    // a blank canvas.
+    bool read_subimage_data(int subimage);
 
     /// Helper: read gif extension.
     ///
@@ -150,7 +159,9 @@ OIIO_PLUGIN_EXPORTS_END
 void
 GIFInput::init(void)
 {
-    m_gif_file = nullptr;
+    m_gif_file        = nullptr;
+    m_subimage        = -1;
+    m_stream_subimage = -1;
     ioproxy_clear();
 }
 
@@ -159,8 +170,9 @@ GIFInput::init(void)
 bool
 GIFInput::open(const std::string& name, ImageSpec& newspec)
 {
-    m_filename = name;
-    m_subimage = -1;
+    m_filename        = name;
+    m_subimage        = -1;
+    m_stream_subimage = -1;
     m_canvas.clear();
 
     if (seek_subimage(0, 0)) {
@@ -338,7 +350,28 @@ GIFInput::read_subimage_metadata(ImageSpec& newspec)
 
 
 bool
-GIFInput::read_subimage_data()
+GIFInput::read_subimage_header(ImageSpec& newspec)
+{
+    if (!read_subimage_metadata(newspec))
+        return false;
+
+    // Subimages are drawn on a shared canvas, so they all have the dimensions
+    // the file declares for that canvas.
+    newspec.width       = m_gif_file->SWidth;
+    newspec.height      = m_gif_file->SHeight;
+    newspec.depth       = 1;
+    newspec.full_width  = newspec.width;
+    newspec.full_height = newspec.height;
+    newspec.full_depth  = newspec.depth;
+
+    return check_open(newspec, { 0, 32768, 0, 32768, 0, 1, 0, 4 })
+           && check_compression_ratio(newspec, ioproxy()->size());
+}
+
+
+
+bool
+GIFInput::read_subimage_data(int subimage)
 {
     GifColorType* colormap = NULL;
     int colormap_count;
@@ -353,7 +386,7 @@ GIFInput::read_subimage_data()
         return false;
     }
 
-    if (m_subimage == 0 || m_previous_disposal_method == DISPOSE_BACKGROUND) {
+    if (subimage == 0 || m_previous_disposal_method == DISPOSE_BACKGROUND) {
         // make whole canvas transparent
         size_t canvas_pixels = m_spec.image_pixels();
         if (canvas_pixels > std::numeric_limits<int>::max() / size_t(4)) {
@@ -425,9 +458,18 @@ GIFInput::seek_subimage(int subimage, int miplevel)
         return true;
     }
 
-    if (m_subimage > subimage) {
-        // requested subimage is located before the current one
-        // file needs to be reopened
+    // We're about to overwrite m_spec and the canvas, and possibly to close
+    // the file, so give up the current subimage before anything below can
+    // fail. Every failure then leaves us on no subimage, rather than on one
+    // whose spec and canvas no longer describe what the reader holds.
+    m_subimage = -1;
+    m_spec     = ImageSpec();
+
+    if (m_stream_subimage < 0 || m_stream_subimage > subimage) {
+        // The requested subimage is behind the stream position, or we don't
+        // know where the stream is. giflib only reads forward, so the file
+        // needs to be reopened.
+        m_stream_subimage = -1;
         if (m_gif_file && !close()) {
             return false;
         }
@@ -442,41 +484,39 @@ GIFInput::seek_subimage(int subimage, int miplevel)
             errorfmt("{}", GifErrorString(giflib_error));
             return false;
         }
-        m_subimage = -1;
+        m_stream_subimage = 0;
     }
 
-    // skip subimages preceding the requested one
-    if (m_subimage < subimage) {
-        for (m_subimage += 1; m_subimage < subimage; m_subimage++) {
-            if (!read_subimage_metadata(m_spec) || !read_subimage_data()) {
-                return false;
-            }
+    // Reading forward through the stream from here invalidates the position
+    // we recorded, so forget it too: a failure partway then makes the next
+    // seek reopen the file rather than trust a half-read stream.
+    int pos           = m_stream_subimage;
+    m_stream_subimage = -1;
+
+    // skip subimages preceding the requested one. Every failure from here
+    // on clears m_spec: read_subimage_header() parses into it before the
+    // limit checks, so a refused frame must not be left for spec() to
+    // report or for read_scanline() to size its buffer from.
+    for (; pos < subimage; ++pos) {
+        if (!read_subimage_header(m_spec) || !read_subimage_data(pos)) {
+            m_spec = ImageSpec();
+            return false;
         }
     }
 
-    // read metadata of current subimage
-    if (!read_subimage_metadata(m_spec)) {
+    if (!read_subimage_header(m_spec)) {
+        m_spec = ImageSpec();
         return false;
     }
-
-    m_spec.width       = m_gif_file->SWidth;
-    m_spec.height      = m_gif_file->SHeight;
-    m_spec.depth       = 1;
-    m_spec.full_height = m_spec.height;
-    m_spec.full_width  = m_spec.width;
-    m_spec.full_depth  = m_spec.depth;
-
-    if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 })
-        || !check_compression_ratio(m_spec, ioproxy()->size())) {
-        return false;
-    }
-
-    m_subimage = subimage;
 
     // draw subimage on canvas
-    if (!read_subimage_data()) {
+    if (!read_subimage_data(subimage)) {
+        m_spec = ImageSpec();
         return false;
     }
+
+    m_subimage        = subimage;
+    m_stream_subimage = subimage + 1;
 
     return true;
 }

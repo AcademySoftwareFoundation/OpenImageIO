@@ -82,6 +82,10 @@ private:
         ioproxy_clear();
     }
 
+    /// Helper function: parse a miplevel's header into m_spec.
+    ///
+    bool read_miplevel_spec(int miplevel);
+
     /// Helper function: read the image as scanlines (all but cubemaps).
     ///
     bool readimg_scanlines();
@@ -776,6 +780,31 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     // clear buffer so that readimage is called
     m_buf.clear();
 
+    // We're about to overwrite m_spec for the requested level, so give up the
+    // current one first -- failing partway then leaves us on no level, rather
+    // than on one whose spec describes a different level.
+    m_subimage = -1;
+    m_miplevel = -1;
+    m_spec     = ImageSpec();
+
+    if (!read_miplevel_spec(miplevel)) {
+        // Nor keep the spec of a level we refused: spec() would report it,
+        // and read_scanline() would size its buffer from it.
+        m_spec = ImageSpec();
+        return false;
+    }
+
+    m_subimage = subimage;
+    m_miplevel = miplevel;
+    return true;
+}
+
+
+// Parse the requested miplevel's header into m_spec and check it against
+// the limits. On failure m_spec is left partly filled; the caller clears it.
+bool
+DDSInput::read_miplevel_spec(int miplevel)
+{
     // for cube maps, the seek will be performed when reading a tile instead
     size_t w = 0, h = 0, d = 0;
     TypeDesc::BASETYPE basetype = GetBaseType(m_compression);
@@ -962,8 +991,6 @@ DDSInput::seek_subimage(int subimage, int miplevel)
     if (!check_compression_ratio(m_spec, ioproxy()->size()))
         return false;
 
-    m_subimage = subimage;
-    m_miplevel = miplevel;
     return true;
 }
 
