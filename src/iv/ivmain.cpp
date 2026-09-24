@@ -57,6 +57,12 @@ getargs(int argc, char* argv[])
       .store_true();
     ap.arg("--rawcolor")
       .help("Do not automatically transform to RGB");
+    ap.arg("--missing-pixels")
+      .help("Handling of unreadable pixels in partially-written files: "
+            "\"tolerate\" (default) displays the readable portion and notes "
+            "it in the status bar, \"strict\" fails to display the image")
+      .metavar("tolerate|strict")
+      .defaultval("tolerate");
 
     ap.arg("--display")
       .help("OCIO display")
@@ -137,6 +143,16 @@ main(int argc, char* argv[])
         imagecache->attribute("unassociatedalpha", 1);
     if (ap["rawcolor"].get<int>())
         mainWin->rawcolor(true);
+    std::string missing_pixels = ap["missing-pixels"].as_string("tolerate");
+    if (missing_pixels == "tolerate")
+        mainWin->tolerate_missing_pixels(true);
+    else if (missing_pixels == "strict")
+        mainWin->tolerate_missing_pixels(false);
+    else {
+        print(stderr,
+              "Error: --missing-pixels must be \"tolerate\" or \"strict\"\n");
+        return EXIT_FAILURE;
+    }
 
     QApplication::processEvents();  // Process any pending events
 
