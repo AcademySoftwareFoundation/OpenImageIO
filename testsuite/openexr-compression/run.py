@@ -21,7 +21,7 @@ compressions = [
     "dwab",
 ]
 
-if os.getenv("OIIO_OPENEXR_NEW_COMPRESSION") == "1":
+if os.getenv("OIIO_OPENEXR_LJ2K_ZSTD_SUPPORT") == "1":
     compressions += ["lj2k", "zstd"]
 
 anymatch = True
