@@ -1612,7 +1612,7 @@ The official OpenEXR site is <http://www.openexr.com/>.
    * - ``FNumber``
      - float
      - aperture
-  * - ``compression``
+   * - ``compression``
      - string
      - one of: ``"none"``, ``"rle"``, ``"zip"``, ``"zips"``, ``"piz"``,
        ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``,
