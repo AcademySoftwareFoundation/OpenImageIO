@@ -6,7 +6,7 @@
 set_cache (OpenEXR_BUILD_VERSION 3.5.0 "OpenEXR version for local builds")
 set (OpenEXR_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenEXR")
 set (OpenEXR_GIT_TAG "v${OpenEXR_BUILD_VERSION}")
-set (OpenEXR_GIT_COMMIT "e71cdd5d30a146dcb56c5e4c576d9e9d3c45f4fb")
+set (OpenEXR_GIT_COMMIT "5d838e01770cadb8f2a36c0d17018452fa7a3c0c")
 set_cache (OpenEXR_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local OpenEXR build, if necessary, build shared libraries" ADVANCED)
 
