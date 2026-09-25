@@ -363,7 +363,7 @@ jobs:
                             CLANG_FORMAT_EXE=clang-format-22
                             EXTRA_DEP_PACKAGES="clang-format-22"
 
-          - desc: latest releases gcc15 C++23 py3.12 avx2 exr3.4 ocio2.4
+          - desc: latest releases gcc15 C++23 py3.12 avx2 exr3.5 ocio2.4
             nametag: linux-latest-releases
             runner: ubuntu-24.04
             # cc_compiler: gcc-13
@@ -372,7 +372,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.15
+            openexr_ver: v3.5.0
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
@@ -470,7 +470,7 @@ jobs:
             setenvs: export USE_OPENVDB=0
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
-          - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.4 ocio2.4
+          - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.5 ocio2.4
             nametag: linux-arm-latest-releases
             runner: ubuntu-24.04-arm
             cc_compiler: gcc-14
@@ -479,7 +479,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.15
+            openexr_ver: v3.5.0
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
@@ -495,7 +495,7 @@ jobs:
                             USE_OPENVDB=0
                             nanobind_GIT_TAG=v3.0.0
                             nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
-          - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.4 ocio2.4
+          - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.5 ocio2.4
             nametag: linux-arm-latest-releases-clang
             runner: ubuntu-24.04-arm
             cc_compiler: clang-18
@@ -504,7 +504,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.15
+            openexr_ver: v3.5.0
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
