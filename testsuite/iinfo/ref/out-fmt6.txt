@@ -362,7 +362,7 @@ src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     planarconfig: "contig"
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 32
+    oiio:RowsPerChunk: 2
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -386,7 +386,7 @@ src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     planarconfig: "contig"
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 32
+    oiio:RowsPerChunk: 2
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
@@ -410,7 +410,7 @@ src/subimage.tif :    2 x    2, 3 channel, uint8 tiff
     planarconfig: "contig"
     Software: "OpenImageIO 2.5.0.0spi : oiiotool -pattern constant:color=0.25,0.5,0.75 2x2 3 -dup -dup --siappendall -d uint8 -o subimage.tif"
     oiio:BitsPerSample: 8
-    oiio:RowsPerChunk: 32
+    oiio:RowsPerChunk: 2
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
