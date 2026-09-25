@@ -242,3 +242,6 @@ Full command line was:
 oiiotool ERROR: read : "src/truncated-userdata.dpx": Corrupt userbuf: 2000 bytes of user data at offset 2048 run past the 2100 byte file
 Full command line was:
 > oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/truncated-userdata.dpx
+oiiotool ERROR: read : "src/crash-origin-overflow.dpx": dpx pixel data window origin+size is out of range: origin (0, 2147483647, 0), size 4x4x1. Possible corrupt input?
+Full command line was:
+> oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/crash-origin-overflow.dpx

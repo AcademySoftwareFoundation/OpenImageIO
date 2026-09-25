@@ -219,18 +219,20 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     m_spec     = ImageSpec(m_dpx.header.Width(), m_dpx.header.Height(),
                            m_dpx.header.ImageElementComponentCount(subimage),
                            typedesc);
-    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 8 })
-        || !check_compression_ratio(m_spec, m_filesize)) {
-        m_spec = ImageSpec();
-        return false;
-    }
 
     // xOffset/yOffset are defined as unsigned 32-bit integers, but m_spec.x/y are signed
-    // avoid casts that would result in negative values
+    // avoid casts that would result in negative values. Set the origin before
+    // check_open() so it can reject a data window (origin + size) that would
+    // overflow the int scanline coordinates used by the read path.
     if (m_dpx.header.xOffset <= (unsigned int)std::numeric_limits<int>::max())
         m_spec.x = m_dpx.header.xOffset;
     if (m_dpx.header.yOffset <= (unsigned int)std::numeric_limits<int>::max())
         m_spec.y = m_dpx.header.yOffset;
+
+    if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 8 })
+        || !check_compression_ratio(m_spec, m_filesize))
+        return false;
+
     if ((int)m_dpx.header.xOriginalSize > 0)
         m_spec.full_width = m_dpx.header.xOriginalSize;
     if ((int)m_dpx.header.yOriginalSize > 0)
