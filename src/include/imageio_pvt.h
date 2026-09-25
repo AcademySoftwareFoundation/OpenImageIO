@@ -125,7 +125,21 @@ OIIO_API bool check_texture_metadata_sanity(ImageSpec& spec);
 
 /// If the spec's metadata specifies a color space with Rec709 primaries and
 /// gamma transfer function, return the gamma value. If not, return zero.
-OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec);
+/// Without `use_config`, names are compared literally (for image readers).
+OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec,
+                                           bool use_config = true);
+
+/// For image readers, which record what a file says and never consult a
+/// color config: like `ImageSpec::set_colorspace()` and
+/// `set_colorspace_rec709_gamma()`, but comparing names literally. Readers
+/// only set built-in names or a file's own color interop ID, so "equivalent
+/// to sRGB" is a name comparison.
+OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
+OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
+
+/// The color interop ID for a CICP, or "" if there is none. Needs no color
+/// config.
+OIIO_API string_view get_color_interop_id(const int cicp[4]);
 
 /// Record on a spec just read from a file which file was opened
 /// ("oiio:SourcePath") and which file format reader read it

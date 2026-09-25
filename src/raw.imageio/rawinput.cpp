@@ -9,7 +9,6 @@
 
 #include <OpenImageIO/half.h>
 
-#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imagebuf.h>
@@ -18,6 +17,8 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
+
+#include "imageio_pvt.h"
 
 #if OIIO_GNUC_VERSION || OIIO_CLANG_VERSION
 // fix warnings in libraw headers: use of auto_ptr
@@ -637,7 +638,6 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     // might request a particular color space, like "ACES". Note that a
     // request for "sRGB-linear" will give you sRGB primaries with a linear
     // response.
-    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
     std::string cs = config.get_string_attribute("raw:ColorSpace",
                                                  "srgb_rec709_scene");
     if (Strutil::iequals(cs, "raw")) {
@@ -645,13 +645,14 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_processor->imgdata.params.output_color = 0;
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
-    } else if (colorconfig.equivalent(cs, "srgb_rec709_scene")
-               || Strutil::iequals(cs, "sRGB") /* Necessary? */) {
+    } else if (Strutil::iequals(cs, "srgb_rec709_scene")
+               || Strutil::iequals(cs, "srgb_texture")
+               || Strutil::iequals(cs, "sRGB")) {
         // Request explicit sRGB, including usual sRGB response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
         m_processor->imgdata.params.gamm[1]      = 12.92;
-    } else if (colorconfig.equivalent(cs, "lin_rec709_scene")
+    } else if (Strutil::iequals(cs, "lin_rec709_scene")
                || Strutil::iequals(cs, "sRGB-linear")
                || Strutil::iequals(cs, "lin_srgb")
                || Strutil::iequals(cs, "lin_rec709")
@@ -704,7 +705,7 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
     }
-    m_spec.set_colorspace(cs);
+    pvt::set_colorspace(m_spec, cs);
 
     // Exposure adjustment
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);

@@ -196,12 +196,17 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    if (is_colorspace_srgb(m_spec)) {
-        m_srgb  = true;
+    // Readers don't load a color config, so compare built-in names.
+    string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
+    m_srgb = Strutil::iequals(colorspace, "srgb_rec709_scene")
+             || Strutil::iequals(colorspace, "srgb_rec709_display")
+             || Strutil::iequals(colorspace, "srgb_texture")
+             || Strutil::iequals(colorspace, "srgb_display")
+             || Strutil::iequals(colorspace, "sRGB");
+    if (m_srgb) {
         m_gamma = 1.0f;
     } else {
-        m_srgb  = false;
-        m_gamma = pvt::get_colorspace_rec709_gamma(m_spec);
+        m_gamma = pvt::get_colorspace_rec709_gamma(m_spec, false);
         if (m_gamma == 0.0f) {
             m_gamma = 1.0f;
         }

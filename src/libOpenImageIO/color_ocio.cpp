@@ -2455,13 +2455,7 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
 string_view
 ColorConfig::get_color_interop_id(const int cicp[4]) const
 {
-    for (const ColorInteropID& interop : color_interop_ids) {
-        if (interop.has_cicp && interop.cicp[0] == cicp[0]
-            && interop.cicp[1] == cicp[1]) {
-            return interop.interop_id;
-        }
-    }
-    return "";
+    return OIIO::pvt::get_color_interop_id(cicp);
 }
 
 cspan<int>
@@ -3254,8 +3248,13 @@ ImageBufAlgo::colorconvert(span<float> color, const ColorProcessor* processor,
 
 
 
+namespace {
+
+// Set or clear "oiio:ColorSpace" and clear metadata that might contradict
+// it. Without a config, only the built-in sRGB names count as sRGB.
 void
-ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
+set_colorspace_attribute(ImageSpec& spec, string_view colorspace,
+                         const ColorConfig* config)
 {
     // If we're not changing color space, don't mess with anything
     string_view oldspace = spec.get_string_attribute("oiio:ColorSpace");
@@ -3273,7 +3272,11 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
     // including some format-specific things that we don't want to propagate
     // from input to output if we know that color space transformations have
     // occurred.
-    if (!equivalent(colorspace, "srgb_rec709_scene"))
+    bool srgb = config ? config->equivalent(colorspace, "srgb_rec709_scene")
+                       : (Strutil::iequals(colorspace, "srgb_rec709_scene")
+                          || Strutil::iequals(colorspace, "srgb_texture")
+                          || Strutil::iequals(colorspace, "sRGB"));
+    if (!srgb)
         spec.erase_attribute("Exif:ColorSpace");
     spec.erase_attribute("tiff:ColorSpace");
     spec.erase_attribute("tiff:PhotometricInterpretation");
@@ -3283,29 +3286,50 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
 
 
 void
-ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
+set_colorspace_rec709_gamma_attribute(ImageSpec& spec, float gamma,
+                                      const ColorConfig* config)
 {
     // Round gamma to the nearest hundredth to prevent stupid precision choices
     // and make it easier for apps to make decisions based on known gamma values.
     float g_rounded = std::round(gamma * 100.0f) / 100.0f;
     if (fabsf(g_rounded - 1.0f) <= 0.01f) {
-        set_colorspace(spec, "lin_rec709_scene");
+        set_colorspace_attribute(spec, "lin_rec709_scene", config);
     } else if (fabsf(g_rounded - 1.8f) <= 0.01f) {
-        set_colorspace(spec, "g18_rec709_scene");
+        set_colorspace_attribute(spec, "g18_rec709_scene", config);
         spec.attribute("oiio:Gamma", 1.8f);
     } else if (fabsf(g_rounded - 2.2f) <= 0.01f) {
-        set_colorspace(spec, "g22_rec709_scene");
+        set_colorspace_attribute(spec, "g22_rec709_scene", config);
         spec.attribute("oiio:Gamma", 2.2f);
     } else if (fabsf(g_rounded - 2.4f) <= 0.01f) {
-        set_colorspace(spec, "g24_rec709_scene");
+        set_colorspace_attribute(spec, "g24_rec709_scene", config);
         spec.attribute("oiio:Gamma", 2.4f);
     } else {
-        set_colorspace(spec,
-                       Strutil::fmt::format("g{}_rec709_scene",
-                                            std::lround(g_rounded * 10.0f)));
+        set_colorspace_attribute(spec,
+                                 Strutil::fmt::format("g{}_rec709_scene",
+                                                      std::lround(g_rounded
+                                                                  * 10.0f)),
+                                 config);
         // Preserve the original gamma value for use in color conversions.
         spec.attribute("oiio:Gamma", gamma);
     }
+}
+
+}  // namespace
+
+
+
+void
+ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
+{
+    set_colorspace_attribute(spec, colorspace, this);
+}
+
+
+
+void
+ColorConfig::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma) const
+{
+    set_colorspace_rec709_gamma_attribute(spec, gamma, this);
 }
 
 
@@ -3379,12 +3403,40 @@ rec709_colorspace_gamma(string_view colorspace)
     return float(g10) / 10.0f;
 }
 
-float
-pvt::get_colorspace_rec709_gamma(const ImageSpec& spec)
+void
+pvt::set_colorspace(ImageSpec& spec, string_view name)
 {
-    const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
+    v3_1::set_colorspace_attribute(spec, name, nullptr);
+}
+
+void
+pvt::set_colorspace_rec709_gamma(ImageSpec& spec, float gamma)
+{
+    v3_1::set_colorspace_rec709_gamma_attribute(spec, gamma, nullptr);
+}
+
+string_view
+pvt::get_color_interop_id(const int cicp[4])
+{
+    for (const auto& interop : v3_1::color_interop_ids) {
+        if (interop.has_cicp && interop.cicp[0] == cicp[0]
+            && interop.cicp[1] == cicp[1]) {
+            return interop.interop_id;
+        }
+    }
+    return "";
+}
+
+float
+pvt::get_colorspace_rec709_gamma(const ImageSpec& spec, bool use_config)
+{
+    const ColorConfig* colorconfig = use_config
+                                         ? &ColorConfig::default_colorconfig()
+                                         : nullptr;
     string_view colorspace = spec.get_string_attribute("oiio:ColorSpace");
-    string_view interop_id = colorconfig.get_color_interop_id(colorspace);
+    string_view interop_id = colorconfig
+                                 ? colorconfig->get_color_interop_id(colorspace)
+                                 : string_view();
 
     // Gamma interop IDs, as well as arbitrary names that do not have an
     // official interop ID as generated by set_colorspace_rec709_gamma().
@@ -3392,9 +3444,12 @@ pvt::get_colorspace_rec709_gamma(const ImageSpec& spec)
         interop_id.empty() ? colorspace : interop_id);
 
     // Backwards compatibility, scene_linear is not necessarily Rec.709
-    if (colorconfig.equivalent(colorspace, "linear")
-        || colorconfig.equivalent(colorspace, "scene_linear")
-        || interop_id == "lin_rec709_scene")
+    if (colorconfig ? (colorconfig->equivalent(colorspace, "linear")
+                       || colorconfig->equivalent(colorspace, "scene_linear")
+                       || interop_id == "lin_rec709_scene")
+                    : (Strutil::iequals(colorspace, "linear")
+                       || Strutil::iequals(colorspace, "scene_linear")
+                       || Strutil::iequals(colorspace, "lin_rec709_scene")))
         return 1.0f;
     else if (gamma != 0.0f)
         return gamma;

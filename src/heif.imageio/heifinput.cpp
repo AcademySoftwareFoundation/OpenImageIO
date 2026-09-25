@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/tiffutils.h>
+
+#include "imageio_pvt.h"
 
 #include <libheif/heif_cxx.h>
 
@@ -379,7 +380,7 @@ HeifInput::read_subimage_spec(int subimage)
     if (m_bitdepth > 8) {
         m_spec.attribute("oiio:BitsPerSample", m_bitdepth);
     }
-    m_spec.set_colorspace("srgb_rec709_scene");
+    pvt::set_colorspace(m_spec, "srgb_rec709_scene");
 
 #if LIBHEIF_HAVE_VERSION(1, 9, 0)
     // Read CICP. Have to use the C API to get it from the image handle,
@@ -406,9 +407,7 @@ HeifInput::read_subimage_spec(int subimage)
                                       int(nclx->matrix_coefficients),
                                       int(nclx->full_range_flag ? 1 : 0) };
                 m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
-                const ColorConfig& colorconfig(
-                    ColorConfig::default_colorconfig());
-                string_view interop_id = colorconfig.get_color_interop_id(cicp);
+                string_view interop_id = pvt::get_color_interop_id(cicp);
                 if (!interop_id.empty())
                     m_spec.attribute("oiio:ColorSpace", interop_id);
             }

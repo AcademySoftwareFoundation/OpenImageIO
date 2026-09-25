@@ -12,6 +12,7 @@
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/imageio.h>
 
+#include "imageio_pvt.h"
 #include "rla_pvt.h"
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -448,7 +449,7 @@ RLAInput::seek_subimage(int subimage, int miplevel)
 
     float gamma = Strutil::from_string<float>(m_rla.Gamma);
     if (gamma > 0.f) {
-        set_colorspace_rec709_gamma(m_spec, gamma);
+        pvt::set_colorspace_rec709_gamma(m_spec, gamma);
     }
 
     float aspect = Strutil::stof(m_rla.AspectRatio);
