@@ -16,8 +16,8 @@
 
 #include "exr_pvt.h"
 
-#include <OpenEXR/openexr.h>
 #include <OpenEXR/ImfCRgbaFile.h>
+#include <OpenEXR/openexr.h>
 
 #include "imageio_pvt.h"
 #include <OpenImageIO/color.h>

@@ -1035,7 +1035,6 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         header.zstdCompressionLevel() = (qual >= 1 && qual <= 22) ? qual : 5;
     }
 #endif
-    
     // Default to increasingY line order
     if (!spec.find_attribute("openexr:lineOrder"))
         spec.attribute("openexr:lineOrder", "increasingY");
