@@ -26,6 +26,10 @@ $OpenImageIO_ROOT/bin/oiiotool --buildinfo | tee -a "$GITHUB_STEP_SUMMARY"
 # to the message that will be visible in the GHA summary log page so it's
 # easy to see at a glance which build chain & dependencies were used across
 # all the tests.
+if [[ -s build/clone-retries.txt ]] ; then
+    echo "Recovered from clone failures of: $(awk '{printf "%s%s", (NR>1 ? ", " : ""), $0}' build/clone-retries.txt)" \
+        | tee -a "$GITHUB_STEP_SUMMARY"
+fi
 echo ; echo "Results of oiiotool brief help:"
 $OpenImageIO_ROOT/bin/oiiotool || true
 echo ; echo "Results of oiiotool full --help:"
