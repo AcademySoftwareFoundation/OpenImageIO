@@ -607,9 +607,9 @@ function (oiio_get_test_data name)
         endif ()
         find_package (Git)
         if (Git_FOUND AND GIT_EXECUTABLE)
-            execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth 1
-                                    ${_ogtd_REPO} -b ${_ogtd_BRANCH}
-                                    ${CMAKE_BINARY_DIR}/testsuite/${name})
+            git_clone_with_retry (${name} ${_ogtd_REPO}
+                                  ${CMAKE_BINARY_DIR}/testsuite/${name}
+                GIT_ARGS --depth 1 -b ${_ogtd_BRANCH})
         else ()
             message (WARNING "${ColorRed}Could not find Git executable, could not download test data from ${_ogtd_REPO}${ColorReset}")
         endif ()
