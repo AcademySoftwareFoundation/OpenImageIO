@@ -470,6 +470,17 @@ macro (oiio_add_all_tests)
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
 
+    # HTJ2K was introduced in OpenEXR v.3.4.0
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.4.0)
+        if (TEST openexr-compression)
+            set_property (TEST openexr-compression APPEND PROPERTY ENVIRONMENT
+                          "OIIO_OPENEXR_HTJ2K_SUPPORT=1")
+        endif()
+        if (TEST openexr-compression.core)
+            set_property (TEST openexr-compression.core APPEND PROPERTY
+                          ENVIRONMENT "OIIO_OPENEXR_HTJ2K_SUPPORT=1")
+        endif()
+    endif()
     # New compression tests of zstd and lj2k require OpenEXR main branch,
     # or latest release or at least V3.5.0
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.5.0)

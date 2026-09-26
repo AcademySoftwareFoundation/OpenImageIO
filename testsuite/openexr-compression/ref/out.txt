@@ -8,6 +8,8 @@ out-b44.exr compression b44
 out-b44a.exr compression b44a
 out-dwaa.exr compression dwaa
 out-dwab.exr compression dwab
+out-htj2k32.exr compression htj2k32
+out-htj2k256.exr compression htj2k256
 out-lj2k.exr compression lj2k
 out-zstd.exr compression zstd
 Comparing "out-none.exr" and "ref/out-zip.exr"
@@ -29,6 +31,10 @@ PASS
 Comparing "out-dwaa.exr" and "ref/out-dwaa.exr"
 PASS
 Comparing "out-dwab.exr" and "ref/out-dwaa.exr"
+PASS
+Comparing "out-htj2k32.exr" and "ref/out-zip.exr"
+PASS
+Comparing "out-htj2k256.exr" and "ref/out-zip.exr"
 PASS
 Comparing "out-lj2k.exr" and "ref/out-lj2k.exr"
 PASS
