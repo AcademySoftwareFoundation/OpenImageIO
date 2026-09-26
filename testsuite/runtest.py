@@ -12,8 +12,16 @@ import subprocess
 import difflib
 import filecmp
 import shutil
+import re
+from itertools import chain
 
 from optparse import OptionParser
+
+
+def make_relpath (path: str, start: str=os.curdir) -> str:
+    "Wrapper around os.path.relpath which always uses '/' as the separator."
+    p = os.path.relpath (path, start)
+    return p if platform.system() != 'Windows' else p.replace ('\\', '/')
 
 
 #
@@ -21,7 +29,6 @@ from optparse import OptionParser
 #
 
 srcdir = "."
-tmpdir = "."
 path = "../.."
 
 # Options for the command line
@@ -47,12 +54,11 @@ tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
 redirect = " >> out.txt "
 wrapper_cmd = ""
-oiio_app_list = ("oiiotool", "iinfo", "idiff", "maketx", "iconvert", "igrep", "testtex", "iv")
 
-def make_relpath (path: str, start: str=os.curdir) -> str:
-    "Wrapper around os.path.relpath which always uses '/' as the separator."
-    p = os.path.relpath (path, start)
-    return p if platform.system() != 'Windows' else p.replace ('\\', '/')
+# Command names that run_app() will recognize as the first word of a command
+# and replace with the full path to the corresponding built app.
+oiio_app_list = ("oiiotool", "iinfo", "idiff", "maketx", "iconvert", "igrep", "testtex", "iv")
+app_list = oiio_app_list
 
 # Try to figure out where some key things are. Go by env variables set by
 # the cmake tests, but if those aren't set, assume somebody is running
@@ -130,11 +136,13 @@ def redirect_pop () -> None :
 
 # The image comparison thresholds are tricky to remember. Here's the key:
 # A test fails if more than `failpercent` of pixel values differ by more
-# than `failthresh`, or if even one pixel differs by more than `hardfail`.
+# than `failthresh` AND the difference is more than `failrelative` times the
+# correct pixel value, or if even one pixel differs by more than `hardfail`.
 failthresh = 0.004         # "Failure" threshold for any pixel value
 failpercent = 0.02         # Ok fo this percentage of pixels to "fail"
 hardfail = 0.012           # Even one pixel this wrong => hard failure
 allowfailures = 0          # Freebie failures
+failrelative = 0.001       # Ok to fail up to this amount vs the pixel value
 
 # Some tests are designed for the app running to "fail" (in the sense of
 # terminating with an error return code), for example, a test that is designed
@@ -209,15 +217,20 @@ def _rstrip_line (line: str) -> str:
 # a non-zero value and writes the differences to "diff_file".
 # Based on the command-line interface to difflib example from the Python
 # documentation
-def text_diff (fromfile: str, tofile: str, diff_file: str=None) -> int:
+def text_diff (fromfile: str, tofile: str, diff_file: str=None, filter_re=None) -> int:
     import time
     try:
         fromdate = time.ctime (os.stat (fromfile).st_mtime)
         todate = time.ctime (os.stat (tofile).st_mtime)
-        fromlines = [_rstrip_line(l) for l in open (fromfile, 'r').readlines()]
-        tolines   = [_rstrip_line(l) for l in open (tofile, 'r').readlines()]
-        # if replace_relative:
-        #     tolines = replace_relative(tolines)
+        if filter_re:
+            filt = re.compile(filter_re)
+            fromlines = [l for l in open (fromfile, 'r').readlines() if filt.match(l) is not None]
+            tolines   = [l for l in open (tofile, 'r').readlines() if filt.match(l) is not None]
+        else:
+            fromlines = open (fromfile, 'r').readlines()
+            tolines   = open (tofile, 'r').readlines()
+        fromlines = [_rstrip_line(l) for l in fromlines]
+        tolines   = [_rstrip_line(l) for l in tolines]
     except:
         print ("Unexpected error:", sys.exc_info()[0])
         return -1
@@ -232,7 +245,6 @@ def text_diff (fromfile: str, tofile: str, diff_file: str=None) -> int:
     if diff_file:
         try:
             open (diff_file, 'w').writelines (diff_lines)
-
             print ("Diff " + fromfile + " vs " + tofile + " was:\n-------")
 #            print (diff)
             print ("".join(diff_lines))
@@ -249,9 +261,9 @@ def run_app(app: str, silent: bool=False, failureok: bool=False,
     words = cmd.split(maxsplit=1)
     if not words:
         return ""
-    if words[0] in oiio_app_list:
+    if words[0] in app_list :
         cmd = oiio_app(words[0]).strip() + (" " + words[1] if len(words) > 1 else "")
-    if not silent:
+    if not silent :
         cmd += redirect
     if failureok :
         cmd += " || true "
