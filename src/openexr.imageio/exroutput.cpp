@@ -1019,6 +1019,22 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         spec.erase_attribute("openexr:dwaCompressionLevel");
     }
 
+#if OPENEXR_CODED_VERSION >= 30500
+    // OpenEXR 3.5.0 added the support for LJ2K, the lossy variant of HTJ2K256.
+    // Value from 97 to 150 are OpenEXR specific of the normal range of 1 till
+    // 97. This extended range is available to achieve higher quality needed
+    // for 32-bit float images. Values between 90 and 110 are recommended for
+    // a balance of quality and size.
+    if (Strutil::istarts_with(comp, "lj2k")) {
+        header.lossyHTJ2KQuality() = (qual >= 1 && qual <= 150) ? qual : 110;
+    }
+
+    // OpenEXR 3.5.0 added an API for setting the zstd compression/quality
+    // level in the Header object. Default value is 5.
+    if (Strutil::istarts_with(comp, "zstd")) {
+        header.zstdCompressionLevel() = (qual >= 1 && qual <= 22) ? qual : 5;
+    }
+#endif
     // Default to increasingY line order
     if (!spec.find_attribute("openexr:lineOrder"))
         spec.attribute("openexr:lineOrder", "increasingY");
@@ -1268,6 +1284,14 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
 #ifdef IMF_HTJ2K32_COMPRESSION
             else if (Strutil::iequals(str, "htj2k32"))
                 header.compression() = Imf::HTJ2K32_COMPRESSION;
+#endif
+#ifdef IMF_LJ2K_COMPRESSION
+            else if (Strutil::iequals(str, "lj2k"))
+                header.compression() = Imf::LJ2K_COMPRESSION;
+#endif
+#ifdef IMF_ZSTD_COMPRESSION
+            else if (Strutil::iequals(str, "zstd"))
+                header.compression() = Imf::ZSTD_COMPRESSION;
 #endif
         }
         return true;

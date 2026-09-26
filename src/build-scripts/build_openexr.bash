@@ -11,7 +11,7 @@ set -ex
 
 # Which OpenEXR to retrieve, how to build it
 OPENEXR_REPO=${OPENEXR_REPO:=https://github.com/AcademySoftwareFoundation/openexr.git}
-OPENEXR_VERSION=${OPENEXR_VERSION:=v3.4.15}
+OPENEXR_VERSION=${OPENEXR_VERSION:=v3.5.0}
 
 # Where to install the final results
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
@@ -64,4 +64,3 @@ export OpenEXR_ROOT=$OPENEXR_INSTALL_DIR
 export OPENEXR_ROOT=$OPENEXR_INSTALL_DIR
 export OPENEXR_LIBRARY_DIR=$OPENEXR_INSTALL_DIR/lib
 export LD_LIBRARY_PATH=$OPENEXR_ROOT/lib:$LD_LIBRARY_PATH
-

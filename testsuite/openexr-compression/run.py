@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+import os
 
 imagedir = "../common"
 
@@ -19,6 +20,11 @@ compressions = [
     "dwaa",
     "dwab",
 ]
+
+if os.getenv("OIIO_OPENEXR_HTJ2K_SUPPORT") == "1":
+    compressions += ["htj2k32", "htj2k256"]
+if os.getenv("OIIO_OPENEXR_LJ2K_ZSTD_SUPPORT") == "1":
+    compressions += ["lj2k", "zstd"]
 
 anymatch = True
 outputs = []

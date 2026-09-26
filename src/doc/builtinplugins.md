@@ -1615,8 +1615,11 @@ The official OpenEXR site is <http://www.openexr.com/>.
    * - ``compression``
      - string
      - one of: ``"none"``, ``"rle"``, ``"zip"``, ``"zips"``, ``"piz"``,
-       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``, ``"htj2k256"`` or ``"htj2k32"``.
-       (``"htj2k256"`` and ``"htj2k32"`` are only supported with OpenEXR 3.4 or later.)
+       ``"pxr24"``, ``"b44"``, ``"b44a"``, ``"dwaa"``, ``"dwab"``,
+       ``"htj2k256"``, ``"htj2k32"``, ``"lj2k"``, or ``"zstd"``.
+       (``"htj2k256"`` and ``"htj2k32"`` are only supported with OpenEXR 3.4
+       or later; ``"lj2k"`` and ``"zstd"`` are only supported with OpenEXR
+       3.5 or later.)
        If the writer receives a request for a compression type it does not
        recognize or is not supported by the version of OpenEXR on the
        system, it will use ``"zip"`` by default. For ``"dwaa"`` and
@@ -1625,7 +1628,15 @@ The official OpenEXR site is <http://www.openexr.com/>.
        default DWA compression value is 45.) For ``"zip"`` and ``"zips"``
        compression, a level from 1 to 9 may be appended (the default is
        ``"zip:4"``), but note that this is only honored when building
-       against OpenEXR 3.1.3 or later.
+       against OpenEXR 3.1.3 or later. For ``"lj2k"`` (the lossy variant of
+       ``"htj2k256"``), a quality from 1 to 150 may be appended, like
+       ``"lj2k:100"`` (the default is ``"lj2k:110"``). Values from 97 to 150
+       are an OpenEXR-specific extension of the normal 1 to 97 range, giving
+       the higher quality needed for 32-bit float images; values between 90
+       and 110 are recommended for a balance of quality and size. For
+       ``"zstd"``, a compression level from 1 to 22 may be appended, like
+       ``"zstd:10"`` (the default is ``"zstd:5"``). For both ``"lj2k"`` and
+       ``"zstd"``, an out-of-range value falls back to the default.
    * - ``textureformat``
      - string
      - ``"Plain Texture"`` for MIP-mapped OpenEXR files, ``"CubeFace
@@ -3339,4 +3350,3 @@ of the z-buffer. Zfile files use the file extension {file}`.zfile`.
 ```
 
 [st 2065-4]: https://pub.smpte.org/pub/st2065-4/
-
