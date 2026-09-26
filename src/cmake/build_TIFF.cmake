@@ -19,6 +19,12 @@ checked_find_package (libdeflate REQUIRED
                       VERSION_MIN 1.18)
 alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_static)
 
+# We need zstd to build libtiff with ZSTD compression
+checked_find_package (zstd REQUIRED
+                      VERSION_MIN 1.4)
+alias_library_if_not_exists (ZSTD::ZSTD zstd::libzstd_static)
+alias_library_if_not_exists (ZSTD::ZSTD zstd::libzstd_shared)
+
 if (TARGET libjpeg-turbo::jpeg)
     # We've had some trouble with TIFF finding the JPEG resources it needs to
     # build if we're using libjpeg-turbo, TIFF needs an extra nudge.
@@ -68,6 +74,33 @@ else ()
     message (STATUS "No WebP package found, local TIFF build will lack WEBP compression")
 endif ()
 
+# Hand libtiff the exact zstd library we found, so that its bundled FindZSTD
+# module does not go looking on its own.
+set (TIFF_USE_ZSTD OFF)
+if (TARGET ZSTD::ZSTD)
+    get_target_property (_zstd_inc ZSTD::ZSTD INTERFACE_INCLUDE_DIRECTORIES)
+    foreach (_cfg IMPORTED_LOCATION_RELEASE IMPORTED_LOCATION_NOCONFIG
+                  IMPORTED_LOCATION IMPORTED_LOCATION_DEBUG)
+        if (NOT _zstd_lib)
+            get_target_property (_zstd_lib ZSTD::ZSTD ${_cfg})
+        endif ()
+    endforeach ()
+    if (_zstd_inc AND _zstd_lib)
+        set (TIFF_USE_ZSTD ON)
+        list (APPEND MORE_TIFF_CMAKE_ARGS
+              -D ZSTD_INCLUDE_DIR=${_zstd_inc}
+              -D ZSTD_LIBRARY=${_zstd_lib}
+              # Skip libtiff's link test, which lacks the threads library
+              # that a multithreaded static libzstd needs on older glibc.
+              -D ZSTD_HAVE_DECOMPRESS_STREAM=ON )
+    endif ()
+    unset (_zstd_inc)
+    unset (_zstd_lib)
+endif ()
+if (NOT TIFF_USE_ZSTD)
+    message (STATUS "No zstd package found, local TIFF build will lack ZSTD compression")
+endif ()
+
 build_dependency_with_cmake(TIFF
     VERSION         ${TIFF_BUILD_VERSION}
     GIT_REPOSITORY  ${TIFF_GIT_REPOSITORY}
@@ -83,7 +116,7 @@ build_dependency_with_cmake(TIFF
         -D tiff-docs=OFF
         -D libdeflate=ON
         -D lzma=OFF
-        -D zstd=OFF
+        -D zstd=${TIFF_USE_ZSTD}
         -D jbig=OFF
         -D lerc=OFF
         -D webp=${TIFF_USE_WEBP}
@@ -100,3 +133,4 @@ endif ()
 
 unset (MORE_TIFF_CMAKE_ARGS)
 unset (TIFF_USE_WEBP)
+unset (TIFF_USE_ZSTD)
