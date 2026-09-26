@@ -21,6 +21,8 @@ compressions = [
     "dwab",
 ]
 
+if os.getenv("OIIO_OPENEXR_HTJ2K_SUPPORT") == "1":
+    compressions += ["htj2k32", "htj2k256"]
 if os.getenv("OIIO_OPENEXR_LJ2K_ZSTD_SUPPORT") == "1":
     compressions += ["lj2k", "zstd"]
 
