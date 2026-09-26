@@ -32,5 +32,5 @@ Comparing "out-dwab.exr" and "ref/out-dwaa.exr"
 PASS
 Comparing "out-lj2k.exr" and "ref/out-lj2k.exr"
 PASS
-Comparing "out-zstd.exr" and "ref/out-zstd.exr"
+Comparing "out-zstd.exr" and "ref/out-zip.exr"
 PASS
