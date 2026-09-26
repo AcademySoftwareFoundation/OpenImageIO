@@ -1100,3 +1100,43 @@ macro (alias_library_if_not_exists newalias realtarget)
         add_library(${newalias} ALIAS ${realtarget})
     endif ()
 endmacro ()
+
+
+option (IGNORE_HOMEBREWED_DEPS "If ON, will ignore homebrew-installed dependencies" OFF)
+if (IGNORE_HOMEBREWED_DEPS)
+    # Define the list of prefixes to ignore
+    set (HOMEBREW_PREFIXES
+         /opt/homebrew
+         /opt/homebrew/Cellar
+         /usr/local
+         /usr/local/Cellar
+         /usr/X11
+         /usr/X11R6
+         /opt/X11
+    )
+    message (STATUS "Ignoring Homebrew dependencies and adjusted environment and CMake variables accordingly.")
+    foreach (_cmake_var
+             CMAKE_SYSTEM_INCLUDE_PATH
+             CMAKE_SYSTEM_LIBRARY_PATH
+             CMAKE_PREFIX_PATH)
+        remove_prefixes_from_variable (CMAKE ${_cmake_var} "${HOMEBREW_PREFIXES}")
+    endforeach ()
+
+    # Adjust CMAKE_IGNORE_PATH
+    foreach (_prefix IN LISTS HOMEBREW_PREFIXES)
+        list (APPEND CMAKE_IGNORE_PATH
+              "${_prefix}"
+              "${_prefix}/lib"
+              "${_prefix}/bin"
+              "${_prefix}/include"
+             )
+    endforeach ()
+
+    # Also ignore the whole prefixes, which (unlike CMAKE_IGNORE_PATH) is
+    # honored by config-package searches, and is forwarded to local
+    # dependency child builds so they can't quietly resolve a Homebrew
+    # package (e.g. a mismatched Imath) that we ourselves are ignoring.
+    list (APPEND CMAKE_IGNORE_PREFIX_PATH ${HOMEBREW_PREFIXES})
+
+    message (STATUS "CMAKE_IGNORE_PATH: ${CMAKE_IGNORE_PATH}")
+endif ()
