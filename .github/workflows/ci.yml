@@ -406,7 +406,8 @@ jobs:
             cxx_std: 26
             fmt_ver: main
             opencolorio_ver: main
-            openexr_ver: main
+            openexr_ver: v3.5.1
+            # TODO: bump openexr_ver back to "main" after lj2k bug is fixed
             pybind11_ver: master
             python_ver: "3.12"
             oiio_python_bindings_backend: both
