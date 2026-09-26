@@ -95,16 +95,22 @@ endif ()
 checked_find_package (libuhdr
                       VERSION_MIN 1.3)
 
-# Static libtiff configs may reference Deflate::Deflate without importing it
-# (https://gitlab.com/libtiff/libtiff/-/work_items/871), so libdeflate must be
-# located before TIFF discovery. In particular, a previously auto-built static
-# TIFF rediscovered from the local deps cache needs this; the libdeflate found
-# during build_TIFF.cmake does not carry over to later reconfigures.
+# Static libtiff configs may reference Deflate::Deflate and ZSTD::ZSTD without
+# importing them (https://gitlab.com/libtiff/libtiff/-/work_items/871), so
+# libdeflate and zstd must be located before TIFF discovery. In particular, a
+# previously auto-built static TIFF rediscovered from the local deps cache
+# needs this; the packages found during build_TIFF.cmake do not carry over to
+# later reconfigures.
 if (NOT TARGET Deflate::Deflate)
     checked_find_package (libdeflate
                           VERSION_MIN 1.18)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_static)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_shared)
+endif ()
+if (NOT TARGET ZSTD::ZSTD)
+    checked_find_package (zstd VERSION_MIN 1.4)
+    alias_library_if_not_exists (ZSTD::ZSTD zstd::libzstd_static)
+    alias_library_if_not_exists (ZSTD::ZSTD zstd::libzstd_shared)
 endif ()
 
 # WebP must be found before TIFF, so that an auto-built libtiff can use it.
