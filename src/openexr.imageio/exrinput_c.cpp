@@ -16,6 +16,7 @@
 
 #include "exr_pvt.h"
 
+#include <OpenEXR/ImfCRgbaFile.h>
 #include <OpenEXR/openexr.h>
 
 #include "imageio_pvt.h"
@@ -645,10 +646,23 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
 #ifdef IMF_HTJ2K32_COMPRESSION
         case EXR_COMPRESSION_HTJ2K32: comp = "htj2k32"; break;
 #endif
+#ifdef IMF_LJ2K_COMPRESSION
+        case EXR_COMPRESSION_LJ2K: comp = "lj2k"; break;
+#endif
+#ifdef IMF_ZSTD_COMPRESSION
+        case EXR_COMPRESSION_ZSTD: comp = "zstd"; break;
+#endif
         default: break;
         }
-        if (comp)
+        if (comp) {
             spec.attribute("compression", comp);
+        } else {
+            in->errorfmt("Unknown compression code {}", int(comptype));
+            return false;
+        }
+    } else {
+        in->errorfmt("No compression information found");
+        return false;
     }
 
     if (spec.tile_width == 0) {
@@ -1195,8 +1209,7 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     PartInfo& part(m_parts[subimage]);
     if (!part.initialized) {
         if (!part.parse_header(this, m_exr_context, subimage, miplevel)) {
-            errorfmt("Could not seek to subimage={}: unable to parse header",
-                     subimage, miplevel);
+            // Any errors in parse_header will already have called errorfmt
             return false;
         }
         part.initialized = true;
