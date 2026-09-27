@@ -465,10 +465,21 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 #ifdef IMF_HTJ2K32_COMPRESSION
         case Imf::HTJ2K32_COMPRESSION: comp = "htj2k32"; break;
 #endif
+#ifdef IMF_LJ2K_COMPRESSION
+        case Imf::LJ2K_COMPRESSION: comp = "lj2k"; break;
+#endif
+#ifdef IMF_ZSTD_COMPRESSION
+        case Imf::ZSTD_COMPRESSION: comp = "zstd"; break;
+#endif
         default: break;
         }
-        if (comp)
+        if (comp) {
             spec.attribute("compression", comp);
+        } else {
+            in->errorfmt("Unknown compression code {}",
+                         int(compressattr->value()));
+            return false;
+        }
         if (spec.tile_width == 0 && !spec.deep) {
             // Scanline file: advertise how many scanlines are packed into
             // each compressed chunk, so that callers can align their reads
@@ -480,6 +491,9 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
             if (scansperchunk > 1)
                 spec.attribute("oiio:RowsPerChunk", scansperchunk);
         }
+    } else {
+        in->errorfmt("No compression information found");
+        return false;
     }
 
     for (auto hit = header->begin(); hit != header->end(); ++hit) {
@@ -1105,8 +1119,7 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
         if (m_input_multipart)
             header = &(m_input_multipart->header(subimage));
         if (!part.parse_header(this, header)) {
-            errorfmt("Could not seek to subimage={}: unable to parse header",
-                     subimage, miplevel);
+            // Any errors in parse_header will already have called errorfmt
             return false;
         }
         part.initialized = true;
