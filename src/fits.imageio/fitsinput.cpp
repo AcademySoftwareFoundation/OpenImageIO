@@ -6,6 +6,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 
 #include "fits_pvt.h"
 
@@ -477,7 +478,8 @@ FitsInput::add_to_spec(const std::string& keyname, const std::string& value)
     bool isNumSign = (value[0] == '+' || value[0] == '-' || value[0] == '.');
     if (isdigit(value[0]) || isNumSign) {
         float val = Strutil::stof(value);
-        if (val == (int)val)
+        if (val >= float(std::numeric_limits<int>::min())
+            && val < -float(std::numeric_limits<int>::min()) && val == (int)val)
             m_spec.attribute(keyname, (int)val);
         else
             m_spec.attribute(keyname, val);
