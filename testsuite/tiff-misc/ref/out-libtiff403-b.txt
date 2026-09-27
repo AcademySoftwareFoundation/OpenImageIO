@@ -76,5 +76,6 @@ Computing diff of "src/cmyk-16bit-tiled.tif" vs "src/cmyk-16bit-strip.tif"
 PASS
 Computing diff of "src/rgb-24bit-tiled.tif" vs "src/rgb-24bit-strip.tif"
 PASS
+RowsPerChunk=32 avg=0.499519
 Comparing "check1.tif" and "ref/check1.tif"
 PASS
