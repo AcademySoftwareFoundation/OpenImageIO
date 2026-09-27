@@ -267,6 +267,15 @@ private:
         return TIFFFindField(m_tif, tifftag, tifftype);
     }
 
+    // libtiff gives unknown tags whatever type code the file claims, which
+    // may not be a valid TIFFDataType.
+    static TIFFDataType field_datatype(const TIFFField* field)
+    {
+        int t = int(TIFFFieldDataType(field));
+        return (t > TIFF_NOTYPE && t <= TIFF_IFD8) ? TIFFDataType(t)
+                                                   : TIFF_NOTYPE;
+    }
+
     OIIO_NODISCARD
     TypeDesc tiffgetfieldtype(int tag, OIIO_MAYBE_UNUSED string_view name = "",
                               int* readcount_             = nullptr,
@@ -276,7 +285,7 @@ private:
         auto field = find_field(tag);
         if (!field)
             return TypeUnknown;
-        auto tiffdatatype = TIFFFieldDataType(field);
+        auto tiffdatatype = field_datatype(field);
         int readcount     = TIFFFieldReadCount(field);
         int passcount     = TIFFFieldPassCount(field);
         TypeDesc type     = tiff_datatype_to_typedesc(tiffdatatype,
@@ -331,7 +340,7 @@ private:
         auto field = find_field(tag);
         if (!field)
             return false;
-        TIFFDataType tiffdatatype = TIFFFieldDataType(field);
+        TIFFDataType tiffdatatype = field_datatype(field);
         int passcount             = TIFFFieldPassCount(field);
         int readcount             = TIFFFieldReadCount(field);
         // Strutil::printf(" tgsf %s tag %d datatype %d passcount %d readcount %d\n",
@@ -514,7 +523,7 @@ private:
             // is the same as we do.
             return;
         }
-        tifftype  = TIFFFieldDataType(info);
+        tifftype  = field_datatype(info);
         int count = TIFFFieldReadCount(info);
         if (tifftype == TIFF_ASCII) {
             get_string_attribute(oiioname, tifftag);
@@ -1353,10 +1362,11 @@ TIFFInput::readspec(bool read_meta)
         TIFFGetField(m_tif, TIFFTAG_ROWSPERSTRIP, &m_rowsperstrip);
         if (m_rowsperstrip > 0) {
             // Only set the attrib if a legit value was found in the file
-            if (m_rowsperstrip > 1)
-                m_spec.attribute("oiio:RowsPerChunk", m_rowsperstrip);
+            int rpc = std::min(m_rowsperstrip, m_spec.height);
+            if (rpc > 1)
+                m_spec.attribute("oiio:RowsPerChunk", rpc);
             m_spec.attribute("tiff:RowsPerStrip", m_rowsperstrip);
-            m_rowsperstrip = std::min(m_rowsperstrip, m_spec.height);
+            m_rowsperstrip = rpc;
         } else {
             // Default if not found is "one strip for the whole image"
             m_rowsperstrip = m_spec.height;
