@@ -257,6 +257,38 @@ just exist in the OIIO namespace as general utilities. (See
 :::{doxygenfunction} OIIO::equivalent_colorspace
 :::
 
+(sec-colorspaceinfo)=
+
+## Color space properties: `ColorSpaceInfo`
+
+`ColorConfig::get_color_space_info()` and
+`ColorConfig::derive_color_space_info()` describe a color space, named by a
+color space name, alias or role of the config, with a `ColorSpaceInfo`: its RGB
+primaries and white point, and the exponent of its transfer function when that
+is a pure power (1.0 for a linear one). Either property may be unavailable.
+They are taken from what the config declares: a `scene-linear` or
+`display-linear` encoding gives gamma 1.0, and a published Color Interop ID the
+config declares for the color space, as its `interop_id` (OpenColorIO 2.5 or
+newer) or as its name or one of its aliases, gives that ID's primaries and
+transfer function. For example, a color space declared as `lin_ap1_scene`
+reports gamma 1.0 and the ACES AP1 primaries, and one declared as
+`g22_rec709_scene` gamma 2.2 and the Rec.709 primaries. The sRGB curve is
+piecewise, so `srgb_rec709_scene` reports gamma 0. `derive_color_space_info()`
+may also derive properties the config does not declare by analyzing the color
+space's transforms; currently it derives nothing more. Neither call changes the
+config, an image, or its metadata. See {ref}`sec-pythoncolorconfig` for the
+Python bindings.
+
+:::{doxygenclass} OIIO::ColorSpaceInfo
+:members:
+:::
+
+:::{doxygenfunction} OIIO::ColorConfig::get_color_space_info
+:::
+
+:::{doxygenfunction} OIIO::ColorConfig::derive_color_space_info
+:::
+
 > (sec-startupshutdown)=
 
 ## Startup and Shutdown

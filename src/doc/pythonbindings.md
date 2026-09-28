@@ -4040,6 +4040,31 @@ is provided for minimal color support.
 
 % TODO: The documentation for this class is incomplete.
 
+:::{py:method} get_color_space_info (colorspace)
+Return a `ColorSpaceInfo` with the properties of the named color space that
+the config declares, without analyzing its transforms. A name that does not
+resolve returns an invalid `ColorSpaceInfo`. See {ref}`sec-colorspaceinfo`.
+
+This function was added in OpenImageIO 3.3.
+:::
+
+:::{py:method} derive_color_space_info (colorspace)
+Return a `ColorSpaceInfo` with the properties of the named color space, as
+`get_color_space_info()` does, plus any that can be derived by analyzing its
+transforms. Currently it derives nothing more.
+
+Example:
+
+```python
+info = colorconfig.derive_color_space_info("ACEScg")
+if info.valid():
+    gamma = info.transfer_function_gamma()  # 1.0 for a linear encoding
+    xy = info.chromaticities()  # [] if the primaries are unknown
+```
+
+This function was added in OpenImageIO 3.3.
+:::
+
 :::{py:method} get_cicp (colorspace)
 Find CICP code corresponding to the colorspace.
 Return a sequence of 4 ints, or None if not found.
@@ -4082,6 +4107,28 @@ interop_id = colorconfig.get_color_interop_id([9, 16, 9, 1])
 ```
 
 This function was added in OpenImageIO 3.1.
+:::
+
+:::{py:class} ColorSpaceInfo
+Immutable properties of a color space. It remains usable after the
+`ColorConfig` that returned it is destroyed. This class was added in
+OpenImageIO 3.3.
+:::
+
+:::{py:method} ColorSpaceInfo.valid ()
+Whether the color space name resolved, even if individual properties are
+unavailable.
+:::
+
+:::{py:method} ColorSpaceInfo.chromaticities ()
+The RGB primaries and white point as a list of eight floats (Rx, Ry, Gx, Gy,
+Bx, By, Wx, Wy, CIE 1931 xy), or an empty list if they are unavailable.
+:::
+
+:::{py:method} ColorSpaceInfo.transfer_function_gamma ()
+The exponent of a transfer function that decodes as a pure power, 1.0 for a
+linear one, or 0 if the transfer function is not a pure power or is unknown. A
+color space whose config declares a linear encoding reports 1.0.
 :::
 
 (sec-pythonmiscapi)=
