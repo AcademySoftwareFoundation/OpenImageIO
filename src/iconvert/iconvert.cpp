@@ -372,7 +372,7 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
     // subimage appending, we gather them all first.
     std::vector<ImageSpec> subimagespecs;
     if (out->supports("multiimage") && !out->supports("appendsubimage")) {
-        auto imagecache = ImageCache::create();
+        auto imagecache = ImageCache::create(false);
         int nsubimages  = 0;
         ustring ufilename(in_filename);
         imagecache->get_image_info(ufilename, 0, 0, ustring("subimages"),
