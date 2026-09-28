@@ -340,6 +340,9 @@ areas so CMake will find them, the OpenImageIO build will find those pre-built
 packages and use them. If you don't have them build, or are unsure, the
 `OpenImageIO_BUILD_MISSING_DEPS=all` CMake option will cause the build process
 to download the sources of those dependencies, build them, and use them.
+It also accepts a list of specific packages (comma- or semicolon-separated),
+as does `OpenImageIO_BUILD_LOCAL_DEPS`, which forces local builds of the named
+packages even if they are found on the system.
 
 To build OpenImageIO, you first need to clone the OIIO repository
 and check out the desired branch or tag:
