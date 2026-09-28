@@ -43,4 +43,8 @@ command += oiiotool ("-echo removed_cicp: test16.png --eraseattrib Software --ci
 # Test that "set_colorspace" removes CICP metadata
 command += oiiotool ("-echo remove_cicp_via_set_colorspace: test16.png --eraseattrib Software --cicp 1,13 --iscolorspace g22_rec709_display --printinfo")
 
+# Regression test: iconvert from PNG to OpenEXR (which gathers subimage
+# specs through an ImageCache) must exit cleanly.
+command += iconvert ("src/alphagamma.png alphagamma.exr")
+
 outputs = [ "test16.png", "out.txt" ]
