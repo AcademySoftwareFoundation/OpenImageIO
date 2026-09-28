@@ -11,6 +11,7 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
@@ -140,6 +141,89 @@ test_gamma_pair_conversion()
 
 
 
+static void
+test_color_space_info()
+{
+    ColorSpaceInfo invalid;
+    OIIO_CHECK_FALSE(invalid.valid());
+    OIIO_CHECK_ASSERT(invalid.chromaticities().empty());
+    OIIO_CHECK_EQUAL(invalid.transfer_function_gamma(), 0.0f);
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    // Published IDs declared by name or alias, a linear encoding with no ID,
+    // one contradicting its ID, and a data space.
+    const std::string filename = Filesystem::temp_directory_path() + "/"
+                                 + Filesystem::unique_path() + ".ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        filename,
+        "ocio_profile_version: 2.3\n"
+        "roles: {default: ACEScg, scene_linear: ACEScg}\n"
+        "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+        "colorspaces:\n"
+        "  - !<ColorSpace>\n    name: ACEScg\n    encoding: scene-linear\n"
+        "    aliases: [lin_ap1_scene]\n"
+        "  - !<ColorSpace> {name: srgb_rec709_scene, encoding: sdr-video}\n"
+        "  - !<ColorSpace> {name: Adobe, aliases: [g22_adobergb_scene]}\n"
+        "  - !<ColorSpace> {name: Plain, encoding: scene-linear}\n"
+        "  - !<ColorSpace>\n    name: Mislabeled\n    encoding: scene-linear\n"
+        "    aliases: [g22_rec709_scene]\n"
+        "  - !<ColorSpace> {name: Data, isdata: true}\n"));
+    const float ap1[] = { .713f, .293f, .165f,   .83f,
+                          .128f, .044f, .32168f, .33767f };
+    ColorSpaceInfo saved;
+    {
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        saved = config.get_color_space_info("scene_linear");
+        OIIO_CHECK_ASSERT(saved.valid());
+        OIIO_CHECK_EQUAL(saved.transfer_function_gamma(), 1.0f);
+        OIIO_CHECK_ASSERT(saved.chromaticities() == cspan<float>(ap1));
+        auto srgb = config.get_color_space_info("srgb_rec709_scene");
+        OIIO_CHECK_EQUAL(srgb.transfer_function_gamma(), 0.0f);
+        OIIO_CHECK_EQUAL(srgb.chromaticities().size(), 8);
+        OIIO_CHECK_EQUAL(
+            config.derive_color_space_info("Adobe").transfer_function_gamma(),
+            563.0f / 256.0f);
+        for (auto name : { "Plain", "Mislabeled" }) {
+            auto info = config.get_color_space_info(name);
+            OIIO_CHECK_EQUAL(info.transfer_function_gamma(), 1.0f);
+            OIIO_CHECK_ASSERT(info.chromaticities().empty());
+        }
+        auto data = config.get_color_space_info("Data");
+        OIIO_CHECK_ASSERT(data.valid());
+        OIIO_CHECK_ASSERT(data.chromaticities().empty());
+        OIIO_CHECK_EQUAL(data.transfer_function_gamma(), 0.0f);
+        OIIO_CHECK_FALSE(config.get_color_space_info("missing").valid());
+    }
+    // The properties outlive the config; a move leaves its source invalid.
+    auto copy  = saved;
+    auto moved = std::move(saved);
+    OIIO_CHECK_FALSE(saved.valid());
+    OIIO_CHECK_ASSERT(copy.chromaticities() == cspan<float>(ap1));
+    OIIO_CHECK_EQUAL(moved.transfer_function_gamma(), 1.0f);
+    Filesystem::remove(filename);
+
+    // OpenColorIO 2.5 reads a declared interop_id, which outranks the name.
+    if (ColorConfig::OpenColorIO_version_hex() >= 0x02050000) {
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+            filename,
+            "ocio_profile_version: 2.5\n"
+            "roles: {default: g18_rec709_scene}\n"
+            "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+            "colorspaces:\n  - !<ColorSpace>\n    name: g18_rec709_scene\n"
+            "    interop_id: g22_ap1_scene\n"));
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        auto info = config.get_color_space_info("g18_rec709_scene");
+        OIIO_CHECK_EQUAL(info.transfer_function_gamma(), 2.2f);
+        OIIO_CHECK_ASSERT(info.chromaticities() == cspan<float>(ap1));
+        Filesystem::remove(filename);
+    }
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -156,6 +240,7 @@ main(int argc, char* argv[])
     test_sRGB_conversion();
     test_Rec709_conversion();
     test_gamma_pair_conversion();
+    test_color_space_info();
 
     return unit_test_failures != 0;
 }

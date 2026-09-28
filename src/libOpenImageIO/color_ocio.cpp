@@ -2479,6 +2479,170 @@ ColorConfig::get_cicp(string_view colorspace) const
 }
 
 
+
+struct ColorSpaceInfo::Impl {
+    std::array<float, 8> chromaticities {};
+    bool has_chromaticities = false;
+    float gamma             = 0.0f;
+};
+
+ColorSpaceInfo::ColorSpaceInfo() noexcept                      = default;
+ColorSpaceInfo::ColorSpaceInfo(const ColorSpaceInfo&) noexcept = default;
+ColorSpaceInfo::ColorSpaceInfo(ColorSpaceInfo&&) noexcept      = default;
+ColorSpaceInfo& ColorSpaceInfo::operator=(const ColorSpaceInfo&) noexcept
+    = default;
+ColorSpaceInfo& ColorSpaceInfo::operator=(ColorSpaceInfo&&) noexcept = default;
+ColorSpaceInfo::~ColorSpaceInfo()                                    = default;
+
+bool
+ColorSpaceInfo::valid() const noexcept
+{
+    return bool(m_impl);
+}
+
+cspan<float>
+ColorSpaceInfo::chromaticities() const noexcept
+{
+    return m_impl && m_impl->has_chromaticities
+               ? cspan<float>(m_impl->chromaticities)
+               : cspan<float>();
+}
+
+float
+ColorSpaceInfo::transfer_function_gamma() const noexcept
+{
+    return m_impl ? m_impl->gamma : 0.0f;
+}
+
+
+
+namespace {
+
+// Chromaticities (Rx, Ry, Gx, Gy, Bx, By, Wx, Wy) of the published gamuts.
+constexpr float xy_rec709[]   = { .64f, .33f, .30f,   .60f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_p3d65[]    = { .68f, .32f, .265f,  .69f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_rec2020[]  = { .708f, .292f, .17f,   .797f,
+                                  .131f, .046f, .3127f, .329f };
+constexpr float xy_adobergb[] = { .64f, .33f, .21f,   .71f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_ap0[]      = { .7347f, .2653f, 0.0f,    1.0f,
+                                  .0001f, -.077f, .32168f, .33767f };
+constexpr float xy_ap1[]      = { .713f, .293f, .165f,   .83f,
+                                  .128f, .044f, .32168f, .33767f };
+// CIE XYZ taken as RGB, so R = G = B is illuminant E.
+constexpr float xy_xyz[] = { 1.0f, 0.0f, 0.0f,     1.0f,
+                             0.0f, 0.0f, 1.0f / 3, 1.0f / 3 };
+
+// Properties of the Color Interop Forum's published (unnamespaced) IDs:
+// gamma is 1 for linear, the exponent of a pure power, or 0 for any other
+// curve (sRGB, extended sRGB, PQ, HLG). The DCDM XYZ encodings
+// g26_xyzd65_display and pq_xyzd65_display have no entry: neither curve is a
+// pure power (DCI headroom scaling precedes the 2.6 power), and no RGB
+// primaries are reported for these display XYZ encodings.
+struct PublishedColorSpace {
+    const char* interop_id;
+    const float* chromaticities;
+    float gamma;
+};
+constexpr PublishedColorSpace published_color_spaces[] = {
+    { "lin_ap1_scene", xy_ap1, 1.0f },
+    { "lin_ap0_scene", xy_ap0, 1.0f },
+    { "lin_rec709_scene", xy_rec709, 1.0f },
+    { "lin_p3d65_scene", xy_p3d65, 1.0f },
+    { "lin_rec2020_scene", xy_rec2020, 1.0f },
+    { "lin_adobergb_scene", xy_adobergb, 1.0f },
+    { "lin_ciexyzd65_scene", xy_xyz, 1.0f },
+    { "srgb_rec709_scene", xy_rec709, 0.0f },
+    { "g24_rec709_scene", xy_rec709, 2.4f },
+    { "g22_rec709_scene", xy_rec709, 2.2f },
+    { "g18_rec709_scene", xy_rec709, 1.8f },
+    { "srgb_ap1_scene", xy_ap1, 0.0f },
+    { "g22_ap1_scene", xy_ap1, 2.2f },
+    { "srgb_p3d65_scene", xy_p3d65, 0.0f },
+    { "g22_adobergb_scene", xy_adobergb, 563.0f / 256.0f },
+    { "srgb_rec709_display", xy_rec709, 0.0f },
+    { "g24_rec709_display", xy_rec709, 2.4f },
+    { "srgb_p3d65_display", xy_p3d65, 0.0f },
+    { "srgbe_p3d65_display", xy_p3d65, 0.0f },
+    { "pq_p3d65_display", xy_p3d65, 0.0f },
+    { "pq_rec2020_display", xy_rec2020, 0.0f },
+    { "hlg_rec2020_display", xy_rec2020, 0.0f },
+    { "g22_rec709_display", xy_rec709, 2.2f },
+    { "g22_adobergb_display", xy_adobergb, 563.0f / 256.0f },
+    { "g26_p3d65_display", xy_p3d65, 2.6f },
+    { "lin_rec709_display", xy_rec709, 1.0f },
+    { "lin_p3d65_display", xy_p3d65, 1.0f },
+    { "lin_rec2020_display", xy_rec2020, 1.0f },
+};
+
+const PublishedColorSpace*
+find_published_color_space(string_view interop_id)
+{
+    for (const auto& published : published_color_spaces)
+        if (Strutil::iequals(interop_id, published.interop_id))
+            return &published;
+    return nullptr;
+}
+
+}  // namespace
+
+
+
+ColorSpaceInfo
+ColorConfig::get_color_space_info(string_view colorspace) const
+{
+    OCIO::ConstColorSpaceRcPtr cs;
+    if (getImpl()->config_ && !disable_ocio && !colorspace.empty()) {
+        try {
+            cs = getImpl()->config_->getColorSpace(c_str(colorspace));
+        } catch (const std::exception& e) {
+            DBG("OCIO exception in get_color_space_info: {}\n", e.what());
+        }
+    }
+    if (!cs)
+        return {};
+    ColorSpaceInfo result;
+    auto impl     = std::make_shared<ColorSpaceInfo::Impl>();
+    result.m_impl = impl;
+    if (cs->isData())
+        return result;
+    const string_view encoding(cs->getEncoding());
+    const bool linear = encoding == "scene-linear"
+                        || encoding == "display-linear";
+    // The ID the config declares for this space, else its name or an alias.
+    const PublishedColorSpace* published = nullptr;
+    string_view declared;
+#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
+    declared  = cs->getInteropID();
+    published = find_published_color_space(declared);
+#endif
+    if (declared.empty()) {
+        published = find_published_color_space(cs->getName());
+        for (int i = 0, n = cs->getNumAliases(); !published && i < n; ++i)
+            published = find_published_color_space(cs->getAlias(i));
+    }
+    if (published && !(linear && published->gamma != 1.0f)) {
+        std::copy_n(published->chromaticities, 8, impl->chromaticities.data());
+        impl->has_chromaticities = true;
+        impl->gamma              = published->gamma;
+    }
+    if (linear)
+        impl->gamma = 1.0f;
+    return result;
+}
+
+
+
+ColorSpaceInfo
+ColorConfig::derive_color_space_info(string_view colorspace) const
+{
+    // No transform analysis yet, so there is nothing more to derive.
+    return get_color_space_info(colorspace);
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // Image Processing Implementations

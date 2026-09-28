@@ -65,5 +65,11 @@ ociodisplay #2 (apply default display/view again):  [[[-2.783   0.766   0.9873]]
 ociodisplay #3 (inverse look):                      [[[-18.22    0.876   2.121]]]     (sRGB (~2.22) - Display)
 ociodisplay #4 (forwards look):                     [[[-21330.       29.03    100.4 ]]]     (sRGB (~2.22) - Display)
 ociodisplay #5 (inverse look + forwards look):      [[[93.44 93.44 93.44]]]     (sRGB (~2.22) - Display)
+get_color_space_info('ACEScg'): valid=True gamma=1 chromaticities=[0.713, 0.293, 0.165, 0.83, 0.128, 0.044, 0.32168, 0.33767]
+get_color_space_info('g24_rec709_display'): valid=True gamma=2.4 chromaticities=[0.64, 0.33, 0.3, 0.6, 0.15, 0.06, 0.3127, 0.329]
+get_color_space_info('srgb_tx'): valid=True gamma=0 chromaticities=[0.64, 0.33, 0.3, 0.6, 0.15, 0.06, 0.3127, 0.329]
+get_color_space_info('Raw'): valid=True gamma=0 chromaticities=[]
+get_color_space_info('no_such_space'): valid=False gamma=0 chromaticities=[]
+derive_color_space_info('lin_ap1_scene') after del config: gamma=1 chromaticities=[0.713, 0.293, 0.165, 0.83, 0.128, 0.044, 0.32168, 0.33767]
 
 Done.
