@@ -8,6 +8,7 @@ import platform
 import subprocess
 
 _here = os.path.abspath(os.path.dirname(__file__))
+_dll_directory_handles = []
 
 # Set $OpenImageIO_ROOT if not already set *before* importing the OpenImageIO module.
 if not os.getenv("OpenImageIO_ROOT"):
@@ -18,7 +19,7 @@ if platform.system() == "Windows":
     # Python wheel module is dynamically linked to the OIIO DLL present in the bin folder.
     _bin_dir = os.path.join(_here, "bin")
     if os.path.exists(_bin_dir):
-        os.add_dll_directory(_bin_dir) 
+        _dll_directory_handles.append(os.add_dll_directory(_bin_dir))
     elif sys.version_info >= (3, 8):
         # This works around the python 3.8 change to stop loading DLLs from PATH on Windows.
         # We reproduce the old behavior by manually tokenizing PATH, checking that the 
@@ -28,7 +29,7 @@ if platform.system() == "Windows":
         if os.getenv("OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH", "0") == "1":
             for path in os.getenv("PATH", "").split(os.pathsep):
                 if os.path.exists(path) and path != ".":
-                    os.add_dll_directory(path)
+                    _dll_directory_handles.append(os.add_dll_directory(path))
 
 from .OpenImageIO import * # type: ignore # noqa: F401, F403, E402
 

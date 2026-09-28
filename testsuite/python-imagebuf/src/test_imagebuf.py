@@ -7,8 +7,18 @@
 from __future__ import annotations
 
 import array
+import os
+import sys
 import numpy
 import OpenImageIO as oiio
+
+
+if sys.platform == "win32":
+    _package_bin = os.path.join(os.path.dirname(oiio.__file__), "bin")
+    if os.path.isdir(_package_bin) or os.getenv(
+        "OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH", "0"
+    ) == "1":
+        assert oiio._dll_directory_handles
 
 
 # Print the contents of an ImageSpec
