@@ -4,16 +4,24 @@
 
 
 set_cache (${PROJECT_NAME}_REQUIRED_DEPS ""
-           "Additional dependencies to consider required (semicolon-separated list, or ALL)")
+           "Additional dependencies to consider required (comma- or semicolon-separated list, or ALL)")
 set_cache (${PROJECT_NAME}_OPTIONAL_DEPS ""
-           "Additional dependencies to consider optional (semicolon-separated list, or ALL)")
+           "Additional dependencies to consider optional (comma- or semicolon-separated list, or ALL)")
 set_option (${PROJECT_NAME}_ALWAYS_PREFER_CONFIG
             "Prefer a dependency's exported config file if it's available" OFF)
 
 set_cache (${PROJECT_NAME}_BUILD_MISSING_DEPS ""
-     "Try to download and build any of these missing dependencies (or 'all' or 'required')")
+     "Try to download and build any of these missing dependencies (comma- or semicolon-separated list, or 'all' or 'required')")
 set_cache (${PROJECT_NAME}_BUILD_LOCAL_DEPS ""
-     "Force local builds of these dependencies if possible (or 'all')")
+     "Force local builds of these dependencies if possible (comma- or semicolon-separated list, or 'all')")
+
+# Accept commas as well as semicolons as list separators, since semicolons are
+# awkward in shells and env variables.
+foreach (_deplist REQUIRED_DEPS OPTIONAL_DEPS BUILD_MISSING_DEPS BUILD_LOCAL_DEPS)
+    string (REPLACE "," ";" ${PROJECT_NAME}_${_deplist}
+            "${${PROJECT_NAME}_${_deplist}}")
+endforeach ()
+unset (_deplist)
 
 set_cache (${PROJECT_NAME}_LOCAL_DEPS_ROOT "${PROJECT_BINARY_DIR}/deps"
            "Directory were we do local builds of dependencies")
