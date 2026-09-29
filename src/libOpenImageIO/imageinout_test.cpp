@@ -516,6 +516,105 @@ test_thumbnail_attribs()
 
 
 
+// JPEG XL encodes and writes the whole file in close(), so close() must
+// report a failed write or encode.
+void
+test_jxl_close_write_error()
+{
+    if (!is_imageio_format_name("jpegxl")
+        || (onlyformat.size() && onlyformat != "jpegxl"))
+        return;
+    print("Testing that jpegxl close() reports write and encode errors\n");
+    // An output proxy that can't write anything, like a full disk.
+    struct IOFailWrite final : public Filesystem::IOVecOutput {
+        size_t write(const void*, size_t) override { return 0; }
+    } proxy;
+    ImageBuf buf = make_test_image("jpegxl");
+    std::string errmsg;
+    bool ok = checked_write(nullptr, "fail.jxl", buf.spec(), buf.spec().format,
+                            buf.localpixels_as_byte_image_span(),
+                            /*do_asserts=*/false, &errmsg, &proxy);
+    print("    {}\n\n", errmsg);
+    OIIO_CHECK_ASSERT(!ok && errmsg.size());
+
+    // libjxl can't parse this ICC profile, which leaves the encoder with an
+    // invalid color encoding, so JxlEncoderProcessOutput fails.
+    ImageSpec spec                = buf.spec();
+    const unsigned char junk[128] = {};
+    spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, 128), junk);
+    Filesystem::IOVecOutput memproxy;
+    ok = checked_write(nullptr, "fail.jxl", spec, spec.format,
+                       buf.localpixels_as_byte_image_span(),
+                       /*do_asserts=*/false, &errmsg, &memproxy);
+    print("    {}\n\n", errmsg);
+    OIIO_CHECK_ASSERT(!ok
+                      && Strutil::contains(errmsg, "JxlEncoderProcessOutput"));
+
+    // close() must report, not encode, when fewer pixels were written than
+    // the spec declares: it hands libjxl the whole image either way, so an
+    // empty buffer aborts libjxl 0.10.1 and a partial one is read past its
+    // end. ~JxlOutput() calls close(), so abandoning the writer must also be
+    // survivable.
+    const ImageSpec& spec2 = buf.spec();
+    auto open_short        = [&](Filesystem::IOProxy* p) {
+        auto out = ImageOutput::create("short.jxl", p);
+        OIIO_CHECK_ASSERT(out && out->open("short.jxl", spec2));
+        return out;
+    };
+    Filesystem::IOVecOutput emptyproxy;
+    if (auto out = open_short(&emptyproxy)) {
+        OIIO_CHECK_ASSERT(!out->close());
+        errmsg = out->geterror();
+        print("    {}\n\n", errmsg);
+        OIIO_CHECK_ASSERT(errmsg.size());
+    }
+    Filesystem::IOVecOutput abandonproxy;
+    open_short(&abandonproxy);  // destroyed without close(): must not crash
+    Filesystem::IOVecOutput partialproxy;
+    if (auto out = open_short(&partialproxy)) {
+        int yhalf = spec2.height / 2;
+        auto half = image_span<const float>((const float*)buf.localpixels(),
+                                            spec2.nchannels, spec2.width,
+                                            yhalf);
+        OIIO_CHECK_ASSERT(out->write_scanlines(0, yhalf, spec2.format,
+                                               as_image_span_bytes(half)));
+        OIIO_CHECK_ASSERT(!out->close());
+        errmsg = out->geterror();
+        print("    {}\n\n", errmsg);
+        OIIO_CHECK_ASSERT(errmsg.size());
+    }
+
+    // The same goes for a reused ImageOutput: after one whole file, a next
+    // file left unwritten or half written must fail too, and must not come
+    // out holding the previous file's image.
+    if (auto out = ImageOutput::create("reuse.jxl")) {
+        for (int rows : { 0, spec2.height / 2 }) {
+            Filesystem::IOVecOutput wholeproxy, nextproxy;
+            out->set_ioproxy(&wholeproxy);
+            OIIO_CHECK_ASSERT(
+                checked_write(out.get(), "reuse.jxl", spec2, spec2.format,
+                              buf.localpixels_as_byte_image_span()));
+            out->set_ioproxy(&nextproxy);
+            OIIO_CHECK_ASSERT(out->open("reuse.jxl", spec2));
+            if (rows) {
+                auto part
+                    = image_span<const float>((const float*)buf.localpixels(),
+                                              spec2.nchannels, spec2.width,
+                                              rows);
+                OIIO_CHECK_ASSERT(
+                    out->write_scanlines(0, rows, spec2.format,
+                                         as_image_span_bytes(part)));
+            }
+            OIIO_CHECK_ASSERT(!out->close());
+            errmsg = out->geterror();
+            print("    {}\n\n", errmsg);
+            OIIO_CHECK_ASSERT(errmsg.size() && nextproxy.buffer().empty());
+        }
+    }
+}
+
+
+
 // This tests a particular troublesome case where we got the logic wrong.
 // Read 1-channel float exr into 4-channel uint8 buffer with 4-byte xstride.
 // The correct behavior is to translate the one channel from float to uint8
@@ -803,6 +902,7 @@ main(int argc, char* argv[])
 
     test_all_formats();
     test_thumbnail_attribs();
+    test_jxl_close_write_error();
     test_read_tricky_sizes();
     test_span_nonzero_origin();
     benchmark_tile_sizes("exr", TypeHalf, 4);
