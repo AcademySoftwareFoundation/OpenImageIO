@@ -190,8 +190,8 @@ OpenImageIO understands.
     keeps only the first input's. An `ImageInput` does not set them: its
     spec holds only what the reader found in the file.
 
-    The path can reveal private details of the local file system, so the
-    image writers never store either attribute in a file.
+    Like other `"oiio:"` attributes, they are hints to OpenImageIO rather
+    than metadata to store, so image writers do not write them to files.
 
     This metadata was added in OpenImageIO 3.3.
 ```

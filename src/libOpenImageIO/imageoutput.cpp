@@ -1204,11 +1204,6 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
         m_spec.erase_attribute("thumbnail_image");
     }
 
-    // Where the image was read from is never written to a file: the path
-    // can reveal private details of the local file system.
-    m_spec.erase_attribute("oiio:SourcePath");
-    m_spec.erase_attribute("oiio:SourceFileFormat");
-
     return true;  // all is ok
 }
 

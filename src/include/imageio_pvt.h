@@ -130,8 +130,8 @@ OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec);
 /// Record on a spec just read from a file which file was opened
 /// ("oiio:SourcePath") and which file format reader read it
 /// ("oiio:SourceFileFormat"), so that the answer travels with the spec after
-/// the reader is gone. See stdmetadata.md. ImageOutput::check_open() removes
-/// both again, so they are never written to a file.
+/// the reader is gone. See stdmetadata.md. Like other "oiio:" attributes,
+/// they are hints, so writers do not store them in files.
 inline void
 set_source_provenance(ImageSpec& spec, string_view format_name,
                       string_view filename)
