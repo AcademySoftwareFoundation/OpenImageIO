@@ -294,7 +294,8 @@ macro (oiio_add_all_tests)
              python-paramlist
              python-roi
              python-texturesys
-             python-typedesc)
+             python-typedesc
+             sourceprovenance)
         set (nanobind_python_tests_imagedir
              python-imageinput
              python-imagebufalgo)
@@ -313,6 +314,7 @@ macro (oiio_add_all_tests)
                 python-roi
                 python-texturesys
                 python-typedesc
+                sourceprovenance
                 filters
                 ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
@@ -469,6 +471,31 @@ macro (oiio_add_all_tests)
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
+
+    # HTJ2K was introduced in OpenEXR v.3.4.0
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.4.0)
+        if (TEST openexr-compression)
+            set_property (TEST openexr-compression APPEND PROPERTY ENVIRONMENT
+                          "OIIO_OPENEXR_HTJ2K_SUPPORT=1")
+        endif()
+        if (TEST openexr-compression.core)
+            set_property (TEST openexr-compression.core APPEND PROPERTY
+                          ENVIRONMENT "OIIO_OPENEXR_HTJ2K_SUPPORT=1")
+        endif()
+    endif()
+    # New compression tests of zstd and lj2k require OpenEXR main branch,
+    # or latest release or at least V3.5.0
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.5.0)
+        if (TEST openexr-compression)
+            set_property (TEST openexr-compression APPEND PROPERTY ENVIRONMENT
+                          "OIIO_OPENEXR_LJ2K_ZSTD_SUPPORT=1")
+        endif ()
+        if (TEST openexr-compression.core)
+            set_property (TEST openexr-compression.core APPEND PROPERTY 
+                          ENVIRONMENT "OIIO_OPENEXR_LJ2K_ZSTD_SUPPORT=1")
+        endif ()
+    endif ()
+    
     # Regression test (compiles its own helper and generates its own image)
     # for a partial edge-tile heap overflow in the OpenEXR readers.
     oiio_add_tests (openexr-partialtile)
@@ -607,9 +634,9 @@ function (oiio_get_test_data name)
         endif ()
         find_package (Git)
         if (Git_FOUND AND GIT_EXECUTABLE)
-            execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth 1
-                                    ${_ogtd_REPO} -b ${_ogtd_BRANCH}
-                                    ${CMAKE_BINARY_DIR}/testsuite/${name})
+            git_clone_with_retry (${name} ${_ogtd_REPO}
+                                  ${CMAKE_BINARY_DIR}/testsuite/${name}
+                GIT_ARGS --depth 1 -b ${_ogtd_BRANCH})
         else ()
             message (WARNING "${ColorRed}Could not find Git executable, could not download test data from ${_ogtd_REPO}${ColorReset}")
         endif ()

@@ -53,7 +53,7 @@ static int
 safe_rows_per_chunk(const ImageSpec& spec)
 {
     int rpc = spec.get_int_attribute("oiio:RowsPerChunk", 0);
-    return rpc > 0 ? rpc : 64;
+    return rpc > 0 ? std::min(rpc, std::max(1, spec.height)) : 64;
 }
 
 

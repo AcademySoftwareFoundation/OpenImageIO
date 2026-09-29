@@ -77,16 +77,17 @@
 // OIIO_SIMD_HAS_SIMD8 : nonzero if vfloat8, vint8, vbool8 are defined
 // OIIO_SIMD_HAS_SIMD16 : nonzero if vfloat16, vint16, vbool16 are defined
 //
-// A note on baselines: OIIO considers SSE4.2 to be the floor for x86_64 and
-// NEON to be the floor for aarch64. NEON takes care of itself, being
-// architecturally mandatory on ARMv8-A. For x86_64, however, gcc and clang
-// only make the SSE3/SSSE3/SSE4 intrinsics available when told to with -m
-// flags, so this header cannot simply assume them -- it must keep honoring
-// __SSE4_1__ and friends. OIIO's own build passes -msse4.2 (see USE_SIMD in
-// src/cmake/compiler.cmake); a downstream translation unit that includes this
-// header will only get the SSE4 code paths if it too is compiled with
-// -msse4.2 or better. MSVC is the exception: it exposes all intrinsics
-// regardless of /arch:, so we can and do assume SSE4 there unconditionally.
+// A note on baselines: OIIO considers SSE4.2 (the x86-64-v2 psABI level) the
+// floor for x86_64 and NEON the floor for aarch64. NEON takes care of
+// itself, being architecturally mandatory on ARMv8-A. For x86_64, however,
+// gcc and clang only make the SSE3/SSSE3/SSE4 intrinsics available when told
+// to with -m flags, so this header cannot simply assume them -- it must keep
+// honoring __SSE4_1__ and friends. OIIO's own build passes -msse4.2 or better
+// (see USE_SIMD in src/cmake/compiler.cmake); a downstream translation unit
+// that includes this header will only get the SSE4 code paths if it too is
+// compiled with -msse4.2 or better. MSVC is the exception: it exposes all
+// intrinsics regardless of /arch:, so we can and do assume SSE4 there
+// unconditionally.
 
 #ifdef OIIO_NO_SIMD /* Request to disable all SIMD */
 #  define OIIO_NO_SSE 1

@@ -1,6 +1,7 @@
 Testing seek back after a rejected subimage:
   opened: True
   seek to subimage 1 rejected: True
+  spec after rejection is empty: True
   seek back to subimage 0 ok: True
   spec is subimage 0's: True
   read_image shape: (1, 1, 1)

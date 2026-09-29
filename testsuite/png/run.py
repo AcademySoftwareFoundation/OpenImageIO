@@ -47,4 +47,8 @@ command += oiiotool ("-echo remove_cicp_via_set_colorspace: test16.png --eraseat
 # and PNG-encoded ICO icons.
 command += run_app(pythonbin + ' src/test_mdcv.py "' + oiio_app("oiiotool").strip() + '"')
 
+# Regression test: iconvert from PNG to OpenEXR (which gathers subimage
+# specs through an ImageCache) must exit cleanly.
+command += iconvert ("src/alphagamma.png alphagamma.exr")
+
 outputs = [ "test16.png", "out.txt" ]

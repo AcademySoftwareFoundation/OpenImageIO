@@ -175,6 +175,28 @@ OpenImageIO understands.
 ```
 
 ```{eval-rst}
+.. option:: "oiio:SourcePath" : string
+            "oiio:SourceFileFormat" : string
+
+    The name of the file that was opened to read the image, and the name of
+    the file format reader that read it (as returned by
+    `ImageInput::format_name()`, for example `"openexr"` or `"tiff"`).
+
+    An `ImageBuf` or the `ImageCache` sets them on every spec it reads from
+    a file. Because they are part of the spec, they stay with the image
+    through copies and `ImageBufAlgo` operations, unlike `ImageBuf::name()`
+    and `ImageBuf::file_format_name()`, which describe only the `ImageBuf`
+    that did the reading. The result of an operation with several inputs
+    keeps only the first input's. An `ImageInput` does not set them: its
+    spec holds only what the reader found in the file.
+
+    Like other `"oiio:"` attributes, they are hints to OpenImageIO rather
+    than metadata to store, so image writers do not write them to files.
+
+    This metadata was added in OpenImageIO 3.3.
+```
+
+```{eval-rst}
 .. option:: "FramesPerSecond" : rational
 
     For a multi-image file intended to be played back as an animation, the
