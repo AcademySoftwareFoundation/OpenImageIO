@@ -1905,6 +1905,24 @@ files use the file extension {file}`.png`.
        may also be present, extracted from the main profile.
 ```
 
+PNG reads and writes explicit mastering-display metadata through the ten
+`mdcv_*` integer attributes documented in Section {ref}`sec-metadata-color`,
+when libpng supports mDCV. Note that this requires OIIO to have been built
+against libPNG 1.6.46 or newer, which added the mDCV chunk; a libpng built
+without fixed-point support needs 1.6.48 or newer, which fixed libpng's
+floating-point mDCV setter. `supports("mdcv")` reports the capability for PNG
+input and, when libpng also supports cICP, for PNG output. The values
+preserve RGBW ordering and the integer wire units, including zero minimum
+luminance. PNG output writes mDCV only for a complete
+valid record with an accompanying cICP chunk, as required by the [PNG Third
+Edition mDCV definition](https://www.w3.org/TR/png-3/#mDCV-chunk). Otherwise the
+image is still written, without the mDCV chunk, and the reason is reported as
+an `OpenImageIO WARNING:` debug message, shown when `OPENIMAGEIO_DEBUG` is set
+or in debug builds. ICO input and output follow the same rules for PNG-encoded
+icons, but ICO does not report `supports("mdcv")`. No mastering values are
+inferred, and the metadata does not change the encoded color space or image
+samples.
+
 **Configuration settings for PNG input**
 
 When opening an PNG ImageInput with a *configuration* (see

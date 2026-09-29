@@ -28,6 +28,9 @@ public:
 #ifdef PNG_cICP_SUPPORTED
                 || feature == "cicp"
 #endif
+#if defined(OIIO_PNG_MDCV_SUPPORTED) && defined(PNG_cICP_SUPPORTED)
+                || feature == "mdcv"
+#endif
         );
     }
     bool open(const std::string& name, const ImageSpec& spec,

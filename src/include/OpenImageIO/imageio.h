@@ -1094,6 +1094,10 @@ public:
     /// - `"cicp"` :
     ///       Does this format support embedding CICP metadata?
     ///
+    /// - `"mdcv"` :
+    ///       Does this format support embedding mastering display color
+    ///       volume metadata (the `mdcv_*` attributes)?
+    ///
     /// - `"ioproxy"` :
     ///       Does this format reader support reading from an `IOProxy`?
     ///
@@ -2603,6 +2607,10 @@ public:
     ///
     ///  - `"cicp"` :
     ///        Does this format support embedding CICP metadata?
+    ///
+    ///  - `"mdcv"` :
+    ///        Does this format support embedding mastering display color
+    ///        volume metadata (the `mdcv_*` attributes)?
     ///
     /// This list of queries may be extended in future releases. Since this
     /// can be done simply by recognizing new query strings, and does not

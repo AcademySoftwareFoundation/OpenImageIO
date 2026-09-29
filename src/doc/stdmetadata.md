@@ -246,6 +246,32 @@ OpenImageIO understands.
 ```
 
 ```{eval-rst}
+.. option:: "mdcv_red_x", "mdcv_red_y", "mdcv_green_x", "mdcv_green_y", "mdcv_blue_x", "mdcv_blue_y", "mdcv_white_x", "mdcv_white_y", "mdcv_max_luminance", "mdcv_min_luminance" : int
+
+    Explicit mastering-display color volume. The eight chromaticity values
+    are CIE xy coordinates multiplied by 50000, in red, green, blue, white
+    order. Maximum and minimum luminance are in units of 0.0001 cd/m2
+    (10000000 means 1000 cd/m2). Zero minimum luminance is valid.
+    These describe the mastering display, independently of the encoded color
+    space; they do not establish color identity or trigger pixel conversion.
+
+    PNG reads these values from mDCV when supported by libpng, which
+    requires libPNG 1.6.46 or newer (1.6.48 or newer if libpng was built
+    without fixed-point support). PNG output writes mDCV only with all ten
+    scalar integer attributes, chromaticities in [0, 50000], maximum
+    luminance in [1, 100000000], minimum in [0, 99999999] strictly below
+    maximum, and an accompanying cICP chunk. Input does not apply these
+    limits, so copying a file whose record lies outside them drops its mDCV
+    chunk; a record that libpng itself rejects, such as a luminance above
+    2147483647, reports no values at all. A partial, malformed, or
+    unsupported record does not fail the write: the image is written without
+    mDCV and the reason is reported as an `OpenImageIO WARNING:` debug
+    message, shown when `OPENIMAGEIO_DEBUG` is set or in debug builds. Only
+    an error raised by libpng itself while setting a record that passed
+    these checks fails the write. Absent values are not inferred.
+```
+
+```{eval-rst}
 .. option:: "CICP" : int[4]
 
     The CICP color space information, as defined by
