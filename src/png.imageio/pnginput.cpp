@@ -196,17 +196,17 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    // Readers don't load a color config, so compare built-in names.
-    string_view colorspace = m_spec.get_string_attribute("oiio:ColorSpace");
-    m_srgb = Strutil::iequals(colorspace, "srgb_rec709_scene")
-             || Strutil::iequals(colorspace, "srgb_rec709_display")
-             || Strutil::iequals(colorspace, "srgb_texture")
-             || Strutil::iequals(colorspace, "srgb_display")
-             || Strutil::iequals(colorspace, "sRGB");
-    if (m_srgb) {
+    // Only premultiplying in linear space needs the transfer function, and
+    // deciding it can load the color config, so don't unless we must.
+    if (!m_linear_premult) {
+        m_srgb  = false;
+        m_gamma = 1.0f;
+    } else if (is_colorspace_srgb(m_spec)) {
+        m_srgb  = true;
         m_gamma = 1.0f;
     } else {
-        m_gamma = pvt::get_colorspace_rec709_gamma(m_spec, false);
+        m_srgb  = false;
+        m_gamma = pvt::get_colorspace_rec709_gamma(m_spec);
         if (m_gamma == 0.0f) {
             m_gamma = 1.0f;
         }

@@ -770,15 +770,15 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     // Try to figure out the color space for some unambiguous cases
     if (spec.get_int_attribute("acesImageContainerFlag") == 1) {
-        pvt::set_colorspace(spec, "lin_ap0_scene");
+        spec.set_colorspace("lin_ap0_scene");
     } else {
         // Follow the color interop forum recommendation for OpenEXR files,
         // inheriting the colorInteropID from the first part.
         string_view interop_id = spec.get_string_attribute("colorInteropID");
         if (!interop_id.empty()) {
-            pvt::set_colorspace(spec, interop_id);
+            spec.set_colorspace(interop_id);
         } else if (!in->m_file_color_interop_id.empty()) {
-            pvt::set_colorspace(spec, in->m_file_color_interop_id);
+            spec.set_colorspace(in->m_file_color_interop_id);
         }
     }
 

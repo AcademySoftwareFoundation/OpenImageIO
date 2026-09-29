@@ -12,8 +12,6 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 
-#include "imageio_pvt.h"
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define DBG if (0)
@@ -404,7 +402,7 @@ PNMInput::read_file_header()
         m_spec.attribute("pnm:bigendian", m_scaling_factor < 0 ? 0 : 1);
         m_spec.attribute("pnm:binary", 1);
     }
-    pvt::set_colorspace(m_spec, "Rec709");
+    m_spec.set_colorspace("Rec709");
     return true;
 }
 

@@ -254,6 +254,9 @@ just exist in the OIIO namespace as general utilities. (See
 :::{doxygenfunction} OIIO::get_colorspace_cicp
 :::
 
+:::{doxygenfunction} OIIO::get_color_interop_id
+:::
+
 :::{doxygenfunction} OIIO::equivalent_colorspace
 :::
 

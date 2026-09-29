@@ -893,7 +893,8 @@ public:
     /// nothing about the color space if `name` is empty). The core operation
     /// is to set the "oiio:ColorSpace" attribute, but it also removes or
     /// alters several other attributes that may hint color space in ways that
-    /// might be contradictory or no longer true.
+    /// might be contradictory or no longer true. Like the free function
+    /// `set_colorspace()`, it loads the default color config only if needed.
     ///
     /// @version 2.5
     void set_colorspace(string_view name);
@@ -4379,7 +4380,10 @@ inline string_view get_string_attribute (string_view name,
 /// operation is to set the "oiio:ColorSpace" attribute, but it also removes
 /// or alters several other attributes that may hint color space in ways that
 /// might be contradictory or no longer true. This uses the current default
-/// color config to adjudicate color space name equivalencies.
+/// color config to adjudicate color space name equivalencies, but only
+/// when it must: if `spec` has an "Exif:ColorSpace" attribute and `name`
+/// is not "srgb_rec709_scene", to decide whether `name` is equivalent to
+/// sRGB. Otherwise, no color config is loaded.
 ///
 /// @version 3.0
 OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
@@ -4387,8 +4391,9 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 /// Set the metadata of the `spec` to reflect Rec709 color primaries and the
 /// given gamma. The core operation is to set the "oiio:ColorSpace" attribute,
 /// but it also removes or alters several other attributes that may hint color
-/// space in ways that might be contradictory or no longer true. This uses the
-/// current default color config to adjudicate color space name equivalencies.
+/// space in ways that might be contradictory or no longer true. As with
+/// `set_colorspace()`, the default color config is loaded only if `spec`
+/// has an "Exif:ColorSpace" attribute.
 ///
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
@@ -4418,6 +4423,15 @@ get_colorspace_icc_profile(const ImageSpec& spec, bool from_colorspace = true);
 /// @version 3.2
 OIIO_API cspan<int> get_colorspace_cicp(const ImageSpec& spec,
                                         bool from_colorspace = true);
+
+/// Returns the color interop ID corresponding to a CICP code (at least the
+/// color primaries and transfer characteristics, as in the "CICP"
+/// attribute), or an empty string if there is none. This needs no color
+/// config, so image readers can label what a file's CICP describes without
+/// loading one.
+///
+/// @version 3.3
+OIIO_API string_view get_color_interop_id(cspan<int> cicp);
 
 
 /// Are the two named color spaces equivalent, based on the default color
@@ -4806,6 +4820,7 @@ using v3_1::debugfmt;
 using v3_1::declare_imageio_format;
 using v3_1::equivalent_colorspace;
 using v3_1::errorfmt;
+using v3_1::get_color_interop_id;
 using v3_1::get_colorspace_cicp;
 using v3_1::get_colorspace_icc_profile;
 using v3_1::get_extension_map;

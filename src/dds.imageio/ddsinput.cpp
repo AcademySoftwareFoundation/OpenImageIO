@@ -16,7 +16,6 @@
 #include <OpenImageIO/typedesc.h>
 
 #include "dds_pvt.h"
-#include "imageio_pvt.h"
 #define BCDEC_IMPLEMENTATION
 #include "bcdec.h"
 
@@ -902,7 +901,7 @@ DDSInput::read_miplevel_spec(int miplevel)
         && (basetype == TypeDesc::HALF || basetype == TypeDesc::FLOAT))
         colorspace = "lin_rec709_scene";
 
-    pvt::set_colorspace(m_spec, colorspace);
+    m_spec.set_colorspace(colorspace);
 
     m_spec.default_channel_names();
     // Special case: if a 2-channel DDS RG or YA?

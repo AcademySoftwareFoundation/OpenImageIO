@@ -10,8 +10,6 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 
-#include "imageio_pvt.h"
-
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
@@ -308,7 +306,7 @@ HdrInput::RGBE_ReadHeader()
     if (!line.size())
         return false;
 
-    pvt::set_colorspace(m_spec, "lin_rec709_scene");
+    m_spec.set_colorspace("lin_rec709_scene");
     // presume linear w/ srgb primaries -- seems like the safest assumption
     // for this old file format.
 
@@ -322,7 +320,7 @@ HdrInput::RGBE_ReadHeader()
             /* LG says no:    break;       // format found so break out of loop */
         } else if (Strutil::parse_values(line, "GAMMA=", span<float>(tempf))) {
             float g = float(1.0 / tempf);
-            pvt::set_colorspace_rec709_gamma(m_spec, g);
+            set_colorspace_rec709_gamma(m_spec, g);
         } else if (Strutil::parse_values(line,
                                          "EXPOSURE=", span<float>(tempf))) {
             m_spec.attribute("hdr:exposure", tempf);

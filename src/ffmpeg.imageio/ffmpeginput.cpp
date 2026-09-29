@@ -72,9 +72,6 @@ receive_frame(AVCodecContext* avctx, AVFrame* picture, AVPacket* avpkt)
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
-
-#include "imageio_pvt.h"
-
 #include <climits>
 #include <cmath>
 #include <iostream>
@@ -648,7 +645,7 @@ FFmpegInput::open(const std::string& name, ImageSpec& spec)
             m_codec_context->colorspace,
             m_codec_context->color_range == AVCOL_RANGE_MPEG ? 0 : 1 };
     m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
-    string_view interop_id = pvt::get_color_interop_id(cicp);
+    string_view interop_id = get_color_interop_id(cicp);
     if (!interop_id.empty())
         m_spec.attribute("oiio:ColorSpace", interop_id);
 

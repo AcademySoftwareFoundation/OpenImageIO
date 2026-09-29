@@ -12,6 +12,7 @@
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/imageio.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
@@ -117,6 +118,65 @@ test_Rec709_conversion()
           [&]() { return DoNotOptimize(Rec709_to_linear(fval)); });
     bench("linear_to_Rec709",
           [&]() { return DoNotOptimize(Rec709_to_linear(fval)); });
+}
+
+
+
+// Loading a color config is logged as "ColorConfig::reset".
+static bool
+color_config_loaded()
+{
+    return Strutil::contains(OIIO::get_string_attribute("timing_report"),
+                             "ColorConfig");
+}
+
+
+
+// Must run before anything else loads the default color config.
+static void
+test_colorspace_without_config()
+{
+    OIIO::attribute("log_times", 1);
+    OIIO_CHECK_ASSERT(!color_config_loaded());
+
+    // Setting a color space clears contradicting metadata without a config.
+    ImageSpec spec;
+    spec.attribute("tiff:ColorSpace", 1);
+    spec.attribute("oiio:Gamma", 2.2f);
+    spec.set_colorspace("lin_rec709_scene");
+    OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                     "lin_rec709_scene");
+    OIIO_CHECK_ASSERT(!spec.find_attribute("tiff:ColorSpace"));
+    OIIO_CHECK_ASSERT(!spec.find_attribute("oiio:Gamma"));
+    set_colorspace_rec709_gamma(spec, 2.2f);
+    OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                     "g22_rec709_scene");
+    OIIO_CHECK_EQUAL(spec.get_float_attribute("oiio:Gamma"), 2.2f);
+    // An sRGB name keeps "Exif:ColorSpace" without asking a config.
+    spec.attribute("Exif:ColorSpace", 1);
+    set_colorspace(spec, "srgb_rec709_scene");
+    OIIO_CHECK_ASSERT(spec.find_attribute("Exif:ColorSpace"));
+
+    // CICP to color interop ID needs no config.
+    OIIO_CHECK_EQUAL(get_color_interop_id({ 9, 16, 9, 1 }),
+                     "pq_rec2020_display");
+    OIIO_CHECK_EQUAL(get_color_interop_id({ 1, 13, 0, 1 }),
+                     "srgb_rec709_scene");
+    OIIO_CHECK_EQUAL(get_color_interop_id({ 2, 2, 2, 1 }), "");
+    OIIO_CHECK_EQUAL(get_color_interop_id({}), "");
+    OIIO_CHECK_ASSERT(!color_config_loaded());
+
+    // Only a non-sRGB name with "Exif:ColorSpace" present asks the config
+    // whether to erase it.
+    set_colorspace(spec, "lin_rec709_scene");
+    OIIO_CHECK_ASSERT(!spec.find_attribute("Exif:ColorSpace"));
+    OIIO_CHECK_ASSERT(color_config_loaded());
+
+    const int cicp[4] = { 9, 16, 9, 1 };
+    OIIO_CHECK_EQUAL(ColorConfig::default_colorconfig().get_color_interop_id(
+                         cicp),
+                     get_color_interop_id(cicp));
+    OIIO::attribute("log_times", 0);
 }
 
 
@@ -240,6 +300,7 @@ main(int argc, char* argv[])
 
     getargs(argc, argv);
 
+    test_colorspace_without_config();
     test_sRGB_conversion();
     test_Rec709_conversion();
     test_gamma_pair_conversion();

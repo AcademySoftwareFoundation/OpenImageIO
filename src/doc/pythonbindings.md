@@ -4270,6 +4270,20 @@ if cicp:
 This function was added in OpenImageIO 3.2.
 :::
 
+:::{py:method} get_color_interop_id (cicp)
+Returns the color interop ID corresponding to the CICP code `cicp` (a list
+of 4 ints), or an empty string if there is none. This needs no color
+config.
+
+Example:
+
+```python
+interop_id = oiio.get_color_interop_id ([9, 16, 9, 1])
+```
+
+This function was added in OpenImageIO 3.3.
+:::
+
 :::{py:method} equivalent_colorspace (a, b)
 Return `True` if the color spaces `a` and `b` are equivalent in the
 default active color config.

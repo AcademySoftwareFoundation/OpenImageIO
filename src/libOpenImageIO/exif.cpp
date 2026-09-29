@@ -19,7 +19,6 @@
 #include <OpenImageIO/tiffutils.h>
 
 #include "exif.h"
-#include "imageio_pvt.h"
 
 OIIO_NAMESPACE_BEGIN
 
@@ -1315,7 +1314,7 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
         // Exif spec says that anything other than 0xffff==uncalibrated
         // should be interpreted to be sRGB.
         if (cs != 0xffff)
-            OIIO::pvt::set_colorspace(spec, "srgb_rec709_scene");
+            spec.set_colorspace("srgb_rec709_scene");
     }
 
     // Look for a maker note offset, now that we have seen all the metadata

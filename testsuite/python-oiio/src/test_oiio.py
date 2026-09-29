@@ -91,6 +91,8 @@ try:
     spec.attribute ("CICP", oiio.TypeDesc("int[4]"), (9, 16, 9, 1))
     print ("  get_colorspace_cicp(attribute):",
            oiio.get_colorspace_cicp (spec, False))
+    print ("  get_color_interop_id([9, 16, 9, 1]):",
+           oiio.get_color_interop_id ([9, 16, 9, 1]))
     print ("")
 
     print ("Testing global attribute() one-arg:")

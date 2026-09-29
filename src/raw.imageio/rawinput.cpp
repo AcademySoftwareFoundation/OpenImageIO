@@ -18,8 +18,6 @@
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/tiffutils.h>
 
-#include "imageio_pvt.h"
-
 #if OIIO_GNUC_VERSION || OIIO_CLANG_VERSION
 // fix warnings in libraw headers: use of auto_ptr
 #    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -646,17 +644,17 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         m_processor->imgdata.params.gamm[0]      = 1.0;
         m_processor->imgdata.params.gamm[1]      = 1.0;
     } else if (Strutil::iequals(cs, "srgb_rec709_scene")
-               || Strutil::iequals(cs, "srgb_texture")
-               || Strutil::iequals(cs, "sRGB")) {
+               || Strutil::iequals(cs, "sRGB") /* Necessary? */
+               || equivalent_colorspace(cs, "srgb_rec709_scene")) {
         // Request explicit sRGB, including usual sRGB response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0 / 2.4;
         m_processor->imgdata.params.gamm[1]      = 12.92;
-    } else if (Strutil::iequals(cs, "lin_rec709_scene")
-               || Strutil::iequals(cs, "sRGB-linear")
+    } else if (Strutil::iequals(cs, "sRGB-linear")
                || Strutil::iequals(cs, "lin_srgb")
                || Strutil::iequals(cs, "lin_rec709")
-               || Strutil::iequals(cs, "linear") /* DEPRECATED */) {
+               || Strutil::iequals(cs, "linear") /* DEPRECATED */
+               || equivalent_colorspace(cs, "lin_rec709_scene")) {
         // Request "sRGB" primaries, linear response
         m_processor->imgdata.params.output_color = 1;
         m_processor->imgdata.params.gamm[0]      = 1.0;
@@ -705,7 +703,7 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
         errorfmt("raw:ColorSpace set to unknown value \"{}\"", cs);
         return false;
     }
-    pvt::set_colorspace(m_spec, cs);
+    m_spec.set_colorspace(cs);
 
     // Exposure adjustment
     float exposure = config.get_float_attribute("raw:Exposure", -1.0f);

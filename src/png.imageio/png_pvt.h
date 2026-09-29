@@ -238,7 +238,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
     } else if (png_get_gAMA(sp, ip, &gamma) && gamma > 0.0) {
         float g = float(1.0 / gamma);
-        pvt::set_colorspace_rec709_gamma(spec, g);
+        set_colorspace_rec709_gamma(spec, g);
     } else {
         // If there's no info at all, assume sRGB.
         spec.attribute("oiio:ColorSpace", "srgb_rec709_scene");
@@ -345,7 +345,7 @@ read_info(png_structp& sp, png_infop& ip, int& bit_depth, int& color_type,
         if (png_get_cICP(sp, ip, &pri, &trc, &mtx, &vfr)) {
             const int cicp[4] = { pri, trc, mtx, vfr };
             spec.attribute(CICP_ATTR, TypeDesc(TypeDesc::INT, 4), cicp);
-            string_view interop_id = pvt::get_color_interop_id(cicp);
+            string_view interop_id = get_color_interop_id(cicp);
             if (!interop_id.empty())
                 spec.attribute("oiio:ColorSpace", interop_id);
         }

@@ -32,8 +32,6 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 
-#include "imageio_pvt.h"
-
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 
@@ -330,13 +328,12 @@ DPXInput::seek_subimage(int subimage, int miplevel)
 
     // image linearity
     switch (m_dpx.header.Transfer(subimage)) {
-    case dpx::kLinear: pvt::set_colorspace(m_spec, "lin_rec709_scene"); break;
-    case dpx::kLogarithmic: pvt::set_colorspace(m_spec, "KodakLog"); break;
-    case dpx::kITUR709: pvt::set_colorspace(m_spec, "srgb_rec709_scene"); break;
+    case dpx::kLinear: m_spec.set_colorspace("lin_rec709_scene"); break;
+    case dpx::kLogarithmic: m_spec.set_colorspace("KodakLog"); break;
+    case dpx::kITUR709: m_spec.set_colorspace("srgb_rec709_scene"); break;
     case dpx::kUserDefined:
         if (!std::isnan(m_dpx.header.Gamma()) && m_dpx.header.Gamma() != 0) {
-            pvt::set_colorspace_rec709_gamma(m_spec,
-                                             float(m_dpx.header.Gamma()));
+            set_colorspace_rec709_gamma(m_spec, float(m_dpx.header.Gamma()));
             break;
         }
         // intentional fall-through
