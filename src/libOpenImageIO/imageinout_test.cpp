@@ -524,7 +524,7 @@ test_jxl_close_write_error()
     if (!is_imageio_format_name("jpegxl")
         || (onlyformat.size() && onlyformat != "jpegxl"))
         return;
-    std::cout << "Testing that jpegxl close() reports write and encode errors\n";
+    print("Testing that jpegxl close() reports write and encode errors\n");
     // An output proxy that can't write anything, like a full disk.
     struct IOFailWrite final : public Filesystem::IOVecOutput {
         size_t write(const void*, size_t) override { return 0; }
@@ -534,7 +534,7 @@ test_jxl_close_write_error()
     bool ok = checked_write(nullptr, "fail.jxl", buf.spec(), buf.spec().format,
                             buf.localpixels_as_byte_image_span(),
                             /*do_asserts=*/false, &errmsg, &proxy);
-    std::cout << "    " << errmsg << "\n\n";
+    print("    {}\n\n", errmsg);
     OIIO_CHECK_ASSERT(!ok && errmsg.size());
 
     // libjxl can't parse this ICC profile, which leaves the encoder with an
@@ -546,7 +546,7 @@ test_jxl_close_write_error()
     ok = checked_write(nullptr, "fail.jxl", spec, spec.format,
                        buf.localpixels_as_byte_image_span(),
                        /*do_asserts=*/false, &errmsg, &memproxy);
-    std::cout << "    " << errmsg << "\n\n";
+    print("    {}\n\n", errmsg);
     OIIO_CHECK_ASSERT(!ok
                       && Strutil::contains(errmsg, "JxlEncoderProcessOutput"));
 
@@ -565,7 +565,7 @@ test_jxl_close_write_error()
     if (auto out = open_short(&emptyproxy)) {
         OIIO_CHECK_ASSERT(!out->close());
         errmsg = out->geterror();
-        std::cout << "    " << errmsg << "\n\n";
+        print("    {}\n\n", errmsg);
         OIIO_CHECK_ASSERT(errmsg.size());
     }
     Filesystem::IOVecOutput abandonproxy;
@@ -580,7 +580,7 @@ test_jxl_close_write_error()
                                                as_image_span_bytes(half)));
         OIIO_CHECK_ASSERT(!out->close());
         errmsg = out->geterror();
-        std::cout << "    " << errmsg << "\n\n";
+        print("    {}\n\n", errmsg);
         OIIO_CHECK_ASSERT(errmsg.size());
     }
 
@@ -607,7 +607,7 @@ test_jxl_close_write_error()
             }
             OIIO_CHECK_ASSERT(!out->close());
             errmsg = out->geterror();
-            std::cout << "    " << errmsg << "\n\n";
+            print("    {}\n\n", errmsg);
             OIIO_CHECK_ASSERT(errmsg.size() && nextproxy.buffer().empty());
         }
     }
