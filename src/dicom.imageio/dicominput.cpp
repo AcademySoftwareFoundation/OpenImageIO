@@ -40,24 +40,33 @@ public:
     DICOMInput() {}
     ~DICOMInput() override { close(); }
     const char* format_name(void) const override { return "dicom"; }
-    int supports(string_view /*feature*/) const override
+    int supports(string_view feature) const override
     {
-        return false;  // we don't support any optional features
+        return (feature == "arbitrary_metadata"
+                || feature == "exif"  // Because of arbitrary_metadata
+                || feature == "iptc"  // Because of arbitrary_metadata
+                || feature == "multiimage");
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
               const ImageSpec& config) override;
     bool close() override;
+    int current_subimage(void) const override { return m_subimage; }
     bool seek_subimage(int subimage, int miplevel) override;
     bool read_native_scanline(int subimage, int miplevel, int y, int z,
                               void* data) override;
 
 private:
     std::unique_ptr<DicomImage> m_img;
-    int m_framecount, m_firstframe;
+    int m_framecount;  // total frames in the file, not just the loaded ones
     int m_bitspersample;
     std::string m_filename;
+    // m_subimage is the subimage we have fully validated and whose spec
+    // m_spec holds; -1 means none. m_frame is separate because it tracks
+    // where the decoder sits, which only moves forward and which we advance
+    // before we know whether the frame is one we'll accept.
     int m_subimage              = -1;
+    int m_frame                 = -1;
     const DiPixel* m_dipixel    = nullptr;
     const char* m_internal_data = nullptr;
 
@@ -105,6 +114,7 @@ DICOMInput::open(const std::string& name, ImageSpec& newspec,
 {
     m_filename = name;
     m_subimage = -1;
+    m_frame    = -1;
     m_img.reset();
 
     bool ok = seek_subimage(0, 0);
@@ -123,6 +133,7 @@ DICOMInput::close()
 {
     m_img.reset();
     m_subimage      = -1;
+    m_frame         = -1;
     m_dipixel       = nullptr;
     m_internal_data = nullptr;
     return true;
@@ -142,54 +153,65 @@ static std::set<std::string> ignore_tags {
 bool
 DICOMInput::seek_subimage(int subimage, int miplevel)
 {
-    if (miplevel != 0)
+    if (miplevel != 0 || subimage < 0)
         return false;
 
     if (subimage == m_subimage) {
         return true;  // already there
     }
 
-    if (subimage < m_subimage) {
-        // Want an earlier subimage, Easier to close and start again
-        close();  // note: resets m_subimge to -1
+    // We're about to move the decoder and overwrite m_spec, so give up the
+    // current subimage first. Every failure below then leaves us on none,
+    // rather than on a frame whose spec we never validated. Note that
+    // m_dipixel and m_internal_data point into m_img, so they have to go too.
+    m_subimage      = -1;
+    m_dipixel       = nullptr;
+    m_internal_data = nullptr;
+
+    if (subimage < m_frame) {
+        // Want an earlier frame, but the decoder only moves forward. Throw it
+        // away and start over from the beginning of the file.
+        m_img.reset();
+        m_frame = -1;
     }
 
     // Open if it's not already opened
-    if (!m_img || m_subimage < 0) {
+    if (!m_img) {
         OFLog::configure(OFLogger::FATAL_LOG_LEVEL);
         m_img.reset(new DicomImage(m_filename.c_str(),
                                    CIF_UsePartialAccessToPixelData,
                                    0 /*first frame*/, 1 /* fcount */));
-        m_subimage = 0;
+        m_frame = 0;
         if (m_img->getStatus() != EIS_Normal) {
             m_img.reset();
+            m_frame = -1;
             errorfmt("Unable to open DICOM file {}", m_filename);
             return false;
         }
-        m_framecount = m_img->getFrameCount();
-        m_firstframe = m_img->getFirstFrame();
+        m_framecount = int(m_img->getNumberOfFrames());
     }
 
-    if (subimage >= m_firstframe + m_framecount) {
+    if (subimage >= m_framecount) {
         errorfmt("Unable to seek to subimage {}", subimage);
         return false;
     }
 
-    // Advance to the desired subimage
-    while (m_subimage < subimage) {
+    // Advance to the desired frame
+    while (m_frame < subimage) {
         m_img->processNextFrames(1);
         if (m_img->getStatus() != EIS_Normal) {
+            // The decoder is wedged, so it's no use to do a later seek either.
             m_img.reset();
+            m_frame = -1;
             errorfmt("Unable to seek to subimage {}", subimage);
             return false;
         }
-        ++m_subimage;
+        ++m_frame;
     }
 
     m_dipixel = m_img->getInterData();
     if (!m_dipixel) {
         errorfmt("Unable to read pixel data from DICOM file {}", m_filename);
-        m_img.reset();
         return false;
     }
     EP_Representation rep = m_dipixel->getRepresentation();
@@ -203,10 +225,13 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
     case EPR_Sint32: format = TypeDesc::INT32; break;
     default: break;
     }
-    m_internal_data = (const char*)m_img->getOutputData(0, m_subimage, 0);
+    // Partial access means the DicomImage holds only the frame we advanced
+    // to, and getOutputData() indexes within that window rather than by
+    // absolute frame number.
+    unsigned long winframe = (unsigned long)m_frame - m_img->getFirstFrame();
+    m_internal_data        = (const char*)m_img->getOutputData(0, winframe, 0);
     if (!m_internal_data) {
         errorfmt("Unable to decode pixel data from DICOM file {}", m_filename);
-        m_img.reset();
         return false;
     }
 
@@ -261,6 +286,7 @@ DICOMInput::seek_subimage(int subimage, int miplevel)
 
     read_metadata();
 
+    m_subimage = subimage;
     return true;
 }
 
