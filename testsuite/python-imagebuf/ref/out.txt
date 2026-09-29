@@ -76,7 +76,7 @@ Printing the whole spec to be sure:
   PixelAspectRatio = 1.0
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
   oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
-  oiio:SourceFormat = "tiff"
+  oiio:SourceFileFormat = "tiff"
   oiio:SourcePath = "../common/textures/grid.tx"
 
 Resetting to a different MIP level:
@@ -106,7 +106,7 @@ Resetting to a different MIP level:
   PixelAspectRatio = 1.0
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
   oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
-  oiio:SourceFormat = "tiff"
+  oiio:SourceFileFormat = "tiff"
   oiio:SourcePath = "../common/textures/grid.tx"
 
 Making 2x2 RGB image:

@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-# Test the "oiio:SourcePath" and "oiio:SourceFormat" attributes, which record
+# Test the "oiio:SourcePath" and "oiio:SourceFileFormat" attributes, which record
 # which file an image was read from and which format reader read it, and
 # check that no writer stores them in a file.
 
@@ -22,7 +22,7 @@ def check(desc: str, cond: bool) -> None:
 
 def source_of(spec: oiio.ImageSpec) -> tuple[str, str]:
     return (spec.get_string_attribute("oiio:SourcePath"),
-            spec.get_string_attribute("oiio:SourceFormat"))
+            spec.get_string_attribute("oiio:SourceFileFormat"))
 
 
 # The test makes its own input files. The name of the first one is also the
@@ -76,7 +76,7 @@ check("ImageBufAlgo result: its own file_format_name is empty",
 # every writer this build has, after replacing its format name with the
 # marker too, then look for the marker in the file's bytes and in every
 # attribute an ImageInput finds in it.
-buf.specmod().attribute("oiio:SourceFormat", MARK + "-format")
+buf.specmod().attribute("oiio:SourceFileFormat", MARK + "-format")
 gray = oiio.ImageBufAlgo.channels(buf, (0,))
 extensions = {}
 for entry in oiio.get_string_attribute("extension_list").split(";"):

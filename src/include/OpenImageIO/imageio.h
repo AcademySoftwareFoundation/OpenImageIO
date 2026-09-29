@@ -3552,7 +3552,7 @@ protected:
     /// * Whether the `extra_attribs` contains a request to use an IOProxy,
     ///   but the format writer does not report `supports("ioproxy")`.
     ///
-    /// It also removes the `"oiio:SourcePath"` and `"oiio:SourceFormat"`
+    /// It also removes the `"oiio:SourcePath"` and `"oiio:SourceFileFormat"`
     /// attributes, so that a writer never stores where the image was read
     /// from.
     bool check_open(OpenMode mode, const ImageSpec &spec,

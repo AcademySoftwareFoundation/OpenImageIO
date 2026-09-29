@@ -176,10 +176,10 @@ OpenImageIO understands.
 
 ```{eval-rst}
 .. option:: "oiio:SourcePath" : string
-            "oiio:SourceFormat" : string
+            "oiio:SourceFileFormat" : string
 
     The name of the file that was opened to read the image, and the name of
-    the format reader that read it (as returned by
+    the file format reader that read it (as returned by
     `ImageInput::format_name()`, for example `"openexr"` or `"tiff"`).
 
     An `ImageBuf` or the `ImageCache` sets them on every spec it reads from
