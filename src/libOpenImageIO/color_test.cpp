@@ -120,6 +120,26 @@ test_Rec709_conversion()
 
 
 
+static void
+test_gamma_pair_conversion()
+{
+    // OCIO < 2.5 composes back-to-back exponents in the wrong direction under
+    // its default optimization, giving v^(1.8/2.2) instead of v^(2.2/1.8).
+    ColorConfig config("ocio://cg-config-v2.1.0_aces-v1.3_ocio-v2.3");
+    auto proc = config.createColorProcessor("Gamma 2.2 Rec.709 - Texture",
+                                            "Gamma 1.8 Rec.709 - Texture");
+    OIIO_CHECK_ASSERT(proc);
+    if (!proc)
+        return;
+    for (float v : { 0.001f, 0.18f, 0.5f }) {
+        float rgb[3] = { v, v, v };
+        proc->apply(rgb);
+        OIIO_CHECK_EQUAL_THRESH(rgb[0], std::pow(v, 2.2f / 1.8f), 1.0e-4f);
+    }
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -135,6 +155,7 @@ main(int argc, char* argv[])
 
     test_sRGB_conversion();
     test_Rec709_conversion();
+    test_gamma_pair_conversion();
 
     return unit_test_failures != 0;
 }

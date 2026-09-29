@@ -55,6 +55,16 @@ static int disable_builtin_configs = Strutil::stoi(
     Sysutil::getenv("OIIO_DISABLE_BUILTIN_OCIO_CONFIGS"));
 static OCIO::ConstConfigRcPtr ocio_current_config;
 
+// OCIO 2.3 and 2.4 compose back-to-back gamma/exponent ops in the wrong
+// direction, so skip that optimization before OCIO 2.5.0 (which has the fix,
+// AcademySoftwareFoundation/OpenColorIO#2154).
+#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 5, 0)
+static constexpr auto ocio_optimization = OCIO::OptimizationFlags(
+    OCIO::OPTIMIZATION_DEFAULT & ~OCIO::OPTIMIZATION_COMP_GAMMA);
+#else
+static constexpr auto ocio_optimization = OCIO::OPTIMIZATION_DEFAULT;
+#endif
+
 
 
 const ColorConfig&
@@ -535,7 +545,7 @@ ColorConfig::Impl::get_to_builtin_cpu_proc(const char* my_from,
         auto proc = OCIO::Config::GetProcessorToBuiltinColorSpace(config_,
                                                                   my_from,
                                                                   builtin_to);
-        return proc ? proc->getDefaultCPUProcessor()
+        return proc ? proc->getOptimizedCPUProcessor(ocio_optimization)
                     : OCIO::ConstCPUProcessorRcPtr();
     } catch (...) {
         return {};
@@ -1697,7 +1707,7 @@ class ColorProcessor_OCIO final : public ColorProcessor {
 public:
     ColorProcessor_OCIO(OCIO::ConstProcessorRcPtr p)
         : m_p(p)
-        , m_cpuproc(p->getDefaultCPUProcessor())
+        , m_cpuproc(p->getOptimizedCPUProcessor(ocio_optimization))
     {
     }
     ~ColorProcessor_OCIO() override {}
