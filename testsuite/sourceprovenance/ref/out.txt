@@ -1,0 +1,13 @@
+ok   wrote the source image
+ok   wrote the two-subimage image
+ok   ImageBuf: source recorded
+ok   ImageBuf: agrees with name and file_format_name
+ok   ImageBuf: also on the native spec
+ok   ImageBuf, subimage 1: source recorded
+ok   ImageCache: source recorded
+ok   ImageCache, subimage 1: source recorded
+ok   cache-backed ImageBuf: source recorded
+ok   ImageBufAlgo result: source kept
+ok   ImageBufAlgo result: its own file_format_name is empty
+ok   no written file contains the source
+done.

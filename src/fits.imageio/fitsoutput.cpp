@@ -192,6 +192,16 @@ FitsOutput::create_fits_header(void)
     for (size_t i = 0; i < m_spec.extra_attribs.size(); ++i) {
         std::string keyname = m_spec.extra_attribs[i].name().string();
 
+        // "oiio:" attributes, and ones prefixed with the name of another
+        // format, are hints rather than metadata to store.
+        if (Strutil::istarts_with(keyname, "oiio:"))
+            continue;
+        if (size_t colon = keyname.find(':'); colon != std::string::npos) {
+            std::string prefix = Strutil::lower(keyname.substr(0, colon));
+            if (prefix != format_name() && is_imageio_format_name(prefix))
+                continue;
+        }
+
         std::string value;
         TypeDesc attr_format = m_spec.extra_attribs[i].type();
         if (attr_format == TypeDesc::STRING) {
