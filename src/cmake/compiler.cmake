@@ -612,6 +612,12 @@ else ()
 endif ()
 set_cache (${PROJ_NAME}_HARDENING ${${PROJ_NAME}_HARDENING_DEFAULT}
            "Turn on security hardening features 0=none, 1=fast, 2=extensive, 3=debug")
+# libc++ hardening modes are supported starting with libc++ 18, which is
+# first shipped by LLVM clang 18 and Apple clang 17.
+if (CLANG_VERSION_STRING VERSION_GREATER_EQUAL 18.0
+    OR APPLECLANG_VERSION_STRING VERSION_GREATER_EQUAL 17.0)
+    set (_libcpp_has_hardening_modes TRUE)
+endif ()
 # Implementation:
 add_compile_definitions (${PROJ_NAME}_HARDENING_DEFAULT=${${PROJ_NAME}_HARDENING})
 if (${PROJ_NAME}_HARDENING GREATER_EQUAL 1)
@@ -642,7 +648,7 @@ endif ()
 if (${PROJ_NAME}_HARDENING EQUAL 1)
     # Setting _LIBCPP_HARDENING_MODE enables various hardening features in
     # clang/llvm's libc++ 18.0 and later.
-    if (OIIO_CLANG_VERSION VERSION_GREATER_EQUAL 18.0 OR OIIO_APPLE_CLANG_VERSION VERSION_GREATER_EQUAL 18.0)
+    if (_libcpp_has_hardening_modes)
         add_compile_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
     endif ()
 elseif (${PROJ_NAME}_HARDENING EQUAL 2)
@@ -651,7 +657,7 @@ elseif (${PROJ_NAME}_HARDENING EQUAL 2)
         # I've had trouble turning this on in older gcc
         add_compile_definitions (_GLIBCXX_ASSERTIONS)
     endif ()
-    if (OIIO_CLANG_VERSION VERSION_GREATER_EQUAL 18.0 OR OIIO_APPLE_CLANG_VERSION VERSION_GREATER_EQUAL 18.0)
+    if (_libcpp_has_hardening_modes)
         add_compile_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE)
     endif ()
 elseif (${PROJ_NAME}_HARDENING EQUAL 3)
@@ -662,10 +668,11 @@ elseif (${PROJ_NAME}_HARDENING EQUAL 3)
         # N.B. _GLIBCXX_DEBUG changes ABI, so don't do this:
         #   add_compile_definitions (_GLIBCXX_DEBUG)
     endif ()
-    if (OIIO_CLANG_VERSION VERSION_GREATER_EQUAL 18.0 OR OIIO_APPLE_CLANG_VERSION VERSION_GREATER_EQUAL 18.0)
+    if (_libcpp_has_hardening_modes)
         add_compile_definitions (_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG)
     endif ()
 endif ()
+unset (_libcpp_has_hardening_modes)
 
 
 ###########################################################################
