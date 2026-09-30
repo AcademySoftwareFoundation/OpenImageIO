@@ -187,6 +187,9 @@ private:
     // spec a bit.
     bool spec_to_header(ImageSpec& spec, int subimage, Imf::Header& header);
 
+    // Validate color interop IDs if openexr:ColorInteropIDPolicy is set.
+    bool validate_color_interop_ids();
+
     // Compute an OpenEXR PixelType from an OIIO TypeDesc
     Imf::PixelType imfpixeltype(TypeDesc type);
 
@@ -710,6 +713,51 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
 }
 
 
+bool
+OpenEXROutput::validate_color_interop_ids()
+{
+    string_view policy = m_subimagespecs[0].get_string_attribute(
+        "openexr:ColorInteropIDPolicy", "none");
+    if (policy == "none")
+        return true;
+
+    if (policy != "strict") {
+        errorfmt("Unknown openexr:ColorInteropIDPolicy \"{}\"", policy);
+        return false;
+    }
+
+    // Follow the color interop forum recommendation, where the colorInteropID
+    // of later parts must match the first part, except when "data" or missing.
+    //
+    // In the future, checkColorMetadata added in OpenEXR 3.5 can replace this.
+    string_view file_interop_id;
+
+    for (size_t s = 0; s < m_headers.size(); ++s) {
+        const Imf::StringAttribute* attr
+            = m_headers[s].findTypedAttribute<Imf::StringAttribute>(
+                "colorInteropID");
+        string_view interop_id = attr ? string_view(attr->value())
+                                      : string_view();
+
+        if (s == 0) {
+            file_interop_id = interop_id;
+            continue;
+        }
+
+        if (interop_id.empty() || interop_id == "data"
+            || interop_id == file_interop_id)
+            continue;
+
+        errorfmt(
+            "OpenEXR subimage {} has color space \"{}\", different from \"{}\" in the first subimage",
+            s, interop_id, file_interop_id);
+        return false;
+    }
+
+    return true;
+}
+
+
 
 bool
 OpenEXROutput::open(const std::string& name, int subimages,
@@ -757,6 +805,9 @@ OpenEXROutput::open(const std::string& name, int subimages,
                      : (tiled ? Imf::TILEDIMAGE : Imf::SCANLINEIMAGE));
         }
     }
+
+    if (!validate_color_interop_ids())
+        return false;
 
     m_spec = m_subimagespecs[0];
     sanity_check_channelnames();
@@ -968,6 +1019,22 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
         spec.erase_attribute("openexr:dwaCompressionLevel");
     }
 
+#if OPENEXR_CODED_VERSION >= 30500
+    // OpenEXR 3.5.0 added the support for LJ2K, the lossy variant of HTJ2K256.
+    // Value from 97 to 150 are OpenEXR specific of the normal range of 1 till
+    // 97. This extended range is available to achieve higher quality needed
+    // for 32-bit float images. Values between 90 and 110 are recommended for
+    // a balance of quality and size.
+    if (Strutil::istarts_with(comp, "lj2k")) {
+        header.lossyHTJ2KQuality() = (qual >= 1 && qual <= 150) ? qual : 110;
+    }
+
+    // OpenEXR 3.5.0 added an API for setting the zstd compression/quality
+    // level in the Header object. Default value is 5.
+    if (Strutil::istarts_with(comp, "zstd")) {
+        header.zstdCompressionLevel() = (qual >= 1 && qual <= 22) ? qual : 5;
+    }
+#endif
     // Default to increasingY line order
     if (!spec.find_attribute("openexr:lineOrder"))
         spec.attribute("openexr:lineOrder", "increasingY");
@@ -1052,6 +1119,19 @@ OpenEXROutput::spec_to_header(ImageSpec& spec, int subimage,
     // Deal with all other params
     for (const auto& p : spec.extra_attribs)
         put_parameter(p.name().string(), p.type(), p.data(), header);
+
+    // Now that the header's compression is settled, say how many scanlines
+    // are packed into each of the chunks we are about to write, so that
+    // ImageOutput::write_image can hand us whole chunks. A value carried in
+    // from some other file says nothing about this one, so erase it either
+    // way. This has to come after the loop above -- that is what would have
+    // written it into the file, and this is only a hint to our own caller.
+    spec.erase_attribute("oiio:RowsPerChunk");
+    if (spec.tile_width == 0) {
+        int scansperchunk = exr_scanlines_per_chunk(header.compression());
+        if (scansperchunk > 1)
+            spec.attribute("oiio:RowsPerChunk", scansperchunk);
+    }
 
     // Multi-part EXR files required to have a name. Make one up if not
     // supplied.
@@ -1145,7 +1225,7 @@ static ExrMeta exr_meta_translation[] = {
     // user or from a file we read.
     ExrMeta("YResolution"), ExrMeta("planarconfig"), ExrMeta("type"),
     ExrMeta("tiles"), ExrMeta("chunkCount"), ExrMeta("maxSamplesPerPixel"),
-    ExrMeta("openexr:roundingmode")
+    ExrMeta("openexr:roundingmode"), ExrMeta("openexr:ColorInteropIDPolicy")
 };
 
 
@@ -1204,6 +1284,14 @@ OpenEXROutput::put_parameter(const std::string& name, TypeDesc type,
 #ifdef IMF_HTJ2K32_COMPRESSION
             else if (Strutil::iequals(str, "htj2k32"))
                 header.compression() = Imf::HTJ2K32_COMPRESSION;
+#endif
+#ifdef IMF_LJ2K_COMPRESSION
+            else if (Strutil::iequals(str, "lj2k"))
+                header.compression() = Imf::LJ2K_COMPRESSION;
+#endif
+#ifdef IMF_ZSTD_COMPRESSION
+            else if (Strutil::iequals(str, "zstd"))
+                header.compression() = Imf::ZSTD_COMPRESSION;
 #endif
         }
         return true;

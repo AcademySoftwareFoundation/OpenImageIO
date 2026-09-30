@@ -4,16 +4,24 @@
 
 
 set_cache (${PROJECT_NAME}_REQUIRED_DEPS ""
-           "Additional dependencies to consider required (semicolon-separated list, or ALL)")
+           "Additional dependencies to consider required (comma- or semicolon-separated list, or ALL)")
 set_cache (${PROJECT_NAME}_OPTIONAL_DEPS ""
-           "Additional dependencies to consider optional (semicolon-separated list, or ALL)")
+           "Additional dependencies to consider optional (comma- or semicolon-separated list, or ALL)")
 set_option (${PROJECT_NAME}_ALWAYS_PREFER_CONFIG
             "Prefer a dependency's exported config file if it's available" OFF)
 
 set_cache (${PROJECT_NAME}_BUILD_MISSING_DEPS ""
-     "Try to download and build any of these missing dependencies (or 'all' or 'required')")
+     "Try to download and build any of these missing dependencies (comma- or semicolon-separated list, or 'all' or 'required')")
 set_cache (${PROJECT_NAME}_BUILD_LOCAL_DEPS ""
-     "Force local builds of these dependencies if possible (or 'all')")
+     "Force local builds of these dependencies if possible (comma- or semicolon-separated list, or 'all')")
+
+# Accept commas as well as semicolons as list separators, since semicolons are
+# awkward in shells and env variables.
+foreach (_deplist REQUIRED_DEPS OPTIONAL_DEPS BUILD_MISSING_DEPS BUILD_LOCAL_DEPS)
+    string (REPLACE "," ";" ${PROJECT_NAME}_${_deplist}
+            "${${PROJECT_NAME}_${_deplist}}")
+endforeach ()
+unset (_deplist)
 
 set_cache (${PROJECT_NAME}_LOCAL_DEPS_ROOT "${PROJECT_BINARY_DIR}/deps"
            "Directory were we do local builds of dependencies")
@@ -46,6 +54,18 @@ endif ()
 
 set_option (${PROJECT_NAME}_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS
             "Allow dependency auto-build to use unverified tags -- Dangerous" OFF)
+
+# Downloads of dependency source sometimes fail for transient reasons (the
+# hosting site being briefly unreachable, especially from CI runners), so
+# retry a failed download rather than failing the whole build.
+set_cache (${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES 5
+           "Number of times to retry a failed dependency download" ADVANCED)
+set_cache (${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY 15
+           "Seconds to wait before the first dependency download retry (doubles each retry)" ADVANCED)
+# Names of downloads that needed retries to succeed, one per line, so CI can
+# report them. Start fresh each configure.
+set (${PROJECT_NAME}_DOWNLOAD_RETRY_LOG "${CMAKE_BINARY_DIR}/clone-retries.txt")
+file (REMOVE ${${PROJECT_NAME}_DOWNLOAD_RETRY_LOG})
 
 
 # Track all build deps we find with checked_find_package
@@ -675,6 +695,135 @@ function(remove_prefixes_from_variable VAR_TYPE VAR_NAME PREFIXES)
     endif()
 endfunction()
 
+# execute_process() workalike for a command that can fail for transient
+# reasons, such as anything needing network access: connection failures to a
+# hosting site are common enough on CI runners that a single attempt is
+# unreliable. Wait RETRY_DELAY seconds after a failure, doubling the wait
+# each time, for up to RETRIES retries before giving up.
+#
+# Usage:
+#   execute_process_with_retry (COMMAND <cmd> [args...]
+#                               [WORKING_DIRECTORY <dir>]
+#                               [CLEANUP <dir>]
+#                               [RETRIES <n>]           # default 5
+#                               [RETRY_DELAY <seconds>] # default 15
+#                               [RESULT_VARIABLE <var>]
+#                               [ERROR_VARIABLE <var>]
+#                               [RETRY_COUNT_VARIABLE <var>]
+#                               [QUIET])
+#
+# CLEANUP names a directory holding partial results (such as a half-finished
+# clone) to remove after each failed attempt, including the last.
+#
+# RETRY_COUNT_VARIABLE receives the number of retries made (0 if the first
+# attempt succeeded).
+#
+function (execute_process_with_retry)
+    cmake_parse_arguments(_epr   # prefix
+        # noValueKeywords:
+        "QUIET"
+        # singleValueKeywords:
+        "WORKING_DIRECTORY;CLEANUP;RETRIES;RETRY_DELAY;RESULT_VARIABLE;ERROR_VARIABLE;RETRY_COUNT_VARIABLE"
+        # multiValueKeywords:
+        "COMMAND"
+        # argsToParse:
+        ${ARGN})
+
+    unset (_epr_workdir)
+    if (_epr_WORKING_DIRECTORY)
+        set (_epr_workdir WORKING_DIRECTORY ${_epr_WORKING_DIRECTORY})
+    endif ()
+    unset (_epr_quiet)
+    if (_epr_QUIET)
+        set (_epr_quiet OUTPUT_QUIET)
+    endif ()
+
+    set (_epr_retries 5)
+    if (NOT "${_epr_RETRIES}" STREQUAL "")
+        set (_epr_retries ${_epr_RETRIES})
+    endif ()
+    set (_epr_delay 15)
+    if (NOT "${_epr_RETRY_DELAY}" STREQUAL "")
+        set (_epr_delay ${_epr_RETRY_DELAY})
+    endif ()
+    set (_epr_tries 0)
+    while (TRUE)
+        execute_process (COMMAND ${_epr_COMMAND}
+                         ${_epr_workdir}
+                         RESULT_VARIABLE _epr_result
+                         ERROR_VARIABLE _epr_errors
+                         ERROR_STRIP_TRAILING_WHITESPACE
+                         ${_epr_quiet})
+        if (_epr_result EQUAL 0)
+            break ()
+        endif ()
+        if (_epr_CLEANUP AND EXISTS ${_epr_CLEANUP})
+            file (REMOVE_RECURSE ${_epr_CLEANUP})
+        endif ()
+        if (_epr_tries GREATER_EQUAL _epr_retries)
+            break ()
+        endif ()
+        math (EXPR _epr_tries "${_epr_tries} + 1")
+        message (STATUS "${ColorYellow}Failed: ${_epr_errors}${ColorReset}")
+        message (STATUS "${ColorYellow}Retrying in ${_epr_delay} seconds "
+                        "(retry ${_epr_tries} of ${_epr_retries})${ColorReset}")
+        execute_process (COMMAND ${CMAKE_COMMAND} -E sleep ${_epr_delay})
+        math (EXPR _epr_delay "${_epr_delay} * 2")
+    endwhile ()
+
+    if (DEFINED _epr_RESULT_VARIABLE)
+        set (${_epr_RESULT_VARIABLE} ${_epr_result} PARENT_SCOPE)
+    endif ()
+    if (DEFINED _epr_ERROR_VARIABLE)
+        set (${_epr_ERROR_VARIABLE} "${_epr_errors}" PARENT_SCOPE)
+    endif ()
+    if (DEFINED _epr_RETRY_COUNT_VARIABLE)
+        set (${_epr_RETRY_COUNT_VARIABLE} ${_epr_tries} PARENT_SCOPE)
+    endif ()
+endfunction ()
+
+
+# git clone <repo> into <dir>, retrying on failure as
+# execute_process_with_retry does, with the retry settings from
+# ${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES/_RETRY_DELAY. If the clone
+# needed retries to succeed, <name> is appended to the file
+# ${PROJECT_NAME}_DOWNLOAD_RETRY_LOG so CI can report it.
+#
+# Usage:
+#   git_clone_with_retry (<name> <repo> <dir>
+#                         [GIT_ARGS <args>...]
+#                         [RESULT_VARIABLE <var>]
+#                         [ERROR_VARIABLE <var>]
+#                         [QUIET])
+#
+function (git_clone_with_retry name repo dir)
+    cmake_parse_arguments(_gcr "QUIET" "RESULT_VARIABLE;ERROR_VARIABLE"
+                          "GIT_ARGS" ${ARGN})
+    unset (_gcr_quiet)
+    if (_gcr_QUIET)
+        set (_gcr_quiet QUIET)
+    endif ()
+    execute_process_with_retry (
+        COMMAND ${GIT_EXECUTABLE} clone ${_gcr_GIT_ARGS} ${repo} ${dir}
+        CLEANUP ${dir}
+        RETRIES ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES}
+        RETRY_DELAY ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY}
+        RESULT_VARIABLE _gcr_result
+        ERROR_VARIABLE _gcr_errors
+        RETRY_COUNT_VARIABLE _gcr_retries
+        ${_gcr_quiet})
+    if (_gcr_result EQUAL 0 AND _gcr_retries GREATER 0)
+        file (APPEND ${${PROJECT_NAME}_DOWNLOAD_RETRY_LOG} "${name}\n")
+    endif ()
+    if (DEFINED _gcr_RESULT_VARIABLE)
+        set (${_gcr_RESULT_VARIABLE} ${_gcr_result} PARENT_SCOPE)
+    endif ()
+    if (DEFINED _gcr_ERROR_VARIABLE)
+        set (${_gcr_ERROR_VARIABLE} "${_gcr_errors}" PARENT_SCOPE)
+    endif ()
+endfunction ()
+
+
 # Helper to build a dependency with CMake. Given a package name, git repo and
 # tag, and optional cmake args, it will clone the repo into the surrounding
 # project's build area, configures, and build sit, and installs it into a
@@ -696,7 +845,7 @@ macro (build_dependency_with_cmake pkgname)
         # singleValueKeywords:
         "GIT_REPOSITORY;GIT_TAG;GIT_COMMIT;VERSION;SOURCE_SUBDIR;QUIET"
         # multiValueKeywords:
-        "CMAKE_ARGS"
+        "CMAKE_ARGS;GIT_SUBMODULES"
         # argsToParse:
         ${ARGN})
 
@@ -721,6 +870,7 @@ macro (build_dependency_with_cmake pkgname)
 
     unset (${pkgname}_GIT_CLONE_ARGS)
     unset (_pkg_exec_quiet)
+    unset (_pkg_retry_quiet)
     if (NOT "${_pkg_GIT_TAG}" STREQUAL "")
         # If a tag or branch is specified, do a shallow clone for efficiency.
         list (APPEND ${pkgname}_GIT_CLONE_ARGS -b ${_pkg_GIT_TAG} --depth 1)
@@ -728,6 +878,7 @@ macro (build_dependency_with_cmake pkgname)
     if (_pkg_QUIET OR "${_pkg_QUIET}" STREQUAL "")
         list (APPEND ${pkgname}_GIT_CLONE_ARGS -q)
         set (_pkg_exec_quiet OUTPUT_QUIET)
+        set (_pkg_retry_quiet QUIET)
     endif ()
 
     # Clone the repo if we don't already have it
@@ -736,12 +887,14 @@ macro (build_dependency_with_cmake pkgname)
         message (STATUS "COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY} "
                                 "${${pkgname}_LOCAL_SOURCE_DIR} "
                                 "${${pkgname}_GIT_CLONE_ARGS}")
-        execute_process(COMMAND ${GIT_EXECUTABLE} clone ${_pkg_GIT_REPOSITORY}
-                                ${${pkgname}_LOCAL_SOURCE_DIR}
-                                ${${pkgname}_GIT_CLONE_ARGS}
-                        ERROR_VARIABLE ${pkgname}_clone_errors
-                        ${_pkg_exec_quiet})
-        if (NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
+        git_clone_with_retry (${pkgname} ${_pkg_GIT_REPOSITORY}
+                              ${${pkgname}_LOCAL_SOURCE_DIR}
+            GIT_ARGS ${${pkgname}_GIT_CLONE_ARGS}
+            RESULT_VARIABLE ${pkgname}_clone_result
+            ERROR_VARIABLE ${pkgname}_clone_errors
+            ${_pkg_retry_quiet})
+        if (NOT ${pkgname}_clone_result EQUAL 0
+                OR NOT IS_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR})
             message (FATAL_ERROR "Could not download ${_pkg_GIT_REPOSITORY}: ${${pkgname}_clone_errors}")
         endif ()
     endif ()
@@ -789,6 +942,28 @@ macro (build_dependency_with_cmake pkgname)
             "${pkgname}: Neither GIT_TAG nor GIT_COMMIT was specified.")
     endif ()
 
+    # Initialize any requested submodules (paths relative to the package
+    # source dir). This runs after the checkout above, so the submodule
+    # commits are the ones pinned by the verified superproject commit and
+    # inherit its supply-chain guarantee.
+    if (NOT "${_pkg_GIT_SUBMODULES}" STREQUAL "")
+        execute_process_with_retry (
+            COMMAND ${GIT_EXECUTABLE} submodule update --init --depth 1 -- ${_pkg_GIT_SUBMODULES}
+            WORKING_DIRECTORY ${${pkgname}_LOCAL_SOURCE_DIR}
+            RETRIES ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRIES}
+            RETRY_DELAY ${${PROJECT_NAME}_DEPENDENCY_DOWNLOAD_RETRY_DELAY}
+            RESULT_VARIABLE _pkg_submodule_result
+            ERROR_VARIABLE  _pkg_submodule_errors
+            RETRY_COUNT_VARIABLE _pkg_submodule_retries
+            ${_pkg_retry_quiet})
+        if (NOT _pkg_submodule_result EQUAL 0)
+            message (FATAL_ERROR "${pkgname}: git submodule update failed: ${_pkg_submodule_errors}")
+        endif ()
+        if (_pkg_submodule_retries GREATER 0)
+            file (APPEND ${${PROJECT_NAME}_DOWNLOAD_RETRY_LOG} "${pkgname} submodules\n")
+        endif ()
+    endif ()
+
     # Configure the package
     if (${PROJECT_NAME}_DEPENDENCY_BUILD_VERBOSE)
         set (_pkg_cmake_verbose -DCMAKE_VERBOSE_MAKEFILE=ON
@@ -818,6 +993,10 @@ macro (build_dependency_with_cmake pkgname)
     if (CMAKE_IGNORE_PATH)
         string(REPLACE ";" "\\;" CMAKE_IGNORE_PATH_ESCAPED "${CMAKE_IGNORE_PATH}")
         list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PATH=${CMAKE_IGNORE_PATH_ESCAPED}")
+    endif()
+    if (CMAKE_IGNORE_PREFIX_PATH)
+        string(REPLACE ";" "\\;" CMAKE_IGNORE_PREFIX_PATH_ESCAPED "${CMAKE_IGNORE_PREFIX_PATH}")
+        list(APPEND _pkg_CMAKE_ARGS "-DCMAKE_IGNORE_PREFIX_PATH=${CMAKE_IGNORE_PREFIX_PATH_ESCAPED}")
     endif()
 
     # Pass along any CMAKE_MSVC_RUNTIME_LIBRARY
@@ -929,3 +1108,43 @@ macro (alias_library_if_not_exists newalias realtarget)
         add_library(${newalias} ALIAS ${realtarget})
     endif ()
 endmacro ()
+
+
+option (IGNORE_HOMEBREWED_DEPS "If ON, will ignore homebrew-installed dependencies" OFF)
+if (IGNORE_HOMEBREWED_DEPS)
+    # Define the list of prefixes to ignore
+    set (HOMEBREW_PREFIXES
+         /opt/homebrew
+         /opt/homebrew/Cellar
+         /usr/local
+         /usr/local/Cellar
+         /usr/X11
+         /usr/X11R6
+         /opt/X11
+    )
+    message (STATUS "Ignoring Homebrew dependencies and adjusted environment and CMake variables accordingly.")
+    foreach (_cmake_var
+             CMAKE_SYSTEM_INCLUDE_PATH
+             CMAKE_SYSTEM_LIBRARY_PATH
+             CMAKE_PREFIX_PATH)
+        remove_prefixes_from_variable (CMAKE ${_cmake_var} "${HOMEBREW_PREFIXES}")
+    endforeach ()
+
+    # Adjust CMAKE_IGNORE_PATH
+    foreach (_prefix IN LISTS HOMEBREW_PREFIXES)
+        list (APPEND CMAKE_IGNORE_PATH
+              "${_prefix}"
+              "${_prefix}/lib"
+              "${_prefix}/bin"
+              "${_prefix}/include"
+             )
+    endforeach ()
+
+    # Also ignore the whole prefixes, which (unlike CMAKE_IGNORE_PATH) is
+    # honored by config-package searches, and is forwarded to local
+    # dependency child builds so they can't quietly resolve a Homebrew
+    # package (e.g. a mismatched Imath) that we ourselves are ignoring.
+    list (APPEND CMAKE_IGNORE_PREFIX_PATH ${HOMEBREW_PREFIXES})
+
+    message (STATUS "CMAKE_IGNORE_PATH: ${CMAKE_IGNORE_PATH}")
+endif ()

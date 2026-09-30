@@ -183,6 +183,7 @@ macro (oiio_add_all_tests)
                     oiiotool-composite
                     oiiotool-control
                     oiiotool-copy
+                    oiiotool-decorrstretch
                     oiiotool-demosaic
                     oiiotool-fixnan
                     oiiotool-layers
@@ -293,7 +294,8 @@ macro (oiio_add_all_tests)
              python-paramlist
              python-roi
              python-texturesys
-             python-typedesc)
+             python-typedesc
+             sourceprovenance)
         set (nanobind_python_tests_imagedir
              python-imageinput
              python-imagebufalgo)
@@ -312,6 +314,7 @@ macro (oiio_add_all_tests)
                 python-roi
                 python-texturesys
                 python-typedesc
+                sourceprovenance
                 filters
                 ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
@@ -384,6 +387,8 @@ macro (oiio_add_all_tests)
     oiio_add_tests (cineon
                     ENABLEVAR ENABLE_CINEON
                     IMAGEDIR oiio-images URL "Recent checkout of OpenImageIO-images")
+    oiio_add_tests (dicom
+                    FOUNDVAR DCMTK_FOUND ENABLEVAR ENABLE_DCMTK)
     oiio_add_tests (dpx
                     ENABLEVAR ENABLE_DPX
                     IMAGEDIR oiio-images/dpx URL "Recent checkout of OpenImageIO-images")
@@ -445,6 +450,11 @@ macro (oiio_add_all_tests)
         # OpenEXR 3.1.10 is the first release where the exr core library
         # properly supported all compression types (DWA in particular).
         list (APPEND all_openexr_tests openexr-compression)
+        # openexr-scanlines reads a DWA-compressed file, so it needs the same
+        # minimum as openexr-compression for the core-library test variant.
+        if (USE_PYTHON AND NOT SANITIZE)
+            list (APPEND all_openexr_tests openexr-scanlines)
+        endif ()
     endif ()
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.3)
         # OpenEXR 3.3 is when IDManifest was introduced
@@ -466,12 +476,40 @@ macro (oiio_add_all_tests)
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
+
+    # HTJ2K was introduced in OpenEXR v.3.4.0
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.4.0)
+        if (TEST openexr-compression)
+            set_property (TEST openexr-compression APPEND PROPERTY ENVIRONMENT
+                          "OIIO_OPENEXR_HTJ2K_SUPPORT=1")
+        endif()
+        if (TEST openexr-compression.core)
+            set_property (TEST openexr-compression.core APPEND PROPERTY
+                          ENVIRONMENT "OIIO_OPENEXR_HTJ2K_SUPPORT=1")
+        endif()
+    endif()
+    # New compression tests of zstd and lj2k require OpenEXR main branch,
+    # or latest release or at least V3.5.0
+    if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.5.0)
+        if (TEST openexr-compression)
+            set_property (TEST openexr-compression APPEND PROPERTY ENVIRONMENT
+                          "OIIO_OPENEXR_LJ2K_ZSTD_SUPPORT=1")
+        endif ()
+        if (TEST openexr-compression.core)
+            set_property (TEST openexr-compression.core APPEND PROPERTY 
+                          ENVIRONMENT "OIIO_OPENEXR_LJ2K_ZSTD_SUPPORT=1")
+        endif ()
+    endif ()
+    
     # Regression test (compiles its own helper and generates its own image)
     # for a partial edge-tile heap overflow in the OpenEXR readers.
     oiio_add_tests (openexr-partialtile)
     # Self-contained decompression-bomb regression (ships its own tiny fixture);
     # exercises both the C++ and C-API readers via the openexr:core attribute.
     oiio_add_tests (openexr-bomb)
+    # Self-contained multi-part colorInteropID inheritance test (ships its own
+    # tiny fixture); exercises both the C++ and C-API readers.
+    oiio_add_tests (openexr-multipart-colorspace)
     # if (NOT DEFINED ENV{${PROJECT_NAME}_CI})
     #     oiio_add_tests (openexr-damaged
     #                     IMAGEDIR openexr-images
@@ -548,6 +586,8 @@ macro (oiio_add_all_tests)
     endif ()
     oiio_add_tests (tiff-suite tiff-depths tiff-misc
                     IMAGEDIR oiio-images/libtiffpic)
+    oiio_add_tests (tiff-subimage-seek
+                    ENABLEVAR USE_PYTHON)
     oiio_add_tests (webp
                     FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
                     IMAGEDIR oiio-images/webp)
@@ -599,9 +639,9 @@ function (oiio_get_test_data name)
         endif ()
         find_package (Git)
         if (Git_FOUND AND GIT_EXECUTABLE)
-            execute_process(COMMAND ${GIT_EXECUTABLE} clone --depth 1
-                                    ${_ogtd_REPO} -b ${_ogtd_BRANCH}
-                                    ${CMAKE_BINARY_DIR}/testsuite/${name})
+            git_clone_with_retry (${name} ${_ogtd_REPO}
+                                  ${CMAKE_BINARY_DIR}/testsuite/${name}
+                GIT_ARGS --depth 1 -b ${_ogtd_BRANCH})
         else ()
             message (WARNING "${ColorRed}Could not find Git executable, could not download test data from ${_ogtd_REPO}${ColorReset}")
         endif ()

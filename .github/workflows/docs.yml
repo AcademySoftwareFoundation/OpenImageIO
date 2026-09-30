@@ -86,7 +86,7 @@ jobs:
             skip_build: 1
             skip_tests: 1
             setenvs: export EXTRA_DEP_PACKAGES="doxygen sphinx-doc"
-                            PIP_INSTALLS="sphinx breathe==4.34.0 sphinx-tabs furo==2022.6.21"
+                            PIP_INSTALLS="sphinx breathe==4.34.0 sphinx-tabs furo==2022.6.21 myst-parser"
                             SKIP_SYSTEM_DEPS_INSTALL=1
                             USE_OPENCV=0 USE_FFMPEG=0 USE_FREETYPE=0
                             USE_LIBHEIF=0 QT_VERSION=0 PYBIND11_VERSION=0

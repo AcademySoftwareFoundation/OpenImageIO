@@ -469,6 +469,33 @@ py_to_stdvector(std::vector<T>& vals, const py::object& obj)
 }
 
 
+// Make a UTF-8 `py::str` from a string-like C++ type, using `'surrogateescape'`
+// error handling for any non-UTF-8 byte sequences. Compared to calling
+// `py::str` directly, this avoids raising a `UnicodeDecodeError` if the input
+// is not valid UTF-8.
+//
+// It is important to do this for string return values that come from
+// "untrusted" sources, such as being read from other files, so that we ensure
+// that we are returning valid UTF-8 str's to the calling Python so that
+// exceptions are not raised.
+inline py::str
+py_str_escaped(string_view value)
+{
+    py::handle py_str = PyUnicode_DecodeUTF8(value.data(), value.length(),
+                                             "surrogateescape");
+#if defined(OIIO_PY_BACKEND_NANOBIND)
+    if (!py_str) {
+        py::raise_python_error();
+    }
+    return py::steal<py::str>(py_str);
+#else
+    if (!py_str) {
+        throw py::error_already_set();
+    }
+    return py::reinterpret_steal<py::str>(py_str);
+#endif
+}
+
 
 template<typename T>
 inline py::tuple
@@ -477,6 +504,9 @@ C_to_tuple(cspan<T> vals)
     return oiio_py::make_tuple(vals.size(), [&](size_t i) {
         if constexpr (std::is_same_v<T, half>) {
             return py::cast(static_cast<float>(vals[i]));
+        } else if constexpr (std::is_same_v<std::decay_t<T>, std::string>
+                             || std::is_same_v<std::decay_t<T>, const char*>) {
+            return py_str_escaped(vals[i]);
         } else {
             return py::cast(vals[i]);
         }
@@ -500,6 +530,9 @@ C_to_tuple(const T* vals, size_t size)
     return oiio_py::make_tuple(size, [&](size_t i) {
         if constexpr (std::is_same_v<T, half>) {
             return py::cast(static_cast<float>(vals[i]));
+        } else if constexpr (std::is_same_v<std::decay_t<T>, std::string>
+                             || std::is_same_v<std::decay_t<T>, const char*>) {
+            return py_str_escaped(vals[i]);
         } else {
             return py::cast(vals[i]);
         }
@@ -540,6 +573,9 @@ C_to_val_or_tuple(const T* vals, TypeDesc type, int nvalues = 1)
     if (n == 1 && !type.arraylen) {
         if constexpr (std::is_same_v<T, half>) {
             return py::cast(static_cast<float>(vals[0]));
+        } else if constexpr (std::is_same_v<std::decay_t<T>, std::string>
+                             || std::is_same_v<std::decay_t<T>, const char*>) {
+            return py_str_escaped(vals[0]);
         } else {
             return py::cast(vals[0]);
         }

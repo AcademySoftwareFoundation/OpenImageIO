@@ -50,7 +50,9 @@
 // #define PUGIXML_XPATH_DEPTH_LIMIT 1024
 
 // Uncomment this to switch to header-only version
-// #define PUGIXML_HEADER_ONLY
+// OIIO: we build the vendored pugixml header-only so its symbols stay inline
+// and hidden, never exported into libOpenImageIO's ABI.
+#define PUGIXML_HEADER_ONLY
 
 // Uncomment this to enable long long support (usually enabled automatically)
 // #define PUGIXML_HAS_LONG_LONG

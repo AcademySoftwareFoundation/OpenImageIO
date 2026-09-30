@@ -18,6 +18,7 @@
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imagebufalgo_util.h>
 #include <OpenImageIO/simd.h>
+#include <OpenImageIO/thread.h>
 
 #include "imageio_pvt.h"
 
@@ -1194,6 +1195,436 @@ ImageBufAlgo::saturate(const ImageBuf& src, float scale, int firstchannel,
     bool ok = saturate(result, src, scale, firstchannel, roi, nthreads);
     if (!ok && !result.has_error())
         result.errorfmt("ImageBufAlgo::saturate() error");
+    return result;
+}
+
+
+
+// Compute the sum of the values, and the sum of the products of each pair of
+// values, of the `nchannels` channels starting at `firstchannel`, over all
+// the pixels of the ROI. Pixels in which any of those channels is not finite
+// are skipped entirely, so that the accumulated moments always describe a
+// consistent set of pixels. `count` returns how many pixels were tallied.
+template<class S>
+static bool
+decorr_stretch_stats_(const ImageBuf& src, int firstchannel, int nchannels,
+                      span<double> sum, span<double> sum2, int64_t& count,
+                      ROI roi, int nthreads)
+{
+    spin_mutex mutex;  // protect the shared sums when merging
+    parallel_for_chunked(
+        roi.ybegin, roi.yend, 64,
+        [&](int64_t ybegin, int64_t yend) {
+            ROI subroi(roi.xbegin, roi.xend, int(ybegin), int(yend), roi.zbegin,
+                       roi.zend, firstchannel, firstchannel + nchannels);
+            int64_t n = 0;
+            std::vector<double> s(nchannels, 0.0);
+            std::vector<double> s2(size_t(nchannels) * nchannels, 0.0);
+            std::vector<float> v(nchannels);
+            for (ImageBuf::ConstIterator<S> p(src, subroi); !p.done(); ++p) {
+                bool finite = true;
+                for (int c = 0; c < nchannels; ++c) {
+                    v[c] = p[firstchannel + c];
+                    finite &= std::isfinite(v[c]);
+                }
+                if (!finite)
+                    continue;
+                ++n;
+                for (int i = 0; i < nchannels; ++i) {
+                    s[i] += v[i];
+                    for (int j = 0; j <= i; ++j)
+                        s2[i * nchannels + j] += double(v[i]) * double(v[j]);
+                }
+            }
+            spin_lock lock(mutex);
+            count += n;
+            for (int i = 0; i < nchannels; ++i) {
+                sum[i] += s[i];
+                for (int j = 0; j <= i; ++j)
+                    sum2[i * nchannels + j] += s2[i * nchannels + j];
+            }
+        },
+        paropt(nthreads));
+    return true;
+}
+
+
+
+// Eigen decomposition of the symmetric n x n matrix A (row major), by cyclic
+// Jacobi rotation. A is destroyed in the process. The eigenvalues are
+// returned in `eval`, and the corresponding eigenvectors are the columns of
+// `evec`. Only meant for the very small n of a channel covariance matrix. The
+// rotation formulas are the classical ones for cyclic Jacobi: Golub & Van
+// Loan, "Matrix Computations", "The Symmetric Eigenvalue Problem", section
+// "Jacobi Methods" (8.5 in the 4th edition).
+// (Fun fact: Charlie Van Loan was LG's undergraduate advisor!)
+static void
+jacobi_eigen_symmetric(span<double> A, int n, span<double> eval,
+                       span<double> evec)
+{
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j)
+            evec[i * n + j] = (i == j) ? 1.0 : 0.0;
+    for (int sweep = 0; sweep < 50; ++sweep) {
+        // Are we converged? Compare the off-diagonal energy to the diagonal.
+        double off = 0.0, diag = 0.0;
+        for (int i = 0; i < n; ++i) {
+            diag += A[i * n + i] * A[i * n + i];
+            for (int j = i + 1; j < n; ++j)
+                off += A[i * n + j] * A[i * n + j];
+        }
+        if (off <= 1.0e-24 * diag || off == 0.0)
+            break;
+        for (int p = 0; p < n; ++p) {
+            for (int q = p + 1; q < n; ++q) {
+                double apq = A[p * n + q];
+                if (apq == 0.0)
+                    continue;
+                // Rotate by the angle that zeroes out element (p,q).
+                double theta = (A[q * n + q] - A[p * n + p]) / (2.0 * apq);
+                double t = (theta >= 0.0 ? 1.0 : -1.0)
+                           / (std::abs(theta) + std::sqrt(theta * theta + 1.0));
+                double c = 1.0 / std::sqrt(t * t + 1.0);
+                double s = t * c;
+                for (int k = 0; k < n; ++k) {  // A = A * J
+                    double akp = A[k * n + p], akq = A[k * n + q];
+                    A[k * n + p] = c * akp - s * akq;
+                    A[k * n + q] = s * akp + c * akq;
+                }
+                for (int k = 0; k < n; ++k) {  // A = J^T * A
+                    double apk = A[p * n + k], aqk = A[q * n + k];
+                    A[p * n + k] = c * apk - s * aqk;
+                    A[q * n + k] = s * apk + c * aqk;
+                }
+                for (int k = 0; k < n; ++k) {  // V = V * J
+                    double vkp = evec[k * n + p], vkq = evec[k * n + q];
+                    evec[k * n + p] = c * vkp - s * vkq;
+                    evec[k * n + q] = s * vkp + c * vkq;
+                }
+            }
+        }
+    }
+    for (int i = 0; i < n; ++i)
+        eval[i] = A[i * n + i];
+}
+
+
+
+template<class Rtype, class Atype>
+static bool
+decorr_stretch_apply_(ImageBuf& R, const ImageBuf& A, int firstchannel,
+                      int nchannels, cspan<float> M, cspan<float> inmean,
+                      cspan<float> outmean, ROI roi, int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        int lastchannel = firstchannel + nchannels;
+        std::vector<float> v(nchannels);
+        ImageBuf::ConstIterator<Atype> a(A, roi);
+        for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r, ++a) {
+            for (int c = roi.chbegin; c < firstchannel; ++c)
+                r[c] = a[c];
+            for (int i = 0; i < nchannels; ++i)
+                v[i] = a[firstchannel + i] - inmean[i];
+            for (int i = 0; i < nchannels; ++i) {
+                const float* m = &M[i * nchannels];
+                float sum      = outmean[i];
+                for (int j = 0; j < nchannels; ++j)
+                    sum += m[j] * v[j];
+                r[firstchannel + i] = sum;
+            }
+            for (int c = lastchannel; c < roi.chend; ++c)
+                r[c] = a[c];
+        }
+    });
+    return true;
+}
+
+
+
+// Per-channel affine remap of the stretched channels, saturating whatever
+// falls outside [0,1]. This is how the optional percentile contrast stretch
+// is applied, once the thresholds are known.
+template<class Rtype>
+static bool
+decorr_stretch_remap_(ImageBuf& R, int firstchannel, int nchannels,
+                      cspan<float> scale, cspan<float> offset, ROI roi,
+                      int nthreads)
+{
+    ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
+        for (ImageBuf::Iterator<Rtype> r(R, roi); !r.done(); ++r)
+            for (int i = 0; i < nchannels; ++i) {
+                float v = r[firstchannel + i] * scale[i] + offset[i];
+                r[firstchannel + i] = clamp(v, 0.0f, 1.0f);
+            }
+    });
+    return true;
+}
+
+
+
+// Find the values at the `percentile` and (100-`percentile`) points of the
+// distribution of each stretched channel of `dst`, and return the scale and
+// offset that map that span onto [0,1].
+static bool
+decorr_stretch_percentile(ImageBuf& dst, int firstchannel, int nchannels,
+                          float percentile, span<float> scale,
+                          span<float> offset, ROI roi, int nthreads)
+{
+    const int bins = 65536;
+    auto stats     = ImageBufAlgo::computePixelStats(dst, roi, nthreads);
+    if (stats.min.size() == 0) {
+        dst.errorfmt(
+            "ImageBufAlgo::decorr_stretch() could not analyze the results");
+        return false;
+    }
+    for (int i = 0; i < nchannels; ++i) {
+        int c     = firstchannel + i;
+        scale[i]  = 1.0f;
+        offset[i] = 0.0f;
+        float lo = stats.min[c], hi = stats.max[c];
+        if (hi <= lo)
+            continue;  // A channel with no variation has nothing to stretch.
+        auto hist = ImageBufAlgo::histogram(dst, c, bins, lo, hi, false, roi,
+                                            nthreads);
+        if (hist.empty()) {
+            dst.errorfmt("ImageBufAlgo::decorr_stretch() {}", dst.geterror());
+            return false;
+        }
+        imagesize_t total = 0;
+        for (auto h : hist)
+            total += h;
+        imagesize_t tail = imagesize_t(0.01 * percentile * double(total));
+        imagesize_t cum  = 0;
+        int lobin = 0, hibin = bins - 1;
+        for (int b = 0; b < bins; ++b) {
+            cum += hist[b];
+            if (cum > tail) {
+                lobin = b;
+                break;
+            }
+        }
+        cum = 0;
+        for (int b = 0; b < bins; ++b) {
+            cum += hist[b];
+            if (cum >= total - tail) {
+                hibin = b;
+                break;
+            }
+        }
+        float width = (hi - lo) / bins;
+        float loval = lo + lobin * width;
+        float hival = lo + (hibin + 1) * width;
+        if (hival > loval) {
+            scale[i]  = 1.0f / (hival - loval);
+            offset[i] = -loval * scale[i];
+        }
+    }
+    return true;
+}
+
+
+
+bool
+ImageBufAlgo::decorr_stretch(ImageBuf& dst, const ImageBuf& src, KWArgs options,
+                             ROI roi, int nthreads)
+{
+    OIIO::pvt::LoggedTimer logtime("IBA::decorr_stretch");
+    static const ustring firstchannel_us("firstchannel"),
+        nchannels_us("nchannels"), scale_us("scale"), sigma_us("sigma"),
+        mean_us("mean"), percentile_us("percentile"), mode_us("mode");
+    int firstchannel = 0;
+    int nchannels    = 0;  // 0 means "choose a sensible default below"
+    float scale      = 1.0f;
+    float sigma      = 0.0f;
+    float outmeanval = 0.0f;
+    float percentile = 0.0f;
+    bool have_mean   = false;
+    string_view mode;
+    for (auto&& pv : options) {
+        if (pv.name() == firstchannel_us)
+            firstchannel = pv.get_int();
+        else if (pv.name() == nchannels_us)
+            nchannels = pv.get_int();
+        else if (pv.name() == scale_us)
+            scale = pv.get_float(1.0f);
+        else if (pv.name() == sigma_us)
+            sigma = pv.get_float();
+        else if (pv.name() == mean_us) {
+            outmeanval = pv.get_float();
+            have_mean  = true;
+        } else if (pv.name() == percentile_us)
+            percentile = pv.get_float();
+        else if (pv.name() == mode_us)
+            mode = pv.get_ustring();
+        else {
+            dst.errorfmt(
+                "ImageBufAlgo::decorr_stretch() unknown parameter \"{}\"",
+                pv.name());
+            return false;
+        }
+    }
+    if (percentile < 0.0f || percentile >= 50.0f) {
+        dst.errorfmt(
+            "ImageBufAlgo::decorr_stretch() percentile must be at least 0 and less than 50, not {}",
+            percentile);
+        return false;
+    }
+    bool correlation = (mode == "correlation");
+    if (!correlation && mode.size() && mode != "covariance") {
+        dst.errorfmt(
+            "ImageBufAlgo::decorr_stretch() mode must be \"covariance\" or \"correlation\", not \"{}\"",
+            mode);
+        return false;
+    }
+
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
+        return false;
+
+    int alpha_channel = src.spec().alpha_channel;
+    int z_channel     = src.spec().z_channel;
+    if (nchannels == 0) {
+        // No channel count requested: use the first three channels, or
+        // however many of them exist, but never reach into alpha or z.
+        nchannels = std::min(3, roi.chend - firstchannel);
+        for (int c : { alpha_channel, z_channel })
+            if (c >= firstchannel && c < firstchannel + nchannels)
+                nchannels = c - firstchannel;
+    } else {
+        for (int c : { alpha_channel, z_channel })
+            if (c >= firstchannel && c < firstchannel + nchannels) {
+                dst.errorfmt(
+                    "ImageBufAlgo::decorr_stretch() cannot stretch the alpha or z channel, but you asked it to operate on channels {}-{}, and channel {} is one of those.",
+                    firstchannel, firstchannel + nchannels - 1, c);
+                return false;
+            }
+    }
+    if (nchannels < 1 || firstchannel < roi.chbegin
+        || firstchannel + nchannels > roi.chend) {
+        dst.errorfmt(
+            "ImageBufAlgo::decorr_stretch() was asked to operate on {} channels starting at channel {}, but the ROI only holds channels {}-{}.",
+            nchannels, firstchannel, roi.chbegin, roi.chend - 1);
+        return false;
+    }
+
+    // Step 1: accumulate the first and second moments of the channels of
+    // interest, from which the mean and the covariance follow.
+    std::vector<double> sum(nchannels, 0.0);
+    std::vector<double> sum2(size_t(nchannels) * nchannels, 0.0);
+    int64_t count = 0;
+    bool ok       = true;
+    OIIO_DISPATCH_TYPES(ok, "decorr_stretch", decorr_stretch_stats_,
+                        src.spec().format, src, firstchannel, nchannels, sum,
+                        sum2, count, roi, nthreads);
+    if (!ok)
+        return false;
+
+    std::vector<double> mean(nchannels, 0.0);
+    std::vector<double> cov(size_t(nchannels) * nchannels, 0.0);
+    if (count) {
+        double invcount = 1.0 / double(count);
+        for (int i = 0; i < nchannels; ++i)
+            mean[i] = sum[i] * invcount;
+        for (int i = 0; i < nchannels; ++i)
+            for (int j = 0; j <= i; ++j) {
+                double c = sum2[i * nchannels + j] * invcount
+                           - mean[i] * mean[j];
+                // A variance can only come out negative through round-off.
+                if (i == j)
+                    c = std::max(0.0, c);
+                cov[i * nchannels + j] = cov[j * nchannels + i] = c;
+            }
+    }
+
+    // Step 2: the eigenvectors of the covariance matrix are the principal
+    // axes of the distribution of colors, the eigenvalues their variances.
+    // In "correlation" mode we instead use the correlation matrix, which is
+    // the covariance of the channels after each has been divided by its own
+    // standard deviation, so that all of them carry equal weight no matter
+    // how much any one of them varies.
+    std::vector<double> invsigma(nchannels, 0.0);
+    for (int i = 0; i < nchannels; ++i) {
+        double sd   = std::sqrt(cov[i * nchannels + i]);
+        invsigma[i] = sd > 0.0 ? 1.0 / sd : 0.0;
+    }
+    std::vector<double> eval(nchannels, 0.0);
+    std::vector<double> evec(size_t(nchannels) * nchannels, 0.0);
+    std::vector<double> tmp(cov);
+    if (correlation)
+        for (int i = 0; i < nchannels; ++i)
+            for (int j = 0; j < nchannels; ++j)
+                tmp[i * nchannels + j] *= invsigma[i] * invsigma[j];
+    jacobi_eigen_symmetric(tmp, nchannels, eval, evec);
+
+    // Step 3: build the matrix that scales each principal axis to unit
+    // variance and rotates back, then gives each channel the standard
+    // deviation we want it to end up with.
+    double maxeval = 0.0;
+    for (int i = 0; i < nchannels; ++i) {
+        eval[i] = std::max(0.0, eval[i]);  // no negatives but for round-off
+        maxeval = std::max(maxeval, eval[i]);
+    }
+    std::vector<double> stretch(nchannels, 0.0);
+    for (int i = 0; i < nchannels; ++i) {
+        // An axis with no measurable variation carries no information, so
+        // flatten it rather than amplify its round-off.
+        if (eval[i] > 1.0e-12 * maxeval)
+            stretch[i] = 1.0 / std::sqrt(eval[i]);
+    }
+    std::vector<float> M(size_t(nchannels) * nchannels);
+    std::vector<float> inmean(nchannels), outmean(nchannels);
+    for (int i = 0; i < nchannels; ++i) {
+        double sig = scale
+                     * (sigma > 0.0f ? sigma
+                                     : std::sqrt(cov[i * nchannels + i]));
+        for (int j = 0; j < nchannels; ++j) {
+            double m = 0.0;
+            for (int k = 0; k < nchannels; ++k)
+                m += evec[i * nchannels + k] * stretch[k]
+                     * evec[j * nchannels + k];
+            if (correlation) {
+                // The rotation was derived for standardized channels, so
+                // standardize the input on the way in.
+                m *= invsigma[j];
+            }
+            M[i * nchannels + j] = float(sig * m);
+        }
+        inmean[i]  = float(mean[i]);
+        outmean[i] = have_mean ? outmeanval : float(mean[i]);
+    }
+
+    // Step 4: apply it to every pixel.
+    OIIO_DISPATCH_COMMON_TYPES2(ok, "decorr_stretch", decorr_stretch_apply_,
+                                dst.spec().format, src.spec().format, dst, src,
+                                firstchannel, nchannels, M, inmean, outmean,
+                                roi, nthreads);
+
+    // Step 5, if it was asked for: a final per-channel contrast stretch that
+    // pushes the requested percentile of each tail out to the ends of the
+    // [0,1] range. It depends on the distribution of the results, so it takes
+    // another look at the image we just made.
+    if (ok && percentile > 0.0f) {
+        std::vector<float> pscale(nchannels), poffset(nchannels);
+        ok = decorr_stretch_percentile(dst, firstchannel, nchannels, percentile,
+                                       pscale, poffset, roi, nthreads);
+        if (ok)
+            OIIO_DISPATCH_COMMON_TYPES(ok, "decorr_stretch",
+                                       decorr_stretch_remap_, dst.spec().format,
+                                       dst, firstchannel, nchannels, pscale,
+                                       poffset, roi, nthreads);
+    }
+    return ok;
+}
+
+
+
+ImageBuf
+ImageBufAlgo::decorr_stretch(const ImageBuf& src, KWArgs options, ROI roi,
+                             int nthreads)
+{
+    ImageBuf result;
+    bool ok = decorr_stretch(result, src, options, roi, nthreads);
+    if (!ok && !result.has_error())
+        result.errorfmt("ImageBufAlgo::decorr_stretch() error");
     return result;
 }
 

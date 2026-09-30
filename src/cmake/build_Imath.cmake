@@ -6,10 +6,10 @@
 # Imath by hand!
 ######################################################################
 
-set_cache (Imath_BUILD_VERSION 3.1.10 "Imath version for local builds")
+set_cache (Imath_BUILD_VERSION 3.2.3 "Imath version for local builds")
 set (Imath_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/Imath")
 set (Imath_GIT_TAG "v${Imath_BUILD_VERSION}")
-set (Imath_GIT_COMMIT "9fe5ed213cd99237976f2eb48b8bf86e112d90fa")
+set (Imath_GIT_COMMIT "5f27ba266d3ea1565e912570c30b5eafc89959f1")
 set_cache (Imath_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            DOC "Should a local Imath build, if necessary, build shared libraries" ADVANCED)
 

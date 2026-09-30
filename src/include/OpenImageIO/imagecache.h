@@ -110,9 +110,9 @@ public:
     ///
     ///           If `autotile` is set to 0 (the default), an untiled image
     ///           will be treated as if it were a single tile of the
-    ///           resolution of the whole image.  This is simple and fast,
-    ///           but can lead to poor cache behavior if you are
-    ///           simultaneously accessing many large untiled images.
+    ///           resolution of the whole image.  This is simple and fast, but
+    ///           can lead to poor cache behavior if you are simultaneously
+    ///           accessing many large untiled images.
     ///
     ///           If `autotile` is nonzero (e.g., 64 is a good recommended
     ///           value), any untiled images will be read and cached as if
@@ -129,6 +129,17 @@ public:
     ///           default) or if they will be as wide as the image (but only
     ///           `autotile` scanlines high).  You should try in your
     ///           application to see which leads to higher performance.
+    ///
+    ///           This is advisory, and there is an important exception: a
+    ///           file that can only be read in whole groups of scanlines
+    ///           (TIFF strips, OpenEXR compressed chunks) is always autotiled
+    ///           to improve efficiency. Its tiles are as wide as the image,
+    ///           and as many scanlines high as it takes to hold a whole
+    ///           number of those groups -- at least 64, or `autotile` if that
+    ///           is more. If the groups are so big that this would make a
+    ///           tile of more than 16 MB, the tiles are that minimum height
+    ///           instead and are not aligned to the groups.
+    ///
     /// - `int autoscanline` :
     ///           autotile using full width tiles
     /// - `int automip` :

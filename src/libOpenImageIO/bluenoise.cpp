@@ -25,7 +25,7 @@
 //
 // Then we dumped the values out to form this header tile, mostly using
 //
-// oiiotool -dumpdata:C=bluenoise_table HDR_RGBA_4.exr > bluenoise.inc
+// oiiotool -dumpdata:C=bluenoise_table HDR_RGBA_4.exr > bluenoise.h
 //
 
 
@@ -38,8 +38,8 @@ OIIO_NAMESPACE_BEGIN
 
 namespace pvt {
 
-// This inc file hold the actual table, declared as bluenoise_table.
-#include "bluenoise.inc"
+// This file holds the actual table, declared as bluenoise_table.
+#include "bluenoise.h"
 
 }  // namespace pvt
 

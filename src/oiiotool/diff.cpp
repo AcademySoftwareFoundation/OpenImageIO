@@ -51,8 +51,8 @@ Oiiotool::do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& ot,
 {
     OIIO::print("Computing {}diff of \"{}\" vs \"{}\"\n",
                 perceptual ? "perceptual " : "", ir0->name(), ir1->name());
-    read(ir0);
-    read(ir1);
+    if (!read(ir0) || !read(ir1))
+        return DiffErrFile;
 
     int ret = DiffErrOK;
     for (int subimage = 0; subimage < ir0->subimages(); ++subimage) {
@@ -91,6 +91,15 @@ Oiiotool::do_action_diff(ImageRecRef ir0, ImageRecRef ir1, Oiiotool& ot,
                 cr = ImageBufAlgo::compare(img0, img1, ot.diff_failthresh,
                                            ot.diff_warnthresh);
                 break;
+            }
+
+            // Pixel reads can fail lazily during the compare. Don't report
+            // a comparison of garbage pixels.
+            if (img0.has_error() || img1.has_error()) {
+                for (auto img : { &img0, &img1 })
+                    if (img->has_error())
+                        ot.error("diff", img->geterror());
+                return DiffErrFile;
             }
 
             if (cr.nfail > (ot.diff_failpercent / 100.0 * npels)

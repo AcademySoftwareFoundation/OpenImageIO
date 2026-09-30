@@ -80,7 +80,7 @@ jobs:
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;JXL;Libheif;Nuke;OpenCV;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
+      optional_deps: ${{ matrix.optional_deps || 'DCMTK;FFmpeg;Libheif;Nuke;OpenCV;OpenVDB;Qt5;R3DSDK;'}}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
     strategy:
       fail-fast: false
@@ -102,7 +102,7 @@ jobs:
           - desc: VFX2024 gcc11/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024.6
+            container: aswf/ci-oiio:2024.9
             opencolorio_ver: v2.3.2
             python_ver: "3.11"
             oiio_python_bindings_backend: pybind11
@@ -115,7 +115,7 @@ jobs:
           - desc: VFX2024 clang/C++17 py3.11 exr3.2 ocio2.3
             nametag: linux-vfx2024.clang
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2024.6
+            container: aswf/ci-oiio:2024.9
             cc_compiler: clang
             cxx_compiler: clang++
             opencolorio_ver: v2.3.2
@@ -132,7 +132,7 @@ jobs:
           - desc: VFX2025 gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.8
             cxx_std: 17
             python_ver: "3.11"
             oiio_python_bindings_backend: pybind11
@@ -146,7 +146,7 @@ jobs:
           - desc: VFX2025 Debug gcc11/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025-debug
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.8
             cxx_std: 17
             build_type: Debug
             ctest_test_timeout: "300"
@@ -161,7 +161,7 @@ jobs:
           # - desc: VFX2025 Static gcc11/C++17 py3.11 exr3.3 ocio2.4
           #   nametag: linux-vfx2025-static
           #   runner: ubuntu-latest
-          #   container: aswf/ci-oiio:2025.5
+          #   container: aswf/ci-oiio:2025.8
           #   cxx_std: 17
           #   python_ver: "3.11"
           #   simd: "avx2,f16c"
@@ -174,7 +174,7 @@ jobs:
           - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4 qt5.15
             nametag: linux-vfx2025.icx
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.8
             cc_compiler: icx
             cxx_compiler: icpx
             fmt_ver: 11.2.0
@@ -196,7 +196,7 @@ jobs:
           - desc: VFX2026 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2026
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2026.3
+            container: aswf/ci-oiio:2026.6
             cxx_std: 20
             python_ver: "3.13"
             simd: "avx2,f16c"
@@ -208,7 +208,7 @@ jobs:
           - desc: VFX2027 gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2027
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2027
+            container: aswf/ci-oiio:2027.1
             cxx_std: 20
             python_ver: "3.13"
             oiio_python_bindings_backend: nanobind
@@ -218,7 +218,7 @@ jobs:
           - desc: VFX2027 clang21/C++20 py3.13 exr3.4 ocio2.5
             nametag: linux-vfx2027-clang
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2027
+            container: aswf/ci-oiio:2027.1
             cc_compiler: clang
             cxx_compiler: clang++
             cxx_std: 20
@@ -230,7 +230,7 @@ jobs:
           - desc: Sanitizers
             nametag: sanitizer
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2026.3
+            container: aswf/ci-oiio:2026.6
             cc_compiler: clang
             cxx_compiler: clang++
             build_type: Debug
@@ -249,7 +249,7 @@ jobs:
           - desc: ABI check
             nametag: abi-check
             runner: ubuntu-latest
-            container: aswf/ci-oiio:2025.5
+            container: aswf/ci-oiio:2025.8
             build_type: RelWithDebInfo
             fmt_ver: 11.1.4
             fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
@@ -257,8 +257,40 @@ jobs:
             pybind11_ver: v3.0.0
             simd: "avx2,f16c"
             skip_tests: 1
-            # abi_check: v3.1.6.0
-            abi_check: d4c8024633dba8bb3c01d22b65ce9bc7a1ae215e
+            # abi_check: v3.2.0.3
+            abi_check: 45414c1aedcd3cc98244b4c5802ec53e91976f70
+            setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
+                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
+            optional_deps_append: "Qt6"
+          - desc: ABI check 3.2
+            nametag: abi-check-3.2
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025.8
+            build_type: RelWithDebInfo
+            fmt_ver: 11.1.4
+            fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
+            python_ver: "3.11"
+            pybind11_ver: v3.0.0
+            simd: "avx2,f16c"
+            skip_tests: 1
+            # abi_check: v3.2.0.3
+            abi_check: 45414c1aedcd3cc98244b4c5802ec53e91976f70
+            setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
+                            USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
+            optional_deps_append: "Qt6"
+          - desc: ABI check 3.1
+            nametag: abi-check-3.1
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2025.8
+            build_type: RelWithDebInfo
+            fmt_ver: 11.1.4
+            fmt_commit: 123913715afeb8a437e6388b4473fcc4753e1c9a
+            python_ver: "3.11"
+            pybind11_ver: v3.0.0
+            simd: "avx2,f16c"
+            skip_tests: 1
+            # abi_check: v3.1.17.0 -- make sure we don't break versus 3.1
+            abi_check: 73bc189f7d8469a9760ce9c5099b686c77695074
             setenvs: export OIIO_CMAKE_FLAGS="-DOIIO_BUILD_TOOLS=0 -DOIIO_BUILD_TESTS=0 -DUSE_PYTHON=0"
                             USE_OPENCV=0 USE_FFMPEG=0 USE_PYTHON=0 USE_FREETYPE=0
             optional_deps_append: "Qt6"
@@ -306,7 +338,7 @@ jobs:
       # Override required_deps to be 'all' and explicitly list as optional
       # only the ones we are intentionally not testing for those jobs.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;JXL;Nuke;OpenGL;OpenVDB;Ptex;pystring;Qt5;R3DSDK;Libheif;' }}${{matrix.optional_deps_append}}
+      optional_deps: ${{ matrix.optional_deps || 'CUDAToolkit;DCMTK;Nuke;OpenGL;OpenVDB;Ptex;pystring;Qt5;R3DSDK;Libheif;' }}${{matrix.optional_deps_append}}
       build_local_deps: ${{ matrix.build_local_deps }}
       oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'nanobind' }}
     strategy:
@@ -333,7 +365,7 @@ jobs:
                             CLANG_FORMAT_EXE=clang-format-22
                             EXTRA_DEP_PACKAGES="clang-format-22"
 
-          - desc: latest releases gcc15 C++23 py3.12 avx2 exr3.4 ocio2.4
+          - desc: latest releases gcc15 C++23 py3.12 avx2 exr3.5 ocio2.4
             nametag: linux-latest-releases
             runner: ubuntu-24.04
             # cc_compiler: gcc-13
@@ -342,7 +374,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.14
+            openexr_ver: v3.5.0
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
@@ -367,7 +399,7 @@ jobs:
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
-            optional_deps: 'CUDAToolkit;DCMTK;JXL;Nuke;OpenCV;OpenGL;openjph;OpenVDB;R3DSDK'
+            optional_deps: 'CUDAToolkit;DCMTK;Nuke;OpenCV;OpenGL;openjph;OpenVDB;R3DSDK'
           - desc: bleeding edge gcc16 C++26 py3.12 OCIO/libtiff/exr-main avx2
             nametag: linux-bleeding-edge
             runner: ubuntu-24.04
@@ -376,7 +408,8 @@ jobs:
             cxx_std: 26
             fmt_ver: main
             opencolorio_ver: main
-            openexr_ver: main
+            openexr_ver: v3.5.1
+            # TODO: bump openexr_ver back to "main" after lj2k bug is fixed
             pybind11_ver: master
             python_ver: "3.12"
             oiio_python_bindings_backend: both
@@ -405,7 +438,7 @@ jobs:
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
-            optional_deps: 'CUDAToolkit;DCMTK;JXL;libuhdr;Nuke;OpenCV;OpenGL;R3DSDK;'
+            optional_deps: 'CUDAToolkit;DCMTK;libuhdr;Nuke;OpenCV;OpenGL;R3DSDK;'
           - desc: all local builds gcc12 C++17 avx2 exr3.2 ocio2.3
             nametag: linux-local-builds
             runner: ubuntu-22.04
@@ -440,7 +473,7 @@ jobs:
             setenvs: export USE_OPENVDB=0
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
-          - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.4 ocio2.4
+          - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.5 ocio2.4
             nametag: linux-arm-latest-releases
             runner: ubuntu-24.04-arm
             cc_compiler: gcc-14
@@ -449,7 +482,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.14
+            openexr_ver: v3.5.0
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
@@ -465,7 +498,7 @@ jobs:
                             USE_OPENVDB=0
                             nanobind_GIT_TAG=v3.0.0
                             nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
-          - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.4 ocio2.4
+          - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.5 ocio2.4
             nametag: linux-arm-latest-releases-clang
             runner: ubuntu-24.04-arm
             cc_compiler: clang-18
@@ -474,7 +507,7 @@ jobs:
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
             opencolorio_ver: v2.5.2
-            openexr_ver: v3.4.14
+            openexr_ver: v3.5.0
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
@@ -528,7 +561,7 @@ jobs:
           - desc: oldest clang11/C++17 py3.9 exr3.1 ocio2.3
             # Oldest clang and versions of the dependencies that we support.
             # Deliberately sets no `simd`, so that this job exercises the
-            # default SIMD level for x86_64 (sse4.2). Please leave it unset.
+            # default SIMD level for x86_64 (x86-64-v2). Please leave it unset.
             nametag: linux-oldest-clang-ubuntu
             runner: ubuntu-22.04
             cxx_std: 17
@@ -737,7 +770,7 @@ jobs:
       # built. But we would like to add more dependencies and reduce this list
       # of exceptions in the future.
       required_deps: ${{ matrix.required_deps || 'all' }}
-      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;JXL;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
+      optional_deps: ${{ matrix.optional_deps || 'BZip2;CUDAToolkit;DCMTK;FFmpeg;GIF;Libheif;LibRaw;Nuke;OpenCV;OpenGL;OpenJPEG;OpenCV;OpenVDB;Ptex;pystring;Qt5;Qt6;TBB;R3DSDK;${{matrix.optional_deps_append}}' }}
       build_local_deps: ${{ matrix.build_local_deps }}
       oiio_python_bindings_backend: ${{ matrix.oiio_python_bindings_backend || 'nanobind' }}
     strategy:

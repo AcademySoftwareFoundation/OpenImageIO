@@ -104,7 +104,12 @@ command += oiiotool ('-echo "42+2 = {42+2}" ' +
                      '-echo "eq(foo,foo) = {eq(\'foo\',\'foo\')}" ' +
                      '-echo "eq(foo,bar) = {eq(\'foo\',\'bar\')}" ' +
                      '-echo "neq(foo,foo) = {neq(\'foo\',\'foo\')}" ' +
-                     '-echo "neq(foo,bar) = {neq(\'foo\',\'bar\')}" ')
+                     '-echo "neq(foo,bar) = {neq(\'foo\',\'bar\')}" ' + 
+                     '-echo "format basic = {format(\'{}\',5)}" ' +
+                     '-echo "format zeropad = {format(\'{:04d}\',7)}" ' +
+                     '-echo "format signed = {format(\'{:+}{:+}\',3,-4)}" ' +
+                     '-echo "format dims = {format(\'{}x{}\',128,64)}" ' +
+                     '-echo "format float = {format(\'{:.2f}\',3.14159)}" ')
 
 command += oiiotool ('-echo "16+5={16+5}" -echo "16-5={16-5}" -echo "16*5={16*5}"')
 command += oiiotool ('-echo "16/5={16/5}" -echo "16//5={16//5}" -echo "16%5={16%5}"')

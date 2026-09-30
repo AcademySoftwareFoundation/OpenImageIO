@@ -1237,4 +1237,25 @@ ImageBufAlgo::FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
     return dst;
 }
 
+
+// These are just for link compatibility with 3.1 and 3.2 "main" before
+// release, when these were in the experimental namespace.
+namespace ImageBufAlgo {
+namespace experimental {
+    bool OIIO_API FLIP_diff(ImageBuf& dst, const ImageBuf& ref,
+                            const ImageBuf& test, KWArgs options, ROI roi,
+                            int nthreads)
+    {
+        return ImageBufAlgo::FLIP_diff(dst, ref, test, options, roi, nthreads);
+    }
+
+
+    ImageBuf OIIO_API FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
+                                KWArgs options, ROI roi, int nthreads)
+    {
+        return ImageBufAlgo::FLIP_diff(ref, test, options, roi, nthreads);
+    }
+}  // namespace experimental
+}  // namespace ImageBufAlgo
+
 OIIO_NAMESPACE_3_1_END

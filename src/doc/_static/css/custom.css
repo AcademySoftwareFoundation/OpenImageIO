@@ -1,0 +1,12 @@
+/* Our Markdown source uses ">" blockquotes purely to indent supplementary
+ * material (result-as-parameter variants, examples, usage synopses) under a
+ * function or command description -- not as actual quoted text. Furo's
+ * default blockquote style adds a shaded background and left border, which
+ * makes that material look like a quotation. Strip the quote decoration but
+ * keep the indentation. */
+blockquote {
+    background: transparent;
+    border-left: none;
+    margin: 0;
+    padding: 0 0 0 1.5rem;
+}

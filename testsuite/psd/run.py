@@ -42,3 +42,11 @@ command += info_command ("src/crash-eofstring.psd", failureok=True)
 command += info_command ("src/crash-rowbounds-f999.psd", failureok=True)
 # Tiny file declaring a huge composite (decompression bomb) is rejected
 command += info_command ("src/crash-bomb-30000.psd", failureok=True)
+# Corrupt thumbnail resource length underflowed into a multi-GB allocation
+command += info_command ("src/crash-thumb-oom.psd", failureok=True)
+# Layer channel declaring more data than the file holds
+command += info_command ("src/crash-chanlen.psd", failureok=True)
+# Same, but a PSB whose 64-bit channel length has the sign bit set
+command += info_command ("src/crash-chanlen-psb.psb", failureok=True)
+# Both a normal layer info section and an Lr16 block (used to assert)
+command += info_command ("src/crash-dup-layerinfo.psd", failureok=True)

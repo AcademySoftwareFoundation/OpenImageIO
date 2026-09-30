@@ -512,7 +512,7 @@ declare_global_attribute_functions(py_module& m)
     m.def(
         "get_string_attribute",
         [](const std::string& name, const std::string& def) {
-            return oiio_py::str(OIIO::get_string_attribute(name, def));
+            return py_str_escaped(OIIO::get_string_attribute(name, def));
         },
         "name"_a, "defaultval"_a = "");
     m.def("getattribute", &oiio_getattribute_typed, "name"_a,

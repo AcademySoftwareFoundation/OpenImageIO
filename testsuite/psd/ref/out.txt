@@ -2126,3 +2126,19 @@ src/crash-rowbounds-f999.psd :   10 x  111, 3 channel, uint8 psd
 oiiotool ERROR: read : "src/crash-bomb-30000.psd": psd header claims a 2574 MB image from a 40 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-bomb-30000.psd
+oiiotool ERROR: read : [Image Resource] [Thumbnail] data length 4294966414 exceeds remaining file size
+failed to open "src/crash-thumb-oom.psd": failed load_resources
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-thumb-oom.psd
+oiiotool ERROR: read : [Layer Channel] data length 4294967280 exceeds remaining file size
+failed to open "src/crash-chanlen.psd": failed load_layers
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-chanlen.psd
+oiiotool ERROR: read : [Layer Channel] data length 9223372036854775808 exceeds remaining file size
+failed to open "src/crash-chanlen-psb.psb": failed load_layers
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-chanlen-psb.psb
+oiiotool ERROR: read : [Global Additional Layer Info] unexpected second layer info section
+failed to open "src/crash-dup-layerinfo.psd": failed load_global_additional
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-dup-layerinfo.psd

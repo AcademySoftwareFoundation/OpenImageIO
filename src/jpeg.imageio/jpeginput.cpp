@@ -355,12 +355,22 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
                 close();
                 return false;
             }
-            scan_for_thumbnail(exif);
+            ok = scan_for_thumbnail(exif);
+            if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+                errorfmt("Corrupted thumbnail data");
+                close();
+                return false;
+            }
         } else if (m->marker == (JPEG_APP0 + 1) && m->data_length >= 28
                    && !strncmp((const char*)m->data,
                                "http://ns.adobe.com/xap/1.0/", 28)) {  //NOSONAR
             std::string xml((const char*)m->data, m->data_length);
-            decode_xmp(xml, m_spec);
+            bool ok = decode_xmp(xml, m_spec);
+            if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
+                errorfmt("Corrupted XMP data");
+                close();
+                return false;
+            }
         } else if (m->marker == (JPEG_APP0 + 13) && m->data_length >= 13
                    && !strncmp((const char*)m->data, "Photoshop 3.0", 13)) {
             bool ok = jpeg_decode_iptc(
@@ -848,12 +858,17 @@ JpgInput::jpeg_decode_iptc(string_view buf)
     return decode_iptc_iim(buf, m_spec);
 }
 
-void
+
+
+bool
 JpgInput::scan_for_thumbnail(cspan<uint8_t> exif)
 {
-    bool host_little = littleendian();
-    bool file_little = (exif[0] == 0x49 && exif[1] == 0x49);
-    bool swab        = (host_little != file_little);
+    if (exif.size() < 2)
+        return false;
+
+    // Note: the thumbnail is a self-contained JPEG stream, so its marker
+    // segment fields are big endian no matter what byte order the enclosing
+    // Exif block uses.
 
     const uint8_t* soi_ptr = nullptr;
     const uint8_t* eoi_ptr = nullptr;
@@ -868,12 +883,26 @@ JpgInput::scan_for_thumbnail(cspan<uint8_t> exif)
     }
 
     if (!soi_ptr)
-        return;
+        return true;
 
     // extract image properties along the way
     uint16_t width  = 0;
     uint16_t height = 0;
     int numchan     = 0;
+
+    // Read the length that follows the marker byte at exif[i] and advance i
+    // past the segment it describes. The length counts itself, so anything
+    // below 2, or a segment whose last byte falls outside the Exif block,
+    // means the thumbnail stream is corrupt.
+    auto skip_segment = [&]() -> bool {
+        if (i + 2 >= exif.size())
+            return false;
+        size_t length = (exif[i + 1] << 8) + exif[i + 2];
+        if (length < 2 || i + length >= exif.size())
+            return false;
+        i += length - 2;
+        return true;
+    };
 
     while (i < exif.size() - 1) {
         if (exif[i++] == 0xFF) {
@@ -882,36 +911,19 @@ JpgInput::scan_for_thumbnail(cspan<uint8_t> exif)
                 eoi_ptr = &exif[i] + 1;  // one past (exclusive)
                 break;
             } else if (marker == 0xC0 || marker == 0xC2) {
-                uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
-                height          = (exif.at(i + 5) << 8) + exif.at(i + 4);
-                width           = (exif.at(i + 7) << 8) + exif.at(i + 6);
-                numchan         = exif[i + 8];
+                if (i + 8 >= exif.size())
+                    return false;
+                height  = (exif[i + 4] << 8) + exif[i + 5];
+                width   = (exif[i + 6] << 8) + exif[i + 7];
+                numchan = exif[i + 8];
 
-                if (swab) {
-                    swap_endian(&length);
-                    swap_endian(&height);
-                    swap_endian(&width);
-                }
-
-                length -= 2;
-
-                if (i + length < exif.size() - 1) {
-                    i += length;
-                }
+                if (!skip_segment())
+                    return false;
             } else if ((marker >= 0xC0 && marker < 0xD0)
                        || (marker > 0xD9 && marker <= 0xFE)) {
                 // Skip ahead for markers that have an associated length
-                uint16_t length = (exif.at(i + 2) << 8) + exif.at(i + 1);
-
-                if (swab) {
-                    swap_endian(&length);
-                }
-
-                length -= 2;
-
-                if (i + length < exif.size() - 1) {
-                    i += length;
-                }
+                if (!skip_segment())
+                    return false;
             }
         }
     }
@@ -922,7 +934,10 @@ JpgInput::scan_for_thumbnail(cspan<uint8_t> exif)
         m_spec.attribute("thumbnail_height", height);
         m_spec.attribute("thumbnail_nchannels", numchan);
     }
+    return true;
 }
+
+
 
 bool
 JpgInput::get_thumbnail(ImageBuf& thumb, int subimage)

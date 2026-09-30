@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "imageviewer.h"
+#include "ivutils.h"
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/strutil.h>
 
@@ -20,6 +21,10 @@ IvImage::IvImage(const std::string& filename, const ImageSpec* input_config)
     , m_image_valid(false)
     , m_auto_subimage(false)
 {
+    if (input_config) {
+        m_input_config      = *input_config;
+        m_have_input_config = true;
+    }
 }
 
 
@@ -76,6 +81,22 @@ IvImage::read_iv(int subimage, int miplevel, bool force, TypeDesc format,
         m_image_valid = ImageBuf::read(subimage, miplevel, force, format,
                                        progress_callback,
                                        progress_callback_data);
+
+    // The read was done in tolerant mode (see "oiio:missingcolor" in the
+    // input config), which means that missing pixel data was silently
+    // filled. Probe whether the file really was missing data, so that the
+    // status bar can let the user know. This checks only the last scanline
+    // or tile, which is the region most likely to be missing from a file
+    // that was only partially written, and is cheap even for large images.
+    m_partially_loaded = false;
+    m_partial_error.clear();
+    if (m_image_valid && m_have_input_config
+        && m_input_config.find_attribute("oiio:missingcolor")
+        && !image_data_readable(name(), subimage, miplevel)) {
+        m_partially_loaded = true;
+        m_partial_error    = "partially readable file, showing the "
+                             "readable portion";
+    }
 
     if (m_image_valid && secondary_data && spec().format == TypeDesc::UINT8) {
         m_corrected_image.reset(ImageSpec(spec().width, spec().height,
@@ -388,8 +409,10 @@ IvImage::invalidate()
 {
     ustring filename(name());
     reset(filename.string());
-    m_thumbnail_valid = false;
-    m_image_valid     = false;
+    m_thumbnail_valid  = false;
+    m_image_valid      = false;
+    m_partially_loaded = false;
+    m_partial_error.clear();
     if (imagecache())
         imagecache()->invalidate(filename);
 }

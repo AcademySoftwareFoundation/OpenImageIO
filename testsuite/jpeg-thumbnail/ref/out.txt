@@ -1,2 +1,4 @@
  320 x  240, 3 channel, uint8 
     channel list: R, G, B
+tahoe-gps thumbnail 320x240x3
+sky thumbnail 510x384x3

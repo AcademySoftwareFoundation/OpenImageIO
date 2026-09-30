@@ -149,6 +149,41 @@ copy_write()
 
 
 
+void
+channel_names_basic()
+{
+    print("example_channel_names_basic\n");
+    const int width = 320, length = 240;
+
+    // BEGIN-imageoutput-channelnamesbasic
+    int channels = 3;
+    ImageSpec spec(width, length, channels, TypeDesc::UINT8);
+    spec.channelnames.assign({ "R", "G", "B" });
+    // END-imageoutput-channelnamesbasic
+    print("{}\n", Strutil::join(spec.channelnames, " "));
+}
+
+
+
+void
+channel_names_8()
+{
+    print("example_channel_names_8\n");
+    const int width = 320, length = 240;
+
+    // BEGIN-imageoutput-channelnames8
+    int channels = 8;
+    ImageSpec spec(width, length, channels, TypeDesc::UINT8);
+    spec.channelnames.clear();
+    spec.channelnames.assign({ "R", "G", "B", "opacityR", "opacityG",
+                               "opacityB", "texture_s", "texture_t" });
+    // END-imageoutput-channelnames8
+    print("{}\n", spec.nchannels);
+    print("{}\n", Strutil::join(spec.channelnames, " "));
+}
+
+
+
 int
 main(int /*argc*/, char** /*argv*/)
 {
@@ -156,5 +191,7 @@ main(int /*argc*/, char** /*argv*/)
     scanlines_write();
     tiles_write();
     copy_write();
+    channel_names_basic();
+    channel_names_8();
     return 0;
 }

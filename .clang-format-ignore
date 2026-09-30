@@ -1,0 +1,11 @@
+# third-party code, don't format
+src/include/OpenImageIO/detail/pugixml/*
+src/libutil/SHA1.*
+src/libutil/farmhash.cpp
+src/dpx.imageio/libdpx/*
+src/cineon.imageio/libcineon/*
+src/dds.imageio/bcdec.h
+src/gif.imageio/gif.h
+src/libutil/stb_sprintf.h
+# machine generated code, don't format
+src/libOpenImageIO/bluenoise.h

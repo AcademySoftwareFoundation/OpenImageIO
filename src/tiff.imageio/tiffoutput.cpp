@@ -923,6 +923,16 @@ TIFFOutput::open(const std::string& name, const ImageSpec& userspec,
     for (const auto& p : m_spec.extra_attribs)
         put_parameter(p);
 
+    // Now that m_rowsperstrip has stopped moving -- put_parameter above
+    // honors a "tiff:RowsPerStrip" request -- say how many scanlines are in
+    // each of the strips we are about to write, so that
+    // ImageOutput::write_image can hand us whole strips. A value carried in
+    // from some other file says nothing about this one, so erase it either
+    // way.
+    m_spec.erase_attribute("oiio:RowsPerChunk");
+    if (!m_spec.tile_width && m_rowsperstrip > 1)
+        m_spec.attribute("oiio:RowsPerChunk", m_rowsperstrip);
+
     if (m_spec.get_int_attribute("tiff:write_iptc")) {
         // Enable IPTC block writing only if "tiff_write_iptc" hint is explicitly
         // enabled. This was to avoid writing bad IPTC blocks, but I think that

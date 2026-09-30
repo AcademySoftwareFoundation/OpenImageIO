@@ -1306,24 +1306,42 @@ private:
 /// Simple conversion of a (presumably non-negative) float into a
 /// rational.  This does not attempt to find the simplest fraction
 /// that approximates the float, for example 52.83 will simply
-/// return 5283/100.  This does not attempt to gracefully handle
-/// floats that are out of range that could be easily int/int.
+/// return 5283/100.  Values that cannot be expressed as a ratio of
+/// unsigned ints are clamped into range rather than being left
+/// undefined: zero, negative values, NaN, and magnitudes too small to
+/// represent all yield 0/1, and values too large (including infinity)
+/// yield UINT_MAX/1.  The denominator is never 0.
 inline OIIO_HOSTDEVICE void
 float_to_rational (float f, unsigned int &num, unsigned int &den)
 {
-    if (f <= 0) {   // Trivial case of zero, and handle all negative values
+    const unsigned int maxuint = std::numeric_limits<unsigned int>::max();
+    const float maxuintf       = float(maxuint);
+    if (!(f > 1.0f / maxuintf)) {
+        // Zero, all negative values, NaN, and anything too small to be
+        // expressed as a ratio of unsigned ints. Note the negated test, so
+        // that NaN lands here rather than falling through to a cast that
+        // would be undefined behavior.
         num = 0;
         den = 1;
-    } else if ((int)(1.0/f) == (1.0/f)) { // Exact results for perfect inverses
-        num = 1;
-        den = (int)f;
-    } else {
-        num = (int)f;
+    } else if (f >= maxuintf) {
+        // Too big to represent, including infinity. Saturate.
+        num = maxuint;
         den = 1;
-        while (fabsf(f-static_cast<float>(num)) > 0.00001f && den < 1000000) {
+    } else if (double inv = 1.0 / double(f);
+               inv < double(maxuintf)
+               && double((unsigned int)inv) == inv) { // Exact perfect inverses
+        num = 1;
+        den = (unsigned int)inv;
+    } else {
+        num = (unsigned int)f;
+        den = 1;
+        // The f < maxuintf/10 term keeps the scaling below from pushing f
+        // past what an unsigned int can hold.
+        while (fabsf(f-static_cast<float>(num)) > 0.00001f && den < 1000000
+               && f < maxuintf / 10.0f) {
             den *= 10;
             f *= 10;
-            num = (int)f;
+            num = (unsigned int)f;
         }
     }
 }
@@ -1332,14 +1350,18 @@ float_to_rational (float f, unsigned int &num, unsigned int &den)
 
 /// Simple conversion of a float into a rational.  This does not attempt
 /// to find the simplest fraction that approximates the float, for
-/// example 52.83 will simply return 5283/100.  This does not attempt to
-/// gracefully handle floats that are out of range that could be easily
-/// int/int.
+/// example 52.83 will simply return 5283/100.  Values that cannot be
+/// expressed as a ratio of ints are clamped into range rather than
+/// being left undefined: NaN yields 0/1, and magnitudes too large
+/// (including infinity) saturate at INT_MAX.  The denominator is never 0.
 inline OIIO_HOSTDEVICE void
 float_to_rational (float f, int &num, int &den)
 {
+    const unsigned int maxint = (unsigned int)std::numeric_limits<int>::max();
     unsigned int n, d;
     float_to_rational (fabsf(f), n, d);
+    n = n < maxint ? n : maxint;   // saturate rather than wrap negative
+    d = d < maxint ? d : maxint;
     num = (f >= 0) ? (int)n : -(int)n;
     den = (int) d;
 }

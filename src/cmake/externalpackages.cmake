@@ -52,21 +52,25 @@ endif ()
 # IlmBase & OpenEXR
 checked_find_package (Imath REQUIRED
     VERSION_MIN 3.1
-    PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
 )
 
-checked_find_package (OpenEXR REQUIRED
+checked_find_package (OpenEXR REQUIRED CONFIG
     VERSION_MIN 3.1
     NO_FP_RANGE_CHECK
-    PRINT IMATH_INCLUDES OPENEXR_INCLUDES Imath_VERSION
     )
+
+# Set variables for two things that imported targets can't express: the global
+# ordering below, and the PUBLIC/PRIVATE choice for Imath in libOpenImageIO.
+# Everything else uses the targets.
+get_target_property (IMATH_INCLUDES Imath::Imath
+                     INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property (OPENEXR_INCLUDES OpenEXR::OpenEXR
+                     INTERFACE_INCLUDE_DIRECTORIES)
 
 # Force Imath includes to be before everything else to ensure that we have
 # the right Imath/OpenEXR version, not some older version in the system
 # library.
 include_directories(BEFORE ${IMATH_INCLUDES} ${OPENEXR_INCLUDES})
-set (OPENIMAGEIO_IMATH_TARGETS Imath::Imath)
-set (OPENIMAGEIO_OPENEXR_TARGETS OpenEXR::OpenEXR)
 set (OPENIMAGEIO_IMATH_DEPENDENCY_VISIBILITY "PRIVATE" CACHE STRING
      "Should we expose Imath library dependency as PUBLIC or PRIVATE")
 set (OPENIMAGEIO_CONFIG_DO_NOT_FIND_IMATH OFF CACHE BOOL
@@ -91,17 +95,26 @@ endif ()
 checked_find_package (libuhdr
                       VERSION_MIN 1.3)
 
-# Static libtiff configs may reference Deflate::Deflate without importing it
-# (https://gitlab.com/libtiff/libtiff/-/work_items/871), so libdeflate must be
-# located before TIFF discovery. In particular, a previously auto-built static
-# TIFF rediscovered from the local deps cache needs this; the libdeflate found
-# during build_TIFF.cmake does not carry over to later reconfigures.
+# Static libtiff configs may reference Deflate::Deflate and ZSTD::ZSTD without
+# importing them (https://gitlab.com/libtiff/libtiff/-/work_items/871), so
+# libdeflate and zstd must be located before TIFF discovery. In particular, a
+# previously auto-built static TIFF rediscovered from the local deps cache
+# needs this; the packages found during build_TIFF.cmake do not carry over to
+# later reconfigures.
 if (NOT TARGET Deflate::Deflate)
     checked_find_package (libdeflate
                           VERSION_MIN 1.18)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_static)
     alias_library_if_not_exists (Deflate::Deflate libdeflate::libdeflate_shared)
 endif ()
+if (NOT TARGET ZSTD::ZSTD)
+    checked_find_package (zstd VERSION_MIN 1.4)
+    alias_library_if_not_exists (ZSTD::ZSTD zstd::libzstd_static)
+    alias_library_if_not_exists (ZSTD::ZSTD zstd::libzstd_shared)
+endif ()
+
+# WebP must be found before TIFF, so that an auto-built libtiff can use it.
+checked_find_package (WebP VERSION_MIN 1.1)
 
 checked_find_package (TIFF REQUIRED
                       VERSION_MIN 4.1
@@ -218,8 +231,6 @@ if (NOT Ptex_FOUND OR NOT Ptex_VERSION)
     unset (Ptex_FOUND)
     checked_find_package (Ptex)
 endif ()
-
-checked_find_package (WebP VERSION_MIN 1.1)
 
 option (USE_R3DSDK "Enable R3DSDK (RED camera) support" OFF)
 checked_find_package (R3DSDK NO_RECORD_NOTFOUND)  # RED camera

@@ -17,6 +17,7 @@ Reading ../openexr-images/ScanLines/Blobbies.exr
     thumbnail_width: 100
     utcOffset: 28800
     whiteLuminance: 50
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "decreasingY"
 Comparing "../openexr-images/ScanLines/Blobbies.exr" and "Blobbies.exr"
@@ -34,6 +35,7 @@ Reading ../openexr-images/ScanLines/CandleGlass.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/CandleGlass.exr" and "CandleGlass.exr"
@@ -47,6 +49,7 @@ Reading ../openexr-images/ScanLines/Cannon.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/Cannon.exr" and "Cannon.exr"
@@ -59,6 +62,7 @@ Reading ../openexr-images/ScanLines/Desk.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/Desk.exr" and "Desk.exr"
@@ -81,6 +85,7 @@ Reading ../openexr-images/ScanLines/MtTamWest.exr
     thumbnail_nchannels: 4
     thumbnail_width: 100
     utcOffset: 25200
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/MtTamWest.exr" and "MtTamWest.exr"
@@ -98,6 +103,7 @@ Reading ../openexr-images/ScanLines/PrismsLenses.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/PrismsLenses.exr" and "PrismsLenses.exr"
@@ -116,6 +122,7 @@ Reading ../openexr-images/ScanLines/StillLife.exr
     thumbnail_nchannels: 4
     thumbnail_width: 100
     utcOffset: 25200
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/StillLife.exr" and "StillLife.exr"
@@ -137,6 +144,7 @@ Reading ../openexr-images/ScanLines/Tree.exr
     thumbnail_width: 100
     utcOffset: 25200
     whiteLuminance: 621
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/ScanLines/Tree.exr" and "Tree.exr"
@@ -149,6 +157,7 @@ Reading ../openexr-images/TestImages/AllHalfValues.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 32
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/AllHalfValues.exr" and "AllHalfValues.exr"
@@ -161,6 +170,7 @@ Reading ../openexr-images/TestImages/BrightRings.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/BrightRings.exr" and "BrightRings.exr"
@@ -173,6 +183,7 @@ Reading ../openexr-images/TestImages/BrightRingsNanInf.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/BrightRingsNanInf.exr" and "BrightRingsNanInf.exr"
@@ -185,6 +196,7 @@ Reading ../openexr-images/TestImages/GammaChart.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/GammaChart.exr" and "GammaChart.exr"
@@ -197,6 +209,7 @@ Reading ../openexr-images/TestImages/GrayRampsDiagonal.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/GrayRampsDiagonal.exr" and "GrayRampsDiagonal.exr"
@@ -209,6 +222,7 @@ Reading ../openexr-images/TestImages/GrayRampsHorizontal.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/GrayRampsHorizontal.exr" and "GrayRampsHorizontal.exr"
@@ -221,6 +235,7 @@ Reading ../openexr-images/TestImages/RgbRampsDiagonal.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/RgbRampsDiagonal.exr" and "RgbRampsDiagonal.exr"
@@ -233,6 +248,7 @@ Reading ../openexr-images/TestImages/SquaresSwirls.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/SquaresSwirls.exr" and "SquaresSwirls.exr"
@@ -246,6 +262,7 @@ Reading ../openexr-images/TestImages/WideColorGamut.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/WideColorGamut.exr" and "WideColorGamut.exr"
@@ -258,6 +275,7 @@ Reading ../openexr-images/TestImages/WideFloatRange.exr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Comparing "../openexr-images/TestImages/WideFloatRange.exr" and "WideFloatRange.exr"
@@ -360,6 +378,7 @@ negoverscan.exr      :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 acesImageContainerFlag for relaxed-out.exr is (1)
@@ -400,6 +419,7 @@ color_interop_id_scene_linear.exr :    4 x    4, 3 channel, float openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_ap1_scene"
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Reading color_interop_id_linear_adobergb.exr
@@ -412,6 +432,7 @@ color_interop_id_linear_adobergb.exr :    4 x    4, 3 channel, float openexr
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     oiio:ColorSpace: "lin_adobergb_scene"
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
 Reading color_interop_id_unknown.exr
@@ -422,5 +443,6 @@ color_interop_id_unknown.exr :    4 x    4, 3 channel, float openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:RowsPerChunk: 16
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"

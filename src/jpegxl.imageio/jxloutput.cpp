@@ -103,6 +103,10 @@ JxlOutput::open(const std::string& name, const ImageSpec& newspec,
                     { 0, 1073741823, 0, 1073741823, 0, 1, 0, 4099 }))
         return false;
 
+    // Pixels are buffered until close(), which checks that the buffer holds
+    // a whole image, so drop any left from a previous file.
+    m_scanbuffer.clear();
+
     DBG std::cout << "m_filename = " << m_filename << "\n";
 
     ioproxy_retrieve_from_config(m_spec);
@@ -629,7 +633,8 @@ JxlOutput::save_image(const void* data)
     }
     compressed.resize(next_out - compressed.data());
     if (result != JXL_ENC_SUCCESS) {
-        DBG std::cout << "JxlEncoderProcessOutput failed.\n";
+        errorfmt("JxlEncoderProcessOutput failed with error {}",
+                 (int)JxlEncoderGetError(m_encoder.get()));
         return false;
     }
 
@@ -666,8 +671,15 @@ JxlOutput::close()
         std::vector<unsigned char>().swap(m_tilebuffer);
     }
 
-    //save_image();
-    save_image(m_scanbuffer.data());
+    if (m_scanbuffer.size() < m_spec.image_bytes()) {
+        // save_image() hands libjxl the whole image, so a short buffer would
+        // read past its end, and an empty one would pass a null pointer.
+        errorfmt("Called close() with only {} of {} bytes of pixel data",
+                 m_scanbuffer.size(), m_spec.image_bytes());
+        ok = false;
+    } else {
+        ok &= save_image(m_scanbuffer.data());
+    }
 
     init();
     return ok;

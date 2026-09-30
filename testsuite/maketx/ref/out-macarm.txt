@@ -378,6 +378,7 @@ small.tif            :   64 x   64, 3 channel, uint8 tiff
     Orientation: 1 (normal)
     planarconfig: "contig"
     oiio:BitsPerSample: 8
+    oiio:RowsPerChunk: 32
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1

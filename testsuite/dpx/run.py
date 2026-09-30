@@ -46,7 +46,25 @@ command += oiiotool("src/crash-badusersize.dpx -o test.tif", failureok=True)
 # one uint16 past the end of the caller's scanline buffer.
 command += info_command("src/crash-1chan-10bit-filled-methodA.dpx", safematch=True)
 
+# Regression test: the "dpx:EndOfLinePadding" attribute is carried over from
+# an input file's header, but the libdpx writer uses it as the row stride of
+# the caller's pixel buffer, which is always tightly packed. A nonzero value
+# therefore read past the end of the buffer. The writer must ignore it.
+command += oiiotool("--create 80x60 3 -d uint10 "
+                    "--attrib:type=int dpx:EndOfLinePadding 16384 "
+                    "--attrib:type=int dpx:EndOfImagePadding 16384 "
+                    "-o eolpad.dpx")
+command += info_command("eolpad.dpx", safematch=True)
+
 # Regression test: a 21 KB DPX whose header declares a ~12 GB image
 # (46341x46341x3) -- a decompression bomb the compression-ratio guard must
 # reject before any large allocation.
 command += info_command("src/bomb-46341.dpx", safematch=True, failureok=True)
+
+# Regression test: a 2100-byte DPX declaring 2000 bytes of user data. That
+# size alone fits the file, so the old check passed it, but the block starts
+# at offset 2048 and only 52 bytes remain. The short read was ignored and the
+# uninitialized tail of the buffer went out as the dpx:UserData attribute.
+# The bounds check now counts the offset and rejects the file up front.
+command += info_command("src/truncated-userdata.dpx", safematch=True,
+                        failureok=True)

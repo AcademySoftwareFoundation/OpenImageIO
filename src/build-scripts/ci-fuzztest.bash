@@ -69,7 +69,10 @@ if [[ -n "${OIIO_FUZZ_FORMAT}" ]]; then
         # Corpus minimization: add only coverage-increasing seeds from seed_dir
         # into the (possibly cached) run corpus. A crash/hang here means a
         # committed seed or testsuite fixture itself trips the decoder -- that
-        # is a finding, surfaced via merge_status below.
+        # is a finding, surfaced via merge_status below. Leak checking is off
+        # for both libFuzzer and LSan here -- a leaky seed is caught with a
+        # reproducer by the timed run below, which replays the same corpus.
+        ASAN_OPTIONS="${ASAN_OPTIONS:+$ASAN_OPTIONS:}detect_leaks=0" \
         "$FUZZ_BIN" -merge=1 \
             -rss_limit_mb=4096 \
             -malloc_limit_mb=2048 \
@@ -79,13 +82,16 @@ if [[ -n "${OIIO_FUZZ_FORMAT}" ]]; then
             "$corpus_dir" "$seed_dir"
         merge_status=$?
         # Timed, coverage-guided fuzzing over the minimized corpus.
+        # Leak detection stays on: libFuzzer checks each input, so a leak stops
+        # the run with a reproducer artifact rather than surfacing as an
+        # unattributable LeakSanitizer report at process exit. Leaks in
+        # third-party libraries are silenced via nosanitize.txt (LSAN_OPTIONS).
         "$FUZZ_BIN" "$corpus_dir" \
             -max_total_time="${OIIO_FUZZ_MAX_TIME:-3600}" \
             -max_len=16777216 \
             -rss_limit_mb=4096 \
             -malloc_limit_mb=2048 \
             -timeout=60 \
-            -detect_leaks=0 \
             -artifact_prefix="crash_${OIIO_FUZZ_FORMAT}_" \
             -jobs=$(nproc) -workers=$(nproc)
         fuzz_status=$?
@@ -102,7 +108,7 @@ if [[ -n "${OIIO_FUZZ_FORMAT}" ]]; then
         {
             echo "Format: ${OIIO_FUZZ_FORMAT}"
             echo "Status: FAILED"
-            echo "Detail: fuzzer ran and found a problem (crash/timeout/OOM); see uploaded crash artifacts"
+            echo "Detail: fuzzer ran and found a problem (crash/timeout/OOM/leak); see uploaded crash artifacts"
             echo "Crash artifacts found: ${crash_count}"
             echo ""
         } >> "$GITHUB_STEP_SUMMARY"

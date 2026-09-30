@@ -309,6 +309,17 @@ main(int argc, char* argv[])
                 yee_failures = ImageBufAlgo::compare_Yee(img0, img1, cr);
             }
 
+            // Pixel reads can fail lazily during the compare, leaving
+            // garbage pixels behind. Don't report a comparison of those.
+            if (img0.has_error() || img1.has_error()) {
+                for (auto img : { &img0, &img1 })
+                    if (img->has_error())
+                        OIIO::print(stderr,
+                                    "idiff ERROR: Could not read {}:\n\t{}\n",
+                                    img->name(), img->geterror());
+                return ErrFile;
+            }
+
             if (cr.nfail <= imagesize_t(allowfailures)) {
                 // Pass if users set allowfailures and we are within that
                 // limit.

@@ -1476,3 +1476,18 @@ image_span_within_span(const image_span<const std::byte>& ispan,
 
 
 OIIO_NAMESPACE_3_1_END
+
+
+// A symbol is put in each namespace so that we can double check is in the
+// namespace we think it's in.
+OIIO_NAMESPACE_3_1_BEGIN
+const int oiio_3_1_namespace_canary = 0;
+OIIO_NAMESPACE_3_1_END
+
+OIIO_NAMESPACE_3_2_BEGIN
+const int oiio_3_2_namespace_canary = 0;
+OIIO_NAMESPACE_3_2_END
+
+OIIO_NAMESPACE_BEGIN
+const int oiio_current_namespace_canary = 0;
+OIIO_NAMESPACE_END

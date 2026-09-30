@@ -42,4 +42,16 @@ find_package_handle_standard_args(JXL
 if(JXL_FOUND)
   set(JXL_LIBRARIES ${JXL_LIBRARY} ${JXL_THREADS_LIBRARY})
   set(JXL_INCLUDES ${JXL_INCLUDE_DIR})
+  # A static libjxl does not carry its dependencies, which are installed
+  # alongside it, so link those too.
+  # ponytail: can't tell a static .lib from an import .lib on Windows, where
+  # local builds default to shared anyway.
+  if (JXL_LIBRARY MATCHES "\\.a$")
+    get_filename_component (_jxl_libdir ${JXL_LIBRARY} DIRECTORY)
+    foreach (_jxl_dep jxl_cms brotlienc brotlidec brotlicommon hwy)
+      if (EXISTS ${_jxl_libdir}/lib${_jxl_dep}.a)
+        list (APPEND JXL_LIBRARIES ${_jxl_libdir}/lib${_jxl_dep}.a)
+      endif ()
+    endforeach ()
+  endif ()
 endif(JXL_FOUND)
