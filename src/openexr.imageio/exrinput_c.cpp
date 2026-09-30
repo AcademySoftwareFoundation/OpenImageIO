@@ -628,6 +628,7 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     exr_compression_t comptype;
     rv = exr_get_compression(ctxt, subimage, &comptype);
     if (rv == EXR_ERR_SUCCESS) {
+        pvt::prime_htj2k_if_needed(comptype);
         const char* comp = NULL;
         switch (comptype) {
         case EXR_COMPRESSION_NONE: comp = "none"; break;
