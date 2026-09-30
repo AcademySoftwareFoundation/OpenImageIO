@@ -100,6 +100,63 @@ private:
 
 
 
+// OpenJPH before 0.27 lazily initializes its block encoder tables without
+// any synchronization, and both encoding and decoding run that setup
+// (zeroing the tables before filling them). When OpenEXR compresses or
+// decompresses several HTJ2K chunks in parallel, the first operations in
+// the process can race and write corrupt data. Encode one tiny single-chunk
+// image, on one thread, before any real HTJ2K I/O so the initialization is
+// complete before it matters. OpenEXR records the OpenJPH version it was
+// built against, so skip this entirely when that is new enough.
+#if defined(IMF_HTJ2K256_COMPRESSION)                      \
+    && (OPENEXR_OPENJPH_VERSION_MAJOR + 0) * 10000         \
+               + (OPENEXR_OPENJPH_VERSION_MINOR + 0) * 100 \
+           < 2700
+#    define OIIO_EXR_PRIME_HTJ2K 1
+#endif
+
+namespace pvt {
+
+void
+prime_htj2k_if_needed(int compression)
+{
+#ifdef OIIO_EXR_PRIME_HTJ2K
+    if (compression != Imf::HTJ2K256_COMPRESSION
+#    ifdef IMF_HTJ2K32_COMPRESSION
+        && compression != Imf::HTJ2K32_COMPRESSION
+#    endif
+#    ifdef IMF_LJ2K_COMPRESSION
+        && compression != Imf::LJ2K_COMPRESSION
+#    endif
+    )
+        return;
+    static std::once_flag primed;
+    std::call_once(primed, []() {
+        try {
+            Filesystem::IOVecOutput io;
+            OpenEXROutputStream stream("htj2k-prime", &io);
+            Imf::Header header(8, 8);
+            header.compression() = Imf::HTJ2K256_COMPRESSION;
+            header.channels().insert("Y", Imf::Channel(Imf::HALF));
+            half pixels[8 * 8] = {};
+            Imf::FrameBuffer fb;
+            fb.insert("Y", Imf::Slice(Imf::HALF, (char*)pixels, sizeof(half),
+                                      8 * sizeof(half)));
+            Imf::OutputFile out(stream, header, 0 /* no threads */);
+            out.setFrameBuffer(fb);
+            out.writePixels(8);
+        } catch (...) {
+        }
+    });
+#else
+    (void)compression;
+#endif
+}
+
+}  // namespace pvt
+
+
+
 class OpenEXROutput final : public ImageOutput {
 public:
     OpenEXROutput();
@@ -596,6 +653,7 @@ OpenEXROutput::open(const std::string& name, const ImageSpec& userspec,
                          e.size() ? e : std::string("unknown error"));
                 return false;
             }
+            pvt::prime_htj2k_if_needed(m_headers[m_subimage].compression());
             m_output_stream.reset(new OpenEXROutputStream(name.c_str(), m_io));
             if (m_spec.tile_width) {
                 m_output_tiled.reset(
@@ -827,6 +885,8 @@ OpenEXROutput::open(const std::string& name, int subimages,
                      e.size() ? e : std::string("unknown error"));
             return false;
         }
+        for (int s = 0; s < subimages; ++s)
+            pvt::prime_htj2k_if_needed(m_headers[s].compression());
         m_output_stream.reset(new OpenEXROutputStream(name.c_str(), m_io));
         m_output_multipart.reset(new Imf::MultiPartOutputFile(*m_output_stream,
                                                               &m_headers[0],

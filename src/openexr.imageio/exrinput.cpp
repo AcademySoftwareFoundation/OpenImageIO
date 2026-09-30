@@ -447,6 +447,7 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
     compressattr = header->findTypedAttribute<Imf::CompressionAttribute>(
         "compression");
     if (compressattr) {
+        pvt::prime_htj2k_if_needed(compressattr->value());
         const char* comp = NULL;
         switch (compressattr->value()) {
         case Imf::NO_COMPRESSION: comp = "none"; break;

@@ -57,6 +57,11 @@ void split_name(string_view fullname, string_view& layer, string_view& suffix);
 // Do the channels appear to be R, G, B (or known common aliases)?
 bool channels_are_rgb(const ImageSpec& spec);
 
+// If `compression` (an Imf::Compression / exr_compression_t) is one of the
+// HTJ2K family, make sure OpenJPH's one-time encoder setup has happened on
+// a single thread (works around a race in OpenJPH < 0.27).
+void prime_htj2k_if_needed(int compression);
+
 }  // namespace pvt
 
 
