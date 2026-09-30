@@ -253,6 +253,7 @@ the project.
 * Tim Grant
 * Todica Ionut
 * Tom Knowles
+* Tom Royls
 * Troy James Sobotka
 * Valery Angelique
 * Vanessa Valderrama

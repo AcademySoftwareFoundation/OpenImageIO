@@ -1,3 +1,22 @@
+Release 3.1.18.0 (Oct 1, 2026) -- compared to 3.1.17.0
+---------------------------------------------------------
+  - *dpx*: Ignore end-of-line padding when writing; a crafted DPX could make the writer read past the end of its buffer during dpx-to-dpx conversion. [#5472](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5472) (by @lgritz / Larry Gritz)
+  - *dpx*: Don't add to the metadata any userdata that failed to read (avoids exposing uninitialized memory). [#5467](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5467) (by @lgritz / Larry Gritz)
+  - *fits*: Avoid out-of-range float to int conversion in header values. [#5497](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5497)
+  - *heif*: Fix raw reads of `irot`-rotated files: transposed dimensions, out-of-bounds read, and inverted rotation direction. [#5448](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5448) (by @TomRoyls / Tom Royls)
+  - *iff*: Guard against a nonsensical zbuf chunk size. [#5458](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5458)
+  - *tiff*: The tiled reader now handles CMYK and odd bit depths (the same class of problem fixed for scanlines in 3.1.16.0). [#5475](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5475)
+  - *tiff*: Invalidate reader state when `seek_subimage` rejects a subimage. [#5468](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5468)
+  - *idiff*: Fail on pixel read errors instead of comparing uninitialized data (which could produce a false PASS); `oiiotool --diff` gets the same fix. [#5503](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5503)
+  - *fmath.h*: Make `float_to_rational` work for all float inputs, including out-of-range and non-finite values. [#5477](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5477)
+  - *build*: Make the installed static OIIO CMake config stand alone, so downstream projects can `find_package` and link a static build. [#5363](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5363) (by @zachlewis / Zach Lewis)
+  - *build*: With `IGNORE_HOMEBREWED_DEPS=ON`, keep Homebrew out of local dependency child builds. [#5361](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5361) (by @zachlewis / Zach Lewis)
+  - *ci*: Bump to the latest ASWF containers; drop the now-broken 2022 containers in favor of the ubuntu "oldest" job. Show dependency versions in the GHA summary; exclude `build/testsuite/common` from failure artifacts. [#5440](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5440) [#5453](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5453)
+  - *ci*: Raise the ABI check reference commit to 3.1.17.0. [#5441](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5441)
+  - *docs*: Convert Sphinx documentation from RST to MyST Markdown. [#5449](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5449)
+  - *docs*: Updates and revisions to the AI coding policy. [#5116](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5116) [#5446](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5446)
+
+
 Release 3.1.17.0 (Sep 1, 2026) -- compared to 3.1.16.0
 ---------------------------------------------------------
   - *raw*: Add `raw:thumbnail_index` and `raw:thumbnail_sort` hints to select a specific embedded thumbnail, plus assorted thumbnail fixes and unit tests. [#5334](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5334) (by @antond-weta / Anton Dukhovnikov)
