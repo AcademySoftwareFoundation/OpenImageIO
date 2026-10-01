@@ -2605,6 +2605,7 @@ constexpr PublishedColorSpace published_color_spaces[] = {
 const PublishedColorSpace*
 find_published_color_space(string_view interop_id)
 {
+    // Any case, as OCIO name lookups and get_color_interop_id() match names.
     for (const auto& published : published_color_spaces)
         if (Strutil::iequals(interop_id, published.interop_id))
             return &published;
@@ -2621,7 +2622,7 @@ ColorConfig::get_color_space_info(string_view colorspace) const
     OCIO::ConstColorSpaceRcPtr cs;
     if (getImpl()->config_ && !disable_ocio && !colorspace.empty()) {
         try {
-            cs = getImpl()->config_->getColorSpace(c_str(colorspace));
+            cs = getImpl()->config_->getColorSpace(c_str(resolve(colorspace)));
         } catch (const std::exception& e) {
             DBG("OCIO exception in get_color_space_info: {}\n", e.what());
         }
