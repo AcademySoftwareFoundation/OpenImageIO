@@ -32,6 +32,8 @@ Full command line was:
  
 Reading black.tif
     oiio:DebugOpenConfig!: 42
+Reading black.tif
+
 Reading add_rgb_rgba.exr
 add_rgb_rgba.exr     :   64 x   64, 4 channel, float openexr
     SHA-1: 9CCAC57A0A0D45F40EF14337A95207094D008E02
