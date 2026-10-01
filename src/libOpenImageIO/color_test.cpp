@@ -182,6 +182,9 @@ test_color_space_info()
         auto srgb = config.get_color_space_info("srgb_rec709_scene");
         OIIO_CHECK_EQUAL(srgb.transfer_function_gamma(), 0.0f);
         OIIO_CHECK_EQUAL(srgb.chromaticities().size(), 8);
+        // OIIO's built-in names resolve as they do in the other queries.
+        OIIO_CHECK_EQUAL(
+            config.get_color_space_info("sRGB").chromaticities().size(), 8);
         OIIO_CHECK_EQUAL(
             config.derive_color_space_info("Adobe").transfer_function_gamma(),
             563.0f / 256.0f);

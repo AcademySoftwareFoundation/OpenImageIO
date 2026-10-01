@@ -481,8 +481,8 @@ public:
     /// when it declares none, as its name or one of its aliases. An ID whose
     /// transfer function contradicts a declared linear encoding is ignored.
     /// A data color space is valid but has no properties. `colorspace` may be
-    /// a color space name, alias or role of this config; a name that does
-    /// not resolve returns an invalid ColorSpaceInfo.
+    /// any name `resolve()` accepts; a name that does not resolve to a color
+    /// space of this config returns an invalid ColorSpaceInfo.
     ///
     /// @version 3.3
     OIIO_NODISCARD ColorSpaceInfo

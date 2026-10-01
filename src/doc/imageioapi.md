@@ -262,8 +262,8 @@ just exist in the OIIO namespace as general utilities. (See
 ## Color space properties: `ColorSpaceInfo`
 
 `ColorConfig::get_color_space_info()` and
-`ColorConfig::derive_color_space_info()` describe a color space, named by a
-color space name, alias or role of the config, with a `ColorSpaceInfo`: its RGB
+`ColorConfig::derive_color_space_info()` describe a color space, named by any
+name `ColorConfig::resolve()` accepts, with a `ColorSpaceInfo`: its RGB
 primaries and white point, and the exponent of its transfer function when that
 is a pure power (1.0 for a linear one). Either property may be unavailable.
 They are taken from what the config declares: a `scene-linear` or
