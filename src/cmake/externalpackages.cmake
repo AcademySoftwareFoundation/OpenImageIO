@@ -227,7 +227,7 @@ if (OIIO_USE_HWY)
 endif ()
 
 option (USE_OPENMETA "Enable experimental OpenMeta metadata decoding" OFF)
-checked_find_package (OpenMeta 0.5.0 CONFIG)
+checked_find_package (OpenMeta 0.7.1 CONFIG)
 if (OpenMeta_FOUND AND NOT TARGET OpenMeta::openmeta)
     message (WARNING
              "OpenMeta was found without an OpenMeta::openmeta target; "

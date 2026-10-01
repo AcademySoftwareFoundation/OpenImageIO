@@ -77,7 +77,8 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for WebP images:
      * WebP >= 1.1 (tested through 1.6)
  * For experimental alternative EXIF and XMP decoding:
-     * OpenMeta >= 0.5.0, enabled at build time with `USE_OPENMETA=ON`.
+     * OpenMeta 0.7.x (>= 0.7.1), enabled with `USE_OPENMETA=ON`.
+       For minor-version upgrades, update the package request and rebuild.
        A configure-time compile/link test checks C++20 support and dependency
        compatibility. Only the private OpenMeta adapter uses C++20; OIIO's
        public interfaces and other sources retain their configured standard.
