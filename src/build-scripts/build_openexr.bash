@@ -11,7 +11,7 @@ set -ex
 
 # Which OpenEXR to retrieve, how to build it
 OPENEXR_REPO=${OPENEXR_REPO:=https://github.com/AcademySoftwareFoundation/openexr.git}
-OPENEXR_VERSION=${OPENEXR_VERSION:=v3.5.0}
+OPENEXR_VERSION=${OPENEXR_VERSION:=v3.5.2}
 
 # Where to install the final results
 LOCAL_DEPS_DIR=${LOCAL_DEPS_DIR:=${PWD}/ext}
@@ -21,6 +21,12 @@ OPENEXR_INSTALL_DIR=${OPENEXR_INSTALL_DIR:=${LOCAL_DEPS_DIR}/dist}
 OPENEXR_BUILD_TYPE=${OPENEXR_BUILD_TYPE:=Release}
 OPENEXR_CMAKE_FLAGS=${OPENEXR_CMAKE_FLAGS:=""}
 OPENEXR_CXX_FLAGS=${OPENEXR_CXX_FLAGS:=""}
+# Build (and install alongside OpenEXR) the Imath that this OpenEXR prefers,
+# rather than using whatever Imath the system happens to have. Set to OFF to
+# use a system Imath. The Imath version can be overridden by passing
+# -DOPENEXR_IMATH_TAG=... (or -DIMATH_TAG=... for old OpenEXR) in
+# OPENEXR_CMAKE_FLAGS.
+OPENEXR_FORCE_INTERNAL_IMATH=${OPENEXR_FORCE_INTERNAL_IMATH:=ON}
 BASEDIR=$PWD
 
 pwd
@@ -44,6 +50,7 @@ cmake   -S . -B ${OPENEXR_BUILD_DIR} \
         -DCMAKE_INSTALL_PREFIX="${OPENEXR_INSTALL_DIR}" \
         -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
         -DBUILD_SHARED_LIBS=${OpenEXR_LOCAL_BUILD_SHARED_LIBS:=ON} \
+        -DOPENEXR_FORCE_INTERNAL_IMATH=${OPENEXR_FORCE_INTERNAL_IMATH} \
         -DOPENEXR_BUILD_UTILS=0 \
         -DBUILD_TESTING=0 \
         -DOPENEXR_VIEWERS_ENABLE=0 \
@@ -62,5 +69,9 @@ popd
 # run with 'source' rather than in a separate shell.
 export OpenEXR_ROOT=$OPENEXR_INSTALL_DIR
 export OPENEXR_ROOT=$OPENEXR_INSTALL_DIR
+# The Imath built along with OpenEXR is installed in the same place. Point
+# OIIO at it so that it uses the same Imath as OpenEXR, not a system one.
+export Imath_ROOT=$OPENEXR_INSTALL_DIR
+export IMATH_ROOT=$OPENEXR_INSTALL_DIR
 export OPENEXR_LIBRARY_DIR=$OPENEXR_INSTALL_DIR/lib
 export LD_LIBRARY_PATH=$OPENEXR_ROOT/lib:$LD_LIBRARY_PATH
