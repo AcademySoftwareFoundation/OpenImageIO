@@ -47,6 +47,7 @@ if [[ "$OIIO_BREW_INSTALL_PACKAGES" == "" ]] ; then
         pybind11 \
         robin-map \
         tbb \
+        txt2man \
         "
     if [[ "${USE_OPENCV:=}" != "0" ]] && [[ "${INSTALL_OPENCV:=1}" != "0" ]] ; then
         OIIO_BREW_INSTALL_PACKAGES+=" opencv"
