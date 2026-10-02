@@ -680,6 +680,98 @@ benchmark_tile_sizes(string_view extension, TypeDesc datatype,
 
 
 
+// Exercise the image_span ImageInput/ImageOutput methods on images whose
+// data window origin is not (0,0), for both scanline and tiled files.
+static void
+test_span_nonzero_origin()
+{
+    print("\ntesting image_span I/O with nonzero data window origin\n");
+    const int W = 40, H = 24, NC = 3, X0 = 7, Y0 = 11;
+    for (int tiled = 0; tiled < 2; ++tiled) {
+        ImageSpec spec(W, H, NC, TypeFloat);
+        spec.x           = X0;
+        spec.y           = Y0;
+        spec.full_x      = 0;
+        spec.full_y      = 0;
+        spec.full_width  = W + 2 * X0;
+        spec.full_height = H + 2 * Y0;
+        if (tiled) {
+            spec.tile_width  = 16;
+            spec.tile_height = 8;
+            spec.tile_depth  = 1;
+        }
+        std::vector<float> pixels(size_t(W) * H * NC);
+        for (size_t i = 0; i < pixels.size(); ++i)
+            pixels[i] = float(i);
+        std::string filename = tiled ? "span_origin_tiled.exr"
+                                     : "span_origin_scan.exr";
+        {
+            auto out = ImageOutput::create(filename);
+            OIIO_CHECK_ASSERT(out);
+            OIIO_CHECK_ASSERT(out->open(filename, spec));
+            image_span<const std::byte> ispan(
+                reinterpret_cast<const std::byte*>(pixels.data()), NC, W, H, 1,
+                sizeof(float));
+            if (!tiled) {
+                // Write two ranges to exercise write_scanlines bounds check
+                OIIO_CHECK_ASSERT(
+                    out->write_scanlines(Y0, Y0 + 10, TypeFloat,
+                                         ispan.subspan(0, W, 0, 10)));
+                OIIO_CHECK_ASSERT(
+                    out->write_scanlines(Y0 + 10, Y0 + H, TypeFloat,
+                                         ispan.subspan(0, W, 10, H)));
+            } else {
+                OIIO_CHECK_ASSERT(out->write_image(TypeFloat, ispan));
+            }
+            OIIO_CHECK_ASSERT(out->close());
+        }
+        auto in = ImageInput::open(filename);
+        OIIO_CHECK_ASSERT(in);
+        if (!in)
+            continue;
+        OIIO_CHECK_EQUAL(in->spec().x, X0);
+        OIIO_CHECK_EQUAL(in->spec().y, Y0);
+
+        // Whole-image span read
+        std::vector<float> rb(pixels.size(), -1.0f);
+        image_span<std::byte> rspan(reinterpret_cast<std::byte*>(rb.data()), NC,
+                                    W, H, 1, sizeof(float));
+        OIIO_CHECK_ASSERT(in->read_image(0, 0, 0, NC, TypeFloat, rspan));
+        OIIO_CHECK_ASSERT(rb == pixels);
+
+        if (!tiled) {
+            // Partial scanline range span read
+            std::vector<float> sb(size_t(W) * 5 * NC, -1.0f);
+            image_span<std::byte> sspan(reinterpret_cast<std::byte*>(sb.data()),
+                                        NC, W, 5, 1, sizeof(float));
+            OIIO_CHECK_ASSERT(in->read_scanlines(0, 0, Y0 + 3, Y0 + 8, 0, NC,
+                                                 TypeFloat, sspan));
+            OIIO_CHECK_ASSERT(std::equal(sb.begin(), sb.end(),
+                                         pixels.begin() + size_t(3) * W * NC));
+        } else {
+            // Non-square tile range span read (x range != y range)
+            std::vector<float> tb(size_t(16) * 8 * NC, -1.0f);
+            image_span<std::byte> tspan(reinterpret_cast<std::byte*>(tb.data()),
+                                        NC, 16, 8, 1, sizeof(float));
+            OIIO_CHECK_ASSERT(in->read_tiles(0, 0, X0 + 16, X0 + 32, Y0 + 8,
+                                             Y0 + 16, 0, 1, 0, NC, TypeFloat,
+                                             tspan));
+            bool match = true;
+            for (int y = 0; y < 8; ++y)
+                for (int x = 0; x < 16; ++x)
+                    for (int c = 0; c < NC; ++c)
+                        match &= tb[(y * 16 + x) * NC + c]
+                                 == pixels[((8 + y) * W + 16 + x) * NC + c];
+            OIIO_CHECK_ASSERT(match);
+        }
+        in->close();
+        if (!nodelete)
+            Filesystem::remove(filename);
+    }
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -712,6 +804,7 @@ main(int argc, char* argv[])
     test_all_formats();
     test_thumbnail_attribs();
     test_read_tricky_sizes();
+    test_span_nonzero_origin();
     benchmark_tile_sizes("exr", TypeHalf, 4);
     benchmark_tile_sizes("tif", TypeUInt16, 16);
 
