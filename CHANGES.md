@@ -1,5 +1,11 @@
-Release 3.2 (target: Oct 1, 2026) -- compared to 3.1
--------------------------------------------------------
+Release 3.2.1.1 (Oct 2, 2026) -- compared to 3.2.1.0
+----------------------------------------------------
+  - *fix(ImageInput/Output)*: Honor the data window origin in the `image_span` read/write methods. [#5531](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5531)
+  - *fix(docs)*: Fix oiiotool man page generation errors with gawk. [#5528](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5528)
+
+
+Release 3.2 (Oct 1, 2026) -- compared to 3.1
+--------------------------------------------
 - Beta 1 (3.2.0.3-beta1): Sep 1, 2026
 - Beta 2 (3.2.0.4-beta2): Sep 15, 2026
 - Release Candidate 1 (3.2.0.5-RC1): Sep 27, 2026
