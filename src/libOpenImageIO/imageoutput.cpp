@@ -160,7 +160,7 @@ bool
 ImageOutput::write_scanline(int y, TypeDesc format,
                             const image_span<const std::byte>& data)
 {
-    if (y < 0 || y >= m_spec.height) {
+    if (y < m_spec.y || y >= (m_spec.y + m_spec.height)) {
         errorfmt("write_scanlines: Invalid scanline index {}", y);
         return false;
     }
@@ -200,7 +200,8 @@ bool
 ImageOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
                              const image_span<const std::byte>& data)
 {
-    if (ybegin < 0 || yend > m_spec.height || ybegin >= yend) {
+    if (ybegin < m_spec.y || yend > (m_spec.y + m_spec.height)
+        || ybegin >= yend) {
         errorfmt("write_scanlines: Invalid scanline range {}-{}", ybegin, yend);
         return false;
     }

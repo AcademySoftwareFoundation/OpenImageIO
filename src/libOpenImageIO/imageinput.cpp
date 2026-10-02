@@ -342,14 +342,14 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                  chend);
         return false;
     }
-    if (!check_span_size(this, "read_scanlines", m_spec, format,
-                         m_spec.width * size_t(yend - ybegin), chbegin, chend,
+    if (!check_span_size(this, "read_scanlines", spec, format,
+                         spec.width * size_t(yend - ybegin), chbegin, chend,
                          data))
         return false;
 
     // Default implementation (for now): call the old pointer+stride
     return read_scanlines(subimage, miplevel, ybegin, yend, 0, chbegin, chend,
-                          format, data.data(), data.xstride());
+                          format, data.data(), data.xstride(), data.ystride());
 }
 
 
@@ -692,16 +692,16 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
         errorfmt("read_tiles: invalid channel range [{},{})", chbegin, chend);
         return false;
     }
-    if (!check_span_size(this, "read_tiles", m_spec, format,
+    if (!check_span_size(this, "read_tiles", spec, format,
                          size_t(xend - xbegin) * size_t(yend - ybegin)
                              * size_t(zend - zbegin),
                          chbegin, chend, data))
         return false;
 
     // Default implementation (for now): call the old pointer+stride
-    return read_tiles(subimage, miplevel, ybegin, yend, xbegin, xend, zbegin,
-                      zend, chbegin, chend, format, data.data(),
-                      data.xstride());
+    return read_tiles(subimage, miplevel, xbegin, xend, ybegin, yend, zbegin,
+                      zend, chbegin, chend, format, data.data(), data.xstride(),
+                      data.ystride(), data.zstride());
 }
 
 
@@ -1242,9 +1242,8 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
                 ok &= read_tiles(subimage, miplevel, spec.x,
                                  spec.x + spec.width, y + spec.y, yend,
                                  z + spec.z, zend, chbegin, chend, format,
-                                 data.subspan(spec.x, spec.x + spec.width,
-                                              y + spec.y, yend, z + spec.z,
-                                              zend));
+                                 data.subspan(0, spec.width, y, yend - spec.y,
+                                              z, zend - spec.z));
             }
         }
     } else {  // Scanline image -- rely on read_scanlines.
@@ -1259,8 +1258,8 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
                 int yend = std::min(y + spec.y + chunk, spec.y + spec.height);
                 ok &= read_scanlines(subimage, miplevel, y + spec.y, yend,
                                      chbegin, chend, format,
-                                     data.subspan(spec.x, spec.x + spec.width,
-                                                  y + spec.y, yend));
+                                     data.subspan(0, spec.width, y,
+                                                  yend - spec.y));
             }
         }
     }
