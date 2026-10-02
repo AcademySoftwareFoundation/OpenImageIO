@@ -1,3 +1,9 @@
+Release 3.1.18.1 (Oct 2, 2026) -- compared to 3.1.18.0
+---------------------------------------------------------
+  - *fix(ImageInput/Output)*: Honor the data window origin in the `image_span` read/write methods. [#5531](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5531)
+  - *fix(docs)*: Fix oiiotool man page generation errors with gawk. [#5528](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5528)
+
+
 Release 3.1.18.0 (Oct 1, 2026) -- compared to 3.1.17.0
 ---------------------------------------------------------
   - *dpx*: Ignore end-of-line padding when writing; a crafted DPX could make the writer read past the end of its buffer during dpx-to-dpx conversion. [#5472](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5472) (by @lgritz / Larry Gritz)
