@@ -773,30 +773,42 @@ public:
                                 int defaultqual = -1) const;
 
     /// Helper function to verify that the given pixel range exactly covers a
-    /// set of 2D tiles.  Also returns false if the spec indicates that the
-    /// image isn't tiled at all.
+    /// set of 2D tiles: it must start on a tile boundary within the data
+    /// window, and end on a tile boundary or the edge of the data window.
+    /// Also returns false if the spec indicates that the image isn't tiled
+    /// at all.
     OIIO_NODISCARD bool valid_tile_range (int xbegin, int xend, int ybegin, int yend) noexcept {
-        return (tile_width &&
-                ((xbegin-x) % tile_width)  == 0 &&
-                ((ybegin-y) % tile_height) == 0 &&
-                (((xend-x) % tile_width)  == 0 || (xend-x) == width) &&
-                (((yend-y) % tile_height) == 0 || (yend-y) == height));
+        return (tile_width > 0 && tile_height > 0 &&
+                valid_tile_axis(xbegin, xend, x, width, tile_width) &&
+                valid_tile_axis(ybegin, yend, y, height, tile_height));
     }
 
     /// Helper function to verify that the given pixel range exactly covers a
-    /// set of 3D tiles.  Also returns false if the spec indicates that the
-    /// image isn't tiled at all.
+    /// set of 3D tiles: it must start on a tile boundary within the data
+    /// window, and end on a tile boundary or the edge of the data window.
+    /// Also returns false if the spec indicates that the image isn't tiled
+    /// at all.
     OIIO_NODISCARD bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
                            int zbegin, int zend) noexcept {
-        return (tile_width &&
-                ((xbegin-x) % tile_width)  == 0 &&
-                ((ybegin-y) % tile_height) == 0 &&
-                ((zbegin-z) % tile_depth)  == 0 &&
-                (((xend-x) % tile_width)  == 0 || (xend-x) == width) &&
-                (((yend-y) % tile_height) == 0 || (yend-y) == height) &&
-                (((zend-z) % tile_depth)  == 0 || (zend-z) == depth));
+        return (tile_width > 0 && tile_height > 0 && tile_depth > 0 &&
+                valid_tile_axis(xbegin, xend, x, width, tile_width) &&
+                valid_tile_axis(ybegin, yend, y, height, tile_height) &&
+                valid_tile_axis(zbegin, zend, z, depth, tile_depth));
     }
 
+private:
+    // One axis of valid_tile_range(). The end may reach past the data
+    // window only as far as the edge of the last (partial) tile. Done in
+    // 64 bits so that hostile coordinates can't overflow.
+    static constexpr bool valid_tile_axis (int begin, int end, int origin,
+                                           int size, int tilesize) noexcept {
+        int64_t b = int64_t(begin) - origin, e = int64_t(end) - origin;
+        return b >= 0 && b <= e && b % tilesize == 0 &&
+               (e % tilesize == 0 || e == size) &&
+               e <= (int64_t(size) + tilesize - 1) / tilesize * tilesize;
+    }
+
+public:
     /// Return the channelformat of the given channel. This is safe even
     /// if channelformats is not filled out.
     TypeDesc channelformat (int chan) const {
