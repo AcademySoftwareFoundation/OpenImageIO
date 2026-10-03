@@ -18,6 +18,7 @@ jpgr.exr             :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "layerA"
     oiio:subimages: 4
@@ -32,6 +33,7 @@ jpgr.exr             :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "layerB"
     oiio:subimages: 4
@@ -46,6 +48,7 @@ jpgr.exr             :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "layerC"
     oiio:subimages: 4
@@ -60,6 +63,7 @@ jpgr.exr             :   64 x   64, 3 channel, half openexr
     PixelAspectRatio: 1
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 16
     oiio:subimagename: "layerD"
     oiio:subimages: 4
@@ -81,6 +85,7 @@ mip4.tif             :   64 x   64, 4 channel, uint8 tiff
     XResolution: 72
     YResolution: 72
     oiio:BitsPerSample: 8
+    oiio:miplevels: 1
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1

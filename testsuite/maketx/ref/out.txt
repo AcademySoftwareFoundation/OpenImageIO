@@ -337,6 +337,7 @@ nan.exr              :   64 x   64, 3 channel, half openexr
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5"
+    oiio:miplevels: 1
     oiio:SHA-1: "44B96A7C3AFBF8D7621E7C6453266E5DD1962D36"
     oiio:subimages: 1
     openexr:levelmode: 0
@@ -365,6 +366,7 @@ checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -378,6 +380,7 @@ small.tif            :   64 x   64, 3 channel, uint8 tiff
     Orientation: 1 (normal)
     planarconfig: "contig"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 1
     oiio:RowsPerChunk: 32
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -458,6 +461,7 @@ bumpslope.exr        :   64 x   64, 6 channel, half openexr
     uvslopes_scale: 0
     wrapmodes: "black,black"
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
+    oiio:miplevels: 7
     oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -548,6 +552,7 @@ bumpslope-central.exr :   64 x   64, 6 channel, half openexr
     uvslopes_scale: 0
     wrapmodes: "black,black"
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00487623,0.00476811,-1.36547e-05"
+    oiio:miplevels: 7
     oiio:SHA-1: "E332A489C2BCDE63C2DB6A68E847CF396642F0A6"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -642,6 +647,7 @@ bumpslope-normal.exr :  128 x  128, 6 channel, half openexr
     version: 1
     wrapmodes: "black,black"
     oiio:AverageColor: "-1,-5.0059e-05,5.46902e-05,0.00489737,0.00494693,4.87366e-05"
+    oiio:miplevels: 8
     oiio:SHA-1: "BC210B60E71DDBBA147EAD3C638ACC908C11CF6C"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -744,6 +750,7 @@ cdf.exr              :   64 x   64, 1 channel, half openexr
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
     oiio:AverageColor: "0.499779"
+    oiio:miplevels: 7
     oiio:SHA-1: "00DFB31D0260CC466CDCF9FE42446D4896E655FE"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -776,6 +783,7 @@ bumpslope-cdf.exr    :   64 x   64, 6 channel, half openexr
     uvslopes_scale: 0
     wrapmodes: "black,black"
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
+    oiio:miplevels: 7
     oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"

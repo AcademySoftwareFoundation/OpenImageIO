@@ -601,6 +601,7 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     if (!query_channels(in, ctxt, subimage))  // also sets format
         return false;
 
+    spec.attribute("oiio:miplevels", nmiplevels);
     spec.deep = (storage == EXR_STORAGE_DEEP_TILED
                  || storage == EXR_STORAGE_DEEP_SCANLINE);
 
