@@ -81,7 +81,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want to be able to do font rendering into images:
      * Freetype >= 2.10.0 (tested through 2.14)
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
-     * libultrahdr >= 1.3 (tested through 1.4)
+     * libultrahdr >= 1.3 (tested through 2.0.2)
  * If you want support for JPEG XL images:
      * libjxl >= 0.10.1 (tested through 0.12.0)
  * If you want support for j2c files:
