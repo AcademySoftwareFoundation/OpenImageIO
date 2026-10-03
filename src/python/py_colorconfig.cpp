@@ -14,6 +14,17 @@ namespace PyOpenImageIO {
 void
 declare_colorconfig(py_module& m)
 {
+    py::class_<ColorSpaceInfo>(m, "ColorSpaceInfo")
+        .def(py::init<>())
+        .def("valid", &ColorSpaceInfo::valid)
+        .def("transfer_function_gamma",
+             &ColorSpaceInfo::transfer_function_gamma)
+        .def("chromaticities", [](const ColorSpaceInfo& self) {
+            auto xy = self.chromaticities();
+            return std::vector<float>(xy.begin(), xy.end());
+        });
+
+
     py::class_<ColorConfig>(m, "ColorConfig")
 
         .def(py::init<>())
@@ -195,6 +206,18 @@ declare_colorconfig(py_module& m)
                  }
                  return std::nullopt;
              })
+        .def(
+            "get_color_space_info",
+            [](const ColorConfig& self, const std::string& colorspace) {
+                return self.get_color_space_info(colorspace);
+            },
+            "colorspace"_a)
+        .def(
+            "derive_color_space_info",
+            [](const ColorConfig& self, const std::string& colorspace) {
+                return self.derive_color_space_info(colorspace);
+            },
+            "colorspace"_a)
         .def("configname", &ColorConfig::configname)
         .def_static(
             "default_colorconfig",
