@@ -185,8 +185,8 @@ jobs:
             simd: "avx2,f16c"
             benchmark: 1
             setenvs: export USE_OPENVDB=0 USE_OPENCV=0
-                            UHDR_CMAKE_C_COMPILER=gcc
-                            UHDR_CMAKE_CXX_COMPILER=g++
+                            libuhdr_CMAKE_C_COMPILER=gcc
+                            libuhdr_CMAKE_CXX_COMPILER=g++
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
             # Building libuhdr with icx results in test failures
@@ -373,8 +373,10 @@ jobs:
                             WEBP_VERSION=v1.6.0
                             FREETYPE_VERSION=VER-2-14-3
                             USE_OPENVDB=0
-                            UHDR_CMAKE_C_COMPILER=gcc
-                            UHDR_CMAKE_CXX_COMPILER=g++
+                            libuhdr_GIT_TAG=v2.0.2
+                            libuhdr_GIT_COMMIT=e5f5a022fe96fc4dc2ee35c19f733a50df807abe
+                            libuhdr_CMAKE_C_COMPILER=gcc
+                            libuhdr_CMAKE_CXX_COMPILER=g++
                             OPENCOLORIO_CXX=c++
                             nanobind_GIT_TAG=v3.0.0
                             nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
@@ -412,8 +414,10 @@ jobs:
                             FREETYPE_VERSION=master
                             OpenImageIO_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON
                             QT_VERSION=0 INSTALL_OPENCV=0 USE_OPENVDB=0
-                            UHDR_CMAKE_C_COMPILER=gcc
-                            UHDR_CMAKE_CXX_COMPILER=g++
+                            libuhdr_GIT_TAG=main
+                            libuhdr_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON
+                            libuhdr_CMAKE_C_COMPILER=gcc
+                            libuhdr_CMAKE_CXX_COMPILER=g++
                             OPENCOLORIO_CXX=c++
                             nanobind_GIT_TAG=master
                             nanobind_DEPENDENCY_BUILD_ALLOW_UNVERIFIED_TAGS=ON
@@ -480,6 +484,10 @@ jobs:
                             USE_OPENVDB=0
                             nanobind_GIT_TAG=v3.0.0
                             nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
+                            libuhdr_GIT_TAG=v2.0.2
+                            libuhdr_GIT_COMMIT=e5f5a022fe96fc4dc2ee35c19f733a50df807abe
+                            libuhdr_CMAKE_C_COMPILER=gcc
+                            libuhdr_CMAKE_CXX_COMPILER=g++
           - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.5 ocio2.4
             nametag: linux-arm-latest-releases-clang
             runner: ubuntu-24.04-arm
@@ -505,6 +513,10 @@ jobs:
                             USE_OPENVDB=0
                             nanobind_GIT_TAG=v3.0.0
                             nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
+                            libuhdr_GIT_TAG=v2.0.2
+                            libuhdr_GIT_COMMIT=e5f5a022fe96fc4dc2ee35c19f733a50df807abe
+                            libuhdr_CMAKE_C_COMPILER=gcc
+                            libuhdr_CMAKE_CXX_COMPILER=g++
 
           - desc: oldest gcc9/C++17 py3.9 exr3.1 ocio2.3
             # Oldest gcc and versions of the dependencies that we support.
@@ -534,6 +546,11 @@ jobs:
                              TIFF_BUILD_VERSION=4.1.0
                              TIFF_GIT_COMMIT=e0d707dc1524d8c0e20f03396f234e0f1b07b3f4
                              LIBRAW_VERSION=0.21.0
+                            libuhdr_BUILD_VERSION=1.3.0
+                            libuhdr_GIT_TAG=v1.3.0
+                            libuhdr_GIT_COMMIT=2222dad8f259fbadd08a481953f1791cbc8f975d
+                            libuhdr_CMAKE_C_COMPILER=gcc
+                            libuhdr_CMAKE_CXX_COMPILER=g++
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
