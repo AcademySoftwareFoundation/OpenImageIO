@@ -1,0 +1,4 @@
+// Copyright Contributors to the OpenImageIO project.
+// SPDX-License-Identifier: Apache-2.0
+#pragma once
+static const unsigned char interop_config_bytes[] = { @OIIO_INTEROP_CONFIG@ 0x00 };

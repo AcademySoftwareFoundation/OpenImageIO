@@ -196,7 +196,12 @@ PNGInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    if (is_colorspace_srgb(m_spec)) {
+    // Only premultiplying in linear space needs the transfer function, and
+    // deciding it can load the color config, so don't unless we must.
+    if (!m_linear_premult) {
+        m_srgb  = false;
+        m_gamma = 1.0f;
+    } else if (is_colorspace_srgb(m_spec)) {
         m_srgb  = true;
         m_gamma = 1.0f;
     } else {

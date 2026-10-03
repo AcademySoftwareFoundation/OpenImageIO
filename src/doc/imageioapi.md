@@ -254,7 +254,63 @@ just exist in the OIIO namespace as general utilities. (See
 :::{doxygenfunction} OIIO::get_colorspace_cicp
 :::
 
+:::{doxygenfunction} OIIO::get_color_interop_id
+:::
+
 :::{doxygenfunction} OIIO::equivalent_colorspace
+:::
+
+(sec-colorspaceinfo)=
+
+## Color space properties: `ColorSpaceInfo`
+
+`ColorConfig::get_color_space_info()` and
+`ColorConfig::derive_color_space_info()` describe a color space, named by
+anything `ColorConfig::resolve()` accepts (a name, alias, role or Color Interop
+ID), with a `ColorSpaceInfo`: its RGB primaries and white point, and the
+exponent of its transfer function when that is a pure power. The first
+returns only what is already known, and does not accept a name that
+`resolve()` can select only by comparing transforms. The second also compares
+the color space's transforms with OIIO's built-in interop-identities config,
+so it can describe a color space whose config states none of this. What the
+config does state is honored rather than measured: a color space declaring a
+linear encoding reports gamma 1.0 unless measurement contradicts it with a
+pure-power exponent of its own. Neither call changes the config, an image, or
+its metadata.
+
+::::{tabs}
+:::{tab} C++
+```{literalinclude} ../../testsuite/docs-examples-cpp/src/docs-examples-imageioapi.cpp
+:language: c++
+:start-after: BEGIN-imageioapi-colorspaceinfo
+:end-before: END-imageioapi-colorspaceinfo
+:dedent: 4
+```
+:::
+
+:::{tab} Python
+```{literalinclude} ../../testsuite/docs-examples-python/src/docs-examples-imageioapi.py
+:language: py
+:start-after: BEGIN-imageioapi-colorspaceinfo
+:end-before: END-imageioapi-colorspaceinfo
+:dedent: 4
+```
+:::
+::::
+
+`ACEScg` reports gamma 1 and the ACES AP1 primaries, and `g22_rec709_scene`
+gamma 2.2 and the Rec.709 primaries. The sRGB curve is piecewise, so
+`srgb_rec709_scene` reports gamma 0. See
+{ref}`sec-pythoncolorconfig` for the Python bindings.
+
+:::{doxygenclass} OIIO::ColorSpaceInfo
+:members:
+:::
+
+:::{doxygenfunction} OIIO::ColorConfig::get_color_space_info
+:::
+
+:::{doxygenfunction} OIIO::ColorConfig::derive_color_space_info
 :::
 
 > (sec-startupshutdown)=

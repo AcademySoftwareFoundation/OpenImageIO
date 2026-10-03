@@ -16,7 +16,6 @@
 #include <cassert>
 #include <cstdio>
 
-#include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
@@ -435,10 +434,15 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     // Read CICP from color encoding. Custom primaries, custom white point and
-    // arbitrary gamma not supported currently.
+    // arbitrary gamma not supported currently. Nor is P3-D65 with libjxl's DCI
+    // transfer, a pure gamma 2.6: CICP 12,17 reads as DCDM, whose ST 428-1
+    // transfer also scales white.
     if (have_color_encoding && color_encoding.primaries != JXL_PRIMARIES_CUSTOM
         && color_encoding.white_point != JXL_WHITE_POINT_CUSTOM
-        && color_encoding.transfer_function != JXL_TRANSFER_FUNCTION_GAMMA) {
+        && color_encoding.transfer_function != JXL_TRANSFER_FUNCTION_GAMMA
+        && !(color_encoding.primaries == JXL_PRIMARIES_P3
+             && color_encoding.white_point == JXL_WHITE_POINT_D65
+             && color_encoding.transfer_function == JXL_TRANSFER_FUNCTION_DCI)) {
         int color_primaries = color_encoding.primaries;
         // JxlPrimaries enum only covers P3 primaries as value 11 and not 12
         // but CICP has separate code values based on white point.
@@ -449,8 +453,7 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         const int cicp[4] = { color_primaries, color_encoding.transfer_function,
                               0 /* RGB */, 1 /* Full range */ };
         m_spec.attribute("CICP", TypeDesc(TypeDesc::INT, 4), cicp);
-        const ColorConfig& colorconfig(ColorConfig::default_colorconfig());
-        string_view interop_id = colorconfig.get_color_interop_id(cicp);
+        string_view interop_id = get_color_interop_id(cicp);
         if (!interop_id.empty())
             m_spec.attribute("oiio:ColorSpace", interop_id);
     }

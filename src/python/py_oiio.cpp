@@ -576,6 +576,12 @@ declare_global_attribute_functions(py_module& m)
         },
         "spec"_a, "from_colorspace"_a = true);
     m.def(
+        "get_color_interop_id",
+        [](const std::array<int, 4>& cicp) {
+            return std::string(get_color_interop_id(cicp));
+        },
+        "cicp"_a);
+    m.def(
         "equivalent_colorspace",
         [](const std::string& a, const std::string& b) {
             return equivalent_colorspace(a, b);

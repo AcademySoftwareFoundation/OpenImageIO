@@ -1,3 +1,7 @@
+example_colorspaceinfo
+ACEScg: gamma 1, chromaticities 0.713 0.293 0.165 0.830 0.128 0.044 0.322 0.338
+g22_rec709_scene: gamma 2.2, chromaticities 0.640 0.330 0.300 0.600 0.150 0.060 0.313 0.329
+srgb_rec709_scene: gamma 0, chromaticities 0.640 0.330 0.300 0.600 0.150 0.060 0.313 0.329
 example_channel_names_basic
 R G B
 example_channel_names_8

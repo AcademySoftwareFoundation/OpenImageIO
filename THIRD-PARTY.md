@@ -35,11 +35,23 @@ SPDX-License-Identifier: BSD-3-Clause
   files, contain code that was originally developed for Open Shading
   Language but subsequently moved to OIIO.
 
+* Color Interop Forum. Copyright (c) 2024, Academy Software Foundation.
+  https://github.com/AcademySoftwareFoundation/ColorInterop
+
+  The embedded color interop identities reference configuration includes
+  definitions adapted from the core display and renderer reference configs.
+  Source snapshot: 8b7b15ccf2e7bfab336a9865f0c57036ab90d322.
+  These source configurations are BSD-3-Clause licensed.
+
 * OpenColorIO (c) Copyright contributors to the OpenColorIO Project.
   https://github.com/AcademySoftwareFoundation/OpenColorIO
 
   The sample OpenColorIO configurations in our testsuite are borrowed from
   this ASWF project, also BSD-3-Clause licensed.
+  The embedded color interop identities reference configuration also includes
+  definitions adapted from OpenColorIO's ACES Studio config v4.0.0 and
+  OpenColorIO transform source. OpenColorIO-Config-ACES is BSD-3-Clause licensed:
+  https://github.com/AcademySoftwareFoundation/OpenColorIO-Config-ACES/tree/v4.0.0
 
 * OpenEXR/Imath (c) Copyright contributors to the OpenEXR Project.
   https://github.com/AcademySoftwareFoundation/Imath

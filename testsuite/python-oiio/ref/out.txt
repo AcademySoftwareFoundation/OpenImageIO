@@ -34,6 +34,7 @@ Testing get_colorspace module helpers:
   get_colorspace_icc_profile(dummy profile): b'\x00\x01\x02\xfd\xfe\xff'
   get_colorspace_cicp(no attribute): None
   get_colorspace_cicp(attribute): [9, 16, 9, 1]
+  get_color_interop_id([9, 16, 9, 1]): pq_rec2020_display
 
 Testing global attribute() one-arg:
   plugin_searchpath str: path/A:path/B

@@ -4040,6 +4040,31 @@ is provided for minimal color support.
 
 % TODO: The documentation for this class is incomplete.
 
+:::{py:method} get_color_space_info (colorspace)
+Return a `ColorSpaceInfo` with the properties of the named color space that
+are already known, without analyzing its transforms. A name that does not
+resolve without that analysis returns an invalid `ColorSpaceInfo`. See {ref}`sec-colorspaceinfo`.
+
+This function was added in OpenImageIO 3.3.
+:::
+
+:::{py:method} derive_color_space_info (colorspace)
+Return a `ColorSpaceInfo` with the properties of the named color space,
+deriving those its config does not declare by comparing its transforms with
+OIIO's built-in interop-identities config.
+
+Example:
+
+```{literalinclude} ../../testsuite/docs-examples-python/src/docs-examples-imageioapi.py
+:language: py
+:start-after: BEGIN-imageioapi-colorspaceinfo
+:end-before: END-imageioapi-colorspaceinfo
+:dedent: 4
+```
+
+This function was added in OpenImageIO 3.3.
+:::
+
 :::{py:method} get_cicp (colorspace)
 Find CICP code corresponding to the colorspace.
 Return a sequence of 4 ints, or None if not found.
@@ -4059,6 +4084,10 @@ This function was added in OpenImageIO 3.1.
 :::{py:method} get_color_interop_id (colorspace)
 Find color interop ID for the given colorspace.
 Returns empty string if not found.
+
+An authored or declared ID answers first. Otherwise, a supported configured
+definition may be recognized from its native response. This is the portable ID
+to write to a file.
 
 Example:
 
@@ -4082,6 +4111,30 @@ interop_id = colorconfig.get_color_interop_id([9, 16, 9, 1])
 ```
 
 This function was added in OpenImageIO 3.1.
+:::
+
+:::{py:class} ColorSpaceInfo
+Immutable properties of a color space. It remains usable after the
+`ColorConfig` that returned it is destroyed. This class was added in
+OpenImageIO 3.3.
+:::
+
+:::{py:method} ColorSpaceInfo.valid ()
+Whether the color space name resolved, even if individual properties are
+unavailable.
+:::
+
+:::{py:method} ColorSpaceInfo.chromaticities ()
+The RGB primaries and white point as a list of eight floats (Rx, Ry, Gx, Gy,
+Bx, By, Wx, Wy, CIE 1931 xy), or an empty list if they are unavailable.
+:::
+
+:::{py:method} ColorSpaceInfo.transfer_function_gamma ()
+The exponent of a transfer function that decodes as a pure power, 1.0 for a
+linear one, or 0 if the transfer function is not a pure power or is unknown. A
+color space whose config declares a linear encoding is honored rather than
+measured, and reports 1.0 unless measurement contradicts it with a pure-power
+exponent of its own.
 :::
 
 (sec-pythonmiscapi)=
@@ -4221,6 +4274,20 @@ if cicp:
 ```
 
 This function was added in OpenImageIO 3.2.
+:::
+
+:::{py:method} get_color_interop_id (cicp)
+Returns the color interop ID corresponding to the CICP code `cicp` (a list
+of 4 ints), or an empty string if there is none. This needs no color
+config.
+
+Example:
+
+```python
+interop_id = oiio.get_color_interop_id ([9, 16, 9, 1])
+```
+
+This function was added in OpenImageIO 3.3.
 :::
 
 :::{py:method} equivalent_colorspace (a, b)

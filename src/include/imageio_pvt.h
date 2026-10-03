@@ -16,6 +16,87 @@
 
 
 
+OIIO_NAMESPACE_3_1_BEGIN
+class ColorSpaceInfo;
+
+/// How much of a color space's decoding transfer function has been
+/// established. This is evidence about a curve, never a curve that can be
+/// applied to pixels.
+enum class ColorTransferFunctionKind {
+    /// Nothing established the curve: a data space, an unresolved name, a
+    /// definition this build could not probe, or one not yet derived.
+    Undetermined,
+    /// The identity curve, or a linear encoding the config declares, which
+    /// is honored rather than measured. `transfer_function_gamma()` is 1.
+    Linear,
+    /// A pure power. `transfer_function_gamma()` is the exponent.
+    Power,
+    /// A published curve family a measurement agrees with, named by
+    /// `transfer_function_name()`. `transfer_function_gamma()` is 0.
+    Named,
+    /// No published family, but the native operations exactly separate into
+    /// one transfer function shared by RGB.
+    Transform,
+    /// No published family, and the native operations do not separate.
+    Unrecognized,
+};
+
+/// The individually queryable fields of a ColorSpaceInfo.
+enum class ColorSpaceInfoField : uint8_t {
+    Chromaticities   = 0,
+    TransferFunction = 1,
+    EqualityID,
+    ColorInteropID,
+    Encoding,
+    ImageState,
+};
+
+/// Library-private facts of a ColorSpaceInfo beyond its public accessors.
+struct OIIO_API ColorSpaceInfoAccess {
+    /// An established exponent answers first (`Linear` or `Power`), and it
+    /// may be the 1.0 a declared linear encoding is honored with. A family or
+    /// representation kind only comes from a measurement made by an explicit
+    /// derivation, never from a name or declaration.
+    static ColorTransferFunctionKind
+    transfer_function_kind(const ColorSpaceInfo& info) noexcept;
+    /// The family token (`srgb`, `g24`, `slog3`) for kind `Named`, else "".
+    static string_view
+    transfer_function_name(const ColorSpaceInfo& info) noexcept;
+    /// The Color Interop ID that the definition is measured to implement,
+    /// whatever it declares or is named, or "" when no supported identity
+    /// reproduced it (which means neither unique nor unequal). A native data
+    /// space reports "data" (or "bypass" when named or only aliased that), an
+    /// `is-unique` space and a built-in identity the config does not define
+    /// report "". Sharing an ID does not prove a no-op conversion, which is
+    /// what `equivalent()` answers.
+    static string_view equality_id(const ColorSpaceInfo& info) noexcept;
+    /// The authored Color Interop ID, otherwise one recognized by derivation.
+    static string_view color_interop_id(const ColorSpaceInfo& info) noexcept;
+    /// "scene" or "display", when established.
+    static string_view image_state(const ColorSpaceInfo& info) noexcept;
+    /// Whether evaluation of the field completed; its value may still be
+    /// unavailable. Before derivation, the Color Interop ID and image state
+    /// count as computed only when the config declares them.
+    static bool computed(const ColorSpaceInfo& info,
+                         ColorSpaceInfoField field) noexcept;
+    /// Whether the field has a value.
+    static bool available(const ColorSpaceInfo& info,
+                          ColorSpaceInfoField field) noexcept;
+    /// Whether the field's value came from explicit derivation rather than a
+    /// native declaration.
+    static bool derived(const ColorSpaceInfo& info,
+                        ColorSpaceInfoField field) noexcept;
+};
+OIIO_NAMESPACE_3_1_END
+
+OIIO_NAMESPACE_BEGIN
+using v3_1::ColorSpaceInfo;
+using v3_1::ColorSpaceInfoAccess;
+using v3_1::ColorSpaceInfoField;
+using v3_1::ColorTransferFunctionKind;
+OIIO_NAMESPACE_END
+
+
 OIIO_NAMESPACE_BEGIN
 // Note: Everything in pvt namespace is expected to be local to the library
 // and does not appear in exported headers that client software will see.
@@ -124,7 +205,8 @@ const void* parallel_convert_from_float(const float* src, void* dst,
 OIIO_API bool check_texture_metadata_sanity(ImageSpec& spec);
 
 /// If the spec's metadata specifies a color space with Rec709 primaries and
-/// gamma transfer function, return the gamma value. If not, return zero.
+/// gamma transfer function, return the gamma value. A linear transfer function
+/// returns 1.0 whatever the primaries. Otherwise return zero.
 OIIO_API float get_colorspace_rec709_gamma(const ImageSpec& spec);
 
 /// Record on a spec just read from a file which file was opened
@@ -139,6 +221,25 @@ set_source_provenance(ImageSpec& spec, string_view format_name,
     spec.attribute("oiio:SourceFileFormat", format_name);
     spec.attribute("oiio:SourcePath", filename);
 }
+
+/// `ColorConfig::get_color_space_info()` or, with `derive`,
+/// `derive_color_space_info()`, answered under the config's own context plus
+/// `context_key` and `context_value` (the comma-separated convention of
+/// `createColorProcessor()`). With no context, this is exactly the public
+/// query. Evidence measured under one context never answers another, the
+/// config's own context is never modified, and a context the config cannot
+/// be acquired under returns an invalid ColorSpaceInfo, retaining nothing.
+OIIO_API ColorSpaceInfo color_space_info(const ColorConfig& config,
+                                         string_view colorspace, bool derive,
+                                         string_view context_key   = "",
+                                         string_view context_value = "");
+
+/// The same query for the spec's "oiio:ColorSpace" in the default config.
+/// It changes neither the spec nor any pixels.
+OIIO_API ColorSpaceInfo get_colorspace_info(const ImageSpec& spec,
+                                            bool derive               = false,
+                                            string_view context_key   = "",
+                                            string_view context_value = "");
 
 /// Get the timing report from log_time entries.
 OIIO_API std::string timing_report();

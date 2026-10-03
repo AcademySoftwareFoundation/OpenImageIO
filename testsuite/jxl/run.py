@@ -21,6 +21,11 @@ command += info_command ("tahoe-cicp-dcip3.jxl", safematch=True)
 command += oiiotool ("../common/tahoe-tiny.tif --cicp \"12,13,0,1\" -o tahoe-cicp-displayp3.jxl")
 command += info_command ("tahoe-cicp-displayp3.jxl", safematch=True)
 
+# P3-D65 with libjxl's DCI transfer, a pure gamma 2.6, reads with no CICP:
+# 12,17 would read as DCDM, whose transfer also scales white
+command += oiiotool ("../common/tahoe-tiny.tif --cicp \"12,17,0,1\" -o tahoe-cicp-p3d65dci.jxl")
+command += oiiotool ("--info -v --metamatch \"CICP|oiio:ColorSpace\" tahoe-cicp-p3d65dci.jxl")
+
 # Corrupt input that previously triggered an oversized allocation path in JXL decode
 command += oiiotool ("-info -oiioattrib limits:imagesize_MB 16384 src/crash-bfd2220.jxl", failureok=True)
 

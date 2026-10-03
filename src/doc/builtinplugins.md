@@ -318,6 +318,11 @@ control aspects of the writing itself:
        example by writing to memory rather than the file system.
 ```
 
+The writer does not infer a non-linear gamma for a non-Rec.709 color space
+from `oiio:ColorSpace`. This output path does not also derive and write that
+color space's matching primaries, so a gamma by itself would make a false
+Rec.709 claim.
+
 **Custom I/O Overrides**
 
 DPX input and output both support the "custom I/O" feature via the
@@ -891,6 +896,9 @@ Windows. ICO files use the file extension {file}`.ico`.
      - int
      - if nonzero, will cause the ICO to be written out using PNG format.
 ```
+
+An image written or read in PNG format within an ICO file gets the same color
+chunks as a PNG file (see the PNG section's note on color space).
 
 **Configuration settings for ICO input**
 
@@ -2011,6 +2019,31 @@ PNG input and output both support the "custom I/O" feature via the special
 `"oiio:ioproxy"` attributes (see Sections {ref}`sec-imageoutput-ioproxy`
 and {ref}`sec-imageinput-ioproxy`) as well as the `set_ioproxy()` methods.
 
+**Note on color space**
+
+The PNG writer records the image's color space in the chunks that can carry
+it. An sRGB image gets the `sRGB` chunk; a color space with a CICP code point
+gets `cICP` (libPNG 1.6.45 or newer). A color space with neither, but whose
+primaries and pure-power transfer function OpenImageIO knows -- ACEScg or
+linear DCI-P3, for example -- gets `cHRM` and `gAMA`, which carry both
+exactly. A Rec.709 gamma is written with `gAMA` alone, as is a linear color
+space whose primaries are unknown or lie outside what `cHRM` can hold, such
+as ACES2065-1's negative blue y. libPNG older than 1.6.44 refuses some
+chromaticities `cHRM` can hold, ACEScg's red among them, so with it ACEScg
+gets `gAMA` alone as well, and a pure power on those primaries gets no color
+chunk. `cHRM` is written only beside a transfer
+function the file also carries, and `gAMA` alone only for a Rec.709 gamma or
+a linear color space, so a color space whose transfer function or primaries
+the file cannot carry (ACEScc, ACEScct, a camera log encoding, or a D50
+display gamma, for example) is written with no color chunk at all. An
+embedded ICC profile states the primaries and the transfer function itself,
+so it suppresses `cHRM` and any `gAMA` taken from the color space's measured
+properties. With `OPENIMAGEIO_DEBUG` set, the writer says when it drops a
+color space's primaries or transfer function.
+
+The PNG reader names a file with a `gAMA` chunk as a Rec.709 gamma, such as
+`g22_rec709_scene`, and does not read `cHRM`.
+
 **Note on premultiplication**
 
 PNG files encoded as sRGB or gamma-corrected values that also have alpha
@@ -2578,6 +2611,11 @@ control aspects of the writing itself:
        example by reading from memory rather than the file system.
 ```
 
+The writer does not infer a non-linear gamma for a non-Rec.709 color space
+from `oiio:ColorSpace`. This output path does not also derive and write that
+color space's matching primaries, so a gamma by itself would make a false
+Rec.709 claim.
+
 **Custom I/O Overrides**
 
 RLA input and output support the "custom I/O" feature via the
@@ -2830,6 +2868,11 @@ control aspects of the writing itself:
      - Pointer to a ``Filesystem::IOProxy`` that will handle the I/O, for
        example by writing to a memory buffer.
 ```
+
+The writer does not infer a non-linear gamma for a non-Rec.709 color space
+from `oiio:ColorSpace`. This output path does not also derive and write that
+color space's matching primaries, so a gamma by itself would make a false
+Rec.709 claim.
 
 **Custom I/O Overrides**
 

@@ -34,6 +34,16 @@ command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/dpx_nuke_16bits_rgba.dpx"
 command += info_command("grey.dpx", safematch=True)
 command += diff_command("grey.dpx", "ref/grey.tif")
 
+# DPX has no primaries field: a linear encoding writes a Linear transfer and
+# reads back as lin_rec709_scene, whatever its primaries were
+command += oiiotool("--create 4x4 3 -d uint16 --iscolorspace lin_ap0_scene -o lin_ap0.dpx")
+command += oiiotool("lin_ap0.dpx --echo \"lin_ap0.dpx: {TOP.'dpx:Transfer'} {TOP.'oiio:ColorSpace'}\"")
+# A built-in identity the config does not define is described by the built-in
+# interop-identities config: a linear one writes Linear, gamma 2.2 does not
+for cs in [ "oiio:lin_p3dci_display", "g22_adobergb_display" ] :
+    f = cs.replace(":", "-") + ".dpx"
+    command += oiiotool("--create 4x4 3 -d uint16 --iscolorspace " + cs + " -o " + f)
+    command += oiiotool(f + " --echo \"" + f + ": {TOP.'dpx:Transfer'}\"")
 
 # Regression tests
 command += oiiotool("src/crash-badusersize.dpx -o test.tif", failureok=True)

@@ -17,6 +17,15 @@ for f in files:
 # Regression test to ensure crops work
 command += oiiotool (OIIO_TESTSUITE_IMAGEDIR +
                      "/ginsu_rgb_nc8.rla -crop 100x100+100+100 -o rlacrop.rla")
+
+# The writer infers no gamma for a non-Rec.709 color space, whose primaries it
+# does not also write, but still writes a Rec.709 one's.
+command += oiiotool("--pattern fill:top=0.1,0.5,0.9:bottom=0.9,0.5,0.1 4x4 3 -d uint8 -o gamma-src.tif")
+for cs in [ "g22_adobergb_display", "g22_rec709_scene" ] :
+    command += oiiotool("gamma-src.tif --iscolorspace " + cs + " -o " + cs + ".rla")
+    command += info_command(cs + ".rla", safematch=True, hash=False)
+    command += diff_command(cs + ".rla", "gamma-src.tif")
+
 # Test corrupted files
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/crash1.rla -o crash1.exr", failureok = True)
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR + "/crash2.rla -o crash2.exr", failureok = True)

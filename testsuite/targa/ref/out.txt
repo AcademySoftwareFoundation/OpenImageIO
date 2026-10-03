@@ -186,6 +186,24 @@ Reading ../oiio-images/targa/round_grill.tga
     targa:version: 2
 Comparing "../oiio-images/targa/round_grill.tga" and "round_grill.tga"
 PASS
+Reading g22_adobergb_display.tga
+g22_adobergb_display.tga :    4 x    4, 3 channel, uint8 targa
+    channel list: R, G, B
+    compression: "rle"
+    oiio:BitsPerSample: 8
+    targa:version: 2
+Comparing "g22_adobergb_display.tga" and "gamma-src.tif"
+PASS
+Reading g22_rec709_scene.tga
+g22_rec709_scene.tga :    4 x    4, 3 channel, uint8 targa
+    channel list: R, G, B
+    compression: "rle"
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "g22_rec709_scene"
+    oiio:Gamma: 2.2
+    targa:version: 2
+Comparing "g22_rec709_scene.tga" and "gamma-src.tif"
+PASS
 Converting src/crash1.tga to crash1.exr
 iconvert ERROR: TGA header claims image size 1506428560 bytes, implausible for 1886 bytes of remaining file data
 oiiotool ERROR: read : "src/crash2.tga": Palette image with no palette

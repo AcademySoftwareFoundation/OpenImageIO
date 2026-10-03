@@ -63,6 +63,46 @@ using ColorProcessorHandle = std::shared_ptr<ColorProcessor>;
 
 
 
+/// Immutable, owning properties of a color space, returned by
+/// `ColorConfig::get_color_space_info()` and
+/// `ColorConfig::derive_color_space_info()`. Copies share their storage and
+/// remain usable after the originating ColorConfig resets or is destroyed.
+///
+/// @version 3.3
+class OIIO_API ColorSpaceInfo {
+public:
+    ColorSpaceInfo() noexcept;
+    ColorSpaceInfo(const ColorSpaceInfo&) noexcept;
+    ColorSpaceInfo(ColorSpaceInfo&&) noexcept;
+    ColorSpaceInfo& operator=(const ColorSpaceInfo&) noexcept;
+    ColorSpaceInfo& operator=(ColorSpaceInfo&&) noexcept;
+    ~ColorSpaceInfo();
+
+    /// Whether the color space name resolved, even if individual properties
+    /// are unavailable.
+    bool valid() const noexcept;
+    /// The RGB primaries and white point as eight floats (Rx, Ry, Gx, Gy, Bx,
+    /// By, Wx, Wy, CIE 1931 xy), or an empty span if they are unavailable.
+    /// The span borrows from this object and expires when its last owning
+    /// copy is destroyed or reassigned.
+    cspan<float> chromaticities() const noexcept;
+    /// The exponent of a transfer function that decodes as a pure power,
+    /// 1.0 for a linear one, or 0 if the transfer function is not a pure
+    /// power or is unknown. Piecewise curves such as sRGB's are never
+    /// approximated by a gamma, so they report 0. A color space whose config
+    /// declares a linear encoding is honored rather than measured: it reports
+    /// 1.0 even where its transforms are a curve no exponent describes. Only
+    /// a measured pure-power exponent replaces that declared 1.0.
+    float transfer_function_gamma() const noexcept;
+
+private:
+    friend class ColorConfig;
+    friend struct ColorSpaceInfoAccess;
+    struct Impl;
+    std::shared_ptr<const Impl> m_impl;
+};
+
+
 /// Represents the set of all color transformations that are allowed.
 /// If OpenColorIO is enabled at build time, this configuration is loaded
 /// at runtime, allowing the user to have complete control of all color
@@ -175,7 +215,8 @@ public:
     /// will return false if it's not sure.
     OIIO_NODISCARD bool isColorSpaceLinear(string_view name) const;
 
-    /// Is the color space non-color-managed "data"?
+    /// Is the named color space, alias, role, or authored Color Interop ID
+    /// non-color-managed "data"?
     OIIO_NODISCARD bool isData(string_view name) const;
 
     /// Is the color space "active", i.e. not listed in the OCIO config's
@@ -305,6 +346,15 @@ public:
     /// It is possible that this will return an empty handle if one of the
     /// color spaces or the display or view doesn't exist or is not allowed.
     ///
+    /// `inputColorSpace` is resolved as `createColorProcessor()` resolves
+    /// its endpoints: a name, alias, role or Color Interop ID of this config
+    /// first; otherwise a known encoding absent from the config is connected to the
+    /// display and view through the config's OCIO interchange role for its
+    /// reference space type, with the looks override and inverse direction
+    /// still applied by this config's own viewing pipeline. Such a source
+    /// selects no view of its own, so an empty or `"default"` view is the
+    /// display's default view for `scene_linear`.
+    ///
     /// The handle is actually a shared_ptr, so when you're done with a
     /// ColorProcess, just discard it. ColorProcessor(s) remain valid even
     /// if the ColorConfig that created them no longer exists.
@@ -413,11 +463,23 @@ public:
     OIIO_NODISCARD string_view parseColorSpaceFromString(string_view str) const;
 
     /// Turn the name, which could be a color space, an alias, a role, or
-    /// an OIIO-understood universal name (like "sRGB") into a canonical
-    /// color space name. If the name is not recognized, return "".
+    /// an explicit Color Interop Forum identity (like "srgb_rec709_scene")
+    /// into a local color space name. Native authored selectors take priority.
+    /// A name with Color Interop ID syntax (in any case) may then strip one
+    /// namespace, and the remainder matches only a color space name, alias,
+    /// named transform or authored Color Interop ID; or it may match a
+    /// config-local ID formed from sanitized config and color-space names.
+    /// If the name is not recognized, return it unchanged.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
     /// Are the two color space names/aliases/roles equivalent?
+    ///
+    /// A shared declared identity nominates a pair, and so does a shared
+    /// identity measured from their transforms, which is how a renamed or
+    /// redeclared local copy of one encoding is recognized. Neither is the
+    /// answer: OpenColorIO must also report the conversion between the two as
+    /// a no-op under this configuration's current context, so approximate
+    /// recognition alone never suppresses a conversion.
     OIIO_NODISCARD bool equivalent(string_view color_space,
                                    string_view other_color_space) const;
 
@@ -430,12 +492,59 @@ public:
     /// Find color interop ID for the given colorspace.
     /// Returns empty string if not found.
     ///
+    /// An identity that must be recognized by measurement is retained for the
+    /// process, under OpenColorIO's own cache ID for this configuration, its
+    /// context and every file its transforms resolve. A color space defined by
+    /// an external file is retained on the same terms, so its freshness is
+    /// exactly OpenColorIO's. A measurement a missing resource interrupted is
+    /// never retained, and is attempted again on the next call.
+    ///
     /// @version 3.1
     OIIO_NODISCARD string_view
     get_color_interop_id(string_view colorspace) const;
 
+    /// Return the properties of a color space that are already known:
+    /// declared by the config, known for a Color Interop ID it declares, or
+    /// derived by an earlier `derive_color_space_info()` call. It does not
+    /// analyze transforms, except that a built-in Color Interop identity this
+    /// config does not define, named exactly, is described by OIIO's built-in
+    /// interop-identities config, as conversions with it are. `colorspace` is
+    /// resolved as `resolve()` resolves it without comparing transforms, so a
+    /// name only that comparison can select (OIIO's generic "sRGB" on a
+    /// config with no space carrying a legacy sRGB name, for example) returns
+    /// an invalid ColorSpaceInfo, as an unresolved name does.
+    ///
+    /// @version 3.3
+    OIIO_NODISCARD ColorSpaceInfo
+    get_color_space_info(string_view colorspace) const;
+
+    /// Return the properties of a color space, deriving those the config
+    /// does not declare by comparing its transforms with OIIO's built-in
+    /// interop-identities config. The comparison is bounded and approximate,
+    /// and its results are retained for the process, so a later
+    /// `get_color_space_info()` call also returns them. A property that
+    /// cannot be derived is left unavailable rather than guessed from the
+    /// color space's name. What the config *declares* is honored rather than
+    /// measured: a color space declaring a linear encoding reports a transfer
+    /// function gamma of 1.0 unless measurement contradicts it with a
+    /// pure-power exponent of its own.
+    ///
+    /// @version 3.3
+    OIIO_NODISCARD ColorSpaceInfo
+    derive_color_space_info(string_view colorspace) const;
+
     /// Find color interop ID corresponding to the CICP code.
     /// Returns empty string if not found.
+    ///
+    /// Only the primaries and transfer codes are consulted. Codes that name
+    /// the same thing as another are recognized: transfer characteristics 6,
+    /// 14 and 15 are the same transfer function as 1, and colour primaries 7
+    /// have exactly the primaries of 6. That recognition is one-directional --
+    /// `get_cicp()` never returns 7, 14 or 15. P3-D65 primaries with ST 428-1
+    /// transfer characteristics select the read-only
+    /// `dcdm_p3d65_display` input identity. `get_cicp()` does not emit 12/17
+    /// for it or for ordinary `g26_p3d65_display`, which lacks the required
+    /// DCI-white headroom scaling.
     ///
     /// @version 3.1
     OIIO_NODISCARD string_view get_color_interop_id(const int cicp[4]) const;
@@ -478,6 +587,9 @@ private:
     ColorConfig(const ColorConfig&)            = delete;
     ColorConfig& operator=(const ColorConfig&) = delete;
 
+    // Implementation-private display/view selection shared with ociodisplay.
+    friend struct ColorConfigAccess;
+
     class Impl;
     std::unique_ptr<Impl> m_impl;
     Impl* getImpl() const { return m_impl.get(); }
@@ -490,6 +602,7 @@ OIIO_NAMESPACE_3_1_END
 #ifndef OIIO_DOXYGEN
 OIIO_NAMESPACE_BEGIN
 using v3_1::ColorProcessorHandle;
+using v3_1::ColorSpaceInfo;
 OIIO_NAMESPACE_END
 #endif
 
