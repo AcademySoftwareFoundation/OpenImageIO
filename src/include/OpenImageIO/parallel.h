@@ -31,9 +31,7 @@ class parallel_options {
 public:
     parallel_options(int maxthreads = 0, SplitDir splitdir = Split_Y,
                      size_t minitems = 16384)
-        : maxthreads(maxthreads)
-        , splitdir(splitdir)
-        , minitems(minitems)
+        : maxthreads(maxthreads), splitdir(splitdir), minitems(minitems)
     {
     }
     parallel_options(string_view name, int maxthreads = 0,
@@ -83,9 +81,7 @@ public:
 
     constexpr paropt(int maxthreads = 0, SplitDir splitdir = SplitDir::Y,
                      size_t minitems = 1024) noexcept
-        : m_maxthreads(maxthreads)
-        , m_splitdir(splitdir)
-        , m_minitems(minitems)
+        : m_maxthreads(maxthreads), m_splitdir(splitdir), m_minitems(minitems)
     {
     }
     paropt(string_view name, int maxthreads = 0,
@@ -95,14 +91,10 @@ public:
         // m_name = name;
     }
 
-    constexpr paropt(ParStrategy strat) noexcept
-        : m_strategy(strat)
-    {
-    }
+    constexpr paropt(ParStrategy strat) noexcept : m_strategy(strat) {}
 
     constexpr paropt(int maxthreads, ParStrategy strat) noexcept
-        : m_maxthreads(maxthreads)
-        , m_strategy(strat)
+        : m_maxthreads(maxthreads), m_strategy(strat)
     {
     }
 

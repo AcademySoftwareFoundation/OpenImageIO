@@ -397,7 +397,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     // save some typing by using macros
     // "internal" macros
 #define DPX_SET_ATTRIB_S(x, n, s) m_spec.attribute(s, m_dpx.header.x(n))
-#define DPX_SET_ATTRIB(x, n) DPX_SET_ATTRIB_S(x, n, "dpx:" #x)
+#define DPX_SET_ATTRIB(x, n)      DPX_SET_ATTRIB_S(x, n, "dpx:" #x)
     // set without checking for bogus attributes
 #define DPX_SET_ATTRIB_N(x) DPX_SET_ATTRIB(x, subimage)
     // set with checking for bogus attributes

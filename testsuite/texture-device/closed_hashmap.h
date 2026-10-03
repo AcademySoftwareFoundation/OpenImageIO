@@ -242,9 +242,7 @@ public:
 
     class Iterator {
     public:
-        Iterator(const Slot* slot, const Slot* end)
-            : m_slot(slot)
-            , m_end(end)
+        Iterator(const Slot* slot, const Slot* end) : m_slot(slot), m_end(end)
         {
             advance_to_occupied();
         }

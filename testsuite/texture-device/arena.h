@@ -193,10 +193,7 @@ public:
     using NullArena::Kernel;
 
     CudaArena() = default;
-    explicit CudaArena(cudaStream_t stream)
-        : m_stream(stream)
-    {
-    }
+    explicit CudaArena(cudaStream_t stream) : m_stream(stream) {}
 
     ~CudaArena();
 

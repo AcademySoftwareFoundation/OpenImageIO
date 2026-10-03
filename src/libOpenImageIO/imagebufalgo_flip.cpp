@@ -1242,19 +1242,20 @@ ImageBufAlgo::FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
 // release, when these were in the experimental namespace.
 namespace ImageBufAlgo {
 namespace experimental {
-    bool OIIO_API FLIP_diff(ImageBuf& dst, const ImageBuf& ref,
-                            const ImageBuf& test, KWArgs options, ROI roi,
-                            int nthreads)
-    {
-        return ImageBufAlgo::FLIP_diff(dst, ref, test, options, roi, nthreads);
-    }
+bool OIIO_API
+FLIP_diff(ImageBuf& dst, const ImageBuf& ref, const ImageBuf& test,
+          KWArgs options, ROI roi, int nthreads)
+{
+    return ImageBufAlgo::FLIP_diff(dst, ref, test, options, roi, nthreads);
+}
 
 
-    ImageBuf OIIO_API FLIP_diff(const ImageBuf& ref, const ImageBuf& test,
-                                KWArgs options, ROI roi, int nthreads)
-    {
-        return ImageBufAlgo::FLIP_diff(ref, test, options, roi, nthreads);
-    }
+ImageBuf OIIO_API
+FLIP_diff(const ImageBuf& ref, const ImageBuf& test, KWArgs options, ROI roi,
+          int nthreads)
+{
+    return ImageBufAlgo::FLIP_diff(ref, test, options, roi, nthreads);
+}
 }  // namespace experimental
 }  // namespace ImageBufAlgo
 

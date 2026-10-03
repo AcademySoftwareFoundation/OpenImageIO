@@ -679,9 +679,7 @@ Jpeg2000Output::get_progression_order(const std::string& progression_order)
 struct size_list_interpreter : public ojph::cli_interpreter::arg_inter_base {
     size_list_interpreter(const int max_num_elements, int& num_elements,
                           ojph::size* list)
-        : max_num_eles(max_num_elements)
-        , sizelist(list)
-        , num_eles(num_elements)
+        : max_num_eles(max_num_elements), sizelist(list), num_eles(num_elements)
     {
     }
 

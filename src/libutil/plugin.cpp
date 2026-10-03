@@ -50,7 +50,7 @@ Plugin::plugin_extension(void)
 #if defined(_WIN32)
 
 // Dummy values
-#    define RTLD_LAZY 0
+#    define RTLD_LAZY   0
 #    define RTLD_GLOBAL 0
 
 

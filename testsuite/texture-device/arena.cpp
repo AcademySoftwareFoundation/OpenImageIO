@@ -22,61 +22,65 @@ arena_context()
 
 namespace {
 
-    template<class AllocationMap>
-    void report_leaks(const char* owner, const AllocationMap& allocated)
-    {
-        if (allocated.empty())
-            return;
+template<class AllocationMap>
+void
+report_leaks(const char* owner, const AllocationMap& allocated)
+{
+    if (allocated.empty())
+        return;
 
-        OIIO::print(stderr,
-                    "texture-device: {} leak check failed ({} allocations)\n",
-                    owner, allocated.size());
-        for (const auto& it : allocated) {
-            const auto& rec = it.second;
-            OIIO::print(stderr, "  leak ptr={:p} bytes={} purpose={}\n",
-                        it.first, rec.bytes,
-                        rec.purpose ? rec.purpose : "(null purpose)");
-        }
+    OIIO::print(stderr,
+                "texture-device: {} leak check failed ({} allocations)\n",
+                owner, allocated.size());
+    for (const auto& it : allocated) {
+        const auto& rec = it.second;
+        OIIO::print(stderr, "  leak ptr={:p} bytes={} purpose={}\n", it.first,
+                    rec.bytes, rec.purpose ? rec.purpose : "(null purpose)");
+    }
+    std::abort();
+}
+
+template<class AllocationMap>
+void
+tracked_free(AllocationMap& allocated, tagged_ptr<void> p, const char* owner)
+{
+    if (!p)
+        return;
+
+    auto it = allocated.find(p.get());
+    if (it == allocated.end()) {
+        OIIO::print(
+            stderr,
+            "texture-device: invalid free ptr={:p} (not allocated by {}::alloc)\n",
+            p.get(), owner);
         std::abort();
     }
+    allocated.erase(it);
+}
 
-    template<class AllocationMap>
-    void tracked_free(AllocationMap& allocated, tagged_ptr<void> p,
-                      const char* owner)
-    {
-        if (!p)
-            return;
+inline bool
+is_host_memory(tagged_ptr<const void> p)
+{
+    return p.tag() == Host::run_tag() || p.tag() == unified_ptr_tag();
+}
 
-        auto it = allocated.find(p.get());
-        if (it == allocated.end()) {
-            OIIO::print(
-                stderr,
-                "texture-device: invalid free ptr={:p} (not allocated by {}::alloc)\n",
-                p.get(), owner);
-            std::abort();
-        }
-        allocated.erase(it);
-    }
+inline bool
+is_host_memory(tagged_ptr<void> p)
+{
+    return p.tag() == Host::run_tag() || p.tag() == unified_ptr_tag();
+}
 
-    inline bool is_host_memory(tagged_ptr<const void> p)
-    {
-        return p.tag() == Host::run_tag() || p.tag() == unified_ptr_tag();
-    }
+inline bool
+is_mock_device_memory(tagged_ptr<const void> p)
+{
+    return p.tag() == MockDevice::run_tag() || p.tag() == unified_ptr_tag();
+}
 
-    inline bool is_host_memory(tagged_ptr<void> p)
-    {
-        return p.tag() == Host::run_tag() || p.tag() == unified_ptr_tag();
-    }
-
-    inline bool is_mock_device_memory(tagged_ptr<const void> p)
-    {
-        return p.tag() == MockDevice::run_tag() || p.tag() == unified_ptr_tag();
-    }
-
-    inline bool is_mock_device_memory(tagged_ptr<void> p)
-    {
-        return p.tag() == MockDevice::run_tag() || p.tag() == unified_ptr_tag();
-    }
+inline bool
+is_mock_device_memory(tagged_ptr<void> p)
+{
+    return p.tag() == MockDevice::run_tag() || p.tag() == unified_ptr_tag();
+}
 
 }  // namespace
 

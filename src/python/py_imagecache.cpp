@@ -11,10 +11,7 @@ class ImageCacheWrap {
 public:
     std::shared_ptr<ImageCache> m_cache;
 
-    ImageCacheWrap(bool shared = true)
-        : m_cache(ImageCache::create(shared))
-    {
-    }
+    ImageCacheWrap(bool shared = true) : m_cache(ImageCache::create(shared)) {}
     ImageCacheWrap(const ImageCacheWrap&) = delete;
     ImageCacheWrap(ImageCacheWrap&&)      = delete;
     ~ImageCacheWrap() {}  // will call the deleter on the IC

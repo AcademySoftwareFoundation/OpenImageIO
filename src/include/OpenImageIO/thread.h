@@ -58,9 +58,8 @@
 
 #if OIIO_TSAN_ANNOTATE_LOCKS
 #    include <sanitizer/tsan_interface.h>
-#    define OIIO_TSAN_PRE_LOCK(m, f) __tsan_mutex_pre_lock((void*)(m), (f))
-#    define OIIO_TSAN_POST_LOCK(m, f) \
-        __tsan_mutex_post_lock((void*)(m), (f), 0)
+#    define OIIO_TSAN_PRE_LOCK(m, f)  __tsan_mutex_pre_lock((void*)(m), (f))
+#    define OIIO_TSAN_POST_LOCK(m, f) __tsan_mutex_post_lock((void*)(m), (f), 0)
 #    define OIIO_TSAN_PRE_UNLOCK(m, f) \
         ((void)__tsan_mutex_pre_unlock((void*)(m), (f)))
 #    define OIIO_TSAN_POST_UNLOCK(m, f) \
@@ -70,13 +69,13 @@
         (__tsan_mutex_try_lock | __tsan_mutex_try_lock_failed)
 #    define OIIO_TSAN_F_READ __tsan_mutex_read_lock
 #else
-#    define OIIO_TSAN_PRE_LOCK(m, f) ((void)0)
-#    define OIIO_TSAN_POST_LOCK(m, f) ((void)0)
-#    define OIIO_TSAN_PRE_UNLOCK(m, f) ((void)0)
+#    define OIIO_TSAN_PRE_LOCK(m, f)    ((void)0)
+#    define OIIO_TSAN_POST_LOCK(m, f)   ((void)0)
+#    define OIIO_TSAN_PRE_UNLOCK(m, f)  ((void)0)
 #    define OIIO_TSAN_POST_UNLOCK(m, f) ((void)0)
-#    define OIIO_TSAN_F_TRY 0
-#    define OIIO_TSAN_F_TRY_FAILED 0
-#    define OIIO_TSAN_F_READ 0
+#    define OIIO_TSAN_F_TRY             0
+#    define OIIO_TSAN_F_TRY_FAILED      0
+#    define OIIO_TSAN_F_READ            0
 #endif
 
 
@@ -177,8 +176,7 @@ pause(int delay) noexcept
 class atomic_backoff {
 public:
     atomic_backoff(int pausemax = 16) noexcept
-        : m_count(1)
-        , m_pausemax(pausemax)
+        : m_count(1), m_pausemax(pausemax)
     {
     }
 
@@ -292,11 +290,7 @@ public:
     /// construction, releases the lock when it exits scope.
     class lock_guard {
     public:
-        lock_guard(spin_mutex& fm) noexcept
-            : m_fm(fm)
-        {
-            m_fm.lock();
-        }
+        lock_guard(spin_mutex& fm) noexcept : m_fm(fm) { m_fm.lock(); }
         ~lock_guard() noexcept { m_fm.unlock(); }
 
     private:
@@ -418,8 +412,7 @@ public:
     /// read lock upon construction, releases the lock when it exits scope.
     class read_lock_guard {
     public:
-        read_lock_guard(spin_rw_mutex& fm) noexcept
-            : m_fm(fm)
+        read_lock_guard(spin_rw_mutex& fm) noexcept : m_fm(fm)
         {
             m_fm.read_lock();
         }
@@ -435,8 +428,7 @@ public:
     /// read lock upon construction, releases the lock when it exits scope.
     class write_lock_guard {
     public:
-        write_lock_guard(spin_rw_mutex& fm) noexcept
-            : m_fm(fm)
+        write_lock_guard(spin_rw_mutex& fm) noexcept : m_fm(fm)
         {
             m_fm.write_lock();
         }

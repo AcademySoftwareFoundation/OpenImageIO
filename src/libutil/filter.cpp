@@ -41,10 +41,7 @@ OIIO_NAMESPACE_3_1_BEGIN
 
 class FilterBox1D final : public Filter1D {
 public:
-    FilterBox1D(float width)
-        : Filter1D(width > 0.0f ? width : 1.0f)
-    {
-    }
+    FilterBox1D(float width) : Filter1D(width > 0.0f ? width : 1.0f) {}
     ~FilterBox1D() override {}
     float operator()(float x) const override
     {
@@ -83,8 +80,7 @@ public:
 class FilterTriangle1D final : public Filter1D {
 public:
     FilterTriangle1D(float width)
-        : Filter1D(width > 0.0f ? width : 2.0f)
-        , m_rad_inv(2.0f / m_w)
+        : Filter1D(width > 0.0f ? width : 2.0f), m_rad_inv(2.0f / m_w)
     {
     }
     ~FilterTriangle1D() override {}
@@ -137,8 +133,7 @@ private:
 class FilterGaussian1D final : public Filter1D {
 public:
     FilterGaussian1D(float width)
-        : Filter1D(width > 0.0f ? width : 3.0f)
-        , m_rad_inv(2.0f / m_w)
+        : Filter1D(width > 0.0f ? width : 3.0f), m_rad_inv(2.0f / m_w)
     {
     }
     ~FilterGaussian1D() override {}
@@ -190,8 +185,7 @@ private:
 class FilterSharpGaussian1D final : public Filter1D {
 public:
     FilterSharpGaussian1D(float width)
-        : Filter1D(width > 0.0f ? width : 2.0f)
-        , m_rad_inv(2.0f / m_w)
+        : Filter1D(width > 0.0f ? width : 2.0f), m_rad_inv(2.0f / m_w)
     {
     }
     ~FilterSharpGaussian1D() override {}
@@ -243,8 +237,7 @@ private:
 class FilterCatmullRom1D final : public Filter1D {
 public:
     FilterCatmullRom1D(float width)
-        : Filter1D(4.0f)
-        , m_scale(4.0f / (width > 0.0f ? width : 4.0f))
+        : Filter1D(4.0f), m_scale(4.0f / (width > 0.0f ? width : 4.0f))
     {
     }
     ~FilterCatmullRom1D() override {}
@@ -301,8 +294,7 @@ private:
 class FilterBlackmanHarris1D final : public Filter1D {
 public:
     FilterBlackmanHarris1D(float width)
-        : Filter1D(width > 0.0f ? width : 3.0f)
-        , m_rad_inv(2.0f / m_w)
+        : Filter1D(width > 0.0f ? width : 3.0f), m_rad_inv(2.0f / m_w)
     {
     }
     ~FilterBlackmanHarris1D() override {}
@@ -376,8 +368,7 @@ private:
 class FilterSinc1D final : public Filter1D {
 public:
     FilterSinc1D(float width)
-        : Filter1D(width > 0.0f ? width : 4.0f)
-        , m_rad(m_w / 2.0f)
+        : Filter1D(width > 0.0f ? width : 4.0f), m_rad(m_w / 2.0f)
     {
     }
     ~FilterSinc1D() override {}
@@ -433,8 +424,7 @@ private:
 class FilterLanczos3_1D final : public Filter1D {
 public:
     FilterLanczos3_1D(float width)
-        : Filter1D(width > 0.0f ? width : 6.0f)
-        , m_scale(6.0f / m_w)
+        : Filter1D(width > 0.0f ? width : 6.0f), m_scale(6.0f / m_w)
     {
     }
     ~FilterLanczos3_1D() override {}
@@ -544,8 +534,7 @@ protected:
 class FilterMitchell1D final : public Filter1D {
 public:
     FilterMitchell1D(float width)
-        : Filter1D(width > 0.0f ? width : 4.0f)
-        , m_rad_inv(2.0f / m_w)
+        : Filter1D(width > 0.0f ? width : 4.0f), m_rad_inv(2.0f / m_w)
     {
     }
     ~FilterMitchell1D() override {}
@@ -618,8 +607,7 @@ private:
 class FilterBSpline1D final : public Filter1D {
 public:
     FilterBSpline1D(float width)
-        : Filter1D(width > 0.0f ? width : 4.0f)
-        , m_wscale(4.0f / m_w)
+        : Filter1D(width > 0.0f ? width : 4.0f), m_wscale(4.0f / m_w)
     {
     }
     ~FilterBSpline1D() override {}
@@ -699,9 +687,7 @@ public:
 class FilterCubic1D : public Filter1D {
 public:
     FilterCubic1D(float width, float a = 0.0f)
-        : Filter1D(width > 0.0f ? width : 4.0f)
-        , m_a(a)
-        , m_rad_inv(2.0f / m_w)
+        : Filter1D(width > 0.0f ? width : 4.0f), m_a(a), m_rad_inv(2.0f / m_w)
     {
     }
     ~FilterCubic1D() override {}
@@ -770,10 +756,7 @@ protected:
 
 class FilterKeys1D final : public FilterCubic1D {
 public:
-    FilterKeys1D(float width)
-        : FilterCubic1D(width, -0.5f)
-    {
-    }
+    FilterKeys1D(float width) : FilterCubic1D(width, -0.5f) {}
     ~FilterKeys1D() override {}
     string_view name() const override { return "keys"; }
 };
@@ -793,10 +776,7 @@ public:
 
 class FilterSimon1D final : public FilterCubic1D {
 public:
-    FilterSimon1D(float width)
-        : FilterCubic1D(width, -0.75f)
-    {
-    }
+    FilterSimon1D(float width) : FilterCubic1D(width, -0.75f) {}
     ~FilterSimon1D() override {}
     string_view name() const override { return "simon"; }
 };
@@ -816,10 +796,7 @@ public:
 
 class FilterRifman1D final : public FilterCubic1D {
 public:
-    FilterRifman1D(float width)
-        : FilterCubic1D(width, -1.0f)
-    {
-    }
+    FilterRifman1D(float width) : FilterCubic1D(width, -1.0f) {}
     ~FilterRifman1D() override {}
     string_view name() const override { return "rifman"; }
 };

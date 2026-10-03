@@ -679,16 +679,10 @@ public:
 
     ParamValueSpan() = default;
 
-    ParamValueSpan(cspan<ParamValue> p)
-        : cspan<ParamValue>(p)
-    {
-    }
+    ParamValueSpan(cspan<ParamValue> p) : cspan<ParamValue>(p) {}
 
     // Trivially make a ParamValueSpan from a ParamValueList
-    ParamValueSpan(const ParamValueList& p)
-        : cspan<ParamValue>(p)
-    {
-    }
+    ParamValueSpan(const ParamValueList& p) : cspan<ParamValue>(p) {}
 
     /// Construct a span from an initializer_list.
     constexpr ParamValueSpan(std::initializer_list<ParamValue> il)

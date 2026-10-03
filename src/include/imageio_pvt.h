@@ -147,8 +147,7 @@ OIIO_API std::string timing_report();
 /// destruction. If oiio_log_times is 0, it does nothing.
 class LoggedTimer {
 public:
-    LoggedTimer(string_view name)
-        : m_timer(oiio_log_times)
+    LoggedTimer(string_view name) : m_timer(oiio_log_times)
     {
         if (oiio_log_times)
             m_name = name;

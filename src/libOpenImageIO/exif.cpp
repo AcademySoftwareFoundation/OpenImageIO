@@ -31,8 +31,7 @@ public:
     typedef tsl::robin_map<std::string, const TagInfo*> namemap_t;
     // Name map is lower case so it's effectively case-insensitive
 
-    Impl(string_view mapname, cspan<TagInfo> tag_table)
-        : m_mapname(mapname)
+    Impl(string_view mapname, cspan<TagInfo> tag_table) : m_mapname(mapname)
     {
         for (const auto& tag : tag_table) {
             m_tagmap[tag.tifftag] = &tag;

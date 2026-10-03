@@ -892,7 +892,7 @@ Filesystem::parse_pattern(const char* pattern_, int framepadding_override,
     // The pattern is either a range (e.g., "1-15#"), a
     // set of hash marks (e.g. "####"), or a printf-style format
     // string (e.g. "%04d").
-#define ONERANGE_SPEC "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
+#define ONERANGE_SPEC  "[0-9]+(-[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
 #define SEQUENCE_SPEC       \
     "(" MANYRANGE_SPEC ")?" \
@@ -1238,8 +1238,7 @@ Filesystem::IOFile::IOFile(string_view filename, Mode mode)
 }
 
 Filesystem::IOFile::IOFile(FILE* file, Mode mode)
-    : IOProxy("", mode)
-    , m_file(file)
+    : IOProxy("", mode), m_file(file)
 {
     if (m_mode == Read) {
         m_pos = OIIO::Filesystem::ftell(m_file);       // save old position

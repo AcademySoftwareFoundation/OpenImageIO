@@ -7811,9 +7811,9 @@ handle_sequence(Oiiotool& ot, int argc, const char** argv)
     // '%v' or '%V' characters.  Any found indicate that there are numeric
     // range or wildcards to deal with.  Also look for --frames,
     // --framepadding and --views options.
-#define ONERANGE_SPEC "-?[0-9]+(--?[0-9]+((x|y)-?[0-9]+)?)?"
+#define ONERANGE_SPEC  "-?[0-9]+(--?[0-9]+((x|y)-?[0-9]+)?)?"
 #define MANYRANGE_SPEC ONERANGE_SPEC "(," ONERANGE_SPEC ")*"
-#define VIEW_SPEC "%[Vv]"
+#define VIEW_SPEC      "%[Vv]"
 #define SEQUENCE_SPEC        \
     "((" MANYRANGE_SPEC ")?" \
     "((#|@)+|(%[0-9]*d)))"   \

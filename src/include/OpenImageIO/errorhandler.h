@@ -51,10 +51,7 @@ public:
         VERBOSE = 2   ///< Like NORMAL, but also show INFO
     };
 
-    ErrorHandler() noexcept
-        : m_verbosity(NORMAL)
-    {
-    }
+    ErrorHandler() noexcept : m_verbosity(NORMAL) {}
     virtual ~ErrorHandler() {}
 
     /// Set desired verbosity level.

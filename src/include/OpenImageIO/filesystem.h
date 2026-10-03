@@ -429,8 +429,7 @@ public:
     enum Mode { Closed = 0, Read = 'r', Write = 'w' };
     IOProxy() {}
     IOProxy(string_view filename, Mode mode)
-        : m_filename(filename)
-        , m_mode(mode)
+        : m_filename(filename), m_mode(mode)
     {
     }
     IOProxy(const std::wstring& filename, Mode mode)
@@ -545,15 +544,10 @@ protected:
 class OIIO_UTIL_API IOVecOutput : public IOProxy {
 public:
     // Construct, IOVecOutput owns its own vector.
-    IOVecOutput()
-        : IOProxy("", IOProxy::Write)
-        , m_buf(m_local_buf)
-    {
-    }
+    IOVecOutput() : IOProxy("", IOProxy::Write), m_buf(m_local_buf) {}
     // Construct to wrap an existing vector.
     IOVecOutput(std::vector<unsigned char>& buf)
-        : IOProxy("", Write)
-        , m_buf(buf)
+        : IOProxy("", Write), m_buf(buf)
     {
     }
     const char* proxytype() const override { return "vecoutput"; }
@@ -578,13 +572,11 @@ protected:
 class OIIO_UTIL_API IOMemReader : public IOProxy {
 public:
     IOMemReader(const void* buf, size_t size)
-        : IOProxy("", Read)
-        , m_buf((const unsigned char*)buf, size)
+        : IOProxy("", Read), m_buf((const unsigned char*)buf, size)
     {
     }
     IOMemReader(cspan<unsigned char> buf)
-        : IOProxy("", Read)
-        , m_buf(buf.data(), buf.size())
+        : IOProxy("", Read), m_buf(buf.data(), buf.size())
     {
     }
     const char* proxytype() const override { return "memreader"; }

@@ -121,9 +121,7 @@ public:
         /// Construct an unordered_map_concurrent iterator that points
         /// to nothing.
         iterator(unordered_map_concurrent* umc = NULL)
-            : m_umc(umc)
-            , m_bin(-1)
-            , m_locked(false)
+            : m_umc(umc), m_bin(-1), m_locked(false)
         {
         }
 

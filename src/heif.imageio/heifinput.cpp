@@ -35,8 +35,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class HeifReader final : public heif::Context::Reader {
 public:
-    HeifReader(Filesystem::IOProxy* ioproxy)
-        : m_ioproxy(ioproxy)
+    HeifReader(Filesystem::IOProxy* ioproxy) : m_ioproxy(ioproxy)
     {
         m_ioproxy->seek(0);
     }

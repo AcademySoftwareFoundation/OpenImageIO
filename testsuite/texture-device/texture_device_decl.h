@@ -114,12 +114,7 @@ public:
     // Managed only functionality
 
     OPT_CONSTRUCT(!IsManager)
-    DTextureSystem()
-        : m_failed(false)
-        , m_texture_count(0)
-        , m_tile_count(0)
-    {
-    }
+    DTextureSystem() : m_failed(false), m_texture_count(0), m_tile_count(0) {}
 
     OPT_CONSTRUCT(!IsManager)
     DTextureSystem(Arena& arena)

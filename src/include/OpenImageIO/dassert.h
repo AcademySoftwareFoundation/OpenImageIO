@@ -33,10 +33,10 @@
 // FAST - Minimal checks that have low performance impact
 // EXTENSIVE - More thorough checks, may impact performance
 // DEBUG - Maximum checks, for debugging purposes
-#define OIIO_HARDENING_NONE 0
-#define OIIO_HARDENING_FAST 1
+#define OIIO_HARDENING_NONE      0
+#define OIIO_HARDENING_FAST      1
 #define OIIO_HARDENING_EXTENSIVE 2
-#define OIIO_HARDENING_DEBUG 3
+#define OIIO_HARDENING_DEBUG     3
 
 // OIIO_HARDENING_DEFAULT defines the default hardening level we actually use.
 // By default, we use FAST for release builds and DEBUG for debug builds. But
@@ -60,9 +60,9 @@
 
 // Choices for what to do when a contract assertion fails.
 // This mimics the C++26 standard's std::contract behavior.
-#define OIIO_ASSERTION_RESPONSE_IGNORE 0
-#define OIIO_ASSERTION_RESPONSE_OBSERVE 1
-#define OIIO_ASSERTION_RESPONSE_ENFORCE 2
+#define OIIO_ASSERTION_RESPONSE_IGNORE        0
+#define OIIO_ASSERTION_RESPONSE_OBSERVE       1
+#define OIIO_ASSERTION_RESPONSE_ENFORCE       2
 #define OIIO_ASSERTION_RESPONSE_QUICK_ENFORCE 3
 
 // OIIO_ASSERTION_RESPONSE_DEFAULT defines the default response to failed
@@ -204,10 +204,10 @@ OIIO_NAMESPACE_END
 /// dependency on this header from a particular place (and don't mind that
 /// assert won't format identically on all platforms).
 #ifndef NDEBUG
-#    define OIIO_DASSERT OIIO_ASSERT
+#    define OIIO_DASSERT     OIIO_ASSERT
 #    define OIIO_DASSERT_MSG OIIO_ASSERT_MSG
 #else
-#    define OIIO_DASSERT(x) ((void)sizeof(x))          /*NOLINT*/
+#    define OIIO_DASSERT(x)          ((void)sizeof(x)) /*NOLINT*/
 #    define OIIO_DASSERT_MSG(x, ...) ((void)sizeof(x)) /*NOLINT*/
 #endif
 

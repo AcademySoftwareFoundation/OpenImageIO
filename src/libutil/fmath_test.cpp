@@ -682,12 +682,7 @@ test_swap_endian()
 struct XYZVector {
     float x, y, z;
     XYZVector() {}
-    XYZVector(float x, float y, float z)
-        : x(x)
-        , y(y)
-        , z(z)
-    {
-    }
+    XYZVector(float x, float y, float z) : x(x), y(y), z(z) {}
 };
 
 // Minimal vector class enclosing an array[3].

@@ -161,18 +161,8 @@ public:
     float val() const { return m_val; }
     float dx() const { return m_dx; }
     float dy() const { return m_dy; }
-    Dual2(float val)
-        : m_val(val)
-        , m_dx(0.0f)
-        , m_dy(0.0f)
-    {
-    }
-    Dual2(float val, float dx, float dy)
-        : m_val(val)
-        , m_dx(dx)
-        , m_dy(dy)
-    {
-    }
+    Dual2(float val) : m_val(val), m_dx(0.0f), m_dy(0.0f) {}
+    Dual2(float val, float dx, float dy) : m_val(val), m_dx(dx), m_dy(dy) {}
     Dual2& operator=(float f)
     {
         m_val = f;

@@ -112,8 +112,7 @@ threads_default()
 
 class thread_pool::Impl {
 public:
-    Impl(int nThreads = 0, int queueSize = 1024)
-        : q(queueSize)
+    Impl(int nThreads = 0, int queueSize = 1024) : q(queueSize)
     {
         this->init();
         this->resize(nThreads);
@@ -363,8 +362,7 @@ private:
 
 
 
-thread_pool::thread_pool(int nthreads)
-    : m_impl(new Impl(nthreads))
+thread_pool::thread_pool(int nthreads) : m_impl(new Impl(nthreads))
 {
     resize(nthreads);
 }

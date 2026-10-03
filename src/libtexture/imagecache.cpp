@@ -310,10 +310,7 @@ has_one_tile(const T& s)
 
 
 LevelInfo::LevelInfo(ImageSpec* spec_, ImageDims* dims_)
-    : m_dims(dims_)
-    , nxtiles(1)
-    , nytiles(1)
-    , nztiles(1)
+    : m_dims(dims_), nxtiles(1), nytiles(1), nztiles(1)
 {
     OIIO_DASSERT(spec_);
     const ImageDims& dims = m_dims ? *m_dims : ImageDims::convert(*spec_);
@@ -1815,9 +1812,7 @@ ImageCacheImpl::set_min_cache_size(long long newsize)
 
 
 
-ImageCacheTile::ImageCacheTile(const TileID& id)
-    : m_id(id)
-    , m_valid(true)
+ImageCacheTile::ImageCacheTile(const TileID& id) : m_id(id), m_valid(true)
 {
     id.file().imagecache().incr_tiles(0);  // mem counted separately in read
 }
@@ -4527,8 +4522,7 @@ ImageCache::impl_deleter(ImageCacheImpl* todel)
 
 
 
-ImageCache::ImageCache()
-    : m_impl(new ImageCacheImpl, &impl_deleter)
+ImageCache::ImageCache() : m_impl(new ImageCacheImpl, &impl_deleter)
 {
 }
 

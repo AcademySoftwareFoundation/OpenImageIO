@@ -182,11 +182,7 @@ private:
         std::vector<exr_pixel_type_t> pixeltype;  ///< Imf pixel type for each chan
         std::vector<int> chanbytes;  ///< Size (in bytes) of each channel
 
-        PartInfo()
-            : initialized(false)
-            , validated(false)
-        {
-        }
+        PartInfo() : initialized(false), validated(false) {}
         PartInfo(const PartInfo& p)
             : initialized((bool)p.initialized)
             , validated((bool)p.validated)
@@ -271,8 +267,7 @@ private:
     public:
         DecoderDestroyer(exr_const_context_t ctx,
                          exr_decode_pipeline_t* decoder)
-            : ctx(ctx)
-            , decoder(decoder) {};
+            : ctx(ctx), decoder(decoder) {};
         ~DecoderDestroyer() { exr_decoding_destroy(ctx, decoder); }
 
     private:
