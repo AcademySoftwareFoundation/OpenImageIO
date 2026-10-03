@@ -41,11 +41,7 @@ public:
     using ElementPtr              = std::add_pointer_t<T>;
 
     tagged_ptr() = default;
-    tagged_ptr(std::nullptr_t)
-        : m_ptr(nullptr)
-        , m_tag(0)
-    {
-    }
+    tagged_ptr(std::nullptr_t) : m_ptr(nullptr), m_tag(0) {}
 
     template<class U,
              class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
@@ -53,17 +49,14 @@ public:
 
     template<class U,
              class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
-    tagged_ptr(U* p, uint64_t tag)
-        : m_ptr(p)
-        , m_tag(tag)
+    tagged_ptr(U* p, uint64_t tag) : m_ptr(p), m_tag(tag)
     {
     }
 
     template<class U,
              class = std::enable_if_t<std::is_convertible<U*, T*>::value>>
     tagged_ptr(const tagged_ptr<U>& other)
-        : m_ptr(other.get())
-        , m_tag(other.tag())
+        : m_ptr(other.get()), m_tag(other.tag())
     {
     }
 
@@ -77,8 +70,7 @@ public:
     }
 
     tagged_ptr(const tagged_ptr<void>& other)
-        : m_ptr(static_cast<T*>(other.get()))
-        , m_tag(other.tag())
+        : m_ptr(static_cast<T*>(other.get())), m_tag(other.tag())
     {
     }
 
@@ -91,8 +83,7 @@ public:
     }
 
     tagged_ptr(const tagged_ptr<const void>& other)
-        : m_ptr(static_cast<T*>(other.get()))
-        , m_tag(other.tag())
+        : m_ptr(static_cast<T*>(other.get())), m_tag(other.tag())
     {
     }
 

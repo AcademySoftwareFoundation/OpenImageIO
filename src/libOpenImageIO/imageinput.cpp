@@ -59,11 +59,7 @@ safe_rows_per_chunk(const ImageSpec& spec)
 
 class ImageInput::Impl {
 public:
-    Impl()
-        : m_id(++input_next_id)
-        , m_threads(OIIO::pvt::oiio_threads)
-    {
-    }
+    Impl() : m_id(++input_next_id), m_threads(OIIO::pvt::oiio_threads) {}
 
     // So we can lock this ImageInput for the thread-safe methods.
     std::recursive_mutex m_mutex;
@@ -108,8 +104,7 @@ ImageInput::operator delete(void* ptr)
 
 
 
-ImageInput::ImageInput()
-    : m_impl(new Impl, impl_deleter)
+ImageInput::ImageInput() : m_impl(new Impl, impl_deleter)
 {
 }
 

@@ -247,11 +247,7 @@ class ScopedTimer {
 public:
     /// Given a reference to a timer, start it when this constructor
     /// occurs.
-    ScopedTimer(Timer& t)
-        : m_timer(t)
-    {
-        start();
-    }
+    ScopedTimer(Timer& t) : m_timer(t) { start(); }
 
     /// Stop the timer from ticking when this object is destroyed (i.e.
     /// it leaves scope).

@@ -248,76 +248,77 @@ oiio_bufinfo::oiio_bufinfo(const oiio_py_buffer_view& pybuf, int nchans,
 
 namespace {
 
-    // Shared image layout → NumPy shape (C-contiguous pixel data).
-    void numpy_image_shape(std::vector<size_t>& shape, int dims, size_t chans,
-                           size_t width, size_t height, size_t depth,
-                           size_t size)
-    {
-        if (dims == 4) {  // volumetric
-            shape.assign({ depth, height, width, chans });
-        } else if (dims == 3 && depth == 1) {  // 2D+channels
-            shape.assign({ height, width, chans });
-        } else if (dims == 2 && depth == 1
-                   && height == 1) {  // 1D (scanline) + channels
-            shape.assign({ width, chans });
-        } else {  // punt -- make it a 1D array
-            shape.assign({ size });
-        }
+// Shared image layout → NumPy shape (C-contiguous pixel data).
+void
+numpy_image_shape(std::vector<size_t>& shape, int dims, size_t chans,
+                  size_t width, size_t height, size_t depth, size_t size)
+{
+    if (dims == 4) {  // volumetric
+        shape.assign({ depth, height, width, chans });
+    } else if (dims == 3 && depth == 1) {  // 2D+channels
+        shape.assign({ height, width, chans });
+    } else if (dims == 2 && depth == 1
+               && height == 1) {  // 1D (scanline) + channels
+        shape.assign({ width, chans });
+    } else {  // punt -- make it a 1D array
+        shape.assign({ size });
     }
+}
 
 
 
-    template<class T>
-    py::object make_numpy_array_t(T* data, int dims, size_t chans, size_t width,
-                                  size_t height, size_t depth)
-    {
-        const size_t size = chans * width * height * depth;
-        T* mem            = data ? data : new T[size];
-        std::vector<size_t> shape;
-        numpy_image_shape(shape, dims, chans, width, height, depth, size);
+template<class T>
+py::object
+make_numpy_array_t(T* data, int dims, size_t chans, size_t width, size_t height,
+                   size_t depth)
+{
+    const size_t size = chans * width * height * depth;
+    T* mem            = data ? data : new T[size];
+    std::vector<size_t> shape;
+    numpy_image_shape(shape, dims, chans, width, height, depth, size);
 #if defined(OIIO_PY_BACKEND_NANOBIND)
-        py::capsule owner(mem, [](void* p) noexcept {
-            delete[] reinterpret_cast<T*>(p);
-        });
-        // nullptr strides → C-contiguous (element strides).
-        return py::cast(py::ndarray<py::numpy, T>(mem, shape.size(),
-                                                  shape.data(), owner),
-                        py::rv_policy::move);
+    py::capsule owner(mem, [](void* p) noexcept {
+        delete[] reinterpret_cast<T*>(p);
+    });
+    // nullptr strides → C-contiguous (element strides).
+    return py::cast(py::ndarray<py::numpy, T>(mem, shape.size(), shape.data(),
+                                              owner),
+                    py::rv_policy::move);
 #else
-        // Create a Python object that will free the allocated memory when
-        // destroyed. Shape-only ctor assumes C-contiguous byte layout.
-        py::capsule free_when_done(mem, [](void* f) {
-            delete[] (reinterpret_cast<T*>(f));
-        });
-        return py::array_t<T>(shape, mem, free_when_done);
+    // Create a Python object that will free the allocated memory when
+    // destroyed. Shape-only ctor assumes C-contiguous byte layout.
+    py::capsule free_when_done(mem, [](void* f) {
+        delete[] (reinterpret_cast<T*>(f));
+    });
+    return py::array_t<T>(shape, mem, free_when_done);
 #endif
-    }
+}
 
 
 
 #if defined(OIIO_PY_BACKEND_NANOBIND)
-    // Build a real numpy float16 array (nanobind has no half dtype).
-    template<>
-    py::object make_numpy_array_t<half>(half* data, int dims, size_t chans,
-                                        size_t width, size_t height,
-                                        size_t depth)
-    {
-        const size_t size = chans * width * height * depth;
-        half* mem         = data ? data : new half[size];
-        std::vector<size_t> shape;
-        numpy_image_shape(shape, dims, chans, width, height, depth, size);
-        py::object np = py::module_::import_("numpy");
-        py::list shape_list;
-        for (size_t d : shape)
-            shape_list.append(d);
-        py::object arr = np.attr("empty")(py::tuple(shape_list), "float16");
-        // Write through a uint16 view of the same buffer.
-        auto u16 = py::cast<py::ndarray<py::numpy, uint16_t>>(
-            arr.attr("view")(np.attr("uint16")));
-        std::memcpy(u16.data(), mem, size * sizeof(half));
-        delete[] mem;
-        return arr;
-    }
+// Build a real numpy float16 array (nanobind has no half dtype).
+template<>
+py::object
+make_numpy_array_t<half>(half* data, int dims, size_t chans, size_t width,
+                         size_t height, size_t depth)
+{
+    const size_t size = chans * width * height * depth;
+    half* mem         = data ? data : new half[size];
+    std::vector<size_t> shape;
+    numpy_image_shape(shape, dims, chans, width, height, depth, size);
+    py::object np = py::module_::import_("numpy");
+    py::list shape_list;
+    for (size_t d : shape)
+        shape_list.append(d);
+    py::object arr = np.attr("empty")(py::tuple(shape_list), "float16");
+    // Write through a uint16 view of the same buffer.
+    auto u16 = py::cast<py::ndarray<py::numpy, uint16_t>>(
+        arr.attr("view")(np.attr("uint16")));
+    std::memcpy(u16.data(), mem, size * sizeof(half));
+    delete[] mem;
+    return arr;
+}
 #endif
 
 }  // namespace

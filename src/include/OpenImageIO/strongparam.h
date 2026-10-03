@@ -94,10 +94,7 @@ OIIO_NAMESPACE_3_1_BEGIN
 
 template<typename Tag, typename Basetype> struct StrongParam {
     // Construct a StrongParam from a Basetype.
-    explicit StrongParam(const Basetype& val)
-        : m_val(val)
-    {
-    }
+    explicit StrongParam(const Basetype& val) : m_val(val) {}
 
     // Allow default simple copy construction
     StrongParam(const StrongParam<Tag, Basetype>& val) = default;

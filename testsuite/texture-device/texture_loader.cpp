@@ -14,11 +14,12 @@ namespace texture_device {
 
 namespace {
 
-    bool loader_error(const std::string& msg)
-    {
-        OIIO::print(stderr, "texture-device: {}\n", msg);
-        return false;
-    }
+bool
+loader_error(const std::string& msg)
+{
+    OIIO::print(stderr, "texture-device: {}\n", msg);
+    return false;
+}
 
 }  // namespace
 

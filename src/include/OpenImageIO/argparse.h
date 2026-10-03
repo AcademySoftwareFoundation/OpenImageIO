@@ -22,7 +22,7 @@
 
 // Define symbols that let client applications determine if newly added
 // features are supported.
-#define OIIO_ARGPARSE_SUPPORTS_BRIEFUSAGE 1
+#define OIIO_ARGPARSE_SUPPORTS_BRIEFUSAGE      1
 #define OIIO_ARGPARSE_SUPPORTS_HUMAN_PARAMNAME 1
 
 OIIO_NAMESPACE_3_1_BEGIN
@@ -197,10 +197,7 @@ public:
     const ArgParse& operator=(const ArgParse&) = delete;
 
     /// Move constructor
-    ArgParse(ArgParse&& other)
-        : m_impl(std::move(other.m_impl))
-    {
-    }
+    ArgParse(ArgParse&& other) : m_impl(std::move(other.m_impl)) {}
 
     /// Set an optional "intro" message, printed first when --help is used
     /// or an error is found in the program arguments.
@@ -425,10 +422,7 @@ public:
     public:
         // Arg constructor. This should only be called by
         // ArgParse::add_argument().
-        Arg(ArgParse& ap)
-            : m_argparse(ap)
-        {
-        }
+        Arg(ArgParse& ap) : m_argparse(ap) {}
         // Disallow copy ctr and assignment
         Arg(const Arg&)                  = delete;
         const Arg& operator=(const Arg&) = delete;

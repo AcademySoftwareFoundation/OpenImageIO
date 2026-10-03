@@ -31,8 +31,7 @@ using namespace ImageBufAlgo;
 
 ImageRec::ImageRec(const std::string& name, int nsubimages,
                    cspan<int> miplevels, cspan<ImageSpec> specs)
-    : m_name(name)
-    , m_elaborated(true)
+    : m_name(name), m_elaborated(true)
 {
     int specnum = 0;
     m_subimages.resize(nsubimages);
@@ -55,9 +54,7 @@ ImageRec::ImageRec(const std::string& name, int nsubimages,
 
 ImageRec::ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
                    bool writable, bool copy_pixels)
-    : m_name(img.name())
-    , m_elaborated(true)
-    , m_imagecache(img.m_imagecache)
+    : m_name(img.name()), m_elaborated(true), m_imagecache(img.m_imagecache)
 {
     img.read();
     if (subimage_to_copy >= img.subimages()) {
@@ -115,9 +112,7 @@ ImageRec::ImageRec(ImageRec& img, int subimage_to_copy, int miplevel_to_copy,
 
 ImageRec::ImageRec(ImageRec& A, ImageRec& B, int subimage_to_copy,
                    WinMerge pixwin, WinMerge fullwin, TypeDesc pixeltype)
-    : m_name(A.name())
-    , m_elaborated(true)
-    , m_imagecache(A.m_imagecache)
+    : m_name(A.name()), m_elaborated(true), m_imagecache(A.m_imagecache)
 {
     A.read();
     B.read();
@@ -171,9 +166,7 @@ ImageRec::ImageRec(ImageRec& A, ImageRec& B, int subimage_to_copy,
 
 
 ImageRec::ImageRec(ImageBufRef img, bool copy_pixels)
-    : m_name(img->name())
-    , m_elaborated(true)
-    , m_imagecache(img->imagecache())
+    : m_name(img->name()), m_elaborated(true), m_imagecache(img->imagecache())
 {
     m_subimages.resize(1);
     m_subimages[0].m_miplevels.resize(1);

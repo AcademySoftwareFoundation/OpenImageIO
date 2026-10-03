@@ -35,10 +35,7 @@ public:
     /// Alias for a shared pointer to a filter
     using ref = std::shared_ptr<const Filter1D>;
 
-    Filter1D(float width)
-        : m_w(width)
-    {
-    }
+    Filter1D(float width) : m_w(width) {}
     virtual ~Filter1D(void) {};
 
     /// Get the width of the filter
@@ -90,11 +87,7 @@ public:
     /// Alias for a shared pointer to a filter
     using ref = std::shared_ptr<const Filter2D>;
 
-    Filter2D(float width, float height)
-        : m_w(width)
-        , m_h(height)
-    {
-    }
+    Filter2D(float width, float height) : m_w(width), m_h(height) {}
     virtual ~Filter2D(void) {};
 
     /// Get the width of the filter

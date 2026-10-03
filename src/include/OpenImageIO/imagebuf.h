@@ -1907,10 +1907,7 @@ public:
         }
         /// Copy constructor.
         ///
-        Iterator(Iterator& i)
-            : IteratorBase(i.m_ib, i.m_wrap, true)
-        {
-        }
+        Iterator(Iterator& i) : IteratorBase(i.m_ib, i.m_wrap, true) {}
 
         ~Iterator() {}
 
@@ -1921,11 +1918,7 @@ public:
         struct IteratorValRef {
             Iterator& it;
             int index;
-            IteratorValRef(Iterator& it, int index)
-                : it(it)
-                , index(index)
-            {
-            }
+            IteratorValRef(Iterator& it, int index) : it(it), index(index) {}
             operator USERT() const { return it.get(index); }
             void operator=(USERT val) { it.set(index, val); }
         };

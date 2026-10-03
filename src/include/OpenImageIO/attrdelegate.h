@@ -83,9 +83,7 @@ template<> struct is_string<std::string> : std::true_type {};
 template<class C> class AttrDelegate {
 public:
     AttrDelegate(C* obj, string_view name)
-        : m_obj(obj)
-        , m_name(name)
-        , m_readonly(std::is_const<C>::value)
+        : m_obj(obj), m_name(name), m_readonly(std::is_const<C>::value)
     {
     }
 

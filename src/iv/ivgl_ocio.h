@@ -56,9 +56,7 @@ private:
 
         UniformDesc(const std::string& name,
                     const GpuShaderDesc::UniformData& data)
-            : m_name(name)
-            , m_data(data)
-            , m_handle(0)
+            : m_name(name), m_data(data), m_handle(0)
         {
         }
     };

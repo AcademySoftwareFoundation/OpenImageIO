@@ -222,9 +222,7 @@ template<typename T> class Vec3Param {
 public:
     /// Construct directly from 3 floats.
     OIIO_HOSTDEVICE constexpr Vec3Param(T x, T y, T z) noexcept
-        : x(x)
-        , y(y)
-        , z(z)
+        : x(x), y(y), z(z)
     {
     }
 
@@ -233,9 +231,7 @@ public:
     /// implicitly convert from an Imath::Vector3<T>, among other things.
     template<typename V, OIIO_ENABLE_IF(has_xyz<V, T>::value)>
     OIIO_HOSTDEVICE constexpr Vec3Param(const V& v) noexcept
-        : x(v.x)
-        , y(v.y)
-        , z(v.z)
+        : x(v.x), y(v.y), z(v.z)
     {
     }
 
@@ -245,9 +241,7 @@ public:
     template<typename V, OIIO_ENABLE_IF(has_subscript_N<V, T, 3>::value
                                         && !has_xyz<V, T>::value)>
     OIIO_HOSTDEVICE constexpr Vec3Param(const V& v) noexcept
-        : x(v[0])
-        , y(v[1])
-        , z(v[2])
+        : x(v[0]), y(v[1]), z(v[2])
     {
     }
 

@@ -61,10 +61,7 @@ private:
 
 class HeifWriter final : public heif::Context::Writer {
 public:
-    HeifWriter(Filesystem::IOProxy* ioproxy)
-        : m_ioproxy(ioproxy)
-    {
-    }
+    HeifWriter(Filesystem::IOProxy* ioproxy) : m_ioproxy(ioproxy) {}
     heif_error write(const void* data, size_t size) override
     {
         heif_error herr { heif_error_Ok, heif_suberror_Unspecified, "" };

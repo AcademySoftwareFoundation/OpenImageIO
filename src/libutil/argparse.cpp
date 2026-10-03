@@ -183,8 +183,7 @@ public:
 // The format may look like this: "%g:FOO", and in that case split
 // the formatting part (e.g. "%g") from the self-documenting
 // human-readable argument name ("FOO")
-ArgOption::ArgOption(ArgParse& ap, const char* argspec)
-    : ArgParse::Arg(ap)
+ArgOption::ArgOption(ArgParse& ap, const char* argspec) : ArgParse::Arg(ap)
 {
     std::vector<std::string> uglyargs;
     auto args = Strutil::splits(argspec, " ");
@@ -400,8 +399,7 @@ ArgOption::set_parameter(int i, const char* argv)
 
 
 
-ArgParse::ArgParse()
-    : m_impl(new Impl(*this, 0, nullptr))
+ArgParse::ArgParse() : m_impl(new Impl(*this, 0, nullptr))
 {
 }
 

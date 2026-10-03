@@ -60,8 +60,7 @@ private:
 
 template<class _CharT, class _Traits>
 inline basic_ifstream<_CharT, _Traits>::basic_ifstream()
-    : std::basic_istream<char_type, traits_type>(0)
-    , __sb_(0)
+    : std::basic_istream<char_type, traits_type>(0), __sb_(0)
 {
 }
 
@@ -69,8 +68,7 @@ inline basic_ifstream<_CharT, _Traits>::basic_ifstream()
 template<class _CharT, class _Traits>
 inline basic_ifstream<_CharT, _Traits>::basic_ifstream(
     const std::wstring& path, std::ios_base::openmode __mode)
-    : std::basic_istream<char_type, traits_type>(0)
-    , __sb_(0)
+    : std::basic_istream<char_type, traits_type>(0), __sb_(0)
 {
     open_internal(path, __mode | std::ios_base::in);
 }
@@ -213,8 +211,7 @@ private:
 
 template<class _CharT, class _Traits>
 inline basic_ofstream<_CharT, _Traits>::basic_ofstream()
-    : std::basic_ostream<char_type, traits_type>(0)
-    , __sb_(0)
+    : std::basic_ostream<char_type, traits_type>(0), __sb_(0)
 {
 }
 
@@ -222,8 +219,7 @@ inline basic_ofstream<_CharT, _Traits>::basic_ofstream()
 template<class _CharT, class _Traits>
 inline basic_ofstream<_CharT, _Traits>::basic_ofstream(
     const std::wstring& path, std::ios_base::openmode __mode)
-    : std::basic_ostream<char_type, traits_type>(0)
-    , __sb_(0)
+    : std::basic_ostream<char_type, traits_type>(0), __sb_(0)
 {
     open_internal(path, __mode | std::ios_base::out);
 }

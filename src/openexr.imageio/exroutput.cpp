@@ -76,8 +76,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 class OpenEXROutputStream final : public Imf::OStream {
 public:
     OpenEXROutputStream(const char* filename, Filesystem::IOProxy* io)
-        : Imf::OStream(filename)
-        , m_io(io)
+        : Imf::OStream(filename), m_io(io)
     {
         if (!io || io->mode() != Filesystem::IOProxy::Write)
             throw Iex::IoExc("File output failed.");
@@ -1255,9 +1254,7 @@ struct ExrMeta {
 
     ExrMeta(const char* oiioname = NULL, const char* exrname = NULL,
             TypeDesc exrtype = TypeDesc::UNKNOWN)
-        : oiioname(oiioname)
-        , exrname(exrname)
-        , exrtype(exrtype)
+        : oiioname(oiioname), exrname(exrname), exrtype(exrtype)
     {
     }
 };

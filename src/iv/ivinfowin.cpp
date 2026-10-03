@@ -18,9 +18,7 @@
 
 
 IvInfoWindow::IvInfoWindow(ImageViewer& viewer, bool visible)
-    : QDialog(&viewer)
-    , m_viewer(viewer)
-    , m_visible(visible)
+    : QDialog(&viewer), m_viewer(viewer), m_visible(visible)
 {
     infoLabel = new QLabel;
     infoLabel->setPalette(viewer.palette());
