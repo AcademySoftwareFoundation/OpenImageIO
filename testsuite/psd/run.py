@@ -50,3 +50,7 @@ command += info_command ("src/crash-chanlen.psd", failureok=True)
 command += info_command ("src/crash-chanlen-psb.psb", failureok=True)
 # Both a normal layer info section and an Lr16 block (used to assert)
 command += info_command ("src/crash-dup-layerinfo.psd", failureok=True)
+# Layer whose data-window origin (top) is huge but small in size, so origin +
+# size overflows the int scanline coordinates used by the read path. Per-layer
+# specs bypass check_open(), so the reader guards the origin itself.
+command += info_command ("src/crash-layer-origin.psd", failureok=True)

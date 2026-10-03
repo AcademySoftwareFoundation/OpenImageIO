@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 
 #include <OpenImageIO/half.h>
 
@@ -1038,9 +1039,17 @@ convert_image(int nchannels, int width, int height, int depth, const void* src,
                 // in both src and dst and we're copying all channels.
                 // Be efficient by converting each scanline as a single
                 // unit.  (Note that within convert_pixel_values, a memcpy
-                // will be used if the formats are identical.)
-                result &= convert_pixel_values(src_type, f, dst_type, t,
-                                               nchannels * width);
+                // will be used if the formats are identical.) A huge row
+                // goes in batches that fit convert_pixel_values' int count.
+                for (int64_t n = int64_t(nchannels) * width; n > 0;) {
+                    int batch = int(
+                        std::min<int64_t>(n, std::numeric_limits<int>::max()));
+                    result &= convert_pixel_values(src_type, f, dst_type, t,
+                                                   batch);
+                    f += batch * stride_t(src_type.size());
+                    t += batch * stride_t(dst_type.size());
+                    n -= batch;
+                }
             } else {
                 // General case -- anything goes with strides.
                 for (int x = 0; x < width; ++x) {
