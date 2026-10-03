@@ -468,8 +468,7 @@ private:
 class ImageRec {
 public:
     ImageRec(const std::string& name, std::shared_ptr<ImageCache> imagecache)
-        : m_name(name)
-        , m_imagecache(imagecache)
+        : m_name(name), m_imagecache(imagecache)
     {
     }
 
@@ -739,9 +738,7 @@ public:
     // Enter scope: start the timer if ot.enable_function_timing is
     // true. Remember the Ot and the name of the function we're timing.
     OTScopedTimer(Oiiotool& ot, string_view name)
-        : m_timer(false)
-        , m_ot(ot)
-        , m_name(name)
+        : m_timer(false), m_ot(ot), m_name(name)
     {
         if (m_ot.enable_function_timing)
             start();

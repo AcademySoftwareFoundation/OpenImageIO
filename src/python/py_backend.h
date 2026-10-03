@@ -21,15 +21,15 @@ namespace py    = nanobind;
 using py_module = nanobind::module_;
 using namespace py::literals;
 
-#    define OIIO_PY_RW def_rw
-#    define OIIO_PY_RO def_ro
+#    define OIIO_PY_RW      def_rw
+#    define OIIO_PY_RO      def_ro
 #    define OIIO_PY_PROP_RO def_prop_ro
 #    define OIIO_PY_PROP_RW def_prop_rw
 // Allow assigning None to a property (nanobind rejects it unless annotated).
 #    define OIIO_PY_PROP_RW_NONE(name, getter, setter) \
         def_prop_rw(name, getter, setter, py::for_setter(py::arg().none()))
 #    define OIIO_PY_RO_STATIC def_prop_ro_static
-#    define OIIO_PY_RO def_ro
+#    define OIIO_PY_RO        def_ro
 
 namespace oiio_py {
 
@@ -113,13 +113,13 @@ namespace py    = pybind11;
 using py_module = pybind11::module;
 using namespace py::literals;
 
-#    define OIIO_PY_RW def_readwrite
-#    define OIIO_PY_RO def_readonly
-#    define OIIO_PY_PROP_RO def_property_readonly
-#    define OIIO_PY_PROP_RW def_property
+#    define OIIO_PY_RW           def_readwrite
+#    define OIIO_PY_RO           def_readonly
+#    define OIIO_PY_PROP_RO      def_property_readonly
+#    define OIIO_PY_PROP_RW      def_property
 #    define OIIO_PY_PROP_RW_NONE def_property
-#    define OIIO_PY_RO_STATIC def_property_readonly_static
-#    define OIIO_PY_RO def_readonly
+#    define OIIO_PY_RO_STATIC    def_property_readonly_static
+#    define OIIO_PY_RO           def_readonly
 
 namespace oiio_py {
 

@@ -698,8 +698,7 @@ ImageBuf::ImageBuf(const ImageBuf& src)
 
 
 
-ImageBuf::ImageBuf(ImageBuf&& src)
-    : m_impl(std::move(src.m_impl))
+ImageBuf::ImageBuf(ImageBuf&& src) : m_impl(std::move(src.m_impl))
 {
 }
 

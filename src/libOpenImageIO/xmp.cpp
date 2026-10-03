@@ -24,7 +24,7 @@ extern "C" {
 #    include <OpenImageIO/detail/pugixml/pugixml.hpp>
 #endif
 
-#define DEBUG_XMP_READ 0
+#define DEBUG_XMP_READ  0
 #define DEBUG_XMP_WRITE 0
 
 #define MY_ENCODING "ISO-8859-1"
@@ -56,10 +56,7 @@ struct XMPtag {
 
     XMPtag(const char* xname, const char* oname, TypeDesc type = TypeUnknown,
            int spec = 0)
-        : xmpname(xname)
-        , oiioname(oname)
-        , oiiotype(type)
-        , special(spec)
+        : xmpname(xname), oiioname(oname), oiiotype(type), special(spec)
     {
     }
 };

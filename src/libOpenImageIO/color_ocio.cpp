@@ -189,10 +189,7 @@ struct CSInfo {
 
     CSInfo(string_view name_, int index_, int flags_ = none,
            string_view canonical_ = "")
-        : name(name_)
-        , index(index_)
-        , m_flags(flags_)
-        , canonical(canonical_)
+        : name(name_), index(index_), m_flags(flags_), canonical(canonical_)
     {
     }
 
@@ -236,10 +233,7 @@ private:
     bool m_config_is_built_in = false;
 
 public:
-    Impl(ColorConfig* self)
-        : m_self(self)
-    {
-    }
+    Impl(ColorConfig* self) : m_self(self) {}
 
     ~Impl()
     {
@@ -1706,8 +1700,7 @@ ocio_bitdepth(TypeDesc type)
 class ColorProcessor_OCIO final : public ColorProcessor {
 public:
     ColorProcessor_OCIO(OCIO::ConstProcessorRcPtr p)
-        : m_p(p)
-        , m_cpuproc(p->getOptimizedCPUProcessor(ocio_optimization))
+        : m_p(p), m_cpuproc(p->getOptimizedCPUProcessor(ocio_optimization))
     {
     }
     ~ColorProcessor_OCIO() override {}
@@ -1744,8 +1737,7 @@ private:
 class ColorProcessor_Matrix final : public ColorProcessor {
 public:
     ColorProcessor_Matrix(const Imath::M44f& Matrix, bool inverse)
-        : ColorProcessor()
-        , m_M(Matrix)
+        : ColorProcessor(), m_M(Matrix)
     {
         if (inverse)
             m_M = m_M.inverse();

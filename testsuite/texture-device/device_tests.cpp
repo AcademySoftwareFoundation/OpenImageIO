@@ -40,9 +40,9 @@ struct DTextureSystemTestAccess {
 
 namespace {
 
-    struct ConstantHash {
-        size_t operator()(uint64_t) const { return 1; }
-    };
+struct ConstantHash {
+    size_t operator()(uint64_t) const { return 1; }
+};
 
 }  // namespace
 

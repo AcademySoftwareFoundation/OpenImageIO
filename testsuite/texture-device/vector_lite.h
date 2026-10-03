@@ -15,11 +15,7 @@ namespace texture_device {
 template<class T, size_t N> struct vector_lite : public std::array<T, N> {
     using Base = std::array<T, N>;
 
-    vector_lite()
-        : Base {}
-        , m_size(0)
-    {
-    }
+    vector_lite() : Base {}, m_size(0) {}
 
     size_t size() const { return m_size; }
     size_t capacity() const { return N; }

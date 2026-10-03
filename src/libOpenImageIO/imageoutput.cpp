@@ -62,11 +62,7 @@ static std::atomic_int64_t output_next_id(0);
 
 class ImageOutput::Impl {
 public:
-    Impl()
-        : m_id(++output_next_id)
-        , m_threads(OIIO::pvt::oiio_threads)
-    {
-    }
+    Impl() : m_id(++output_next_id), m_threads(OIIO::pvt::oiio_threads) {}
 
     // Unneeded?
     //  // So we can lock this ImageOutput for the thread-safe methods.
@@ -110,8 +106,7 @@ ImageOutput::operator delete(void* ptr)
 
 
 
-ImageOutput::ImageOutput()
-    : m_impl(new Impl, impl_deleter)
+ImageOutput::ImageOutput() : m_impl(new Impl, impl_deleter)
 {
 }
 

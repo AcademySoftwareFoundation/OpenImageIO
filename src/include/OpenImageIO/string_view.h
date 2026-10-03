@@ -96,30 +96,23 @@ public:
     static const size_type npos = ~size_type(0);
 
     /// Default constructor.
-    constexpr basic_string_view() noexcept
-        : m_chars(nullptr)
-        , m_len(0)
-    {
-    }
+    constexpr basic_string_view() noexcept : m_chars(nullptr), m_len(0) {}
 
     /// Copy constructor.
     constexpr basic_string_view(const basic_string_view& copy)
-        : m_chars(copy.data())
-        , m_len(copy.size())
+        : m_chars(copy.data()), m_len(copy.size())
     {
     }
 
     /// Construct from char* and length.
     constexpr basic_string_view(const CharT* chars, size_t len) noexcept
-        : m_chars(chars)
-        , m_len(len)
+        : m_chars(chars), m_len(len)
     {
     }
 
     /// Construct from char*, use strlen to determine length.
     constexpr basic_string_view(const CharT* chars) noexcept
-        : m_chars(chars)
-        , m_len(chars ? Traits::length(chars) : 0)
+        : m_chars(chars), m_len(chars ? Traits::length(chars) : 0)
     {
     }
 
@@ -127,8 +120,7 @@ public:
     /// its own copy of the characters, so don't use the `string_view` after
     /// the original string has been destroyed or altered.
     basic_string_view(const string& str) noexcept
-        : m_chars(str.data())
-        , m_len(str.size())
+        : m_chars(str.data()), m_len(str.size())
     {
     }
     // N.B. std::string::size() is constexpr starting with C++20.
@@ -137,8 +129,7 @@ public:
     // Construct from a std::string_view.
     constexpr basic_string_view(
         const std::basic_string_view<CharT, Traits>& sv) noexcept
-        : m_chars(sv.data())
-        , m_len(sv.size())
+        : m_chars(sv.data()), m_len(sv.size())
     {
     }
 #endif
@@ -147,8 +138,7 @@ public:
     // Construct from a std::experimental::string_view.
     constexpr basic_string_view(
         const std::experimental::basic_string_view<CharT, Traits>& sv) noexcept
-        : m_chars(sv.data())
-        , m_len(sv.size())
+        : m_chars(sv.data()), m_len(sv.size())
     {
     }
 #endif
@@ -552,10 +542,7 @@ private:
 
     class traits_eq {
     public:
-        constexpr traits_eq(CharT ch) noexcept
-            : ch(ch)
-        {
-        }
+        constexpr traits_eq(CharT ch) noexcept : ch(ch) {}
         constexpr bool operator()(CharT val) const noexcept
         {
             return traits::eq(ch, val);

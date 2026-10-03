@@ -33,8 +33,7 @@ OIIO_NAMESPACE_3_1_BEGIN
 template<typename T, int StrideUnits = sizeof(T)> class strided_ptr {
 public:
     constexpr strided_ptr(T* ptr = nullptr, ptrdiff_t stride = 1) noexcept
-        : m_ptr(ptr)
-        , m_stride(stride)
+        : m_ptr(ptr), m_stride(stride)
     {
     }
     constexpr strided_ptr(const strided_ptr& p) noexcept

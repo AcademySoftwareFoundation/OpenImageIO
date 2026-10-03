@@ -26,10 +26,10 @@
 
 
 // Feature tests
-#define OIIO_USTRING_HAS_USTRINGHASH 1
+#define OIIO_USTRING_HAS_USTRINGHASH          1
 #define OIIO_USTRING_HAS_CTR_FROM_USTRINGHASH 1
-#define OIIO_USTRING_HAS_STDHASH 1
-#define OIIO_HAS_USTRINGHASH_FORMATTER 1
+#define OIIO_USTRING_HAS_STDHASH              1
+#define OIIO_HAS_USTRINGHASH_FORMATTER        1
 
 
 OIIO_NAMESPACE_3_1_BEGIN
@@ -134,10 +134,7 @@ public:
     using const_reverse_iterator = std::string::const_reverse_iterator;
 
     /// Default ctr for ustring -- make an empty string.
-    constexpr ustring() noexcept
-        : m_chars(nullptr)
-    {
-    }
+    constexpr ustring() noexcept : m_chars(nullptr) {}
 
     /// Construct a ustring from a null-terminated C string (char *).
     explicit ustring(const char* str)
@@ -774,10 +771,7 @@ public:
     using hash_t = ustring::hash_t;  ///< The hash type
 
     // Default constructor
-    OIIO_HOSTDEVICE constexpr ustringhash() noexcept
-        : m_hash(0)
-    {
-    }
+    OIIO_HOSTDEVICE constexpr ustringhash() noexcept : m_hash(0) {}
 
     /// ustringhash destructor.
     ~ustringhash() noexcept = default;
@@ -789,10 +783,7 @@ public:
     ustringhash(ustringhash&& str) noexcept = default;
 
     /// Construct from a ustring
-    ustringhash(const ustring& str) noexcept
-        : m_hash(str.hash())
-    {
-    }
+    ustringhash(const ustring& str) noexcept : m_hash(str.hash()) {}
 
     /// Construct a ustringhash from a null-terminated C string (char *).
     OIIO_DEVICE_CONSTEXPR explicit ustringhash(const char* str)

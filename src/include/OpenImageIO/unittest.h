@@ -34,10 +34,7 @@ namespace pvt {
 
 class UnitTestFailureCounter {
 public:
-    UnitTestFailureCounter() noexcept
-        : m_failures(0)
-    {
-    }
+    UnitTestFailureCounter() noexcept : m_failures(0) {}
     ~UnitTestFailureCounter()
     {
         if (m_failures) {

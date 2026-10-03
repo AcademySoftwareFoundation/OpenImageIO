@@ -184,8 +184,7 @@ private:
 class OpenEXRInputStream final : public Imf::IStream {
 public:
     OpenEXRInputStream(const char* filename, Filesystem::IOProxy* io)
-        : Imf::IStream(filename)
-        , m_io(io)
+        : Imf::IStream(filename), m_io(io)
     {
         if (!io || io->mode() != Filesystem::IOProxy::Read)
             throw Iex::IoExc("File input failed.");
@@ -321,11 +320,7 @@ private:
         std::vector<Imf::PixelType> pixeltype;  ///< Imf pixel type for each chan
         std::vector<int> chanbytes;  ///< Size (in bytes) of each channel
 
-        PartInfo()
-            : initialized(false)
-            , validated(false)
-        {
-        }
+        PartInfo() : initialized(false), validated(false) {}
         PartInfo(const PartInfo& p)
             : initialized((bool)p.initialized)
             , validated((bool)p.validated)
