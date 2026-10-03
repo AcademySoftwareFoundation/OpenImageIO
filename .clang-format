@@ -1,3 +1,7 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
 Language:        Cpp
 BasedOnStyle:  WebKit
 
@@ -8,6 +12,7 @@ AlignConsecutiveAssignments: true
 #AlignConsecutiveBitFields: Consecutive
 AlignConsecutiveDeclarations: false
 #AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: true
 AlignEscapedNewlines: Left
 AlignOperands:   true
 AlignTrailingComments: true
@@ -55,7 +60,7 @@ BreakStringLiterals: false
 ColumnLimit:     80
 CommentPragmas:  '^ IWYU pragma:'
 CompactNamespaces: false
-ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
 Cpp11BracedListStyle: false
@@ -90,7 +95,8 @@ KeepEmptyLines:
 MacroBlockBegin: ''
 MacroBlockEnd:   ''
 MaxEmptyLinesToKeep: 3
-NamespaceIndentation: Inner
+NamespaceIndentation: None
+#NamespaceIndentation: Inner
 ObjCBinPackProtocolList: Auto
 ObjCBlockIndentWidth: 4
 ObjCSpaceAfterProperty: true
@@ -106,7 +112,6 @@ PenaltyReturnTypeOnItsOwnLine: 50
 PointerAlignment: Left
 ReflowComments:  false
 RemoveEmptyLinesInUnwrappedLines: true
-SkipMacroDefinitionBody: true
 SortIncludes:    true
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: false
@@ -127,12 +132,12 @@ SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 Standard:        c++17
-StatementMacros: 
+StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
 TabWidth:        8
 #TemplateNames:
-#TypeNames: 
+#TypeNames:
 UseTab:          Never
 #...
 
