@@ -1,0 +1,21 @@
+Frames read in order all differ: True
+
+Testing out of order seeks:
+  seek to subimage 2 ok: True  on subimage: 2  pixels match: True
+  seek to subimage 0 ok: True  on subimage: 0  pixels match: True
+  seek to subimage 3 ok: True  on subimage: 3  pixels match: True
+  seek to subimage 1 ok: True  on subimage: 1  pixels match: True
+  seek to subimage 3 ok: True  on subimage: 3  pixels match: True
+  seek to subimage 0 ok: True  on subimage: 0  pixels match: True
+
+Testing seek past the last subimage:
+  seek to subimage 4 rejected: True
+  not left on that subimage: True
+  still rejected when repeated: True
+
+Testing seeks after a failed seek:
+  seek to subimage 1 ok: True  on subimage: 1  pixels match: True
+  seek to subimage 3 ok: True  on subimage: 3  pixels match: True
+  seek to subimage 0 ok: True  on subimage: 0  pixels match: True
+
+Done.
