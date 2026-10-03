@@ -1716,19 +1716,6 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
         }
         return false;
     }
-    if (OIIO::pvt::limit_imagesize_MB
-        && spec.image_bytes(true)
-               > OIIO::pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
-        errorfmt(
-            "Uncompressed image size {:.1f} MB exceeds the {} MB limit.\n"
-            "Image claimed to be {}x{}, {}-channel {}. Possible corrupt input?\n"
-            "If this is a valid file, raise the OIIO attribute \"limits:imagesize_MB\".",
-            float(spec.image_bytes(true)) / float(1024 * 1024),
-            OIIO::pvt::limit_imagesize_MB, spec.width, spec.height,
-            spec.nchannels, spec.format);
-        return false;
-    }
-
     // Check for sensible tile sizes. A tile dimension of 0 means "not
     // tiled", which is always fine; only reject negative sizes and tile
     // dimensions that exceed the same per-format ceiling already applied
@@ -1745,6 +1732,19 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
             "{} tile size may not exceed {}x{}x{}, but was {}x{}x{}. Possible corrupt input?",
             format_name(), range.width(), range.height(), range.depth(),
             spec.tile_width, spec.tile_height, spec.tile_depth);
+        return false;
+    }
+
+    // Also apply the resolution limit to tiles, so a bogus tile size can't
+    // trigger a huge allocation for a modest image.
+    if (spec.tile_width && OIIO::pvt::limit_resolution
+        && (spec.tile_width > OIIO::pvt::limit_resolution
+            || spec.tile_height > OIIO::pvt::limit_resolution
+            || spec.tile_depth > OIIO::pvt::limit_resolution)) {
+        errorfmt(
+            "{} tile size {}x{}x{} exceeds \"limits:resolution\" = {} for a single dimension. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:resolution\".",
+            format_name(), spec.tile_width, spec.tile_height, spec.tile_depth,
+            OIIO::pvt::limit_resolution);
         return false;
     }
 
@@ -1771,6 +1771,42 @@ ImageInput::check_open(const ImageSpec& spec, ROI range, uint64_t /*flags*/)
                 "{} image full/display resolution may not exceed {}x{}, but the file appears to be {}x{}. Possible corrupt input?",
                 format_name(), range.width(), range.height(), spec.full_width,
                 spec.full_height);
+        return false;
+    }
+    if (OIIO::pvt::limit_resolution
+        && (spec.full_width > OIIO::pvt::limit_resolution
+            || spec.full_height > OIIO::pvt::limit_resolution
+            || spec.full_depth > OIIO::pvt::limit_resolution)) {
+        errorfmt(
+            "{} image full/display resolution {}x{}x{} exceeds \"limits:resolution\" = {} for a single dimension. Possible corrupt input?\nIf you're sure this is a valid file, raise the OIIO global attribute \"limits:resolution\".",
+            format_name(), spec.full_width, spec.full_height, spec.full_depth,
+            OIIO::pvt::limit_resolution);
+        return false;
+    }
+
+    // Memory-size checks go last. The default "limits:imagesize_MB" depends
+    // on the machine's physical memory, so doing the deterministic checks
+    // first ensures a corrupt file fails the same way on every machine.
+    if (OIIO::pvt::limit_imagesize_MB
+        && spec.image_bytes(true)
+               > OIIO::pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
+        errorfmt(
+            "Uncompressed image size {:.1f} MB exceeds the {} MB limit.\n"
+            "Image claimed to be {}x{}, {}-channel {}. Possible corrupt input?\n"
+            "If this is a valid file, raise the OIIO attribute \"limits:imagesize_MB\".",
+            float(spec.image_bytes(true)) / float(1024 * 1024),
+            OIIO::pvt::limit_imagesize_MB, spec.width, spec.height,
+            spec.nchannels, spec.format);
+        return false;
+    }
+    if (spec.tile_width && OIIO::pvt::limit_imagesize_MB
+        && spec.tile_bytes(true)
+               > OIIO::pvt::limit_imagesize_MB * imagesize_t(1024 * 1024)) {
+        errorfmt(
+            "{} tile size {}x{}x{}x{} exceeds the {} MB limit. Possible corrupt input?\n"
+            "If this is a valid file, raise the OIIO attribute \"limits:imagesize_MB\".",
+            format_name(), spec.tile_width, spec.tile_height, spec.tile_depth,
+            spec.format, OIIO::pvt::limit_imagesize_MB);
         return false;
     }
     return true;  // all is ok
