@@ -171,7 +171,7 @@ jobs:
           #   setenvs: export PUGIXML_VERSION=v1.15
           #                   BUILD_SHARED_LIBS=OFF
           #   optional_deps_append: "Qt6"
-          - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4 qt5.15
+          - desc: VFX2025 icx/C++17 py3.11 exr3.3 ocio2.4
             nametag: linux-vfx2025.icx
             runner: ubuntu-latest
             container: aswf/ci-oiio:2025.8
@@ -363,7 +363,7 @@ jobs:
                             CLANG_FORMAT_EXE=clang-format-22
                             EXTRA_DEP_PACKAGES="clang-format-22"
 
-          - desc: latest releases gcc15 C++23 py3.12 avx2 exr3.5 ocio2.4
+          - desc: latest releases gcc15 C++23 py3.12 avx2 exr3.5 ocio2.6
             nametag: linux-latest-releases
             runner: ubuntu-24.04
             # cc_compiler: gcc-13
@@ -371,7 +371,7 @@ jobs:
             cxx_std: 23
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
-            opencolorio_ver: v2.5.2
+            opencolorio_ver: v2.6.0
             openexr_ver: v3.5.2
             pybind11_ver: v3.1.0
             python_ver: "3.12"
@@ -380,11 +380,11 @@ jobs:
             gcc_action_ver: 15
             setenvs: export OIIO_CC=gcc-15 OIIO_CXX=g++-15
                             LIBJPEGTURBO_VERSION=3.2.0
-                            LIBPNG_VERSION=v1.6.58
+                            LIBPNG_VERSION=v1.6.59
                             LIBRAW_VERSION=0.22.2
                             LIBTIFF_VERSION=v4.7.2
                             OPENJPEG_VERSION=v2.5.4
-                            PTEX_VERSION=v2.5.2
+                            PTEX_VERSION=v2.5.4
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
                             FREETYPE_VERSION=VER-2-14-3
@@ -394,8 +394,8 @@ jobs:
                             libuhdr_CMAKE_C_COMPILER=gcc
                             libuhdr_CMAKE_CXX_COMPILER=g++
                             OPENCOLORIO_CXX=c++
-                            nanobind_GIT_TAG=v3.0.0
-                            nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
+                            nanobind_GIT_TAG=v3.1.0
+                            nanobind_GIT_COMMIT=68480a9e6883bb1bf65e1925423321e2a89d07f9
             # Ensure we are testing all the deps we think we are. We would
             # like this test to have minimal missing dependencies.
             required_deps: all
@@ -474,7 +474,7 @@ jobs:
             setenvs: export USE_OPENVDB=0
                             openjph_CMAKE_C_COMPILER=gcc
                             openjph_CMAKE_CXX_COMPILER=g++
-          - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.5 ocio2.4
+          - desc: Linux ARM latest releases gcc14 C++20 py3.12 exr3.5 ocio2.6
             nametag: linux-arm-latest-releases
             runner: ubuntu-24.04-arm
             cc_compiler: gcc-14
@@ -482,28 +482,28 @@ jobs:
             cxx_std: 20
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
-            opencolorio_ver: v2.5.2
+            opencolorio_ver: v2.6.0
             openexr_ver: v3.5.2
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
             setenvs: export LIBJPEGTURBO_VERSION=3.2.0
-                            LIBPNG_VERSION=v1.6.58
+                            LIBPNG_VERSION=v1.6.59
                             LIBRAW_VERSION=0.22.2
                             LIBTIFF_VERSION=v4.7.2
                             OPENJPEG_VERSION=v2.5.4
-                            PTEX_VERSION=v2.5.2
+                            PTEX_VERSION=v2.5.4
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
                             FREETYPE_VERSION=VER-2-14-3
                             USE_OPENVDB=0
-                            nanobind_GIT_TAG=v3.0.0
-                            nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
+                            nanobind_GIT_TAG=v3.1.0
+                            nanobind_GIT_COMMIT=68480a9e6883bb1bf65e1925423321e2a89d07f9
                             libuhdr_GIT_TAG=v2.0.2
                             libuhdr_GIT_COMMIT=e5f5a022fe96fc4dc2ee35c19f733a50df807abe
                             libuhdr_CMAKE_C_COMPILER=gcc
                             libuhdr_CMAKE_CXX_COMPILER=g++
-          - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.5 ocio2.4
+          - desc: Linux ARM latest releases clang18 C++20 py3.12 exr3.5 ocio2.6
             nametag: linux-arm-latest-releases-clang
             runner: ubuntu-24.04-arm
             cc_compiler: clang-18
@@ -511,23 +511,23 @@ jobs:
             cxx_std: 20
             fmt_ver: 12.2.0
             fmt_commit: 1be298e1bd68957e4cd352e1f676f00e07dcfb57
-            opencolorio_ver: v2.5.2
+            opencolorio_ver: v2.6.0
             openexr_ver: v3.5.2
             pybind11_ver: v3.1.0
             python_ver: "3.12"
             oiio_python_bindings_backend: both
             setenvs: export LIBJPEGTURBO_VERSION=3.2.0
-                            LIBPNG_VERSION=v1.6.58
+                            LIBPNG_VERSION=v1.6.59
                             LIBRAW_VERSION=0.22.2
                             LIBTIFF_VERSION=v4.7.2
                             OPENJPEG_VERSION=v2.5.4
-                            PTEX_VERSION=v2.5.2
+                            PTEX_VERSION=v2.5.4
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
                             FREETYPE_VERSION=VER-2-14-3
                             USE_OPENVDB=0
-                            nanobind_GIT_TAG=v3.0.0
-                            nanobind_GIT_COMMIT=1bd3139721d6176dfb10979b7219ccb58ef8aafa
+                            nanobind_GIT_TAG=v3.1.0
+                            nanobind_GIT_COMMIT=68480a9e6883bb1bf65e1925423321e2a89d07f9
                             libuhdr_GIT_TAG=v2.0.2
                             libuhdr_GIT_COMMIT=e5f5a022fe96fc4dc2ee35c19f733a50df807abe
                             libuhdr_CMAKE_C_COMPILER=gcc
@@ -535,6 +535,10 @@ jobs:
 
           - desc: oldest gcc9/C++17 py3.9 exr3.1 ocio2.3
             # Oldest gcc and versions of the dependencies that we support.
+            # Caveats: many optional deps (ffmpeg, TBB, OpenCV, giflib,
+            # libheif, OpenJPEG, zlib, ...) are whatever Ubuntu 22.04 ships,
+            # not their minimums, and libpng and libjpeg-turbo are not at
+            # their minimums.
             nametag: linux-oldest-ubuntu
             runner: ubuntu-22.04
             cc_compiler: gcc-9
@@ -553,7 +557,6 @@ jobs:
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
                              PUGIXML_VERSION=v1.11
-                             BUILD_PNG_VERSION=1.6.0
                              PIP_SUFFIX=.9
                              PIP_INSTALLS=numpy
                              Robinmap_BUILD_VERSION=1.3.0
@@ -572,6 +575,10 @@ jobs:
             build_local_deps: 'TIFF'
           - desc: oldest clang11/C++17 py3.9 exr3.1 ocio2.3
             # Oldest clang and versions of the dependencies that we support.
+            # Caveats: many optional deps (ffmpeg, TBB, OpenCV, giflib,
+            # libheif, OpenJPEG, zlib, ...) are whatever Ubuntu 22.04 ships,
+            # not their minimums, libpng and libjpeg-turbo are not at their
+            # minimums.
             # Deliberately sets no `simd`, so that this job exercises the
             # default SIMD level for x86_64 (x86-64-v2). Please leave it unset.
             nametag: linux-oldest-clang-ubuntu
@@ -590,7 +597,6 @@ jobs:
                             PTEX_VERSION=v2.3.2
                             WEBP_VERSION=v1.1.0
                             PUGIXML_VERSION=v1.11
-                            BUILD_PNG_VERSION=1.6.0
                             PIP_SUFFIX=.9
                             PIP_INSTALLS=numpy
                             OIIO_CC=clang
@@ -604,15 +610,22 @@ jobs:
                             LIBRAW_VERSION=0.21.0
                             nanobind_GIT_TAG=v2.8.0
                             nanobind_GIT_COMMIT=0e7aa61a75052034453cd2b906a79fe222792697
+                            libuhdr_BUILD_VERSION=1.3.0
+                            libuhdr_GIT_TAG=v1.3.0
+                            libuhdr_GIT_COMMIT=2222dad8f259fbadd08a481953f1791cbc8f975d
+                            libuhdr_CMAKE_C_COMPILER=gcc
+                            libuhdr_CMAKE_CXX_COMPILER=g++
                             #  OpenJPEG_BUILD_VERSION=2.2.0
                             #  OpenJPEG_GIT_COMMIT=3d7cde5fc9fbc5618d02160900d32e02ed12a00e
             optional_deps_append: 'FFmpeg;LibRaw;Ptex;Qt6'
             build_local_deps: 'TIFF'
 
           - desc: hobbled gcc9/C++17 py3.9 exr-3.1 no-sse
-            # Use the oldest supported versions of required dependencies, and
-            # disable most optional dependencies and features (no SSE or
-            # OpenCV, don't embed plugins).
+            # Use the oldest supported versions of most required dependencies
+            # (but not libpng, which is the system 1.6.37), and disable
+            # most optional dependencies and features (no SSE, OpenCV, or
+            # libjpeg-turbo, so it uses the system libjpeg; don't embed
+            # plugins).
             nametag: linux-hobbled-ubuntu
             runner: ubuntu-22.04
             cc_compiler: gcc-9
@@ -632,12 +645,11 @@ jobs:
                              CMAKE_VERSION=3.23.0
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
-                             USE_JPEGTURBO=0
+                             OIIO_CMAKE_FLAGS="-DUSE_libjpeg-turbo=0"
                              USE_OPENCV=0
                              USE_LIBUHDR=0
                              FREETYPE_VERSION=VER-2-10-0
                              PUGIXML_VERSION=v1.11
-                             BUILD_PNG_VERSION=1.6.0
                              PIP_SUFFIX=.9
                              PIP_INSTALLS=numpy
                              Robinmap_BUILD_VERSION=1.3.0
@@ -694,7 +706,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: MacOS-15-Intel aclang17/C++17/py3.13
+          - desc: MacOS-15-Intel aclang17/C++17/py3.14
             runner: macos-15-intel
             nametag: MacOS-15-Intel
             cc_compiler: /usr/bin/clang
@@ -708,7 +720,7 @@ jobs:
                             INSTALL_QT=0 INSTALL_OPENCV=0 INSTALL_OPENVDB=0
             optional_deps_append: 'OpenCV;OpenVDB;Qt5;Qt6'
             benchmark: 1
-          - desc: MacOS-15-ARM aclang16/C++20/py3.13
+          - desc: MacOS-15-ARM aclang17/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313
             cc_compiler: /usr/bin/clang
@@ -717,9 +729,9 @@ jobs:
             python_ver: "3.13"
             oiio_python_bindings_backend: nanobind
             benchmark: 1
-          - desc: MacOS-26-ARM aclang16/C++20/py3.14
+          - desc: MacOS-26-ARM aclang21/C++20/py3.14
             runner: macos-26
-            nametag: macos26-arm-py313
+            nametag: macos26-arm-py314
             cc_compiler: /usr/bin/clang
             cxx_compiler: /usr/bin/clang++
             cxx_std: 20

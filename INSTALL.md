@@ -27,7 +27,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * libTIFF >= 4.1 (tested through 4.7 and master)
  * OpenColorIO >= 2.3 (tested through 2.6 and main)
  * libjpeg >= 9 (tested through jpeg-10), or libjpeg-turbo >= 2.1 (tested
-   through 3.2)
+   through 3.2 and main)
  * zlib >= 1.2.7 (tested through 1.3.2)
  * [fmtlib](https://github.com/fmtlib/fmt) >= 9.0 (tested through 12.2 and master).
    If not found at build time, this will be automatically downloaded and built.
@@ -42,25 +42,25 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 3.9 (tested through 3.14).
-     * [nanobind](https://github.com/wjakob/nanobind) >= 2.8 (tested through 2.13),
+     * [nanobind](https://github.com/wjakob/nanobind) >= 2.8 (tested through 3.0 and master),
        if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to either
        `nanobind` or `both`.  If not found at build time, nanobind will be
        automatically downloaded and built.
      * [pybind11](https://github.com/pybind/pybind11) >= 2.7 (tested through
-       3.1), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
+       3.1 and master), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
        either `pybind11` or `both`.
-     * NumPy (tested through 2.4.4)
+     * NumPy (tested through 2.5.3)
  * If you want support for PNG files:
-     * libPNG >= 1.6.0 (tested though 1.6.58)
+     * libPNG >= 1.6.0 (tested though 1.6.59 and master)
  * If you want support for camera "RAW" formats:
      * LibRaw >= 0.21.0 (tested though 0.22.2 and master; minimum of 0.21.3 recommended for security reasons)
  * If you want support for a wide variety of video formats:
      * ffmpeg >= 4.0 (tested through 9.0)
  * If you want support for jpeg 2000 images:
-     * OpenJpeg >= 2.0 (tested through 2.5.4; we recommend 2.4 or higher
+     * OpenJpeg >= 2.0 (tested through 2.5.4 and master; we recommend 2.4 or higher
        for multithreading support)
  * If you want support for OpenVDB files:
-     * OpenVDB >= 9.0 (tested through 13.0).
+     * OpenVDB >= 9.0 (tested through 13.1).
  * If you want to use TBB as the thread pool:
      * TBB >= 2018 (tested through 2021 and OneTBB 2023.1)
  * If you want support for converting to and from OpenCV data structures,
@@ -70,27 +70,27 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 5.0 (tested through 6.1.3)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support and
-       1.17 required for monochrome HEIC support; tested through 1.23.1)
+       1.17 required for monochrome HEIC support; tested through 1.23.5)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.2 (tested through 3.7.0)
  * If you want support for WebP images:
-     * WebP >= 1.1 (tested through 1.6)
+     * WebP >= 1.1 (tested through 1.6 and main)
  * If you want support for Ptex:
-     * Ptex >= 2.3.1 (probably works for older; tested through 2.5)
+     * Ptex >= 2.3.1 (probably works for older; tested through 2.5 and main)
  * If you want to be able to do font rendering into images:
-     * Freetype >= 2.10.0 (tested through 2.14)
+     * Freetype >= 2.10.0 (tested through 2.14 and master)
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
-     * libultrahdr >= 1.3 (tested through 2.0.2)
+     * libultrahdr >= 1.3 (tested through 2.0.2 and main)
  * If you want support for JPEG XL images:
      * libjxl >= 0.10.1 (tested through 0.12.0)
  * If you want support for j2c files:
-     * OpenJPH >= 0.21.2 (tested through 0.31)
+     * OpenJPH >= 0.21.2 (tested through 0.32)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
    embedding other projects), then just build with `-DUSE_EXTERNAL_PUGIXML=1`.
-   Any PugiXML >= 1.11 should be fine (we have tested through 1.16).
+   Any PugiXML >= 1.11 should be fine (we have tested through 1.16 and master).
 
 
 
