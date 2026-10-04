@@ -81,6 +81,14 @@ OIIO_TESTSUITE_IMAGEDIR = make_relpath(OIIO_TESTSUITE_IMAGEDIR)
 # Set it back so tests can use it (python-imagebufalgo)
 os.putenv('OIIO_TESTSUITE_IMAGEDIR', OIIO_TESTSUITE_IMAGEDIR)
 
+# The default "limits:imagesize_MB" depends on physical memory. Pin it so
+# that corrupt-file tests fail the same way on every machine, including
+# low-memory CI runners. Tests may still override it.
+_oiio_opts = os.environ.get('OPENIMAGEIO_OPTIONS', '')
+if 'limits:imagesize_MB' not in _oiio_opts :
+    os.environ['OPENIMAGEIO_OPTIONS'] = ','.join(
+        filter(None, [_oiio_opts, 'limits:imagesize_MB=32768']))
+
 refdir = "ref/"
 refdirlist = [ refdir ]
 mytest = os.path.split(os.path.abspath(os.getcwd()))[-1]
