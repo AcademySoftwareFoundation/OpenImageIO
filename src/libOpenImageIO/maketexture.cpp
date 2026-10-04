@@ -1844,16 +1844,23 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
                         "  Copying for format conversion from {} to {}\n",
                         src->spec().format, dstspec.format);
         toplevel.reset(new ImageBuf(dstspec));
-        toplevel->copy_pixels(*src);
+        if (toplevel->has_error() || !toplevel->copy_pixels(*src)) {
+            errorfmt("{}", toplevel->geterror());
+            return false;
+        }
     } else {
         // Resize
         if (verbose)
             OIIO::print(outstream, "  Resizing image to {} x {}\n",
                         dstspec.width, dstspec.height);
+        toplevel.reset(new ImageBuf(dstspec));
+        if (toplevel->has_error()) {
+            errorfmt("{}", toplevel->geterror());
+            return false;
+        }
         string_view resize_filter(filtername);
         if (Strutil::istarts_with(resize_filter, "unsharp-"))
             resize_filter = "lanczos3";
-        toplevel.reset(new ImageBuf(dstspec));
         if ((resize_filter == "box" || resize_filter == "triangle")
             && !orig_was_overscan) {
             ImageBufAlgo::parallel_image(get_roi(dstspec), nthreads,

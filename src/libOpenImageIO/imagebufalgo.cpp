@@ -60,6 +60,22 @@
 OIIO_NAMESPACE_3_1_BEGIN
 
 
+// A local-buffer ImageBuf whose allocation failed has no pixel memory, and
+// must not be written to.
+static bool
+has_local_storage(ImageBuf& dst)
+{
+    if (dst.storage() == ImageBuf::LOCALBUFFER && !dst.deep()
+        && !dst.localpixels() && dst.spec().image_bytes()) {
+        if (!dst.has_error())
+            dst.errorfmt("ImageBuf has no allocated pixel memory");
+        return false;
+    }
+    return true;
+}
+
+
+
 bool
 ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
                       const ImageBuf* B, const ImageBuf* C,
@@ -115,6 +131,8 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         // to fully read it into allocated memory so that we're able
         // to write to it subsequently.
         dst->make_writable(true);
+        if (!has_local_storage(*dst))
+            return false;
         // Whatever we're about to do to the image, it is almost certain
         // to make any thumbnail wrong, so just clear it.
         dst->clear_thumbnail();
@@ -258,6 +276,8 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         dst->reset(spec, (prepflags & IBAprep_FILL_ZERO_ALLOC)
                              ? InitializePixels::Yes
                              : InitializePixels::No);
+        if (!has_local_storage(*dst))
+            return false;
 
         // If we just allocated more channels than the caller will write,
         // clear the extra channels.

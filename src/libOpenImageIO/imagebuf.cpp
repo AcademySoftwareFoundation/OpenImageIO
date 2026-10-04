@@ -625,7 +625,7 @@ ImageBuf::ImageBuf(const ImageSpec& spec, InitializePixels zero)
 {
     m_impl->alloc(spec);
     // N.B. alloc will set m_bufspan
-    if (zero == InitializePixels::Yes && !deep())
+    if (zero == InitializePixels::Yes && !deep() && localpixels())
         ImageBufAlgo::zero(*this);
 }
 
@@ -995,7 +995,7 @@ void
 ImageBuf::reset(const ImageSpec& spec, InitializePixels zero)
 {
     m_impl->reset("", spec);
-    if (zero == InitializePixels::Yes && !deep())
+    if (zero == InitializePixels::Yes && !deep() && localpixels())
         ImageBufAlgo::zero(*this);
 }
 
