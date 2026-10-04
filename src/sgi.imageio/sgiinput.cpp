@@ -293,6 +293,10 @@ SgiInput::uncompress_rle_channel(int64_t scanline_off, int64_t scanline_len,
             }
             // If the high bit is zero, we copy the NEXT value, count times
             else {
+                if (i >= scanline_len) {
+                    errorfmt("Corrupt RLE data");
+                    return false;
+                }
                 value = rle_scanline[i++];
                 while (count--) {
                     if (limit <= 0) {
