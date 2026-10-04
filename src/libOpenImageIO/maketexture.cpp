@@ -1853,14 +1853,14 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
         if (verbose)
             OIIO::print(outstream, "  Resizing image to {} x {}\n",
                         dstspec.width, dstspec.height);
-        string_view resize_filter(filtername);
-        if (Strutil::istarts_with(resize_filter, "unsharp-"))
-            resize_filter = "lanczos3";
         toplevel.reset(new ImageBuf(dstspec));
         if (toplevel->has_error()) {
             errorfmt("{}", toplevel->geterror());
             return false;
         }
+        string_view resize_filter(filtername);
+        if (Strutil::istarts_with(resize_filter, "unsharp-"))
+            resize_filter = "lanczos3";
         if ((resize_filter == "box" || resize_filter == "triangle")
             && !orig_was_overscan) {
             ImageBufAlgo::parallel_image(get_roi(dstspec), nthreads,
