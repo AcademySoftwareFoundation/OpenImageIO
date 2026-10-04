@@ -16,3 +16,12 @@ command += oiiotool("-oiioattrib openexr:core 0 --info -v src/bomb.exr",
                     failureok=True)
 command += oiiotool("-oiioattrib openexr:core 1 --info -v src/bomb.exr",
                     failureok=True)
+
+# Headers with a sane data window but an absurd tile size or display window
+# must also be rejected at open, not trigger an enormous allocation later
+# when reading tiles or making a full-window buffer (#5506).
+for f in ["src/bigtile.exr", "src/bigdisplay.exr"]:
+    command += oiiotool("-oiioattrib openexr:core 0 --info -v " + f,
+                        failureok=True)
+    command += oiiotool("-oiioattrib openexr:core 1 --info -v " + f,
+                        failureok=True)

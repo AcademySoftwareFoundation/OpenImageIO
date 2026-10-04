@@ -35,7 +35,7 @@ outputs = [
 ]
 
 # OpenEXRInputCore is not supported yet. TODO: update this once it's implemented.
-if os.environ.get("OPENIMAGEIO_OPTIONS") == "openexr:core=1":
+if "openexr:core=1" in os.environ.get("OPENIMAGEIO_OPTIONS", ""):
     outputs = []
 
 #print "Running this command:\n" + command + "\n"
