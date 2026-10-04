@@ -14,6 +14,7 @@ on:
       - '*fuzz*'
     paths:
       - 'src/**'
+      - '!src/doc/**'
       - '.github/workflows/fuzz.yml'
       - '.github/workflows/build-steps.yml'
   pull_request:
