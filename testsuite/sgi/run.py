@@ -33,3 +33,7 @@ command += info_command ("--stats src/broken_rle16_len1.sgi",
 # any large allocation.
 command += info_command ("--stats src/bomb-65535.sgi",
                          info_program="iinfo", failureok=True)
+# broken_rle8_run.sgi is an 8 bit RLE file whose scanline ends with a run
+# count byte but no value byte.
+command += info_command ("--stats src/broken_rle8_run.sgi",
+                         info_program="iinfo", failureok=True)
