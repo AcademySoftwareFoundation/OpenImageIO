@@ -3128,6 +3128,7 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
     // occurred.
     // Only an existing "Exif:ColorSpace" needs the config, to judge sRGB.
     if (spec.find_attribute("Exif:ColorSpace")
+        && colorspace != "srgb_rec709_scene"
         && !equivalent(colorspace, "srgb_rec709_scene"))
         spec.erase_attribute("Exif:ColorSpace");
     spec.erase_attribute("tiff:ColorSpace");

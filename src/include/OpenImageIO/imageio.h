@@ -893,8 +893,8 @@ public:
     /// nothing about the color space if `name` is empty). The core operation
     /// is to set the "oiio:ColorSpace" attribute, but it also removes or
     /// alters several other attributes that may hint color space in ways that
-    /// might be contradictory or no longer true. Like the free function
-    /// `set_colorspace()`, it loads the default color config only if needed.
+    /// might be contradictory or no longer true. The default color config is
+    /// only loaded if it is needed.
     ///
     /// @version 2.5
     void set_colorspace(string_view name);
@@ -4383,10 +4383,7 @@ inline string_view get_string_attribute (string_view name,
 /// operation is to set the "oiio:ColorSpace" attribute, but it also removes
 /// or alters several other attributes that may hint color space in ways that
 /// might be contradictory or no longer true. This uses the current default
-/// color config to adjudicate color space name equivalencies, but only
-/// when it must: if `spec` has an "Exif:ColorSpace" attribute and `name`
-/// is not "srgb_rec709_scene", to decide whether `name` is equivalent to
-/// sRGB. Otherwise, no color config is loaded.
+/// color config to adjudicate color space name equivalencies.
 ///
 /// @version 3.0
 OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
@@ -4394,9 +4391,9 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 /// Set the metadata of the `spec` to reflect Rec709 color primaries and the
 /// given gamma. The core operation is to set the "oiio:ColorSpace" attribute,
 /// but it also removes or alters several other attributes that may hint color
-/// space in ways that might be contradictory or no longer true. As with
-/// `set_colorspace()`, the default color config is loaded only if `spec`
-/// has an "Exif:ColorSpace" attribute.
+/// space in ways that might be contradictory or no longer true. This uses the
+/// current default color config to adjudicate color space name equivalencies.
+/// The default color config is only loaded if it is needed.
 ///
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);
