@@ -875,6 +875,22 @@ ColorConfig::~ColorConfig()
 
 
 
+// OCIO before 2.3.2 drops the default view transform name when copying a
+// config, which changes display transforms; keep it.
+static OCIO::ConfigRcPtr
+copy_config(const OCIO::ConstConfigRcPtr& config)
+{
+    auto copy = config->createEditableCopy();
+#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 3, 2)
+    const char* view_transform = config->getDefaultViewTransformName();
+    if (view_transform && *view_transform)
+        copy->setDefaultViewTransformName(view_transform);
+#endif
+    return copy;
+}
+
+
+
 // OIIO doctoring of OCIO configs for different default file rules. Currently,
 // we only do this for built-in configs.
 static void
@@ -934,7 +950,7 @@ ColorConfig::Impl::init(string_view filename)
     try {
         auto cfg = OCIO::Config::CreateFromFile("ocio://default");
         OIIO_CONTRACT_ASSERT(cfg);
-        builtinconfig_ = cfg->createEditableCopy();
+        builtinconfig_ = copy_config(cfg);
         fix_config_file_rules(builtinconfig_);
     } catch (std::exception& e) {
         error("Error making OCIO built-in config: {}", e.what());
@@ -955,7 +971,7 @@ ColorConfig::Impl::init(string_view filename)
             auto cfg = OCIO::Config::CreateFromFile(
                 std::string(filename).c_str());
             if (cfg)
-                config_ = cfg->createEditableCopy();
+                config_ = copy_config(cfg);
             if (config_ && Strutil::istarts_with(filename, "ocio://"))
                 fix_config_file_rules(config_);
         } catch (std::exception& e) {
