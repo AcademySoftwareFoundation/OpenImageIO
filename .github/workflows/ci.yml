@@ -708,14 +708,6 @@ jobs:
                             INSTALL_QT=0 INSTALL_OPENCV=0 INSTALL_OPENVDB=0
             optional_deps_append: 'OpenCV;OpenVDB;Qt5;Qt6'
             benchmark: 1
-          - desc: MacOS-14-ARM aclang15/C++20/py3.13
-            runner: macos-14
-            nametag: macos14-arm-py313
-            cc_compiler: /usr/bin/clang
-            cxx_compiler: /usr/bin/clang++
-            cxx_std: 20
-            python_ver: "3.13"
-            oiio_python_bindings_backend: both
           - desc: MacOS-15-ARM aclang16/C++20/py3.13
             runner: macos-15
             nametag: macos15-arm-py313
