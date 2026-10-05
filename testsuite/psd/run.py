@@ -42,3 +42,7 @@ command += info_command ("src/crash-eofstring.psd", failureok=True)
 command += info_command ("src/crash-rowbounds-f999.psd", failureok=True)
 # Tiny file declaring a huge composite (decompression bomb) is rejected
 command += info_command ("src/crash-bomb-30000.psd", failureok=True)
+# Layer whose data-window origin (top) is huge but small in size, so origin +
+# size overflows the int scanline coordinates used by the read path. Per-layer
+# specs bypass check_open(), so the reader guards the origin itself.
+command += info_command ("src/crash-layer-origin.psd", failureok=True)

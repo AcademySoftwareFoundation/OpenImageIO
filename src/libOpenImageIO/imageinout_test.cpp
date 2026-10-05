@@ -717,6 +717,132 @@ test_read_tricky_sizes()
 
 
 
+// In-memory 2-channel uint8 reader whose data window ends exactly at
+// INT_MAX, to exercise the generic read_scanlines/read_tiles loops near the
+// int limit. Requests outside the data window are counted as bad.
+class LimitInput final : public ImageInput {
+public:
+    LimitInput(bool tiled)
+        : m_tiled(tiled)
+    {
+    }
+    const char* format_name() const override { return "limit"; }
+    int supports(string_view feature) const override
+    {
+        return feature == "origin";
+    }
+    bool open(const std::string& /*name*/, ImageSpec& newspec) override
+    {
+        m_spec = ImageSpec(3, 3, 2, TypeUInt8);
+        if (m_tiled)
+            m_spec.tile_width = m_spec.tile_height = 2;
+        m_spec.x = std::numeric_limits<int>::max() - m_spec.width;
+        m_spec.y = std::numeric_limits<int>::max() - m_spec.height;
+        newspec  = m_spec;
+        return check_open(m_spec);
+    }
+    bool close() override { return true; }
+    bool read_native_scanline(int /*subimage*/, int /*miplevel*/, int y,
+                              int /*z*/, void* data) override
+    {
+        if (y < m_spec.y || y - m_spec.y >= m_spec.height) {
+            ++nbad;
+            return false;
+        }
+        auto p = (unsigned char*)data;
+        for (int x = 0; x < m_spec.width; ++x)
+            for (int c = 0; c < 2; ++c)
+                *p++ = value(x, y - m_spec.y, c);
+        return true;
+    }
+    bool read_native_tile(int /*subimage*/, int /*miplevel*/, int x, int y,
+                          int /*z*/, void* data) override
+    {
+        if (x < m_spec.x || x - m_spec.x >= m_spec.width || y < m_spec.y
+            || y - m_spec.y >= m_spec.height) {
+            ++nbad;
+            return false;
+        }
+        auto p = (unsigned char*)data;
+        for (int j = 0; j < m_spec.tile_height; ++j)
+            for (int i = 0; i < m_spec.tile_width; ++i)
+                for (int c = 0; c < 2; ++c)
+                    *p++ = value(x - m_spec.x + i, y - m_spec.y + j, c);
+        return true;
+    }
+    static unsigned char value(int xo, int yo, int c)
+    {
+        return (unsigned char)(1 + xo + 4 * yo + 16 * c);
+    }
+    int nbad = 0;
+
+private:
+    bool m_tiled;
+};
+
+
+
+void
+test_read_near_int_limit()
+{
+    print("Testing reads of a data window ending at INT_MAX\n");
+    for (bool tiled : { false, true }) {
+        LimitInput in(tiled);
+        ImageSpec spec;
+        OIIO_ASSERT(in.open("limit", spec));
+        const int w = spec.width, h = spec.height;
+        // Native, converted, and channel subset reads
+        std::vector<unsigned char> u8(w * h * 2), sub(w * h);
+        std::vector<float> f(w * h * 2);
+        OIIO_CHECK_ASSERT(in.read_image(0, 0, 0, 2, TypeUInt8, u8.data()));
+        OIIO_CHECK_ASSERT(in.read_image(0, 0, 0, 2, TypeFloat, f.data()));
+        OIIO_CHECK_ASSERT(in.read_image(0, 0, 1, 2, TypeUInt8, sub.data()));
+        // A scanline range starting before the data window must fail
+        // cleanly rather than overflow computing its length.
+        // Same for the image_span overloads, and for tile ranges.
+        const int imin = std::numeric_limits<int>::min();
+        image_span<std::byte> fspan(reinterpret_cast<std::byte*>(f.data()), 2,
+                                    w, h, 1, sizeof(float));
+        OIIO_CHECK_ASSERT(!in.read_scanlines(0, 0, imin, spec.y + h, 0, 0, 2,
+                                             TypeFloat, f.data()));
+        OIIO_CHECK_ASSERT(
+            !in.read_scanlines(0, 0, imin, spec.y + h, 0, 2, TypeFloat, fspan));
+        OIIO_CHECK_ASSERT(!in.read_tiles(0, 0, imin, spec.x + w, spec.y,
+                                         spec.y + h, 0, 1, 0, 2, TypeFloat,
+                                         fspan));
+        OIIO_CHECK_ASSERT(!in.read_tiles(0, 0, imin, spec.x + w, spec.y,
+                                         spec.y + h, 0, 1, 0, 2, TypeFloat,
+                                         f.data()));
+        (void)in.geterror();
+        if (tiled) {
+            // Base class read_native_tiles with a partial edge tile
+            std::vector<unsigned char> nt(w * h * 2, 0), ntsub(w * h, 0);
+            OIIO_CHECK_ASSERT(in.read_native_tiles(0, 0, spec.x, spec.x + w,
+                                                   spec.y, spec.y + h, 0, 1,
+                                                   nt.data()));
+            OIIO_CHECK_ASSERT(in.read_native_tiles(0, 0, spec.x, spec.x + w,
+                                                   spec.y, spec.y + h, 0, 1, 1,
+                                                   2, ntsub.data()));
+            OIIO_CHECK_ASSERT(nt == u8);
+            OIIO_CHECK_ASSERT(ntsub == sub);
+        }
+        for (int y = 0; y < h; ++y)
+            for (int x = 0; x < w; ++x)
+                for (int c = 0; c < 2; ++c) {
+                    int i = (y * w + x) * 2 + c;
+                    OIIO_CHECK_EQUAL(u8[i], LimitInput::value(x, y, c));
+                    OIIO_CHECK_EQUAL_THRESH(f[i],
+                                            LimitInput::value(x, y, c) / 255.0f,
+                                            1.0e-6f);
+                }
+        for (int i = 0; i < w * h; ++i)
+            OIIO_CHECK_EQUAL(sub[i], u8[i * 2 + 1]);
+        OIIO_CHECK_EQUAL(in.nbad, 0);
+    }
+}
+
+
+
 void
 benchmark_tile_sizes(string_view extension, TypeDesc datatype,
                      int tilestart = 4)
@@ -905,6 +1031,7 @@ main(int argc, char* argv[])
     test_jxl_close_write_error();
     test_read_tricky_sizes();
     test_span_nonzero_origin();
+    test_read_near_int_limit();
     benchmark_tile_sizes("exr", TypeHalf, 4);
     benchmark_tile_sizes("tif", TypeUInt16, 16);
 
