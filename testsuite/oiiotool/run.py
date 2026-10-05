@@ -234,6 +234,8 @@ command += oiiotool ("--info -v -metamatch Debug --iconfig oiio:DebugOpenConfig!
                      "--iconfig:type=float oiio:DebugOpenConfigFloat! 3 " +
                      "--iconfig:type=string oiio:DebugOpenConfigStr! 4 " +
                      "black.tif")
+# --metamatch matching nothing prints nothing
+command += oiiotool ("--info -v --metamatch NoSuchAttribute black.tif")
 
 # test -i:ch=...
 command += oiiotool ("--pattern fill:color=.6,.5,.4,.3,.2 64x64 5 -d uint8 -o const5.tif")
