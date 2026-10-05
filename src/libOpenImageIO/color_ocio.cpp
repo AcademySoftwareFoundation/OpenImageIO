@@ -1226,10 +1226,19 @@ ColorConfig::isData(string_view name) const
 bool
 ColorConfig::Impl::isData(string_view name) const
 {
-    if (const CSInfo* cs = find(name)) {
-        return cs->flags() & CSInfo::is_data;
+    // Look the name up as OCIO does (names, aliases and roles, in any case),
+    // and honor the color space's own isdata.
+    OCIO::ConstColorSpaceRcPtr cs;
+    if (config_ && !disable_ocio) {
+        try {
+            cs = config_->getColorSpace(c_str(name));
+        } catch (...) {
+        }
+        if (cs && cs->isData())
+            return true;
     }
-    return false;
+    const CSInfo* csi = find(cs ? string_view(cs->getName()) : name);
+    return csi && (csi->flags() & CSInfo::is_data);
 }
 
 

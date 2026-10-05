@@ -11,6 +11,7 @@
 #include <OpenImageIO/argparse.h>
 #include <OpenImageIO/benchmark.h>
 #include <OpenImageIO/color.h>
+#include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
@@ -98,6 +99,37 @@ test_sRGB_conversion()
 
 
 static void
+test_isData()
+{
+    // A data space answers by its name, an alias or a role, in any case,
+    // whether or not the config's "data" role names it.
+    const std::string filename = Filesystem::temp_directory_path() + "/"
+                                 + Filesystem::unique_path() + ".ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        filename,
+        "ocio_profile_version: 2.3\n"
+        "roles: {default: linear, scene_linear: linear, data: Raw}\n"
+        "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+        "colorspaces:\n"
+        "  - !<ColorSpace> {name: linear}\n"
+        "  - !<ColorSpace> {name: Raw, aliases: [\"Utility - Raw\"], "
+        "isdata: true}\n"
+        "  - !<ColorSpace> {name: Normals, isdata: true}\n"));
+    {
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        for (auto name :
+             { "Raw", "RAW", "Utility - Raw", "data", "Normals", "normals" })
+            OIIO_CHECK_ASSERT(config.isData(name));
+        for (auto name : { "linear", "default", "missing" })
+            OIIO_CHECK_FALSE(config.isData(name));
+    }
+    Filesystem::remove(filename);
+}
+
+
+
+static void
 test_Rec709_conversion()
 {
     Benchmarker bench;
@@ -154,6 +186,7 @@ main(int argc, char* argv[])
     getargs(argc, argv);
 
     test_sRGB_conversion();
+    test_isData();
     test_Rec709_conversion();
     test_gamma_pair_conversion();
 
