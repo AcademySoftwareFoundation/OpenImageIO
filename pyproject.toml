@@ -132,6 +132,12 @@ SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 # FIXME: Getting build problems when using WebP 1.6.0, so hold it back
 WebP_BUILD_VERSION = "1.5.0"
 
+[tool.cibuildwheel.windows]
+# The wheel bundles its DLLs in OpenImageIO/bin and finds them at import time
+# via os.add_dll_directory(), so skip cibuildwheel 4's default delvewheel
+# repair (which can't see them and fails).
+repair-wheel-command = ""
+
 [tool.cibuildwheel.windows.environment]
 SKBUILD_CMAKE_BUILD_TYPE = "MinSizeRel"
 
