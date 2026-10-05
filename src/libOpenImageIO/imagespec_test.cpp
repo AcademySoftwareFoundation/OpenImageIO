@@ -3,6 +3,8 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <limits>
+
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/unittest.h>
@@ -360,6 +362,47 @@ test_imagespec_from_xml()
 
 
 
+static void
+test_valid_tile_range()
+{
+    std::cout << "test_valid_tile_range\n";
+    // 100x50 image at origin (10,20), 32x32 tiles, so the last tiles are
+    // partial: x tiles at 10,42,74,106 and y tiles at 20,52.
+    ImageSpec spec(100, 50, 3, TypeFloat);
+    spec.x          = 10;
+    spec.y          = 20;
+    spec.tile_width = spec.tile_height = 32;
+    OIIO_CHECK_ASSERT(spec.valid_tile_range(10, 110, 20, 70));   // whole
+    OIIO_CHECK_ASSERT(spec.valid_tile_range(42, 74, 52, 70));    // one tile
+    OIIO_CHECK_ASSERT(spec.valid_tile_range(106, 138, 52, 84));  // padded edge
+    OIIO_CHECK_ASSERT(spec.valid_tile_range(42, 42, 20, 20));    // empty
+    OIIO_CHECK_ASSERT(spec.valid_tile_range(42, 74, 52, 70, 0, 1));
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(11, 42, 20, 52));    // misaligned
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(10, 41, 20, 52));    // misaligned
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(-22, 10, 20, 52));   // before
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(138, 170, 20, 52));  // past end
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(42, 10, 20, 52));    // reversed
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(42, 74, 52, 70, 1, 2));
+    // Hostile coordinates must not overflow
+    const int imin = std::numeric_limits<int>::min();
+    const int imax = std::numeric_limits<int>::max();
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(imin, imax, 20, 52));
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(10, 42, imin, imax, imin, imax));
+    spec.x = imin;
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(imax - 31, imax, 20, 52));
+    spec.x = 10;
+    // Not tiled, or a zero tile dimension, is never valid (and must not
+    // divide by zero)
+    spec.tile_depth = 0;
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(42, 74, 52, 70, 0, 1));
+    spec.tile_height = 0;
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(42, 74, 52, 70));
+    spec.tile_width = 0;
+    OIIO_CHECK_ASSERT(!spec.valid_tile_range(42, 74, 52, 70));
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -371,6 +414,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_get_attribute();
     test_imagespec_from_ROI();
     test_imagespec_from_xml();
+    test_valid_tile_range();
 
     return unit_test_failures;
 }

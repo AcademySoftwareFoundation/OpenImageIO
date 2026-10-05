@@ -2142,3 +2142,6 @@ oiiotool ERROR: read : [Global Additional Layer Info] unexpected second layer in
 failed to open "src/crash-dup-layerinfo.psd": failed load_global_additional
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-dup-layerinfo.psd
+oiiotool ERROR: read : "src/crash-layer-origin.psd": Layer data window origin+size is out of range: origin (0, 2147483647), size 8x8. Possible corrupt input?
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-layer-origin.psd
