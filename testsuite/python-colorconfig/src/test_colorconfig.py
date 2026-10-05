@@ -110,9 +110,9 @@ try:
     for name in ("ACEScg", "g24_rec709_display", "srgb_tx", "Raw", "no_such_space"):
         info = config.get_color_space_info(name)
         print (f"get_color_space_info('{name}'): valid={info.valid()} gamma={info.transfer_function_gamma():g} chromaticities={[round(v, 5) for v in info.chromaticities()]}")
-    info = config.derive_color_space_info("lin_ap1_scene")
+    info = config.get_color_space_info("lin_ap1_scene")
     del config
-    print (f"derive_color_space_info('lin_ap1_scene') after del config: gamma={info.transfer_function_gamma():g} chromaticities={[round(v, 5) for v in info.chromaticities()]}")
+    print (f"get_color_space_info('lin_ap1_scene') after del config: gamma={info.transfer_function_gamma():g} chromaticities={[round(v, 5) for v in info.chromaticities()]}")
     print ("")
 
     print ("Done.")

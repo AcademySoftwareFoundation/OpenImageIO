@@ -64,8 +64,7 @@ using ColorProcessorHandle = std::shared_ptr<ColorProcessor>;
 
 
 /// Immutable, owning properties of a color space, returned by
-/// `ColorConfig::get_color_space_info()` and
-/// `ColorConfig::derive_color_space_info()`. Copies share their storage and
+/// `ColorConfig::get_color_space_info()`. Copies share their storage and
 /// remain usable after the originating ColorConfig resets or is destroyed.
 ///
 /// @version 3.3
@@ -95,7 +94,6 @@ public:
 
 private:
     friend class ColorConfig;
-    friend struct ColorSpaceInfoAccess;
     struct Impl;
     std::shared_ptr<const Impl> m_impl;
 };
@@ -472,30 +470,16 @@ public:
     OIIO_NODISCARD string_view
     get_color_interop_id(string_view colorspace) const;
 
-    /// Return the properties of a color space that are already known,
-    /// without analyzing its transforms: gamma 1.0 for a color space whose
-    /// config declares a scene-linear or display-linear encoding, and the
-    /// primaries and transfer function of the Color Interop ID
-    /// (https://github.com/AcademySoftwareFoundation/ColorInterop) that
-    /// `get_color_interop_id()` finds for it. An ID whose transfer function
-    /// contradicts a declared linear encoding is ignored. A data color space
-    /// is valid but has no properties. `colorspace` may be any name
-    /// `get_color_interop_id()` and `get_cicp()` accept: a color space of
-    /// this config, or a Color Interop ID it need not define. Any other name
+    /// Get color space information for a color space with a known Color
+    /// Interop ID (https://github.com/AcademySoftwareFoundation/ColorInterop),
+    /// as `get_color_interop_id()` finds it. Properties that cannot be
+    /// determined are left unavailable. `colorspace` may be any name
+    /// `get_color_interop_id()` and `get_cicp()` accept; any other name
     /// returns an invalid ColorSpaceInfo.
     ///
     /// @version 3.3
     OIIO_NODISCARD ColorSpaceInfo
     get_color_space_info(string_view colorspace) const;
-
-    /// Return the properties of a color space, as `get_color_space_info()`
-    /// does, plus any the config does not declare that can be derived by
-    /// analyzing the color space's transforms. Currently it derives nothing
-    /// beyond what `get_color_space_info()` returns.
-    ///
-    /// @version 3.3
-    OIIO_NODISCARD ColorSpaceInfo
-    derive_color_space_info(string_view colorspace) const;
 
     /// Find color interop ID corresponding to the CICP code.
     /// Returns empty string if not found.

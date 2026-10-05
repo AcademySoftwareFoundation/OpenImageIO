@@ -2617,15 +2617,6 @@ ColorConfig::get_color_space_info(string_view colorspace) const
 }
 
 
-
-ColorSpaceInfo
-ColorConfig::derive_color_space_info(string_view colorspace) const
-{
-    // No transform analysis yet, so there is nothing more to derive.
-    return get_color_space_info(colorspace);
-}
-
-
 //////////////////////////////////////////////////////////////////////////
 //
 // Image Processing Implementations

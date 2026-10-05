@@ -243,7 +243,7 @@ test_color_space_info()
         OIIO_CHECK_EQUAL(
             config.get_color_space_info("sRGB").chromaticities().size(), 8);
         OIIO_CHECK_EQUAL(
-            config.derive_color_space_info("Adobe").transfer_function_gamma(),
+            config.get_color_space_info("Adobe").transfer_function_gamma(),
             563.0f / 256.0f);
         for (auto name : { "Plain", "Mislabeled" }) {
             auto info = config.get_color_space_info(name);

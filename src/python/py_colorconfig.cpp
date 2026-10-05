@@ -212,12 +212,6 @@ declare_colorconfig(py_module& m)
                 return self.get_color_space_info(colorspace);
             },
             "colorspace"_a)
-        .def(
-            "derive_color_space_info",
-            [](const ColorConfig& self, const std::string& colorspace) {
-                return self.derive_color_space_info(colorspace);
-            },
-            "colorspace"_a)
         .def("configname", &ColorConfig::configname)
         .def_static(
             "default_colorconfig",

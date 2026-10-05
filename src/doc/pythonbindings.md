@@ -4041,23 +4041,16 @@ is provided for minimal color support.
 % TODO: The documentation for this class is incomplete.
 
 :::{py:method} get_color_space_info (colorspace)
-Return a `ColorSpaceInfo` with the properties already known for the named
-color space, without analyzing its transforms. It accepts the same names as
-`get_color_interop_id()` and `get_cicp()`; any other name returns an invalid
-`ColorSpaceInfo`. See {ref}`sec-colorspaceinfo`.
-
-This function was added in OpenImageIO 3.3.
-:::
-
-:::{py:method} derive_color_space_info (colorspace)
-Return a `ColorSpaceInfo` with the properties of the named color space, as
-`get_color_space_info()` does, plus any that can be derived by analyzing its
-transforms. Currently it derives nothing more.
+Get color space information for a color space with a known Color Interop ID,
+as `get_color_interop_id()` finds it. Properties that cannot be determined are
+left unavailable. It accepts the same names as `get_color_interop_id()` and
+`get_cicp()`; any other name returns an invalid `ColorSpaceInfo`. See
+{ref}`sec-colorspaceinfo`.
 
 Example:
 
 ```python
-info = colorconfig.derive_color_space_info("ACEScg")
+info = colorconfig.get_color_space_info("ACEScg")
 if info.valid():
     gamma = info.transfer_function_gamma()  # 1.0 for a linear encoding
     xy = info.chromaticities()  # [] if the primaries are unknown
