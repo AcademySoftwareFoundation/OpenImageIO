@@ -2339,23 +2339,53 @@ enum class CICPRange : int {
     Full   = 1,
 };
 
+// Chromaticities (Rx, Ry, Gx, Gy, Bx, By, Wx, Wy) of the published gamuts.
+constexpr float xy_rec709[]   = { .64f, .33f, .30f,   .60f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_p3d65[]    = { .68f, .32f, .265f,  .69f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_rec2020[]  = { .708f, .292f, .17f,   .797f,
+                                  .131f, .046f, .3127f, .329f };
+constexpr float xy_adobergb[] = { .64f, .33f, .21f,   .71f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_ap0[]      = { .7347f, .2653f, 0.0f,    1.0f,
+                                  .0001f, -.077f, .32168f, .33767f };
+constexpr float xy_ap1[]      = { .713f, .293f, .165f,   .83f,
+                                  .128f, .044f, .32168f, .33767f };
+// CIE XYZ taken as RGB, so R = G = B is illuminant E.
+constexpr float xy_xyz[] = { 1.0f, 0.0f, 0.0f,     1.0f,
+                             0.0f, 0.0f, 1.0f / 3, 1.0f / 3 };
+
+// A color interop ID with what OIIO knows about it: a legacy alias for older
+// configs, its CICP code if it has one, and its chromaticities (Rx, Ry, Gx, Gy,
+// Bx, By, Wx, Wy) and gamma if it has RGB primaries. Gamma is 1 for linear,
+// the exponent of a pure power, or 0 for any other curve (sRGB, extended
+// sRGB, PQ, HLG).
 struct ColorInteropID {
-    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias)
+    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias,
+                             const float* chromaticities = nullptr,
+                             float gamma                 = 0.0f)
         : interop_id(interop_id)
         , legacy_alias(legacy_alias)
         , cicp({ 0, 0, 0, 0 })
         , has_cicp(false)
+        , chromaticities(chromaticities)
+        , gamma(gamma)
     {
     }
 
     constexpr ColorInteropID(const char* interop_id, const char* legacy_alias,
                              CICPPrimaries primaries, CICPTransfer transfer,
-                             CICPMatrix matrix)
+                             CICPMatrix matrix,
+                             const float* chromaticities = nullptr,
+                             float gamma                 = 0.0f)
         : interop_id(interop_id)
         , legacy_alias(legacy_alias)
         , cicp({ int(primaries), int(transfer), int(matrix),
                  int(CICPRange::Full) })
         , has_cicp(true)
+        , chromaticities(chromaticities)
+        , gamma(gamma)
     {
     }
 
@@ -2363,6 +2393,8 @@ struct ColorInteropID {
     const char* legacy_alias;
     std::array<int, 4> cicp;
     bool has_cicp;
+    const float* chromaticities;
+    float gamma;
 };
 
 // Mapping between color interop ID and CICP, based on Color Interop Forum
@@ -2371,28 +2403,28 @@ constexpr ColorInteropID color_interop_ids[] = {
     // Scene referred interop IDs first so they are the default in automatic
     // conversion from CICP to interop ID. Some are not display color spaces
     // at all, but can be represented by CICP anyway.
-    { "lin_ap1_scene", "lin_ap1" },
-    { "lin_ap0_scene", "lin_ap0" },
+    { "lin_ap1_scene", "lin_ap1", xy_ap1, 1.0f },
+    { "lin_ap0_scene", "lin_ap0", xy_ap0, 1.0f },
     { "lin_rec709_scene", "lin_rec709", CICPPrimaries::Rec709,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_rec709, 1.0f },
     { "lin_p3d65_scene", "lin_p3d65", CICPPrimaries::P3D65,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_p3d65, 1.0f },
     { "lin_rec2020_scene", "lin_rec2020", CICPPrimaries::Rec2020,
-      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
-    { "lin_adobergb_scene", "lin_adobergb" },
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL, xy_rec2020, 1.0f },
+    { "lin_adobergb_scene", "lin_adobergb", xy_adobergb, 1.0f },
     { "lin_ciexyzd65_scene", "cie_xyz_d65", CICPPrimaries::XYZD65,
-      CICPTransfer::Linear, CICPMatrix::Unspecified },
+      CICPTransfer::Linear, CICPMatrix::Unspecified, xy_xyz, 1.0f },
     { "srgb_rec709_scene", "srgb_texture", CICPPrimaries::Rec709,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { "g24_rec709_scene", "g24_rec709" },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_rec709, 0.0f },
+    { "g24_rec709_scene", "g24_rec709", xy_rec709, 2.4f },
     { "g22_rec709_scene", "g22_rec709", CICPPrimaries::Rec709,
-      CICPTransfer::Gamma22, CICPMatrix::BT709 },
-    { "g18_rec709_scene", "g18_rec709" },
-    { "srgb_ap1_scene", "srgb_ap1" },
-    { "g22_ap1_scene", "g22_ap1" },
+      CICPTransfer::Gamma22, CICPMatrix::BT709, xy_rec709, 2.2f },
+    { "g18_rec709_scene", "g18_rec709", xy_rec709, 1.8f },
+    { "srgb_ap1_scene", "srgb_ap1", xy_ap1, 0.0f },
+    { "g22_ap1_scene", "g22_ap1", xy_ap1, 2.2f },
     { "srgb_p3d65_scene", "srgb_p3d65", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { "g22_adobergb_scene", nullptr },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
+    { "g22_adobergb_scene", nullptr, xy_adobergb, 563.0f / 256.0f },
     { "data", nullptr },
     { "unknown", nullptr },
 
@@ -2400,37 +2432,39 @@ constexpr ColorInteropID color_interop_ids[] = {
     // The linear displays share their scene rows' codes, which come first,
     // so CICP input still reads as the scene identity.
     { "lin_rec709_display", nullptr, CICPPrimaries::Rec709,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_rec709, 1.0f },
     { "lin_p3d65_display", nullptr, CICPPrimaries::P3D65, CICPTransfer::Linear,
-      CICPMatrix::BT709 },
+      CICPMatrix::BT709, xy_p3d65, 1.0f },
     { "lin_rec2020_display", nullptr, CICPPrimaries::Rec2020,
-      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL, xy_rec2020, 1.0f },
     { "srgb_rec709_display", "srgb_display", CICPPrimaries::Rec709,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_rec709, 0.0f },
     // Not all software interprets this CICP the same, see the
     // "QuickTime Gamma Shift" issue. We follow the CIF recommendation and
     // interpret it as BT.1886.
     { "g24_rec709_display", "rec1886_rec709_display", CICPPrimaries::Rec709,
-      CICPTransfer::BT709, CICPMatrix::BT709 },
+      CICPTransfer::BT709, CICPMatrix::BT709, xy_rec709, 2.4f },
     { "srgb_p3d65_display", "displayp3_display", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
     { "srgbe_p3d65_display", "displayp3_hdr_display", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
     { "pq_p3d65_display", "st2084_p3d65_display", CICPPrimaries::P3D65,
-      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL, xy_p3d65, 0.0f },
     { "pq_rec2020_display", "rec2100_pq_display", CICPPrimaries::Rec2020,
-      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL, xy_rec2020, 0.0f },
     { "hlg_rec2020_display", "rec2100_hlg_display", CICPPrimaries::Rec2020,
-      CICPTransfer::HLG, CICPMatrix::Rec2020_NCL },
-    // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
-    // display is more likely meant to be written as sRGB. On read the
-    // scene referred interop ID will be used.
-    { "g22_rec709_display", nullptr
-      /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
+      CICPTransfer::HLG, CICPMatrix::Rec2020_NCL, xy_rec2020, 0.0f },
+    // No CICP mapping (Rec709, Gamma22, BT709) to keep previous behavior
+    // unchanged, as Gamma 2.2 display is more likely meant to be written as
+    // sRGB. On read the scene referred interop ID will be used.
+    { "g22_rec709_display", nullptr, xy_rec709, 2.2f },
     // No CICP code for Adobe RGB primaries.
-    { "g22_adobergb_display", nullptr },
+    { "g22_adobergb_display", nullptr, xy_adobergb, 563.0f / 256.0f },
     { "g26_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
-      CICPTransfer::Gamma26, CICPMatrix::BT709 },
+      CICPTransfer::Gamma26, CICPMatrix::BT709, xy_p3d65, 2.6f },
+    // The DCDM XYZ encodings have no properties: neither curve is a pure
+    // power (DCI headroom scaling precedes the 2.6 power), and no RGB
+    // primaries are reported for display XYZ encodings.
     { "g26_xyzd65_display", nullptr, CICPPrimaries::XYZD65,
       CICPTransfer::Gamma26, CICPMatrix::Unspecified },
     { "pq_xyzd65_display", nullptr, CICPPrimaries::XYZD65, CICPTransfer::PQ,
@@ -2541,84 +2575,12 @@ ColorSpaceInfo::transfer_function_gamma() const noexcept
 
 
 
-namespace {
-
-// Chromaticities (Rx, Ry, Gx, Gy, Bx, By, Wx, Wy) of the published gamuts.
-constexpr float xy_rec709[]   = { .64f, .33f, .30f,   .60f,
-                                  .15f, .06f, .3127f, .329f };
-constexpr float xy_p3d65[]    = { .68f, .32f, .265f,  .69f,
-                                  .15f, .06f, .3127f, .329f };
-constexpr float xy_rec2020[]  = { .708f, .292f, .17f,   .797f,
-                                  .131f, .046f, .3127f, .329f };
-constexpr float xy_adobergb[] = { .64f, .33f, .21f,   .71f,
-                                  .15f, .06f, .3127f, .329f };
-constexpr float xy_ap0[]      = { .7347f, .2653f, 0.0f,    1.0f,
-                                  .0001f, -.077f, .32168f, .33767f };
-constexpr float xy_ap1[]      = { .713f, .293f, .165f,   .83f,
-                                  .128f, .044f, .32168f, .33767f };
-// CIE XYZ taken as RGB, so R = G = B is illuminant E.
-constexpr float xy_xyz[] = { 1.0f, 0.0f, 0.0f,     1.0f,
-                             0.0f, 0.0f, 1.0f / 3, 1.0f / 3 };
-
-// Properties of the Color Interop Forum's published (unnamespaced) IDs:
-// gamma is 1 for linear, the exponent of a pure power, or 0 for any other
-// curve (sRGB, extended sRGB, PQ, HLG). The DCDM XYZ encodings
-// g26_xyzd65_display and pq_xyzd65_display have no entry: neither curve is a
-// pure power (DCI headroom scaling precedes the 2.6 power), and no RGB
-// primaries are reported for these display XYZ encodings.
-struct PublishedColorSpace {
-    const char* interop_id;
-    const float* chromaticities;
-    float gamma;
-};
-constexpr PublishedColorSpace published_color_spaces[] = {
-    { "lin_ap1_scene", xy_ap1, 1.0f },
-    { "lin_ap0_scene", xy_ap0, 1.0f },
-    { "lin_rec709_scene", xy_rec709, 1.0f },
-    { "lin_p3d65_scene", xy_p3d65, 1.0f },
-    { "lin_rec2020_scene", xy_rec2020, 1.0f },
-    { "lin_adobergb_scene", xy_adobergb, 1.0f },
-    { "lin_ciexyzd65_scene", xy_xyz, 1.0f },
-    { "srgb_rec709_scene", xy_rec709, 0.0f },
-    { "g24_rec709_scene", xy_rec709, 2.4f },
-    { "g22_rec709_scene", xy_rec709, 2.2f },
-    { "g18_rec709_scene", xy_rec709, 1.8f },
-    { "srgb_ap1_scene", xy_ap1, 0.0f },
-    { "g22_ap1_scene", xy_ap1, 2.2f },
-    { "srgb_p3d65_scene", xy_p3d65, 0.0f },
-    { "g22_adobergb_scene", xy_adobergb, 563.0f / 256.0f },
-    { "srgb_rec709_display", xy_rec709, 0.0f },
-    { "g24_rec709_display", xy_rec709, 2.4f },
-    { "srgb_p3d65_display", xy_p3d65, 0.0f },
-    { "srgbe_p3d65_display", xy_p3d65, 0.0f },
-    { "pq_p3d65_display", xy_p3d65, 0.0f },
-    { "pq_rec2020_display", xy_rec2020, 0.0f },
-    { "hlg_rec2020_display", xy_rec2020, 0.0f },
-    { "g22_rec709_display", xy_rec709, 2.2f },
-    { "g22_adobergb_display", xy_adobergb, 563.0f / 256.0f },
-    { "g26_p3d65_display", xy_p3d65, 2.6f },
-    { "lin_rec709_display", xy_rec709, 1.0f },
-    { "lin_p3d65_display", xy_p3d65, 1.0f },
-    { "lin_rec2020_display", xy_rec2020, 1.0f },
-};
-
-const PublishedColorSpace*
-find_published_color_space(string_view interop_id)
-{
-    // Any case, as OCIO name lookups and get_color_interop_id() match names.
-    for (const auto& published : published_color_spaces)
-        if (Strutil::iequals(interop_id, published.interop_id))
-            return &published;
-    return nullptr;
-}
-
-}  // namespace
-
-
-
 ColorSpaceInfo
 ColorConfig::get_color_space_info(string_view colorspace) const
 {
+    // Identify the space as get_cicp() does, so that every name it accepts
+    // gives the same answer here.
+    const string_view interop_id = get_color_interop_id(colorspace);
     OCIO::ConstColorSpaceRcPtr cs;
     if (getImpl()->config_ && !disable_ocio && !colorspace.empty()) {
         try {
@@ -2627,32 +2589,27 @@ ColorConfig::get_color_space_info(string_view colorspace) const
             DBG("OCIO exception in get_color_space_info: {}\n", e.what());
         }
     }
-    if (!cs)
+    if (!cs && interop_id.empty())
         return {};
     ColorSpaceInfo result;
     auto impl     = std::make_shared<ColorSpaceInfo::Impl>();
     result.m_impl = impl;
-    if (cs->isData())
+    if (cs && cs->isData())
         return result;
-    const string_view encoding(cs->getEncoding());
+    const string_view encoding(cs ? cs->getEncoding() : "");
     const bool linear = encoding == "scene-linear"
                         || encoding == "display-linear";
-    // The ID the config declares for this space, else its name or an alias.
-    const PublishedColorSpace* published = nullptr;
-    string_view declared;
-#if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
-    declared  = cs->getInteropID();
-    published = find_published_color_space(declared);
-#endif
-    if (declared.empty()) {
-        published = find_published_color_space(cs->getName());
-        for (int i = 0, n = cs->getNumAliases(); !published && i < n; ++i)
-            published = find_published_color_space(cs->getAlias(i));
-    }
-    if (published && !(linear && published->gamma != 1.0f)) {
-        std::copy_n(published->chromaticities, 8, impl->chromaticities.data());
-        impl->has_chromaticities = true;
-        impl->gamma              = published->gamma;
+    for (const ColorInteropID& interop : color_interop_ids) {
+        if (interop.chromaticities && interop_id == interop.interop_id) {
+            // An ID contradicting a declared linear encoding is ignored.
+            if (!(linear && interop.gamma != 1.0f)) {
+                std::copy_n(interop.chromaticities, 8,
+                            impl->chromaticities.data());
+                impl->has_chromaticities = true;
+                impl->gamma              = interop.gamma;
+            }
+            break;
+        }
     }
     if (linear)
         impl->gamma = 1.0f;

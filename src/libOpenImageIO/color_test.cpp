@@ -223,9 +223,11 @@ test_color_space_info()
         "  - !<ColorSpace> {name: Plain, encoding: scene-linear}\n"
         "  - !<ColorSpace>\n    name: Mislabeled\n    encoding: scene-linear\n"
         "    aliases: [g22_rec709_scene]\n"
-        "  - !<ColorSpace> {name: Data, isdata: true}\n"));
+        "  - !<ColorSpace> {name: Data, isdata: true}\n"
+        "  - !<ColorSpace> {name: Texture, aliases: [srgb_texture]}\n"));
     const float ap1[] = { .713f, .293f, .165f,   .83f,
                           .128f, .044f, .32168f, .33767f };
+    const float p3d65[] = { .68f, .32f, .265f, .69f, .15f, .06f, .3127f, .329f };
     ColorSpaceInfo saved;
     {
         ColorConfig config(filename);
@@ -253,6 +255,27 @@ test_color_space_info()
         OIIO_CHECK_ASSERT(data.chromaticities().empty());
         OIIO_CHECK_EQUAL(data.transfer_function_gamma(), 0.0f);
         OIIO_CHECK_FALSE(config.get_color_space_info("missing").valid());
+        // A legacy alias, and IDs this config doesn't define, answer as they
+        // do for get_color_interop_id() and get_cicp().
+        OIIO_CHECK_EQUAL(config.get_color_interop_id("Texture"),
+                         "srgb_rec709_scene");
+        auto texture = config.get_color_space_info("Texture");
+        OIIO_CHECK_EQUAL(texture.transfer_function_gamma(), 0.0f);
+        OIIO_CHECK_EQUAL(texture.chromaticities().size(), 8);
+        auto p3 = config.get_color_space_info("lin_p3d65_display");
+        OIIO_CHECK_EQUAL(p3.transfer_function_gamma(), 1.0f);
+        OIIO_CHECK_ASSERT(p3.chromaticities() == cspan<float>(p3d65));
+        OIIO_CHECK_ASSERT(config.get_color_space_info("data").valid());
+    }
+    // OpenColorIO 2.3's built-in CG config gives its spaces only the legacy
+    // aliases, which identify them here too.
+    {
+        ColorConfig config("ocio://cg-config-v2.1.0_aces-v1.3_ocio-v2.3");
+        OIIO_CHECK_ASSERT(config.get_color_space_info("ACEScg").chromaticities()
+                          == cspan<float>(ap1));
+        auto texture = config.get_color_space_info("sRGB - Texture");
+        OIIO_CHECK_EQUAL(texture.chromaticities().size(), 8);
+        OIIO_CHECK_EQUAL(texture.transfer_function_gamma(), 0.0f);
     }
     // The properties outlive the config; a move leaves its source invalid.
     auto copy  = saved;

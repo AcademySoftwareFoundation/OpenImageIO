@@ -263,16 +263,16 @@ just exist in the OIIO namespace as general utilities. (See
 
 `ColorConfig::get_color_space_info()` and
 `ColorConfig::derive_color_space_info()` describe a color space, named by any
-name `ColorConfig::resolve()` accepts, with a `ColorSpaceInfo`: its RGB
-primaries and white point, and the exponent of its transfer function when that
-is a pure power (1.0 for a linear one). Either property may be unavailable.
-They are taken from what the config declares: a `scene-linear` or
-`display-linear` encoding gives gamma 1.0, and a published Color Interop ID the
-config declares for the color space, as its `interop_id` (OpenColorIO 2.5 or
-newer) or as its name or one of its aliases, gives that ID's primaries and
-transfer function. For example, a color space declared as `lin_ap1_scene`
-reports gamma 1.0 and the ACES AP1 primaries, and one declared as
-`g22_rec709_scene` gamma 2.2 and the Rec.709 primaries. The sRGB curve is
+name `ColorConfig::get_color_interop_id()` and `ColorConfig::get_cicp()`
+accept, with a `ColorSpaceInfo`: its RGB primaries and white point, and the
+exponent of its transfer function when that is a pure power (1.0 for a linear
+one). Either property may be unavailable. They are taken from what is already
+known about the color space: a `scene-linear` or `display-linear` encoding
+gives gamma 1.0, and the Color Interop ID that `get_color_interop_id()` finds
+for it gives that ID's primaries and transfer function. For example, a color
+space whose ID is `lin_ap1_scene` (or the legacy `lin_ap1`) reports gamma 1.0
+and the ACES AP1 primaries, and one whose ID is `g22_rec709_scene` gamma 2.2
+and the Rec.709 primaries. The sRGB curve is
 piecewise, so `srgb_rec709_scene` reports gamma 0. `derive_color_space_info()`
 may also derive properties the config does not declare by analyzing the color
 space's transforms; currently it derives nothing more. Neither call changes the

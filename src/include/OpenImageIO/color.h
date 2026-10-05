@@ -475,14 +475,14 @@ public:
     /// Return the properties of a color space that are already known,
     /// without analyzing its transforms: gamma 1.0 for a color space whose
     /// config declares a scene-linear or display-linear encoding, and the
-    /// primaries and transfer function of a published Color Interop ID
-    /// (https://github.com/AcademySoftwareFoundation/ColorInterop) the config
-    /// declares for it, as its interop_id (OpenColorIO 2.5 or newer) or,
-    /// when it declares none, as its name or one of its aliases. An ID whose
-    /// transfer function contradicts a declared linear encoding is ignored.
-    /// A data color space is valid but has no properties. `colorspace` may be
-    /// any name `resolve()` accepts; a name that does not resolve to a color
-    /// space of this config returns an invalid ColorSpaceInfo.
+    /// primaries and transfer function of the Color Interop ID
+    /// (https://github.com/AcademySoftwareFoundation/ColorInterop) that
+    /// `get_color_interop_id()` finds for it. An ID whose transfer function
+    /// contradicts a declared linear encoding is ignored. A data color space
+    /// is valid but has no properties. `colorspace` may be any name
+    /// `get_color_interop_id()` and `get_cicp()` accept: a color space of
+    /// this config, or a Color Interop ID it need not define. Any other name
+    /// returns an invalid ColorSpaceInfo.
     ///
     /// @version 3.3
     OIIO_NODISCARD ColorSpaceInfo

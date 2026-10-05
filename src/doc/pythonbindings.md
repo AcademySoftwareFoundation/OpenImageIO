@@ -4041,9 +4041,10 @@ is provided for minimal color support.
 % TODO: The documentation for this class is incomplete.
 
 :::{py:method} get_color_space_info (colorspace)
-Return a `ColorSpaceInfo` with the properties of the named color space that
-the config declares, without analyzing its transforms. A name that does not
-resolve returns an invalid `ColorSpaceInfo`. See {ref}`sec-colorspaceinfo`.
+Return a `ColorSpaceInfo` with the properties already known for the named
+color space, without analyzing its transforms. It accepts the same names as
+`get_color_interop_id()` and `get_cicp()`; any other name returns an invalid
+`ColorSpaceInfo`. See {ref}`sec-colorspaceinfo`.
 
 This function was added in OpenImageIO 3.3.
 :::
