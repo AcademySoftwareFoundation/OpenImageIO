@@ -3,12 +3,15 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
-set_cache (OpenEXR_BUILD_VERSION 3.5.0 "OpenEXR version for local builds")
-set (OpenEXR_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenEXR")
-set (OpenEXR_GIT_TAG "v${OpenEXR_BUILD_VERSION}")
-set (OpenEXR_GIT_COMMIT "5d838e01770cadb8f2a36c0d17018452fa7a3c0c")
+set_cache (OpenEXR_BUILD_VERSION 3.5.2 "OpenEXR version for local builds")
+set_cache (OpenEXR_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenEXR"
+           "Repo to use" ADVANCED)
+set_cache (OpenEXR_GIT_TAG "v${OpenEXR_BUILD_VERSION}"
+           "Specific git tag to build" ADVANCED)
+set_cache (OpenEXR_GIT_COMMIT "69b2604fc76e370615438bdc8d2cd95b9349c12e"
+           "Expected git commit hash corresponding to the tag" ADVANCED)
 set_cache (OpenEXR_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
-           DOC "Should a local OpenEXR build, if necessary, build shared libraries" ADVANCED)
+           "Should a local OpenEXR build, if necessary, build shared libraries" ADVANCED)
 
 string (MAKE_C_IDENTIFIER ${OpenEXR_BUILD_VERSION} OpenEXR_VERSION_IDENT)
 
@@ -18,7 +21,13 @@ string (MAKE_C_IDENTIFIER ${OpenEXR_BUILD_VERSION} OpenEXR_VERSION_IDENT)
 if (OpenEXR_BUILD_VERSION VERSION_GREATER_EQUAL 3.5)
     checked_find_package (zstd REQUIRED CONFIG
                           VERSION_MIN 1.5)
-    set (MORE_OpenEXR_CMAKE_ARGS -D zstd_DIR=${zstd_DIR})
+    list (APPEND MORE_OpenEXR_CMAKE_ARGS -D zstd_DIR=${zstd_DIR})
+endif ()
+
+# Make OpenEXR use exactly the Imath we found (or built) ourselves. Otherwise
+# its own search could settle on a different Imath, or fetch yet another one.
+if (Imath_DIR)
+    list (APPEND MORE_OpenEXR_CMAKE_ARGS -D Imath_DIR=${Imath_DIR})
 endif ()
 
 build_dependency_with_cmake(OpenEXR
