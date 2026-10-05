@@ -194,7 +194,15 @@ OIIO_EXPORT int ffmpeg_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 ffmpeg_imageio_library_version()
 {
-    return "FFMpeg " OIIO_FFMPEG_VERSION " (" LIBAVFORMAT_IDENT ")";
+    // Ask the linked library for its release version, falling back to what
+    // was detected at build time.
+    static const std::string ver = Strutil::format("FFMpeg %s (%s)",
+                                                   av_version_info()
+                                                           && *av_version_info()
+                                                       ? av_version_info()
+                                                       : OIIO_FFMPEG_VERSION,
+                                                   LIBAVFORMAT_IDENT);
+    return ver.c_str();
 }
 
 OIIO_EXPORT ImageInput*
