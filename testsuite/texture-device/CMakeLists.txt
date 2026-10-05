@@ -74,6 +74,12 @@ target_include_directories (texture-device-devicecheck
         $<TARGET_PROPERTY:OpenImageIO::OpenImageIO,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
+# Not linking OIIO means no implicit build-order dependency, but we still
+# need the generated/copied OpenImageIO/detail/fmt headers to exist first.
+if (TARGET fmt_internal_target)
+    add_dependencies (texture-device-devicecheck fmt_internal_target)
+endif ()
+
 if (TARGET Imath::Imath)
     target_include_directories (texture-device-devicecheck
         PRIVATE
