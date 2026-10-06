@@ -135,11 +135,12 @@ Current voting members of the TSC are:
 * **Chief Architect**: Larry Gritz - Sony Pictures Imageworks
 * Anton Dukhovnikov - Wētā Digital / Unity
 * Jesse Yurkovich - Blender
-* Joseph Goldstone - ARRI
+* Jinnie Kim - WildBrain
+* Joseph Goldstone
 * Luke Emrose - Animal Logic
 * Martin Davies - LAIKA
-* Robin Rowe - Heroic Robots
 * Thiago Ize - Autodesk
+* Zach Lewis - Method
 
 
 ### TSC Nomination and Succession
