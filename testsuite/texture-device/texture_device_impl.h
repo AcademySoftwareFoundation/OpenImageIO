@@ -12,7 +12,7 @@
 #include <cstring>
 
 // Just to reduce verbosity
-#define DTS DTextureSystem<Arena, ManagedArena>
+#define DTS            DTextureSystem<Arena, ManagedArena>
 #define OPT_FUNCT_IMPL template<bool __C, typename>
 
 namespace texture_device {

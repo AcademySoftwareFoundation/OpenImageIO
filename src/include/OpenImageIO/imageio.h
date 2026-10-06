@@ -773,30 +773,42 @@ public:
                                 int defaultqual = -1) const;
 
     /// Helper function to verify that the given pixel range exactly covers a
-    /// set of 2D tiles.  Also returns false if the spec indicates that the
-    /// image isn't tiled at all.
+    /// set of 2D tiles: it must start on a tile boundary within the data
+    /// window, and end on a tile boundary or the edge of the data window.
+    /// Also returns false if the spec indicates that the image isn't tiled
+    /// at all.
     OIIO_NODISCARD bool valid_tile_range (int xbegin, int xend, int ybegin, int yend) noexcept {
-        return (tile_width &&
-                ((xbegin-x) % tile_width)  == 0 &&
-                ((ybegin-y) % tile_height) == 0 &&
-                (((xend-x) % tile_width)  == 0 || (xend-x) == width) &&
-                (((yend-y) % tile_height) == 0 || (yend-y) == height));
+        return (tile_width > 0 && tile_height > 0 &&
+                valid_tile_axis(xbegin, xend, x, width, tile_width) &&
+                valid_tile_axis(ybegin, yend, y, height, tile_height));
     }
 
     /// Helper function to verify that the given pixel range exactly covers a
-    /// set of 3D tiles.  Also returns false if the spec indicates that the
-    /// image isn't tiled at all.
+    /// set of 3D tiles: it must start on a tile boundary within the data
+    /// window, and end on a tile boundary or the edge of the data window.
+    /// Also returns false if the spec indicates that the image isn't tiled
+    /// at all.
     OIIO_NODISCARD bool valid_tile_range (int xbegin, int xend, int ybegin, int yend,
                            int zbegin, int zend) noexcept {
-        return (tile_width &&
-                ((xbegin-x) % tile_width)  == 0 &&
-                ((ybegin-y) % tile_height) == 0 &&
-                ((zbegin-z) % tile_depth)  == 0 &&
-                (((xend-x) % tile_width)  == 0 || (xend-x) == width) &&
-                (((yend-y) % tile_height) == 0 || (yend-y) == height) &&
-                (((zend-z) % tile_depth)  == 0 || (zend-z) == depth));
+        return (tile_width > 0 && tile_height > 0 && tile_depth > 0 &&
+                valid_tile_axis(xbegin, xend, x, width, tile_width) &&
+                valid_tile_axis(ybegin, yend, y, height, tile_height) &&
+                valid_tile_axis(zbegin, zend, z, depth, tile_depth));
     }
 
+private:
+    // One axis of valid_tile_range(). The end may reach past the data
+    // window only as far as the edge of the last (partial) tile. Done in
+    // 64 bits so that hostile coordinates can't overflow.
+    static constexpr bool valid_tile_axis (int begin, int end, int origin,
+                                           int size, int tilesize) noexcept {
+        int64_t b = int64_t(begin) - origin, e = int64_t(end) - origin;
+        return b >= 0 && b <= e && b % tilesize == 0 &&
+               (e % tilesize == 0 || e == size) &&
+               e <= (int64_t(size) + tilesize - 1) / tilesize * tilesize;
+    }
+
+public:
     /// Return the channelformat of the given channel. This is safe even
     /// if channelformats is not filled out.
     TypeDesc channelformat (int chan) const {
@@ -2307,10 +2319,12 @@ protected:
     ///   implied by `range`.
     /// * Whether the channel count is within the `"limits:channels"` OIIO
     ///   attribute.
-    /// * Whether any single dimension (width, height, depth) is within the
+    /// * Whether any single dimension (width, height, depth) of the pixel
+    ///   data window, display window, or tile is within the
     ///   `"limits:resolution"` OIIO attribute.
-    /// * The total uncompressed pixel data size is expected to be within the
-    ///   `"limits:imagesize_MB"` OIIO attribute.
+    /// * The total uncompressed pixel data size, and the size of a single
+    ///   tile, are expected to be within the `"limits:imagesize_MB"` OIIO
+    ///   attribute.
     /// * The full_{width,height,depth} are valid and within the range.
     ///
     bool check_open (const ImageSpec &spec,
@@ -3975,14 +3989,15 @@ OIIO_API std::string geterror(bool clear = true);
 /// - `int limits:resolution` (1048576)
 ///
 ///    When nonzero, the maximum number of pixels allowed along any single
-///    dimension (width, height, or depth) of an image. Images whose headers
-///    indicate a larger dimension might be assumed to be corrupted or
-///    malicious files. This complements `limits:imagesize_MB` by catching a
-///    header that is small in one dimension but absurdly large in another,
-///    which could otherwise slip under the total-size limit. The default is
-///    1048576 (2^20). In situations when images with a larger single
-///    dimension are expected to be encountered, you should raise this limit.
-///    Setting the limit to 0 means having no limit. (Added in version 3.2.)
+///    dimension (width, height, or depth) of an image, its display window, or
+///    its tiles. Images whose headers indicate a larger dimension might be
+///    assumed to be corrupted or malicious files. This complements
+///    `limits:imagesize_MB` by catching a header that is small in one
+///    dimension but absurdly large in another, which could otherwise slip
+///    under the total-size limit. The default is 1048576 (2^20). In
+///    situations when images with a larger single dimension are expected to
+///    be encountered, you should raise this limit. Setting the limit to 0
+///    means having no limit. (Added in version 3.2.)
 ///
 /// - `int log_times` (0)
 ///

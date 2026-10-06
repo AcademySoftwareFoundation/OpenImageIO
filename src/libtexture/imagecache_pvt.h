@@ -118,10 +118,7 @@ struct UdimInfo {
 
     UdimInfo() {}
     UdimInfo(ustring filename, ImageCacheFile* icfile, int u, int v)
-        : filename(filename)
-        , icfile(icfile)
-        , u(u)
-        , v(v)
+        : filename(filename), icfile(icfile), u(u), v(v)
     {
     }
     UdimInfo(const UdimInfo& other)

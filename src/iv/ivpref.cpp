@@ -18,8 +18,7 @@
 
 
 IvPreferenceWindow::IvPreferenceWindow(ImageViewer& viewer)
-    : QDialog(&viewer)
-    , m_viewer(viewer)
+    : QDialog(&viewer), m_viewer(viewer)
 {
     closeButton = new QPushButton(tr("Close"));
     closeButton->setShortcut(tr("Ctrl+W"));

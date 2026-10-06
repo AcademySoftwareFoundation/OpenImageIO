@@ -57,6 +57,11 @@ void split_name(string_view fullname, string_view& layer, string_view& suffix);
 // Do the channels appear to be R, G, B (or known common aliases)?
 bool channels_are_rgb(const ImageSpec& spec);
 
+// If `compression` (an Imf::Compression / exr_compression_t) is one of the
+// HTJ2K family, make sure OpenJPH's one-time encoder setup has happened on
+// a single thread (works around a race in OpenJPH < 0.27).
+void prime_htj2k_if_needed(int compression);
+
 }  // namespace pvt
 
 
@@ -179,8 +184,7 @@ private:
 class OpenEXRInputStream final : public Imf::IStream {
 public:
     OpenEXRInputStream(const char* filename, Filesystem::IOProxy* io)
-        : Imf::IStream(filename)
-        , m_io(io)
+        : Imf::IStream(filename), m_io(io)
     {
         if (!io || io->mode() != Filesystem::IOProxy::Read)
             throw Iex::IoExc("File input failed.");
@@ -316,11 +320,7 @@ private:
         std::vector<Imf::PixelType> pixeltype;  ///< Imf pixel type for each chan
         std::vector<int> chanbytes;  ///< Size (in bytes) of each channel
 
-        PartInfo()
-            : initialized(false)
-            , validated(false)
-        {
-        }
+        PartInfo() : initialized(false), validated(false) {}
         PartInfo(const PartInfo& p)
             : initialized((bool)p.initialized)
             , validated((bool)p.validated)

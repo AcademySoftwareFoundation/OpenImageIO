@@ -18,11 +18,7 @@ using namespace OIIO;
 
 class MySystem {
 public:
-    MySystem()
-        : i(0)
-        , f(0)
-    {
-    }
+    MySystem() : i(0), f(0) {}
 
     bool attribute(const std::string& name, int value)
     {

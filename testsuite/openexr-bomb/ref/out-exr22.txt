@@ -4,3 +4,18 @@ Full command line was:
 oiiotool ERROR: read : "src/bomb.exr": openexr header claims a 12287 MB image from a 464 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool -oiioattrib openexr:core 1 --info -v src/bomb.exr
+oiiotool ERROR: read : "src/bigtile.exr": OpenEXR exception: Tile size too large for OpenEXR format
+Full command line was:
+> oiiotool -oiioattrib openexr:core 0 --info -v src/bigtile.exr
+oiiotool ERROR: read : "src/bigtile.exr": openexr tile size 268435456x64x1 exceeds "limits:resolution" = 1048576 for a single dimension. Possible corrupt input?
+If you're sure this is a valid file, raise the OIIO global attribute "limits:resolution".
+Full command line was:
+> oiiotool -oiioattrib openexr:core 1 --info -v src/bigtile.exr
+oiiotool ERROR: read : "src/bigdisplay.exr": openexr image full/display resolution 838860820x4x1 exceeds "limits:resolution" = 1048576 for a single dimension. Possible corrupt input?
+If you're sure this is a valid file, raise the OIIO global attribute "limits:resolution".
+Full command line was:
+> oiiotool -oiioattrib openexr:core 0 --info -v src/bigdisplay.exr
+oiiotool ERROR: read : "src/bigdisplay.exr": openexr image full/display resolution 838860820x4x1 exceeds "limits:resolution" = 1048576 for a single dimension. Possible corrupt input?
+If you're sure this is a valid file, raise the OIIO global attribute "limits:resolution".
+Full command line was:
+> oiiotool -oiioattrib openexr:core 1 --info -v src/bigdisplay.exr

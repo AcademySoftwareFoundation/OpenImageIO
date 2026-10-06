@@ -29,31 +29,25 @@ public:
     typedef T element_type;
 
     /// Default ctr
-    intrusive_ptr() noexcept
-        : m_ptr(NULL)
-    {
-    }
+    intrusive_ptr() noexcept : m_ptr(NULL) {}
 
     /// Construct from a raw pointer (presumed to be just now allocated,
     /// and now owned by us).
-    intrusive_ptr(T* ptr)
-        : m_ptr(ptr)
+    intrusive_ptr(T* ptr) : m_ptr(ptr)
     {
         if (m_ptr)
             intrusive_ptr_add_ref(m_ptr);
     }
 
     /// Construct from another intrusive_ptr.
-    intrusive_ptr(const intrusive_ptr& r)
-        : m_ptr(r.get())
+    intrusive_ptr(const intrusive_ptr& r) : m_ptr(r.get())
     {
         if (m_ptr)
             intrusive_ptr_add_ref(m_ptr);
     }
 
     /// Move construct from another intrusive_ptr.
-    intrusive_ptr(intrusive_ptr&& r) noexcept
-        : m_ptr(r.get())
+    intrusive_ptr(intrusive_ptr&& r) noexcept : m_ptr(r.get())
     {
         r.m_ptr = NULL;
     }

@@ -258,7 +258,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     // "internal" macros
 // per-file attribs
 #define CINEON_SET_ATTRIB_S(x, n, s) m_spec.attribute(s, m_cin.header.x(n))
-#define CINEON_SET_ATTRIB(x, n) CINEON_SET_ATTRIB_S(x, n, "cineon:" #x)
+#define CINEON_SET_ATTRIB(x, n)      CINEON_SET_ATTRIB_S(x, n, "cineon:" #x)
 #define CINEON_SET_ATTRIB_BYTE(x) \
     if (m_cin.header.x() != 0xFF) \
     CINEON_SET_ATTRIB(x, )

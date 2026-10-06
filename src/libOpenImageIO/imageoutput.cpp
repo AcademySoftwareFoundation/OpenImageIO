@@ -62,11 +62,7 @@ static std::atomic_int64_t output_next_id(0);
 
 class ImageOutput::Impl {
 public:
-    Impl()
-        : m_id(++output_next_id)
-        , m_threads(OIIO::pvt::oiio_threads)
-    {
-    }
+    Impl() : m_id(++output_next_id), m_threads(OIIO::pvt::oiio_threads) {}
 
     // Unneeded?
     //  // So we can lock this ImageOutput for the thread-safe methods.
@@ -110,8 +106,7 @@ ImageOutput::operator delete(void* ptr)
 
 
 
-ImageOutput::ImageOutput()
-    : m_impl(new Impl, impl_deleter)
+ImageOutput::ImageOutput() : m_impl(new Impl, impl_deleter)
 {
 }
 
@@ -179,7 +174,7 @@ bool
 ImageOutput::write_scanline(int y, TypeDesc format,
                             const image_span<const std::byte>& data)
 {
-    if (y < 0 || y >= m_spec.height) {
+    if (y < m_spec.y || y >= (m_spec.y + m_spec.height)) {
         errorfmt("write_scanlines: Invalid scanline index {}", y);
         return false;
     }
@@ -219,7 +214,8 @@ bool
 ImageOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
                              const image_span<const std::byte>& data)
 {
-    if (ybegin < 0 || yend > m_spec.height || ybegin >= yend) {
+    if (ybegin < m_spec.y || yend > (m_spec.y + m_spec.height)
+        || ybegin >= yend) {
         errorfmt("write_scanlines: Invalid scanline range {}-{}", ybegin, yend);
         return false;
     }

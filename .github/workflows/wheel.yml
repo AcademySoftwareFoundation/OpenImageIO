@@ -118,6 +118,10 @@ jobs:
             manylinux: manylinux_2_28
             python: cp314-manylinux_x86_64
             arch: x86_64
+          - build: CPython 3.15 64 bits manylinux_2_28
+            manylinux: manylinux_2_28
+            python: cp315-manylinux_x86_64
+            arch: x86_64
     steps:
       - name: Checkout repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -225,6 +229,10 @@ jobs:
               manylinux: manylinux_2_28
               python: cp314-manylinux_aarch64
               arch: aarch64
+            - build: CPython 3.15 ARM 64 bits manylinux_2_28
+              manylinux: manylinux_2_28
+              python: cp315-manylinux_aarch64
+              arch: aarch64
 
     steps:
       - name: Checkout repo
@@ -322,6 +330,9 @@ jobs:
           - build: CPython 3.14 64 bits
             python: cp314-macosx_x86_64
             arch: x86_64
+          - build: CPython 3.15 64 bits
+            python: cp315-macosx_x86_64
+            arch: x86_64
 
     steps:
       - name: Checkout repo
@@ -386,7 +397,7 @@ jobs:
 
   macos-arm:
     name: Build wheels on macOS ARM
-    runs-on: macos-14
+    runs-on: macos-15
     if: |
       github.event_name != 'schedule' || github.event.repository.fork == false
     strategy:
@@ -413,6 +424,9 @@ jobs:
             arch: arm64
           - build: CPython 3.14 ARM 64 bits
             python: cp314-macosx_arm64
+            arch: arm64
+          - build: CPython 3.15 ARM 64 bits
+            python: cp315-macosx_arm64
             arch: arm64
 
     steps:
@@ -494,6 +508,9 @@ jobs:
           - build: CPython 3.14 64 bits
             python: cp314-win_amd64
             arch: AMD64
+          - build: CPython 3.15 64 bits
+            python: cp315-win_amd64
+            arch: AMD64
 
     steps:
       - name: Checkout repo
@@ -505,7 +522,7 @@ jobs:
           python-version: '3.9'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@ee02a1537ce3071a004a6b08c41e72f0fdc42d9a # v3.4.0
+        uses: pypa/cibuildwheel@1828c10ab37f080699c7b81cea34097c684a7074 # v4.2.0
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}

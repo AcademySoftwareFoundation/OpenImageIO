@@ -189,10 +189,7 @@ struct CSInfo {
 
     CSInfo(string_view name_, int index_, int flags_ = none,
            string_view canonical_ = "")
-        : name(name_)
-        , index(index_)
-        , m_flags(flags_)
-        , canonical(canonical_)
+        : name(name_), index(index_), m_flags(flags_), canonical(canonical_)
     {
     }
 
@@ -236,10 +233,7 @@ private:
     bool m_config_is_built_in = false;
 
 public:
-    Impl(ColorConfig* self)
-        : m_self(self)
-    {
-    }
+    Impl(ColorConfig* self) : m_self(self) {}
 
     ~Impl()
     {
@@ -881,6 +875,22 @@ ColorConfig::~ColorConfig()
 
 
 
+// OCIO before 2.3.2 drops the default view transform name when copying a
+// config, which changes display transforms; keep it.
+static OCIO::ConfigRcPtr
+copy_config(const OCIO::ConstConfigRcPtr& config)
+{
+    auto copy = config->createEditableCopy();
+#if OCIO_VERSION_HEX < MAKE_OCIO_VERSION_HEX(2, 3, 2)
+    const char* view_transform = config->getDefaultViewTransformName();
+    if (view_transform && *view_transform)
+        copy->setDefaultViewTransformName(view_transform);
+#endif
+    return copy;
+}
+
+
+
 // OIIO doctoring of OCIO configs for different default file rules. Currently,
 // we only do this for built-in configs.
 static void
@@ -940,7 +950,7 @@ ColorConfig::Impl::init(string_view filename)
     try {
         auto cfg = OCIO::Config::CreateFromFile("ocio://default");
         OIIO_CONTRACT_ASSERT(cfg);
-        builtinconfig_ = cfg->createEditableCopy();
+        builtinconfig_ = copy_config(cfg);
         fix_config_file_rules(builtinconfig_);
     } catch (std::exception& e) {
         error("Error making OCIO built-in config: {}", e.what());
@@ -961,7 +971,7 @@ ColorConfig::Impl::init(string_view filename)
             auto cfg = OCIO::Config::CreateFromFile(
                 std::string(filename).c_str());
             if (cfg)
-                config_ = cfg->createEditableCopy();
+                config_ = copy_config(cfg);
             if (config_ && Strutil::istarts_with(filename, "ocio://"))
                 fix_config_file_rules(config_);
         } catch (std::exception& e) {
@@ -1232,10 +1242,19 @@ ColorConfig::isData(string_view name) const
 bool
 ColorConfig::Impl::isData(string_view name) const
 {
-    if (const CSInfo* cs = find(name)) {
-        return cs->flags() & CSInfo::is_data;
+    // Look the name up as OCIO does (names, aliases and roles, in any case),
+    // and honor the color space's own isdata.
+    OCIO::ConstColorSpaceRcPtr cs;
+    if (config_ && !disable_ocio) {
+        try {
+            cs = config_->getColorSpace(c_str(name));
+        } catch (...) {
+        }
+        if (cs && cs->isData())
+            return true;
     }
-    return false;
+    const CSInfo* csi = find(cs ? string_view(cs->getName()) : name);
+    return csi && (csi->flags() & CSInfo::is_data);
 }
 
 
@@ -1706,8 +1725,7 @@ ocio_bitdepth(TypeDesc type)
 class ColorProcessor_OCIO final : public ColorProcessor {
 public:
     ColorProcessor_OCIO(OCIO::ConstProcessorRcPtr p)
-        : m_p(p)
-        , m_cpuproc(p->getOptimizedCPUProcessor(ocio_optimization))
+        : m_p(p), m_cpuproc(p->getOptimizedCPUProcessor(ocio_optimization))
     {
     }
     ~ColorProcessor_OCIO() override {}
@@ -1744,8 +1762,7 @@ private:
 class ColorProcessor_Matrix final : public ColorProcessor {
 public:
     ColorProcessor_Matrix(const Imath::M44f& Matrix, bool inverse)
-        : ColorProcessor()
-        , m_M(Matrix)
+        : ColorProcessor(), m_M(Matrix)
     {
         if (inverse)
             m_M = m_M.inverse();

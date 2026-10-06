@@ -21,11 +21,7 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 
 class PtexInput final : public ImageInput {
 public:
-    PtexInput()
-        : m_ptex(NULL)
-    {
-        init();
-    }
+    PtexInput() : m_ptex(NULL) { init(); }
     ~PtexInput() override { close(); }
     const char* format_name(void) const override { return "ptex"; }
     int supports(string_view feature) const override

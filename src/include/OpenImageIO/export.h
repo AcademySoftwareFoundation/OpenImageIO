@@ -56,7 +56,7 @@
 #else
 #    define OIIO_IMPORT __attribute__((visibility("default")))
 #    define OIIO_EXPORT __attribute__((visibility("default")))
-#    define OIIO_LOCAL __attribute__((visibility("hidden")))
+#    define OIIO_LOCAL  __attribute__((visibility("hidden")))
 #endif
 
 #if defined(OpenImageIO_EXPORTS)

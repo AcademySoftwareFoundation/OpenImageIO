@@ -60,11 +60,7 @@ public:
     bool m_allocated;
     spin_mutex m_mutex;
 
-    Impl()
-        : m_allocated(false)
-    {
-        clear();
-    }
+    Impl() : m_allocated(false) { clear(); }
 
     void clear()
     {
@@ -147,17 +143,13 @@ public:
 
 
 
-DeepData::DeepData()
-    : m_impl(NULL)
-    , m_npixels(0)
-    , m_nchannels(0)
+DeepData::DeepData() : m_impl(NULL), m_npixels(0), m_nchannels(0)
 {
 }
 
 
 
-DeepData::DeepData(const ImageSpec& spec)
-    : m_impl(NULL)
+DeepData::DeepData(const ImageSpec& spec) : m_impl(NULL)
 {
     init(spec);
 }
@@ -171,8 +163,7 @@ DeepData::~DeepData()
 
 
 
-DeepData::DeepData(const DeepData& src)
-    : m_impl(NULL)
+DeepData::DeepData(const DeepData& src) : m_impl(NULL)
 {
     m_npixels   = src.m_npixels;
     m_nchannels = src.m_nchannels;
@@ -1041,10 +1032,7 @@ class SampleComparator {
 public:
     SampleComparator(const DeepData& dd, int64_t pixel, int zchan,
                      int zbackchan)
-        : deepdata(dd)
-        , pixel(pixel)
-        , zchan(zchan)
-        , zbackchan(zbackchan)
+        : deepdata(dd), pixel(pixel), zchan(zchan), zbackchan(zbackchan)
     {
     }
     bool operator()(int i, int j) const

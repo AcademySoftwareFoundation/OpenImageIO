@@ -297,14 +297,8 @@ class VDBFile {
     std::unique_ptr<openvdb::io::File> m_file;
 
 public:
-    VDBFile(openvdb::io::File* f)
-        : m_file(f)
-    {
-    }
-    VDBFile(VDBFile&& rhs)
-        : m_file(std::move(rhs.m_file))
-    {
-    }
+    VDBFile(openvdb::io::File* f) : m_file(f) {}
+    VDBFile(VDBFile&& rhs) : m_file(std::move(rhs.m_file)) {}
     ~VDBFile()
     {
         if (m_file)

@@ -435,7 +435,7 @@ print_info_subimage(std::ostream& out, Oiiotool& ot, int current_subimage,
     }
 
     std::string ser = Strutil::join(lines, "\n");
-    if (ser[ser.size() - 1] != '\n')
+    if (ser.empty() || ser.back() != '\n')
         ser += '\n';
     out << ser;
 

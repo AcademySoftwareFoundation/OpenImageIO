@@ -6,10 +6,12 @@
 # libuhdr by hand!
 ######################################################################
 
-set_cache (libuhdr_BUILD_VERSION 1.5.1 "libultrahdr version for local builds")
+set_cache (libuhdr_BUILD_VERSION 2.0.2 "libultrahdr version for local builds")
 set (libuhdr_GIT_REPOSITORY "https://github.com/google/libultrahdr")
-set (libuhdr_GIT_TAG "v${libuhdr_BUILD_VERSION}")
-set (libuhdr_GIT_COMMIT "a8166d65171aef43cb4bc211538ee6619a9af680")
+set_cache (libuhdr_GIT_TAG "v${libuhdr_BUILD_VERSION}"
+           "libhudr git tag to checkout")
+set_cache (libuhdr_GIT_COMMIT "e5f5a022fe96fc4dc2ee35c19f733a50df807abe"
+           "libuhdr commit has to verify tag against")
 
 set_cache (libuhdr_BUILD_SHARED_LIBS OFF
            DOC "Should execute a local libuhdr build, if necessary, build shared libraries" ADVANCED)
@@ -21,8 +23,8 @@ if (TARGET libjpeg-turbo::jpeg)
     get_target_property(JPEG_LIBRARY JPEG::JPEG INTERFACE_LINK_LIBRARIES)
 endif ()
 
-set_cache (UHDR_CMAKE_C_COMPILER ${CMAKE_C_COMPILER} "libuhdr build C compiler override" ADVANCED)
-set_cache (UHDR_CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER} "libuhdr build C++ compiler override" ADVANCED)
+set_cache (libuhdr_CMAKE_C_COMPILER ${CMAKE_C_COMPILER} "libuhdr build C compiler override" ADVANCED)
+set_cache (libuhdr_CMAKE_CXX_COMPILER ${CMAKE_CXX_COMPILER} "libuhdr build C++ compiler override" ADVANCED)
 
 # libuhdr's own CMake install target does not work on Windows (it generates
 # no install.vcxproj), so we skip CMake's install step there and instead

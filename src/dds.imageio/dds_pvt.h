@@ -15,38 +15,38 @@ OIIO_PLUGIN_NAMESPACE_BEGIN
 namespace DDS_pvt {
 
 #define DDS_MAKE4CC(a, b, c, d) (a | b << 8 | c << 16 | d << 24)
-#define DDS_4CC_DXT1 DDS_MAKE4CC('D', 'X', 'T', '1')
-#define DDS_4CC_DXT2 DDS_MAKE4CC('D', 'X', 'T', '2')
-#define DDS_4CC_DXT3 DDS_MAKE4CC('D', 'X', 'T', '3')
-#define DDS_4CC_DXT4 DDS_MAKE4CC('D', 'X', 'T', '4')
-#define DDS_4CC_DXT5 DDS_MAKE4CC('D', 'X', 'T', '5')
-#define DDS_4CC_ATI1 DDS_MAKE4CC('A', 'T', 'I', '1')
-#define DDS_4CC_ATI2 DDS_MAKE4CC('A', 'T', 'I', '2')
-#define DDS_4CC_DX10 DDS_MAKE4CC('D', 'X', '1', '0')
-#define DDS_4CC_RXGB DDS_MAKE4CC('R', 'X', 'G', 'B')
-#define DDS_4CC_BC4U DDS_MAKE4CC('B', 'C', '4', 'U')
-#define DDS_4CC_BC5U DDS_MAKE4CC('B', 'C', '5', 'U')
+#define DDS_4CC_DXT1            DDS_MAKE4CC('D', 'X', 'T', '1')
+#define DDS_4CC_DXT2            DDS_MAKE4CC('D', 'X', 'T', '2')
+#define DDS_4CC_DXT3            DDS_MAKE4CC('D', 'X', 'T', '3')
+#define DDS_4CC_DXT4            DDS_MAKE4CC('D', 'X', 'T', '4')
+#define DDS_4CC_DXT5            DDS_MAKE4CC('D', 'X', 'T', '5')
+#define DDS_4CC_ATI1            DDS_MAKE4CC('A', 'T', 'I', '1')
+#define DDS_4CC_ATI2            DDS_MAKE4CC('A', 'T', 'I', '2')
+#define DDS_4CC_DX10            DDS_MAKE4CC('D', 'X', '1', '0')
+#define DDS_4CC_RXGB            DDS_MAKE4CC('R', 'X', 'G', 'B')
+#define DDS_4CC_BC4U            DDS_MAKE4CC('B', 'C', '4', 'U')
+#define DDS_4CC_BC5U            DDS_MAKE4CC('B', 'C', '5', 'U')
 
-#define DDS_FORMAT_R10G10B10A2_UNORM 24
-#define DDS_FORMAT_R8G8B8A8_UNORM 28
+#define DDS_FORMAT_R10G10B10A2_UNORM   24
+#define DDS_FORMAT_R8G8B8A8_UNORM      28
 #define DDS_FORMAT_R8G8B8A8_UNORM_SRGB 29
-#define DDS_FORMAT_R16_UNORM 56
-#define DDS_FORMAT_BC1_UNORM 71
-#define DDS_FORMAT_BC1_UNORM_SRGB 72
-#define DDS_FORMAT_BC2_UNORM 74
-#define DDS_FORMAT_BC2_UNORM_SRGB 75
-#define DDS_FORMAT_BC3_UNORM 77
-#define DDS_FORMAT_BC3_UNORM_SRGB 78
-#define DDS_FORMAT_BC4_UNORM 80
-#define DDS_FORMAT_BC5_UNORM 83
-#define DDS_FORMAT_B8G8R8A8_UNORM 87
-#define DDS_FORMAT_B8G8R8X8_UNORM 88
+#define DDS_FORMAT_R16_UNORM           56
+#define DDS_FORMAT_BC1_UNORM           71
+#define DDS_FORMAT_BC1_UNORM_SRGB      72
+#define DDS_FORMAT_BC2_UNORM           74
+#define DDS_FORMAT_BC2_UNORM_SRGB      75
+#define DDS_FORMAT_BC3_UNORM           77
+#define DDS_FORMAT_BC3_UNORM_SRGB      78
+#define DDS_FORMAT_BC4_UNORM           80
+#define DDS_FORMAT_BC5_UNORM           83
+#define DDS_FORMAT_B8G8R8A8_UNORM      87
+#define DDS_FORMAT_B8G8R8X8_UNORM      88
 #define DDS_FORMAT_B8G8R8A8_UNORM_SRGB 91
 #define DDS_FORMAT_B8G8R8X8_UNORM_SRGB 93
-#define DDS_FORMAT_BC6H_UF16 95
-#define DDS_FORMAT_BC6H_SF16 96
-#define DDS_FORMAT_BC7_UNORM 98
-#define DDS_FORMAT_BC7_UNORM_SRGB 99
+#define DDS_FORMAT_BC6H_UF16           95
+#define DDS_FORMAT_BC6H_SF16           96
+#define DDS_FORMAT_BC7_UNORM           98
+#define DDS_FORMAT_BC7_UNORM_SRGB      99
 
 enum class Compression {
     None,

@@ -64,26 +64,26 @@
 namespace pybind11 {
 namespace detail {
 
-    // This half casting support for numpy was all derived from discussions
-    // here: https://github.com/pybind/pybind11/issues/1776
+// This half casting support for numpy was all derived from discussions
+// here: https://github.com/pybind/pybind11/issues/1776
 
-    // Similar to enums in `pybind11/numpy.h`. Determined by doing:
-    // python3 -c 'import numpy as np; print(np.dtype(np.float16).num)'
-    constexpr int NPY_FLOAT16 = 23;
+// Similar to enums in `pybind11/numpy.h`. Determined by doing:
+// python3 -c 'import numpy as np; print(np.dtype(np.float16).num)'
+constexpr int NPY_FLOAT16 = 23;
 
-    template<> struct npy_format_descriptor<half> {
-        static pybind11::dtype dtype()
-        {
-            handle ptr = npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16);
-            return reinterpret_borrow<pybind11::dtype>(ptr);
-        }
-        static std::string format()
-        {
-            // following: https://docs.python.org/3/library/struct.html#format-characters
-            return "e";
-        }
-        static constexpr auto name = _("float16");
-    };
+template<> struct npy_format_descriptor<half> {
+    static pybind11::dtype dtype()
+    {
+        handle ptr = npy_api::get().PyArray_DescrFromType_(NPY_FLOAT16);
+        return reinterpret_borrow<pybind11::dtype>(ptr);
+    }
+    static std::string format()
+    {
+        // following: https://docs.python.org/3/library/struct.html#format-characters
+        return "e";
+    }
+    static constexpr auto name = _("float16");
+};
 
 }  // namespace detail
 }  // namespace pybind11

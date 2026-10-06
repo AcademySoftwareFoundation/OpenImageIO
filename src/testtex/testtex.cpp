@@ -1586,10 +1586,7 @@ launch_tex_threads(int numthreads, int iterations)
 
 class GridImageInput final : public ImageInput {
 public:
-    GridImageInput()
-        : m_miplevel(-1)
-    {
-    }
+    GridImageInput() : m_miplevel(-1) {}
     ~GridImageInput() override { close(); }
     const char* format_name(void) const final { return "grid"; }
     bool valid_file(const std::string& /*filename*/) const final
