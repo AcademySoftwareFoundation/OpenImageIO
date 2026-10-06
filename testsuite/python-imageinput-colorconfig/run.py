@@ -28,13 +28,13 @@ for ext, nchans, attribs in [
     # skips a file whose format has no reader.
     files += [ "colorconfig." + ext ]
     command += oiiotool (f"-pattern constant:color=0.5,0.5,0.5,0.5 32x32 {nchans} {attribs} -o colorconfig.{ext}",
-                         failureok=True)
+                         silent=True, failureok=True)
 # A PNG with a cICP chunk.
 files += [ "colorconfig-cicp.png" ]
-command += oiiotool ("-pattern constant:color=0.5,0.5,0.5 32x32 3 -attrib oiio:ColorSpace pq_rec2020_display -o colorconfig-cicp.png")
+command += oiiotool ("-pattern constant:color=0.5,0.5,0.5 32x32 3 -attrib oiio:ColorSpace pq_rec2020_display -o colorconfig-cicp.png", silent=True)
 # An ACES container OpenEXR.
 files += [ "colorconfig-aces.exr" ]
-command += oiiotool ("--create 32x32 3 -d half --compression none -sattrib openexr:ACESContainerPolicy strict -o colorconfig-aces.exr")
+command += oiiotool ("--create 32x32 3 -d half --compression none -sattrib openexr:ACESContainerPolicy strict -o colorconfig-aces.exr", silent=True)
 files += [ "colorconfig.ico",  # made from colorconfig.png by the script
            # Parts: "data", missing, "lin_ap1_scene", missing
            OIIO_TESTSUITE_ROOT + "/openexr-multipart-colorspace/src/multipart_colorspace_data_first.exr",
@@ -46,4 +46,4 @@ files += [ "colorconfig.ico",  # made from colorconfig.png by the script
            OIIO_TESTSUITE_ROOT + "/psd/src/Layers_8bit_RGB.psd",
            OIIO_TESTSUITE_ROOT + "/ffmpeg/src/bframes.mp4" ]
 
-command += pythonbin + " src/test_imageinput_colorconfig.py " + " ".join(files) + " > out.txt"
+command += pythonbin + " src/test_imageinput_colorconfig.py " + " ".join(files) + " >> out.txt"
