@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -21,6 +22,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
+#include "color_derive.h"
 #include "imageio_pvt.h"
 #include "interop_config.h"
 
@@ -240,6 +242,7 @@ private:
     ColorProcessorMap colorprocmap;  // cache of ColorProcessors
     atomic_int colorprocs_requested;
     atomic_int colorprocs_created;
+    mutable std::map<std::string, Properties, std::less<>> m_derived;
     std::string m_configname;
     ColorConfig* m_self       = nullptr;
     bool m_config_is_built_in = false;
@@ -346,6 +349,10 @@ public:
     // The properties get_chromaticities() and get_transfer_function_gamma()
     // report.
     Properties properties(string_view colorspace) const;
+
+    // What the transforms of a color space of this config establish about
+    // it, worked out once per color space.
+    Properties derived(const OCIO::ColorSpace& cs) const;
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
@@ -2865,6 +2872,37 @@ ColorConfig::get_cicp(string_view colorspace) const
 
 
 ColorConfig::Impl::Properties
+ColorConfig::Impl::derived(const OCIO::ColorSpace& cs) const
+{
+    const string_view name(cs.getName());
+    {
+        spin_rw_read_lock lock(m_mutex);
+        auto found = m_derived.find(name);
+        if (found != m_derived.end())
+            return found->second;
+    }
+    // Name the space's primaries as one of the table's.
+    static const std::vector<const float*> gamuts = [] {
+        std::vector<const float*> unique;
+        for (const ColorInteropID& interop : color_interop_ids)
+            if (interop.chromaticities
+                && std::find(unique.begin(), unique.end(),
+                             interop.chromaticities)
+                       == unique.end())
+                unique.push_back(interop.chromaticities);
+        return unique;
+    }();
+    Properties result;
+    OIIO::pvt::derive_color_space_properties(*config_, cs, gamuts, xy_ap0,
+                                             result.xy, result.gamma);
+    spin_rw_write_lock lock(m_mutex);
+    m_derived.emplace(name, result);
+    return result;
+}
+
+
+
+ColorConfig::Impl::Properties
 ColorConfig::Impl::properties(string_view colorspace) const
 {
     // Identify the space as get_cicp() does, so that every name it accepts
@@ -2891,6 +2929,10 @@ ColorConfig::Impl::properties(string_view colorspace) const
                 result = { interop.chromaticities, interop.gamma };
             break;
         }
+    }
+    if (cs && interop_id.empty() && OIIO::pvt::colorconfig_analyze_transforms) {
+        // No known ID, so derive what the space's transforms establish.
+        result = derived(*cs);
     }
     if (linear)
         result.gamma = 1.0f;

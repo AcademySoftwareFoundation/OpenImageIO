@@ -482,6 +482,129 @@ test_color_space_properties()
 
 
 
+static void
+test_derived_color_space_properties()
+{
+    // Color spaces with no Color Interop ID, written with OCIO's built-in
+    // transforms, report what their transforms establish.
+    const std::string filename = Filesystem::temp_directory_path() + "/"
+                                 + Filesystem::unique_path() + ".ocio";
+    // A 3D LUT that is the identity except at black, which lowering one
+    // channel from white never reaches.
+    const std::string cube = Filesystem::temp_directory_path() + "/"
+                             + Filesystem::unique_path() + ".cube";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        cube, "LUT_3D_SIZE 2\n0.1 0.1 0.1\n1 0 0\n0 1 0\n1 1 0\n"
+              "0 0 1\n1 0 1\n0 1 1\n1 1 1\n"));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        filename,
+        std::string(
+            "ocio_profile_version: 2.3\n"
+            "roles: {aces_interchange: ACES2065-1, "
+            "cie_xyz_d65_interchange: CIE-XYZ-D65, default: ACES2065-1}\n"
+            "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+            "colorspaces:\n"
+            "  - !<ColorSpace> {name: ACES2065-1}\n"
+            "  - !<ColorSpace>\n"
+            "    name: Power AP1\n"
+            "    to_scene_reference: !<GroupTransform> {children: [\n"
+            "      !<ExponentTransform> {value: 2.2},\n"
+            "      !<BuiltinTransform> {style: ACEScg_to_ACES2065-1}]}\n"
+            "  - !<ColorSpace>\n"
+            "    name: Log AP1\n"
+            "    to_scene_reference: !<BuiltinTransform> "
+            "{style: ACEScct_to_ACES2065-1}\n"
+            // P3-D65 reaching ACES2065-1 through OCIO's Bradford adaptation.
+            "  - !<ColorSpace>\n"
+            "    name: Plain P3\n"
+            "    to_scene_reference: !<GroupTransform> {children: [\n"
+            "      !<MatrixTransform> {matrix: [0.4865709486482162, "
+            "0.2656676931690931, 0.1982172852343625, 0, 0.2289745640697488, "
+            "0.6917385218365064, 0.0792869140937450, 0, 0, 0.0451133818589026, "
+            "1.0439443689009760, 0, 0, 0, 0, 1]},\n"
+            "      !<BuiltinTransform> {style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD, "
+            "direction: inverse}]}\n"
+            // A curve after the matrix is not a curve and then a matrix.
+            "  - !<ColorSpace>\n"
+            "    name: Curve Last\n"
+            "    to_scene_reference: !<GroupTransform> {children: [\n"
+            "      !<BuiltinTransform> {style: ACEScg_to_ACES2065-1},\n"
+            "      !<ExponentTransform> {value: 2.2}]}\n"
+            // A declared linear encoding is honored over the measured power.
+            "  - !<ColorSpace>\n"
+            "    name: Said Linear\n"
+            "    encoding: scene-linear\n"
+            "    to_scene_reference: !<GroupTransform> {children: [\n"
+            "      !<ExponentTransform> {value: 2.2},\n"
+            "      !<BuiltinTransform> {style: ACEScg_to_ACES2065-1}]}\n"
+            "  - !<ColorSpace>\n"
+            "    name: Cube\n"
+            "    to_scene_reference: !<GroupTransform> {children: [\n"
+            "      !<FileTransform> {src: \"")
+            + cube
+            + "\", interpolation: linear},\n"
+              "      !<BuiltinTransform> {style: ACEScg_to_ACES2065-1}]}\n"
+              "display_colorspaces:\n"
+              "  - !<ColorSpace> {name: CIE-XYZ-D65}\n"
+              "  - !<ColorSpace>\n"
+              "    name: Monitor 1886\n"
+              "    from_display_reference: !<BuiltinTransform> "
+              "{style: DISPLAY - CIE-XYZ-D65_to_REC.1886-REC.709}\n"
+              "  - !<ColorSpace>\n"
+              "    name: Monitor P3\n"
+              "    from_display_reference: !<BuiltinTransform> "
+              "{style: DISPLAY - CIE-XYZ-D65_to_DisplayP3}\n"));
+    const float ap0[] = { .7347f, .2653f, 0.0f,    1.0f,
+                          .0001f, -.077f, .32168f, .33767f };
+    const float ap1[] = { .713f, .293f, .165f,   .83f,
+                          .128f, .044f, .32168f, .33767f };
+    const float rec709[] = { .64f, .33f, .30f, .60f, .15f, .06f, .3127f, .329f };
+    const float p3d65[] = { .68f, .32f, .265f, .69f, .15f, .06f, .3127f, .329f };
+    {
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        struct Expected {
+            const char* name;
+            const float* xy;
+            float gamma;
+        };
+        for (const Expected& e : {
+                 Expected { "ACES2065-1", ap0, 1.0f },
+                 Expected { "Power AP1", ap1, 2.2f },
+                 Expected { "Log AP1", ap1, 0.0f },
+                 Expected { "Plain P3", p3d65, 1.0f },
+                 Expected { "Curve Last", nullptr, 0.0f },
+                 Expected { "Cube", nullptr, 0.0f },
+                 Expected { "Said Linear", ap1, 1.0f },
+                 Expected { "Monitor 1886", rec709, 2.4f },
+                 Expected { "Monitor P3", p3d65, 0.0f },
+             }) {
+            OIIO_CHECK_EQUAL(config.get_color_interop_id(e.name), "");
+            // Compared as text, so a failure names the color space.
+            auto describe = [&](cspan<float> xy, float gamma) {
+                return Strutil::fmt::format("{}: [{}] {}", e.name,
+                                            Strutil::join(xy, " "), gamma);
+            };
+            OIIO_CHECK_EQUAL(
+                describe(config.get_chromaticities(e.name),
+                         config.get_transfer_function_gamma(e.name)),
+                describe(e.xy ? cspan<float>(e.xy, 8) : cspan<float>(),
+                         e.gamma));
+        }
+
+        // With analysis off, only declarations and known names answer, even
+        // for a space already analyzed.
+        OIIO::attribute("colorconfig:analyze_transforms", 0);
+        OIIO_CHECK_ASSERT(config.get_chromaticities("Power AP1").empty());
+        OIIO_CHECK_EQUAL(config.get_transfer_function_gamma("Power AP1"), 0.0f);
+        OIIO::attribute("colorconfig:analyze_transforms", 1);
+    }
+    Filesystem::remove(filename);
+    Filesystem::remove(cube);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -504,6 +627,7 @@ main(int argc, char* argv[])
     test_interop_identities_conversion();
     test_gamma_pair_conversion();
     test_color_space_properties();
+    test_derived_color_space_properties();
 
     return unit_test_failures != 0;
 }

@@ -453,8 +453,10 @@ public:
     /// Color Interop ID
     /// (https://github.com/AcademySoftwareFoundation/ColorInterop), as
     /// `get_color_interop_id()` finds it: eight floats (Rx, Ry, Gx, Gy, Bx,
-    /// By, Wx, Wy, CIE 1931 xy), or an empty span if they are unknown. The
-    /// span is valid until this ColorConfig is reset or destroyed.
+    /// By, Wx, Wy, CIE 1931 xy), or an empty span if they are unknown. A
+    /// color space of the config without one has them derived by analyzing
+    /// its transforms, unless the `colorconfig:analyze_transforms` attribute
+    /// is 0. The span is valid until this ColorConfig is reset or destroyed.
     ///
     /// @version 3.2
     OIIO_NODISCARD cspan<float> get_chromaticities(string_view colorspace) const;
@@ -462,9 +464,9 @@ public:
     /// Get the exponent of a color space's transfer function if it decodes
     /// as a pure power, 1.0 if it is linear, or 0 if it is neither or is
     /// unknown. Piecewise curves such as sRGB's report 0. Like
-    /// `get_chromaticities()`, it answers for a known Color Interop ID, and
-    /// it reports 1.0 for any color space whose config declares a linear
-    /// encoding.
+    /// `get_chromaticities()`, it answers for a known Color Interop ID or by
+    /// analyzing transforms, and it reports 1.0 for any color space whose
+    /// config declares a linear encoding.
     ///
     /// @version 3.2
     OIIO_NODISCARD float
