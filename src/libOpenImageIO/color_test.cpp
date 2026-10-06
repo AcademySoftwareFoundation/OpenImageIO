@@ -53,6 +53,61 @@ getargs(int argc, char* argv[])
 
 
 
+// Loading a color config is logged as "ColorConfig::init".
+static bool
+color_config_loaded()
+{
+    return Strutil::contains(OIIO::get_string_attribute("timing_report"),
+                             "ColorConfig");
+}
+
+
+
+// Must run before anything else loads a color config.
+static void
+test_lazy_config_loading()
+{
+    OIIO::attribute("log_times", 1);
+    OIIO_CHECK_ASSERT(!color_config_loaded());
+
+    // Setting a color space clears contradicting metadata without a config.
+    ImageSpec spec;
+    spec.attribute("tiff:ColorSpace", 1);
+    spec.attribute("oiio:Gamma", 2.2f);
+    spec.set_colorspace("lin_rec709_scene");
+    OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                     "lin_rec709_scene");
+    OIIO_CHECK_ASSERT(!spec.find_attribute("tiff:ColorSpace"));
+    OIIO_CHECK_ASSERT(!spec.find_attribute("oiio:Gamma"));
+    set_colorspace_rec709_gamma(spec, 2.2f);
+    OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
+                     "g22_rec709_scene");
+    OIIO_CHECK_EQUAL(spec.get_float_attribute("oiio:Gamma"), 2.2f);
+    // An sRGB name keeps "Exif:ColorSpace" without asking a config.
+    spec.attribute("Exif:ColorSpace", 1);
+    set_colorspace(spec, "srgb_rec709_scene");
+    OIIO_CHECK_ASSERT(spec.find_attribute("Exif:ColorSpace"));
+
+    // Constructing a config and mapping CICP to an interop ID load nothing.
+    const ColorConfig& config(ColorConfig::default_colorconfig());
+    const int cicp[4] = { 9, 16, 9, 1 };
+    OIIO_CHECK_EQUAL(config.get_color_interop_id(cicp), "pq_rec2020_display");
+    OIIO_CHECK_ASSERT(!color_config_loaded());
+
+    // Only a non-sRGB name with "Exif:ColorSpace" present asks the config
+    // whether to erase it.
+    set_colorspace(spec, "lin_rec709_scene");
+    OIIO_CHECK_ASSERT(!spec.find_attribute("Exif:ColorSpace"));
+    OIIO_CHECK_ASSERT(color_config_loaded());
+    OIIO::attribute("log_times", 0);
+
+    // A config that fails to load still says so when first asked.
+    ColorConfig missing("no_such_config.ocio");
+    OIIO_CHECK_ASSERT(missing.has_error());
+}
+
+
+
 static void
 test_sRGB_conversion()
 {
@@ -209,6 +264,7 @@ main(int argc, char* argv[])
 
     getargs(argc, argv);
 
+    test_lazy_config_loading();
     test_sRGB_conversion();
     test_isData();
     test_Rec709_conversion();

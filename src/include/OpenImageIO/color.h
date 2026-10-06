@@ -77,9 +77,10 @@ class OIIO_API ColorConfig {
 public:
     /// Construct a ColorConfig using the named OCIO configuration file,
     /// or if filename is empty, to the current color configuration
-    /// specified by env variable $OCIO.
+    /// specified by env variable $OCIO. The configuration is loaded when
+    /// it is first needed, not here.
     ///
-    /// Multiple calls to this are potentially expensive. A ColorConfig
+    /// Loading a configuration is potentially expensive. A ColorConfig
     /// should usually be shared by an app for its entire runtime.
     ColorConfig(string_view filename = "");
 
@@ -480,7 +481,7 @@ private:
 
     class Impl;
     std::unique_ptr<Impl> m_impl;
-    Impl* getImpl() const { return m_impl.get(); }
+    Impl* getImpl() const;  // Loads the configuration on first use
 };
 
 OIIO_NAMESPACE_3_1_END
