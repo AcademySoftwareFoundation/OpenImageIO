@@ -1242,12 +1242,12 @@ ColorConfig::isData(string_view name) const
 bool
 ColorConfig::Impl::isData(string_view name) const
 {
-    // Look the name up as OCIO does (names, aliases and roles, in any case),
-    // and honor the color space's own isdata.
+    // Look the name up as conversions do (names, aliases and roles, in any
+    // case, and namespaced IDs), and honor the color space's own isdata.
     OCIO::ConstColorSpaceRcPtr cs;
     if (config_ && !disable_ocio) {
         try {
-            cs = config_->getColorSpace(c_str(name));
+            cs = config_->getColorSpace(c_str(resolve(name)));
         } catch (...) {
         }
         if (cs && cs->isData())
@@ -1606,6 +1606,115 @@ ColorConfig::resolve(string_view name) const
 
 
 
+// Whether `id` follows the Color Interop ID syntax: lowercase tokens of the
+// allowed characters, at most two ':' separators, and a non-empty base. See
+// https://github.com/AcademySoftwareFoundation/ColorInterop/blob/main/Recommendations/03_ColorInteropID/ColorInteropID.md
+static bool
+valid_interop_id(string_view id)
+{
+    int colons       = 0;
+    size_t token_len = 0;
+    for (unsigned char c : id) {
+        if (c == ':') {
+            if (++colons > 2 || (token_len == 0 && colons == 1))
+                return false;
+            token_len = 0;
+            continue;
+        }
+        const bool allowed = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+                             || (c && strchr(".-_~/*#%^+()[]|", c));
+        if (!allowed)
+            return false;
+        ++token_len;
+    }
+    return token_len != 0;
+}
+
+
+
+// A name sanitized into an ID token, as that recommendation's Annex C
+// specifies, so that generated and searched IDs agree.
+static std::string
+sanitize_id_token(string_view name)
+{
+    std::vector<uint32_t> codepoints;
+    Strutil::utf8_to_unicode(name, codepoints);
+    std::string result;
+    result.reserve(codepoints.size());
+    for (uint32_t c : codepoints) {
+        if (c > 127)
+            result += '^';
+        else if (c >= 'A' && c <= 'Z')
+            result += char(c - 'A' + 'a');
+        else if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+                 || (c && strchr(".-_~/*#%^+()[]|", int(c))))
+            result += char(c);
+        else {
+            switch (c) {
+            case ' ':
+            case '\t':
+            case '\n':
+            case '\r': result += '_'; break;
+            case '{':
+            case '<': result += '('; break;
+            case '}':
+            case '>': result += ')'; break;
+            case ',': result += '.'; break;
+            case ';':
+            case ':': result += '|'; break;
+            case '\'':
+            case '"': result += '#'; break;
+            case '\\': result += '/'; break;
+            default: result += '*'; break;
+            }
+        }
+    }
+    return result;
+}
+
+
+
+// The Color Interop ID search fallbacks, for a namespaced ID the config does
+// not otherwise know: drop the leftmost namespace once and look for a color
+// space with that name or alias (never a role), then try an on-demand
+// "<config>:local:<base>" ID, which matches only this config's sanitized name.
+static string_view
+resolve_namespaced_id(const OCIO::Config& config, string_view name)
+{
+    const size_t colon = name.find(':');
+    if (colon == string_view::npos || !valid_interop_id(name))
+        return {};
+    const std::string stripped(name.substr(colon + 1));
+    if (!config.hasRole(stripped.c_str()))
+        if (auto cs = config.getColorSpace(stripped.c_str()))
+            return cs->getName();
+    const size_t second = name.find(':', colon + 1);
+    if (second == string_view::npos
+        || name.substr(colon + 1, second - colon - 1) != "local"
+        || !config.getName()[0]
+        || name.substr(0, colon) != sanitize_id_token(config.getName()))
+        return {};
+    const string_view base = name.substr(second + 1);
+    for (int i = 0,
+             n = config.getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                          OCIO::COLORSPACE_ALL);
+         i < n; ++i) {
+        auto cs = config.getColorSpace(
+            config.getColorSpaceNameByIndex(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                            OCIO::COLORSPACE_ALL, i));
+        if (!cs)
+            continue;
+        if (sanitize_id_token(cs->getName()) == base)
+            return cs->getName();
+        for (int a = 0, e = cs->getNumAliases(); a < e; ++a)
+            if (sanitize_id_token(cs->getAlias(a)) == base)
+                return cs->getName();
+    }
+    return {};
+}
+
+
+
 string_view
 ColorConfig::Impl::resolve(string_view name) const
 {
@@ -1615,6 +1724,9 @@ ColorConfig::Impl::resolve(string_view name) const
             OCIO::ConstColorSpaceRcPtr cs = config->getColorSpace(c_str(name));
             if (cs)
                 return cs->getName();
+            string_view id = resolve_namespaced_id(*config, name);
+            if (!id.empty())
+                return id;
         } catch (std::exception& e) {
             DBG("OCIO exception in resolve: {}", e.what());
         }
