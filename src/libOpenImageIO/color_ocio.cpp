@@ -2397,6 +2397,14 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "unknown", nullptr },
 
     // Display referred interop IDs.
+    // The linear displays share their scene rows' codes, which come first,
+    // so CICP input still reads as the scene identity.
+    { "lin_rec709_display", nullptr, CICPPrimaries::Rec709,
+      CICPTransfer::Linear, CICPMatrix::BT709 },
+    { "lin_p3d65_display", nullptr, CICPPrimaries::P3D65, CICPTransfer::Linear,
+      CICPMatrix::BT709 },
+    { "lin_rec2020_display", nullptr, CICPPrimaries::Rec2020,
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
     { "srgb_rec709_display", "srgb_display", CICPPrimaries::Rec709,
       CICPTransfer::sRGB, CICPMatrix::BT709 },
     // Not all software interprets this CICP the same, see the

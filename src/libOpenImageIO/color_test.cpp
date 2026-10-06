@@ -153,6 +153,30 @@ test_Rec709_conversion()
 
 
 static void
+test_linear_display_cicp()
+{
+    // The linear display identities carry their scene identities' codes,
+    // which still read back as the scene identities.
+    const ColorConfig& config(ColorConfig::default_colorconfig());
+    const struct {
+        const char* display;
+        const char* scene;
+        int cicp[4];
+    } cases[] = {
+        { "lin_rec709_display", "lin_rec709_scene", { 1, 8, 1, 1 } },
+        { "lin_p3d65_display", "lin_p3d65_scene", { 12, 8, 1, 1 } },
+        { "lin_rec2020_display", "lin_rec2020_scene", { 9, 8, 10, 1 } },
+    };
+    for (const auto& c : cases) {
+        cspan<int> cicp = config.get_cicp(c.display);
+        OIIO_CHECK_ASSERT(cicp == cspan<int>(c.cicp));
+        OIIO_CHECK_EQUAL(config.get_color_interop_id(c.cicp), c.scene);
+    }
+}
+
+
+
+static void
 test_gamma_pair_conversion()
 {
     // OCIO < 2.5 composes back-to-back exponents in the wrong direction under
@@ -188,6 +212,7 @@ main(int argc, char* argv[])
     test_sRGB_conversion();
     test_isData();
     test_Rec709_conversion();
+    test_linear_display_cicp();
     test_gamma_pair_conversion();
 
     return unit_test_failures != 0;
