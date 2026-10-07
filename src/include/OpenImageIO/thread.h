@@ -134,13 +134,24 @@ yield() noexcept
 
 
 
-// Slight pause
+// Slight pause. Unrolling a constant-delay pause bloats every inlined
+// spin_mutex::lock(), so tell the compiler not to.
+#define OIIO_PAUSE_NOUNROLL \
+    OIIO_CLANG_PRAGMA(nounroll) OIIO_GCC_ONLY_PRAGMA(GCC unroll 1)
+
 inline void
 pause(int delay) noexcept
 {
 #if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+    OIIO_PAUSE_NOUNROLL
     for (int i = 0; i < delay; ++i)
         __asm__ __volatile__("pause;");
+
+#elif defined(__GNUC__) && defined(__aarch64__)
+    // isb, not yield: on Apple Silicon, yield is effectively a nop.
+    OIIO_PAUSE_NOUNROLL
+    for (int i = 0; i < delay; ++i)
+        __asm__ __volatile__("isb" ::: "memory");
 
 #elif defined(__GNUC__) && (defined(__arm__) || defined(__s390__))
     for (int i = 0; i < delay; ++i)
@@ -173,10 +184,14 @@ pause(int delay) noexcept
 
 
 // Helper class to deliver ever longer pauses until we yield our timeslice.
+// Pauses double from 1 up to `pausemax`, then repeat `pausemax` for
+// `spins` more rounds, then each call yields the timeslice.
 class atomic_backoff {
 public:
-    atomic_backoff(int pausemax = 16) noexcept
-        : m_count(1), m_pausemax(pausemax)
+    atomic_backoff(int pausemax = 16, int spins = 0) noexcept
+        : m_count(1)
+        , m_pausemax(pausemax)
+        , m_spins(spins)
     {
     }
 
@@ -185,6 +200,9 @@ public:
         if (m_count <= m_pausemax) {
             pause(m_count);
             m_count *= 2;
+        } else if (m_spins > 0) {
+            pause(m_pausemax);
+            --m_spins;
         } else {
             std::this_thread::yield();
         }
@@ -193,6 +211,7 @@ public:
 private:
     int m_count;
     int m_pausemax;
+    int m_spins;
 };
 
 
@@ -234,34 +253,19 @@ public:
     ///
     void lock() noexcept
     {
-        // To avoid spinning too tightly, we use the atomic_backoff to
-        // provide increasingly longer pauses, and if the lock is under
-        // lots of contention, eventually yield the timeslice.
-        atomic_backoff backoff;
+        // Back off with increasingly longer pauses. Spin a long while
+        // before yielding the timeslice: yielding early is what hurts
+        // most under contention.
+        atomic_backoff backoff(128, 64);
 
-        // Try to get ownership of the lock. Though experimentation, we
-        // found that OIIO_UNLIKELY makes this just a bit faster on gcc
-        // x86/x86_64 systems.
-        while (!OIIO_UNLIKELY(try_lock())) {
-#if OIIO_THREAD_ALLOW_DCLP
-            // The full try_lock() involves a test_and_set, which
-            // writes memory, and that will lock the bus.  But a normal
-            // read of m_locked will let us spin until the value
-            // changes, without locking the bus. So it's faster to
-            // check in this manner until the mutex appears to be free.
-            // HOWEVER... Thread Sanitizer things this is an instance of
-            // an unsafe "double checked lock pattern" (DCLP) and flags it
-            // as an error. I think it's a false negative, because the
-            // outer loop is still an atomic check, the inner non-atomic
-            // loop only serves to delay, and can't lead to a true data
-            // race. But we provide this build-time switch to, at least,
-            // give a way to use tsan for other checks.
+        // Try to get ownership of the lock. Failing is the unlikely case.
+        while (OIIO_UNLIKELY(!try_lock())) {
+            // The exchange in try_lock() writes the cache line. Spin on a
+            // plain relaxed load until the lock looks free, so waiters
+            // don't keep stealing the line from the holder.
             do {
                 backoff();
-            } while (*(volatile bool*)&m_locked);
-#else
-            backoff();
-#endif
+            } while (m_locked.load(std::memory_order_relaxed));
         }
     }
 
@@ -270,8 +274,7 @@ public:
     void unlock() noexcept
     {
         OIIO_TSAN_PRE_UNLOCK(&m_locked, 0);
-        // Fastest way to do it is with a clear with "release" semantics
-        m_locked.clear(std::memory_order_release);
+        m_locked.store(false, std::memory_order_release);
         OIIO_TSAN_POST_UNLOCK(&m_locked, 0);
     }
 
@@ -280,7 +283,7 @@ public:
     bool try_lock() noexcept
     {
         OIIO_TSAN_PRE_LOCK(&m_locked, OIIO_TSAN_F_TRY);
-        const bool got = !m_locked.test_and_set(std::memory_order_acquire);
+        const bool got = !m_locked.exchange(true, std::memory_order_acquire);
         OIIO_TSAN_POST_LOCK(&m_locked,
                             got ? OIIO_TSAN_F_TRY : OIIO_TSAN_F_TRY_FAILED);
         return got;
@@ -301,7 +304,7 @@ public:
     };
 
 private:
-    std::atomic_flag m_locked = ATOMIC_FLAG_INIT;  // initialize to unlocked
+    std::atomic<bool> m_locked { false };
 };
 
 
