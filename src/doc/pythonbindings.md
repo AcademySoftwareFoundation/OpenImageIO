@@ -4040,20 +4040,31 @@ is provided for minimal color support.
 
 % TODO: The documentation for this class is incomplete.
 
-:::{py:method} get_color_space_info (colorspace)
-Get color space information for a color space with a known Color Interop ID,
-as `get_color_interop_id()` finds it. Properties that cannot be determined are
-left unavailable. It accepts the same names as `get_color_interop_id()` and
-`get_cicp()`; any other name returns an invalid `ColorSpaceInfo`. See
-{ref}`sec-colorspaceinfo`.
+:::{py:method} get_chromaticities (colorspace)
+Get the RGB primaries and white point of a color space with a known Color
+Interop ID, as `get_color_interop_id()` finds it: a sequence of eight floats
+(Rx, Ry, Gx, Gy, Bx, By, Wx, Wy, CIE 1931 xy), or None if they are unknown.
 
 Example:
 
 ```python
-info = colorconfig.get_color_space_info("ACEScg")
-if info.valid():
-    gamma = info.transfer_function_gamma()  # 1.0 for a linear encoding
-    xy = info.chromaticities()  # [] if the primaries are unknown
+xy = colorconfig.get_chromaticities("ACEScg")
+if xy:
+    rx, ry, gx, gy, bx, by, wx, wy = xy
+```
+
+This function was added in OpenImageIO 3.3.
+:::
+
+:::{py:method} get_transfer_gamma (colorspace)
+Get the exponent of a color space's transfer function if it decodes as a pure
+power, 1.0 if it is linear, or 0 if it is neither or is unknown. Piecewise
+curves such as sRGB's report 0.
+
+Example:
+
+```python
+gamma = colorconfig.get_transfer_gamma("g22_rec709_scene")  # 2.2
 ```
 
 This function was added in OpenImageIO 3.3.
@@ -4101,28 +4112,6 @@ interop_id = colorconfig.get_color_interop_id([9, 16, 9, 1])
 ```
 
 This function was added in OpenImageIO 3.1.
-:::
-
-:::{py:class} ColorSpaceInfo
-Immutable properties of a color space. It remains usable after the
-`ColorConfig` that returned it is destroyed. This class was added in
-OpenImageIO 3.3.
-:::
-
-:::{py:method} ColorSpaceInfo.valid ()
-Whether the color space name resolved, even if individual properties are
-unavailable.
-:::
-
-:::{py:method} ColorSpaceInfo.chromaticities ()
-The RGB primaries and white point as a list of eight floats (Rx, Ry, Gx, Gy,
-Bx, By, Wx, Wy, CIE 1931 xy), or an empty list if they are unavailable.
-:::
-
-:::{py:method} ColorSpaceInfo.transfer_function_gamma ()
-The exponent of a transfer function that decodes as a pure power, 1.0 for a
-linear one, or 0 if the transfer function is not a pure power or is unknown. A
-color space whose config declares a linear encoding reports 1.0.
 :::
 
 (sec-pythonmiscapi)=

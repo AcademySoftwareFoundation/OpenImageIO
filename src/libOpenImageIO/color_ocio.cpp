@@ -215,6 +215,13 @@ public:
     OCIO::ConfigRcPtr config_;
     OCIO::ConfigRcPtr builtinconfig_;
 
+    // A color space's chromaticities (in the ColorInteropID table, or null)
+    // and transfer function gamma.
+    struct Properties {
+        const float* xy = nullptr;
+        float gamma     = 0.0f;
+    };
+
 private:
     std::vector<CSInfo> colorspaces;
     std::string scene_linear_alias;  // Alias for a scene-linear color space
@@ -304,6 +311,9 @@ public:
         }
         return handle;
     }
+
+    // The properties get_chromaticities() and get_transfer_gamma() report.
+    Properties properties(string_view colorspace) const;
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
@@ -2539,81 +2549,54 @@ ColorConfig::get_cicp(string_view colorspace) const
 
 
 
-struct ColorSpaceInfo::Impl {
-    std::array<float, 8> chromaticities {};
-    bool has_chromaticities = false;
-    float gamma             = 0.0f;
-};
-
-ColorSpaceInfo::ColorSpaceInfo() noexcept                      = default;
-ColorSpaceInfo::ColorSpaceInfo(const ColorSpaceInfo&) noexcept = default;
-ColorSpaceInfo::ColorSpaceInfo(ColorSpaceInfo&&) noexcept      = default;
-ColorSpaceInfo& ColorSpaceInfo::operator=(const ColorSpaceInfo&) noexcept
-    = default;
-ColorSpaceInfo& ColorSpaceInfo::operator=(ColorSpaceInfo&&) noexcept = default;
-ColorSpaceInfo::~ColorSpaceInfo()                                    = default;
-
-bool
-ColorSpaceInfo::valid() const noexcept
-{
-    return bool(m_impl);
-}
-
-cspan<float>
-ColorSpaceInfo::chromaticities() const noexcept
-{
-    return m_impl && m_impl->has_chromaticities
-               ? cspan<float>(m_impl->chromaticities)
-               : cspan<float>();
-}
-
-float
-ColorSpaceInfo::transfer_function_gamma() const noexcept
-{
-    return m_impl ? m_impl->gamma : 0.0f;
-}
-
-
-
-ColorSpaceInfo
-ColorConfig::get_color_space_info(string_view colorspace) const
+ColorConfig::Impl::Properties
+ColorConfig::Impl::properties(string_view colorspace) const
 {
     // Identify the space as get_cicp() does, so that every name it accepts
     // gives the same answer here.
-    const string_view interop_id = get_color_interop_id(colorspace);
+    const string_view interop_id = m_self->get_color_interop_id(colorspace);
     OCIO::ConstColorSpaceRcPtr cs;
-    if (getImpl()->config_ && !disable_ocio && !colorspace.empty()) {
+    if (config_ && !disable_ocio && !colorspace.empty()) {
         try {
-            cs = getImpl()->config_->getColorSpace(c_str(resolve(colorspace)));
+            cs = config_->getColorSpace(c_str(m_self->resolve(colorspace)));
         } catch (const std::exception& e) {
-            DBG("OCIO exception in get_color_space_info: {}\n", e.what());
+            DBG("OCIO exception looking up {}: {}\n", colorspace, e.what());
         }
     }
-    if (!cs && interop_id.empty())
-        return {};
-    ColorSpaceInfo result;
-    auto impl     = std::make_shared<ColorSpaceInfo::Impl>();
-    result.m_impl = impl;
     if (cs && cs->isData())
-        return result;
+        return {};
     const string_view encoding(cs ? cs->getEncoding() : "");
     const bool linear = encoding == "scene-linear"
                         || encoding == "display-linear";
+    Properties result;
     for (const ColorInteropID& interop : color_interop_ids) {
         if (interop.chromaticities && interop_id == interop.interop_id) {
             // An ID contradicting a declared linear encoding is ignored.
-            if (!(linear && interop.gamma != 1.0f)) {
-                std::copy_n(interop.chromaticities, 8,
-                            impl->chromaticities.data());
-                impl->has_chromaticities = true;
-                impl->gamma              = interop.gamma;
-            }
+            if (!(linear && interop.gamma != 1.0f))
+                result = { interop.chromaticities, interop.gamma };
             break;
         }
     }
     if (linear)
-        impl->gamma = 1.0f;
+        result.gamma = 1.0f;
     return result;
+}
+
+
+
+cspan<float>
+ColorConfig::get_chromaticities(string_view colorspace) const
+{
+    const float* xy = getImpl()->properties(colorspace).xy;
+    return xy ? cspan<float>(xy, 8) : cspan<float>();
+}
+
+
+
+float
+ColorConfig::get_transfer_gamma(string_view colorspace) const
+{
+    return getImpl()->properties(colorspace).gamma;
 }
 
 

@@ -63,42 +63,6 @@ using ColorProcessorHandle = std::shared_ptr<ColorProcessor>;
 
 
 
-/// Immutable, owning properties of a color space, returned by
-/// `ColorConfig::get_color_space_info()`. Copies share their storage and
-/// remain usable after the originating ColorConfig resets or is destroyed.
-///
-/// @version 3.3
-class OIIO_API ColorSpaceInfo {
-public:
-    ColorSpaceInfo() noexcept;
-    ColorSpaceInfo(const ColorSpaceInfo&) noexcept;
-    ColorSpaceInfo(ColorSpaceInfo&&) noexcept;
-    ColorSpaceInfo& operator=(const ColorSpaceInfo&) noexcept;
-    ColorSpaceInfo& operator=(ColorSpaceInfo&&) noexcept;
-    ~ColorSpaceInfo();
-
-    /// Whether the color space name resolved, even if individual properties
-    /// are unavailable.
-    bool valid() const noexcept;
-    /// The RGB primaries and white point as eight floats (Rx, Ry, Gx, Gy, Bx,
-    /// By, Wx, Wy, CIE 1931 xy), or an empty span if they are unavailable.
-    /// The span borrows from this object and expires when its last owning
-    /// copy is destroyed or reassigned.
-    cspan<float> chromaticities() const noexcept;
-    /// The exponent of a transfer function that decodes as a pure power,
-    /// 1.0 for a linear one, or 0 if the transfer function is not a pure
-    /// power or is unknown. Piecewise curves such as sRGB's are never
-    /// approximated by a gamma, so they report 0. A color space whose config
-    /// declares a linear encoding reports 1.0.
-    float transfer_function_gamma() const noexcept;
-
-private:
-    friend class ColorConfig;
-    struct Impl;
-    std::shared_ptr<const Impl> m_impl;
-};
-
-
 /// Represents the set of all color transformations that are allowed.
 /// If OpenColorIO is enabled at build time, this configuration is loaded
 /// at runtime, allowing the user to have complete control of all color
@@ -470,16 +434,25 @@ public:
     OIIO_NODISCARD string_view
     get_color_interop_id(string_view colorspace) const;
 
-    /// Get color space information for a color space with a known Color
-    /// Interop ID (https://github.com/AcademySoftwareFoundation/ColorInterop),
-    /// as `get_color_interop_id()` finds it. Properties that cannot be
-    /// determined are left unavailable. `colorspace` may be any name
-    /// `get_color_interop_id()` and `get_cicp()` accept; any other name
-    /// returns an invalid ColorSpaceInfo.
+    /// Get the RGB primaries and white point of a color space with a known
+    /// Color Interop ID
+    /// (https://github.com/AcademySoftwareFoundation/ColorInterop), as
+    /// `get_color_interop_id()` finds it: eight floats (Rx, Ry, Gx, Gy, Bx,
+    /// By, Wx, Wy, CIE 1931 xy), or an empty span if they are unknown. The
+    /// span points into OIIO's own table, so it stays valid.
     ///
     /// @version 3.3
-    OIIO_NODISCARD ColorSpaceInfo
-    get_color_space_info(string_view colorspace) const;
+    OIIO_NODISCARD cspan<float> get_chromaticities(string_view colorspace) const;
+
+    /// Get the exponent of a color space's transfer function if it decodes
+    /// as a pure power, 1.0 if it is linear, or 0 if it is neither or is
+    /// unknown. Piecewise curves such as sRGB's report 0. Like
+    /// `get_chromaticities()`, it answers for a known Color Interop ID, and
+    /// it reports 1.0 for any color space whose config declares a linear
+    /// encoding.
+    ///
+    /// @version 3.3
+    OIIO_NODISCARD float get_transfer_gamma(string_view colorspace) const;
 
     /// Find color interop ID corresponding to the CICP code.
     /// Returns empty string if not found.
@@ -537,7 +510,6 @@ OIIO_NAMESPACE_3_1_END
 #ifndef OIIO_DOXYGEN
 OIIO_NAMESPACE_BEGIN
 using v3_1::ColorProcessorHandle;
-using v3_1::ColorSpaceInfo;
 OIIO_NAMESPACE_END
 #endif
 
