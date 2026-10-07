@@ -140,7 +140,7 @@ Current voting members of the TSC are:
 * Luke Emrose - Animal Logic
 * Martin Davies - LAIKA
 * Thiago Ize - Autodesk
-* Zach Lewis - Method
+* Zach Lewis
 
 
 ### TSC Nomination and Succession
