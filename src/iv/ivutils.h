@@ -88,6 +88,16 @@ image_data_readable(string_view filename, int subimage, int miplevel)
     return ok;
 }
 
+/// Which kind of image comparison the viewer is performing between the
+/// current image and the comparison image (see issue #4711 and the wipe
+/// comparison from #5480).
+enum class CompareMode {
+    Wipe,     ///< Split-screen wipe (#5480 behavior)
+    AbsDiff,  ///< Per-pixel absolute difference of the two images
+    FlipDiff  ///< FLIP perceptual difference error map (CPU computed)
+};
+
+
 OIIO_NAMESPACE_END
 
 #endif  // OPENIMAGEIO_IV_UTILS_H

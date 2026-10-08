@@ -19,6 +19,7 @@
 #endif
 
 #include "ivutils.h"
+#include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/timer.h>
 #include <cfloat>
@@ -182,6 +183,17 @@ IvGL::create_textures(void)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+    // Texture for the FLIP error map (FlipDiff comparison mode).
+    glGenTextures(1, &m_flipdiff_tex);
+    glBindTexture(GL_TEXTURE_2D, m_flipdiff_tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                 NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    m_flipdiff_valid = false;
+
     glGenBuffers(2, m_pbo_objects);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[0]);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo_objects[1]);
@@ -274,6 +286,9 @@ IvGL::create_shaders(void)
         uniform int comparison;
         uniform int wipe_horizontal;
         uniform float wipe_split;
+        uniform int compare_mode;
+        uniform sampler2D fliptex;
+        uniform int fliptex_valid;
         uniform vec2 viewport_origin;
 
         vec4 rgba_mode (vec4 C)
@@ -360,23 +375,42 @@ IvGL::create_shaders(void)
                         black = 1.0;
                 }
             }
-            vec4 C = second ? texture2D(imgtexB, st) : texture2D(imgtex, st);
+            vec4 C;
+            if (compare_mode == 2 && fliptex_valid != 0) {
+                // FLIP error map: already prepared for display (grayscale or
+                // colormapped on the CPU), so skip the per-image color modes
+                // and the display transform.
+                C = vec4(texture2D(fliptex, st).rgb, 1.0);
+            } else {
+                vec4 A = texture2D(imgtex, st);
+                vec4 B = texture2D(imgtexB, st);
+                if (compare_mode == 1 && comparison != 0
+                    && imgchannelsB != 0) {
+                    // Per-pixel absolute difference, shown as the grayscale
+                    // magnitude of the most-differing channel.
+                    float m = max(abs(A.r - B.r),
+                                  max(abs(A.g - B.g), abs(A.b - B.b)));
+                    C = vec4(m, m, m, 1.0);
+                } else {
+                    C = second ? B : A;
+                }
+                if (startchannel < 0 || (second && imgchannelsB == 0))
+                    C = vec4(0.0,0.0,0.0,1.0);
+                else if (colormode == 0) // RGBA
+                    C = rgba_mode (C);
+                else if (colormode == 1) // RGB (i.e., ignore alpha).
+                    C = rgb_mode (C);
+                else if (colormode == 2) // Single channel.
+                    C = singlechannel_mode (C);
+                else if (colormode == 3) // Luminance.
+                    C = luminance_mode (C);
+                else if (colormode == 4) // Heatmap.
+                    C = heatmap_mode (C);
+                C = ColorFunc(C);
+            }
             C = mix (C, vec4(0.05,0.05,0.05,1.0), black);
-            if (startchannel < 0 || (second && imgchannelsB == 0))
-                C = vec4(0.0,0.0,0.0,1.0);
-            else if (colormode == 0) // RGBA
-                C = rgba_mode (C);
-            else if (colormode == 1) // RGB (i.e., ignore alpha).
-                C = rgb_mode (C);
-            else if (colormode == 2) // Single channel.
-                C = singlechannel_mode (C);
-            else if (colormode == 3) // Luminance.
-                C = luminance_mode (C);
-            else if (colormode == 4) // Heatmap.
-                C = heatmap_mode (C);
             if (pixelview != 0)
                 C.a = 1.0;
-            C = ColorFunc(C);
             gl_FragColor = C;
         }
     )glsl";
@@ -688,6 +722,10 @@ IvGL::paintGL()
                     load_texture(m_slots[i], GL_TEXTURE0 + GLenum(i), xstart,
                                  ystart, tile_width, tile_height);
                 }
+            }
+            if (m_use_shaders) {
+                glActiveTexture(GL_TEXTURE2);
+                glBindTexture(GL_TEXTURE_2D, m_flipdiff_tex);
             }
             glActiveTexture(GL_TEXTURE0);
             gl_rect(xstart, ystart, xstart + tile_width, ystart + tile_height,
@@ -1626,6 +1664,14 @@ IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
     // This is the texture unit, not the texture object
     glUniform1i(loc, 0);
 
+    loc = glGetUniformLocation(m_shader_program, "fliptex");
+    glUniform1i(loc, 2);
+
+    loc = glGetUniformLocation(m_shader_program, "compare_mode");
+    glUniform1i(loc, (int)m_compare_mode);
+    loc = glGetUniformLocation(m_shader_program, "fliptex_valid");
+    glUniform1i(loc, m_flipdiff_valid ? 1 : 0);
+
     loc        = glGetUniformLocation(m_shader_program, "gain");
     float gain = powf(2.0, img->exposure());
     glUniform1f(loc, gain);
@@ -2017,7 +2063,8 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
 {
     QPoint pos = event->pos();
 
-    if (m_viewer.m_comparison_image && !m_viewer.areaSampleMode()) {
+    if (m_compare_mode == CompareMode::Wipe && m_viewer.m_comparison_image
+        && !m_viewer.areaSampleMode()) {
         if (!m_wipe.anchored) {
             m_wipe.anchor   = pos;
             m_wipe.anchored = true;
@@ -2504,10 +2551,51 @@ IvGL::load_texture(ImageSlot& slot, GLenum texture_unit, int x, int y,
 void
 IvGL::update_cursor()
 {
-    if (m_viewer.m_comparison_image && !m_viewer.areaSampleMode())
+    if (m_compare_mode == CompareMode::Wipe && m_viewer.m_comparison_image
+        && !m_viewer.areaSampleMode())
         setCursor(m_wipe.horizontal ? Qt::SplitVCursor : Qt::SplitHCursor);
     else
         unsetCursor();
+}
+
+void
+IvGL::upload_flipdiff_texture(const unsigned char* pixels, int width,
+                              int height)
+{
+    if (!m_use_shaders || !m_flipdiff_tex)
+        return;
+    makeCurrent();
+    glBindTexture(GL_TEXTURE_2D, m_flipdiff_tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, pixels);
+    print_error("Uploading flipdiff texture");
+    m_flipdiff_width  = width;
+    m_flipdiff_height = height;
+    m_flipdiff_valid  = true;
+    doneCurrent();
+}
+
+void
+IvGL::set_flipdiff_map(const ImageBuf& errmap)
+{
+    if (!errmap.initialized())
+        return;
+    // Prepare a display-ready RGB8 copy of the error map: expand a single
+    // channel to RGB if needed, then convert to 8 bits. The result of the
+    // ImageBufAlgo calls is a local contiguous buffer.
+    ImageBuf rgb = ImageBufAlgo::channels(errmap, 3, { 0, 1, 2 });
+    rgb          = ImageBufAlgo::clamp(rgb, 0.0f, 1.0f);
+    rgb          = ImageBufAlgo::copy(rgb, TypeDesc::UINT8);
+    if (!rgb.localpixels())
+        return;
+    upload_flipdiff_texture((const unsigned char*)rgb.localpixels(),
+                            rgb.spec().width, rgb.spec().height);
+}
+
+void
+IvGL::clear_flipdiff_map()
+{
+    m_flipdiff_valid = false;
 }
 
 
