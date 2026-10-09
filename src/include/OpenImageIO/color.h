@@ -416,6 +416,11 @@ public:
     /// Turn the name, which could be a color space, an alias, a role, or
     /// an OIIO-understood universal name (like "sRGB") into a canonical
     /// color space name. If the name is not recognized, return "".
+    ///
+    /// A namespaced Color Interop ID the config doesn't know is resolved as
+    /// the Color Interop Forum recommends
+    /// (https://github.com/AcademySoftwareFoundation/ColorInterop), so
+    /// `acme:lin_ap1_scene` finds a color space aliased `lin_ap1_scene`.
     OIIO_NODISCARD string_view resolve(string_view name) const;
 
     /// Are the two color space names/aliases/roles equivalent?

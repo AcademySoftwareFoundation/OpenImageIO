@@ -185,6 +185,47 @@ test_isData()
 
 
 static void
+test_namespaced_ids()
+{
+    // Namespaced Color Interop IDs fall back as the Color Interop Forum
+    // recommends: one namespace is dropped, then "<config>:local:<base>"
+    // matches this config's sanitized names.
+    const std::string filename = Filesystem::temp_directory_path() + "/"
+                                 + Filesystem::unique_path() + ".ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        filename,
+        "ocio_profile_version: 2.3\n"
+        "name: Show 1 Config\n"
+        "roles: {default: ACEScg, scene_linear: ACEScg, data: Raw}\n"
+        "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+        "colorspaces:\n"
+        "  - !<ColorSpace> {name: ACEScg, aliases: [lin_ap1_scene]}\n"
+        "  - !<ColorSpace> {name: Utility - sRGB - Texture}\n"
+        "  - !<ColorSpace> {name: Raw, isdata: true}\n"));
+    {
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        OIIO_CHECK_EQUAL(config.resolve("acme:lin_ap1_scene"), "ACEScg");
+        OIIO_CHECK_EQUAL(config.resolve("acme:acescg"), "ACEScg");
+        OIIO_CHECK_EQUAL(config.resolve(
+                             "show_1_config:local:utility_-_srgb_-_texture"),
+                         "Utility - sRGB - Texture");
+        OIIO_CHECK_ASSERT(config.isData("acme:raw"));
+        // Only one namespace is dropped, a role is not a color space name,
+        // an empty inner namespace keeps its separator, a local ID names
+        // only its own config, and uppercase is not an ID.
+        for (auto name :
+             { "a:b:lin_ap1_scene", "acme:scene_linear",
+               "my-studio::lin_ap1_scene",
+               "other:local:utility_-_srgb_-_texture", "Acme:lin_ap1_scene" })
+            OIIO_CHECK_EQUAL(config.resolve(name), name);
+    }
+    Filesystem::remove(filename);
+}
+
+
+
+static void
 test_Rec709_conversion()
 {
     Benchmarker bench;
@@ -267,6 +308,7 @@ main(int argc, char* argv[])
     test_lazy_config_loading();
     test_sRGB_conversion();
     test_isData();
+    test_namespaced_ids();
     test_Rec709_conversion();
     test_linear_display_cicp();
     test_gamma_pair_conversion();
