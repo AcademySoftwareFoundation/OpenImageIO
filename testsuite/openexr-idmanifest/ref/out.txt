@@ -7,6 +7,7 @@ src/manifest.exr     :   16 x   16, 8 channel, deep half/half/half/half/half/uin
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     version: 1
+    oiio:miplevels: 1
     oiio:subimages: 1
     openexr:chunkCount: 16
     openexr:compressedIDManifest: 55, 1, 0, 0, 0, 0, 0, 0, 120, 94, 99, 0, 2, 110, 32, 230, ... [250 x uint8]
@@ -21,6 +22,7 @@ manifest.exr         :   16 x   16, 8 channel, deep half/half/half/half/half/uin
     screenWindowCenter: 0, 0
     screenWindowWidth: 1
     version: 1
+    oiio:miplevels: 1
     oiio:subimages: 1
     openexr:chunkCount: 16
     openexr:compressedIDManifest: 55, 1, 0, 0, 0, 0, 0, 0, 120, 94, 99, 0, 2, 110, 32, 230, ... [250 x uint8]

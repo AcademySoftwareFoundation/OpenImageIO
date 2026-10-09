@@ -861,6 +861,8 @@ DDSInput::read_miplevel_spec(int miplevel)
             m_spec.attribute("compression", str);
     }
 
+    m_spec.attribute("oiio:miplevels", (int)m_dds.mipmaps);
+
     uint32_t bpp = 0;
     if (m_dds.fmt.bpp
         && (m_dds.fmt.flags
