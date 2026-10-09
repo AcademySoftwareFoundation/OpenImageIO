@@ -6,6 +6,15 @@ if (VERBOSE)
    message (STATUS "Create buildopts.h from buildopts.h.in")
 endif ()
 configure_file (buildopts.h.in "${CMAKE_BINARY_DIR}/include/buildopts.h" @ONLY)
+# Embed as a byte array: MSVC caps string literals at 16380 characters.
+file (READ "${CMAKE_CURRENT_SOURCE_DIR}/interop-identities-config.ocio" OIIO_INTEROP_CONFIG HEX)
+string (REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," OIIO_INTEROP_CONFIG "${OIIO_INTEROP_CONFIG}")
+# Break every 16 bytes: MSVC also caps one logical source line at 16384
+# characters. CMake's regex has no {n} repeat, so the 16 groups are spelled out.
+string (REGEX REPLACE "(0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,0x..,)" "\\1\n" OIIO_INTEROP_CONFIG "${OIIO_INTEROP_CONFIG}")
+set_property (DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+              "${CMAKE_CURRENT_SOURCE_DIR}/interop-identities-config.ocio")
+configure_file (interop_config.h.in "${CMAKE_BINARY_DIR}/include/interop_config.h" @ONLY)
 
 file (GLOB libOpenImageIO_hdrs ../include/OpenImageIO/*.h)
 

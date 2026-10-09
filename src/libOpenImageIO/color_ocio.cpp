@@ -6,6 +6,7 @@
 #include <cmath>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,7 @@
 #include <OpenImageIO/sysutil.h>
 
 #include "imageio_pvt.h"
+#include "interop_config.h"
 
 #define MAKE_OCIO_VERSION_HEX(maj, min, patch) \
     (((maj) << 24) | ((min) << 16) | (patch))
@@ -1843,6 +1845,47 @@ private:
 
 
 
+// OpenImageIO's built-in config of color interop identities, one color space
+// per ID, named by it. Parsed once, the first time a conversion needs it.
+static OCIO::ConstConfigRcPtr
+interop_identities_config()
+{
+    static const OCIO::ConstConfigRcPtr config = [] {
+        std::istringstream text(
+            reinterpret_cast<const char*>(interop_config_bytes));
+        return OCIO::Config::CreateFromStream(text);
+    }();
+    return config;
+}
+
+
+
+// A conversion endpoint the active config doesn't define, but that is named
+// exactly as a color interop ID, comes from the built-in identities config.
+// Names, aliases, roles and named transforms the config defines keep their
+// meaning. The OIIO_DISABLE_BUILTIN_OCIO_CONFIGS environment variable opts
+// out.
+//
+// `endpoint` and `ctx` are left alone unless the identities config supplies
+// the endpoint.
+static void
+external_endpoint(const OCIO::ConstConfigRcPtr& config, ustring name,
+                  OCIO::ConstConfigRcPtr& endpoint,
+                  OCIO::ConstContextRcPtr& ctx)
+{
+    if (disable_builtin_configs || config->getColorSpace(name.c_str())
+        || config->getNamedTransform(name.c_str()))
+        return;
+    auto identities = interop_identities_config();
+    auto cs         = identities->getColorSpace(name.c_str());
+    if (cs && Strutil::iequals(name, cs->getName())) {
+        endpoint = identities;
+        ctx      = identities->getCurrentContext();
+    }
+}
+
+
+
 ColorProcessorHandle
 ColorConfig::createColorProcessor(string_view inputColorSpace,
                                   string_view outputColorSpace,
@@ -1894,10 +1937,28 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
                 context = ctx;
             }
 
-            // Get the processor corresponding to this transform.
-            p = getImpl()->config_->getProcessor(context,
-                                                 inputColorSpace.c_str(),
-                                                 outputColorSpace.c_str());
+            // Get the processor corresponding to this transform, through the
+            // identities config for an endpoint this config doesn't define.
+            OCIO::ConstConfigRcPtr srcconfig = config, dstconfig = config;
+            OCIO::ConstContextRcPtr srccontext = context, dstcontext = context;
+            external_endpoint(config, inputColorSpace, srcconfig, srccontext);
+            external_endpoint(config, outputColorSpace, dstconfig, dstcontext);
+            if (srcconfig == dstconfig) {
+                p = srcconfig->getProcessor(srccontext, inputColorSpace.c_str(),
+                                            outputColorSpace.c_str());
+            } else {
+                auto src = srcconfig->getColorSpace(inputColorSpace.c_str());
+                auto dst = dstconfig->getColorSpace(outputColorSpace.c_str());
+                if (src && dst && (src->isData() || dst->isData())) {
+                    // Data passes through, as it does within one config, and
+                    // needs no interchange roles.
+                    p = srcconfig->getProcessor(srccontext, src, src);
+                } else {
+                    p = OCIO::Config::GetProcessorFromConfigs(
+                        srccontext, srcconfig, inputColorSpace.c_str(),
+                        dstcontext, dstconfig, outputColorSpace.c_str());
+                }
+            }
             getImpl()->clear_error();
             // DBG("Created OCIO processor '{}' -> '{}'\n",
             //                inputColorSpace, outputColorSpace);
@@ -2070,11 +2131,8 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
             OCIO::TransformDirection dir = inverse
                                                ? OCIO::TRANSFORM_DIR_INVERSE
                                                : OCIO::TRANSFORM_DIR_FORWARD;
-            transform->setSrc(inputColorSpace.c_str());
             transform->setDisplay(display.c_str());
             transform->setView(view.c_str());
-            transform->setDirection(dir);
-            legacy_viewing_pipeline->setDisplayViewTransform(transform);
             if (looks.size()) {
                 legacy_viewing_pipeline->setLooksOverride(looks.c_str());
                 legacy_viewing_pipeline->setLooksOverrideEnabled(true);
@@ -2089,9 +2147,46 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                 context = ctx;
             }
 
-            // Get the processor corresponding to this transform.
+            // Get the processor corresponding to this transform. A source
+            // this config doesn't define comes from the identities config.
+            OCIO::ConstConfigRcPtr srcconfig   = config;
+            OCIO::ConstContextRcPtr srccontext = context;
+            external_endpoint(config, inputColorSpace, srcconfig, srccontext);
             OCIO::ConstProcessorRcPtr p;
-            p = legacy_viewing_pipeline->getProcessor(config, context);
+            if (srcconfig == config) {
+                transform->setSrc(inputColorSpace.c_str());
+                transform->setDirection(dir);
+                legacy_viewing_pipeline->setDisplayViewTransform(transform);
+                p = legacy_viewing_pipeline->getProcessor(config, context);
+            } else if (auto cs = srcconfig->getColorSpace(
+                           inputColorSpace.c_str());
+                       cs && cs->isData()) {
+                // Data bypasses the display, as OCIO has it bypass any
+                // conversion between configs.
+                p = config->getProcessor(context,
+                                         OCIO::GroupTransform::Create(), dir);
+            } else {
+                // OpenColorIO's two-config display recipe: the source reaches
+                // this config's interchange space for its reference space
+                // type, and the viewing pipeline, looks included, runs from
+                // there. The forward chain is built and inverted as a whole.
+                const char* interchange
+                    = cs
+                              && cs->getReferenceSpaceType()
+                                     == OCIO::REFERENCE_SPACE_DISPLAY
+                          ? OCIO::ROLE_INTERCHANGE_DISPLAY
+                          : OCIO::ROLE_INTERCHANGE_SCENE;
+                auto chain = OCIO::Config::GetProcessorFromConfigs(
+                                 srccontext, srcconfig, inputColorSpace.c_str(),
+                                 context, config, interchange)
+                                 ->createGroupTransform();
+                transform->setSrc(interchange);
+                legacy_viewing_pipeline->setDisplayViewTransform(transform);
+                chain->appendTransform(
+                    legacy_viewing_pipeline->getProcessor(config, context)
+                        ->createGroupTransform());
+                p = config->getProcessor(context, chain, dir);
+            }
             getImpl()->clear_error();
             handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
         } catch (OCIO::Exception& e) {
