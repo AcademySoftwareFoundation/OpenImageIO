@@ -225,6 +225,8 @@ private:
     std::string ACEScg_alias;
     std::string Rec709_alias;
     mutable spin_rw_mutex m_mutex;
+    mutable std::once_flag m_interop_names_once;
+    mutable std::vector<std::array<std::string, 2>> m_interop_names;
     mutable std::string m_error;
     ColorProcessorMap colorprocmap;  // cache of ColorProcessors
     atomic_int colorprocs_requested;
@@ -289,6 +291,15 @@ public:
                 return &cs;
         return nullptr;
     }
+
+    // Whether names a and b, which resolve() resolved to ra and rb, name the
+    // same color space, as ColorConfig::equivalent() decides.
+    bool equivalent(string_view a, string_view ra, string_view b,
+                    string_view rb) const;
+
+    // The ColorInteropID table's IDs and legacy aliases, as resolve()
+    // resolves them in this config, worked out on first use.
+    const std::vector<std::array<std::string, 2>>& interop_names() const;
 
     // Search for a matching ColorProcessor, return it if found (otherwise
     // return an empty handle).
@@ -1687,14 +1698,29 @@ ColorConfig::equivalent(string_view color_space1,
     // Easy case: matching names are the same!
     if (Strutil::iequals(color_space1, color_space2))
         return true;
+    return getImpl()->equivalent(color_space1, resolve(color_space1),
+                                 color_space2, resolve(color_space2));
+}
+
+
+
+bool
+ColorConfig::Impl::equivalent(string_view color_space1, string_view resolved1,
+                              string_view color_space2,
+                              string_view resolved2) const
+{
+    // Empty color spaces never match
+    if (color_space1.empty() || color_space2.empty())
+        return false;
+    // Easy case: matching names are the same!
+    if (Strutil::iequals(color_space1, color_space2))
+        return true;
 
     // If "resolved" names (after converting aliases and roles to color
     // spaces) match, they are equivalent.
-    color_space1 = resolve(color_space1);
-    color_space2 = resolve(color_space2);
-    if (color_space1.empty() || color_space2.empty())
+    if (resolved1.empty() || resolved2.empty())
         return false;
-    if (Strutil::iequals(color_space1, color_space2))
+    if (Strutil::iequals(resolved1, resolved2))
         return true;
 
     // If the color spaces' flags (when masking only the bits that refer to
@@ -1702,8 +1728,8 @@ ColorConfig::equivalent(string_view color_space1,
     const int mask     = CSInfo::is_srgb_display | CSInfo::is_srgb_scene
                          | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
                          | CSInfo::is_Rec709;
-    const CSInfo* csi1 = getImpl()->find(color_space1);
-    const CSInfo* csi2 = getImpl()->find(color_space2);
+    const CSInfo* csi1 = find(resolved1);
+    const CSInfo* csi2 = find(resolved2);
     if (csi1 && csi2) {
         int flags1 = csi1->flags() & mask;
         int flags2 = csi2->flags() & mask;
@@ -2469,17 +2495,32 @@ constexpr ColorInteropID color_interop_ids[] = {
 };
 }  // namespace
 
+const std::vector<std::array<std::string, 2>>&
+ColorConfig::Impl::interop_names() const
+{
+    std::call_once(m_interop_names_once, [&] {
+        for (const ColorInteropID& interop : color_interop_ids)
+            m_interop_names.push_back(
+                { std::string(resolve(interop.interop_id)),
+                  interop.legacy_alias
+                      ? std::string(resolve(interop.legacy_alias))
+                      : std::string() });
+    });
+    return m_interop_names;
+}
+
 string_view
 ColorConfig::get_color_interop_id(string_view colorspace) const
 {
     if (colorspace.empty())
         return "";
+    const string_view resolved = resolve(colorspace);
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
     if (getImpl()->config_ && !disable_ocio) {
         const char* interop_id = nullptr;
         try {
             OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
-                std::string(resolve(colorspace)).c_str());
+                std::string(resolved).c_str());
             if (c)
                 interop_id = c->getInteropID();
         } catch (std::exception& e) {
@@ -2493,10 +2534,16 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
         }
     }
 #endif
-    for (const ColorInteropID& interop : color_interop_ids) {
-        if (equivalent(colorspace, interop.interop_id)
+    // Compare with each ID and legacy alias as equivalent() would, with the
+    // table's names resolved once per config rather than on every call.
+    const auto& names = getImpl()->interop_names();
+    for (size_t i = 0; i < std::size(color_interop_ids); ++i) {
+        const ColorInteropID& interop = color_interop_ids[i];
+        if (getImpl()->equivalent(colorspace, resolved, interop.interop_id,
+                                  names[i][0])
             || (interop.legacy_alias
-                && equivalent(colorspace, interop.legacy_alias))) {
+                && getImpl()->equivalent(colorspace, resolved,
+                                         interop.legacy_alias, names[i][1]))) {
             return interop.interop_id;
         }
     }
