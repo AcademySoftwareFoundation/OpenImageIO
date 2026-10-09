@@ -107,6 +107,9 @@ try:
     print (f"ociodisplay #4 (forwards look):                     {buf.get_pixels(oiio.HALF)}     ({buf.spec()['oiio:ColorSpace']})")
     buf = oiio.ImageBufAlgo.ociodisplay(buf, "", "", colorconfig=str(TEST_CONFIG_PATH), looks="-ACES 1.3 Reference Gamut Compression, +ACES 1.3 Reference Gamut Compression")
     print (f"ociodisplay #5 (inverse look + forwards look):      {buf.get_pixels(oiio.HALF)}     ({buf.spec()['oiio:ColorSpace']})")
+    for name in ("ACEScg", "g24_rec709_display", "srgb_tx", "Raw", "no_such_space"):
+        xy = config.get_chromaticities(name)
+        print (f"'{name}': get_transfer_gamma={config.get_transfer_gamma(name):g} get_chromaticities={xy and [round(v, 5) for v in xy]}")
     print ("")
 
     print ("Done.")

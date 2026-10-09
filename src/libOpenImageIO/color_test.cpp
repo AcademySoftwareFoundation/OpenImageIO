@@ -251,6 +251,98 @@ test_gamma_pair_conversion()
 
 
 
+static void
+test_color_space_properties()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    // Published IDs declared by name or alias, a linear encoding with no ID,
+    // one contradicting its ID, and a data space.
+    const std::string filename = Filesystem::temp_directory_path() + "/"
+                                 + Filesystem::unique_path() + ".ocio";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        filename,
+        "ocio_profile_version: 2.3\n"
+        "roles: {default: ACEScg, scene_linear: ACEScg}\n"
+        "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+        "colorspaces:\n"
+        "  - !<ColorSpace>\n    name: ACEScg\n    encoding: scene-linear\n"
+        "    aliases: [lin_ap1_scene]\n"
+        "  - !<ColorSpace> {name: srgb_rec709_scene, encoding: sdr-video}\n"
+        "  - !<ColorSpace> {name: Adobe, aliases: [g22_adobergb_scene]}\n"
+        "  - !<ColorSpace> {name: Plain, encoding: scene-linear}\n"
+        "  - !<ColorSpace>\n    name: Mislabeled\n    encoding: scene-linear\n"
+        "    aliases: [g22_rec709_scene]\n"
+        "  - !<ColorSpace> {name: Data, isdata: true}\n"
+        "  - !<ColorSpace> {name: Texture, aliases: [srgb_texture]}\n"));
+    const float ap1[] = { .713f, .293f, .165f,   .83f,
+                          .128f, .044f, .32168f, .33767f };
+    const float p3d65[] = { .68f, .32f, .265f, .69f, .15f, .06f, .3127f, .329f };
+    cspan<float> saved;
+    {
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        saved = config.get_chromaticities("scene_linear");
+        OIIO_CHECK_ASSERT(saved == cspan<float>(ap1));
+        OIIO_CHECK_EQUAL(config.get_transfer_gamma("scene_linear"), 1.0f);
+        OIIO_CHECK_EQUAL(config.get_transfer_gamma("srgb_rec709_scene"), 0.0f);
+        OIIO_CHECK_EQUAL(config.get_chromaticities("srgb_rec709_scene").size(),
+                         8);
+        // OIIO's built-in names resolve as they do in the other queries.
+        OIIO_CHECK_EQUAL(config.get_chromaticities("sRGB").size(), 8);
+        OIIO_CHECK_EQUAL(config.get_transfer_gamma("Adobe"), 563.0f / 256.0f);
+        for (auto name : { "Plain", "Mislabeled" }) {
+            OIIO_CHECK_EQUAL(config.get_transfer_gamma(name), 1.0f);
+            OIIO_CHECK_ASSERT(config.get_chromaticities(name).empty());
+        }
+        for (auto name : { "Data", "data", "missing" }) {
+            OIIO_CHECK_EQUAL(config.get_transfer_gamma(name), 0.0f);
+            OIIO_CHECK_ASSERT(config.get_chromaticities(name).empty());
+        }
+        // A legacy alias, and IDs this config doesn't define, answer as they
+        // do for get_color_interop_id() and get_cicp().
+        OIIO_CHECK_EQUAL(config.get_color_interop_id("Texture"),
+                         "srgb_rec709_scene");
+        OIIO_CHECK_EQUAL(config.get_transfer_gamma("Texture"), 0.0f);
+        OIIO_CHECK_EQUAL(config.get_chromaticities("Texture").size(), 8);
+        OIIO_CHECK_EQUAL(config.get_transfer_gamma("lin_p3d65_display"), 1.0f);
+        OIIO_CHECK_ASSERT(config.get_chromaticities("lin_p3d65_display")
+                          == cspan<float>(p3d65));
+    }
+    // The span stays valid after the config is gone.
+    OIIO_CHECK_ASSERT(saved == cspan<float>(ap1));
+    // OpenColorIO 2.3's built-in CG config gives its spaces only the legacy
+    // aliases, which identify them here too.
+    {
+        ColorConfig config("ocio://cg-config-v2.1.0_aces-v1.3_ocio-v2.3");
+        OIIO_CHECK_ASSERT(config.get_chromaticities("ACEScg")
+                          == cspan<float>(ap1));
+        OIIO_CHECK_EQUAL(config.get_chromaticities("sRGB - Texture").size(), 8);
+        OIIO_CHECK_EQUAL(config.get_transfer_gamma("sRGB - Texture"), 0.0f);
+    }
+    Filesystem::remove(filename);
+
+    // OpenColorIO 2.5 reads a declared interop_id, which outranks the name.
+    if (ColorConfig::OpenColorIO_version_hex() >= 0x02050000) {
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+            filename,
+            "ocio_profile_version: 2.5\n"
+            "roles: {default: g18_rec709_scene}\n"
+            "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+            "colorspaces:\n  - !<ColorSpace>\n    name: g18_rec709_scene\n"
+            "    interop_id: g22_ap1_scene\n"));
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        OIIO_CHECK_EQUAL(config.get_transfer_gamma("g18_rec709_scene"), 2.2f);
+        OIIO_CHECK_ASSERT(config.get_chromaticities("g18_rec709_scene")
+                          == cspan<float>(ap1));
+        Filesystem::remove(filename);
+    }
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -270,6 +362,7 @@ main(int argc, char* argv[])
     test_Rec709_conversion();
     test_linear_display_cicp();
     test_gamma_pair_conversion();
+    test_color_space_properties();
 
     return unit_test_failures != 0;
 }

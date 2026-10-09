@@ -65,5 +65,10 @@ ociodisplay #2 (apply default display/view again):  [[[-2.123   0.671   0.8037]]
 ociodisplay #3 (inverse look):                      [[[-2.252   0.6714  0.8037]]]     (sRGB (~2.22) - Display)
 ociodisplay #4 (forwards look):                     [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
 ociodisplay #5 (inverse look + forwards look):      [[[-2.123   0.671   0.8037]]]     (sRGB (~2.22) - Display)
+'ACEScg': get_transfer_gamma=1 get_chromaticities=[0.713, 0.293, 0.165, 0.83, 0.128, 0.044, 0.32168, 0.33767]
+'g24_rec709_display': get_transfer_gamma=2.4 get_chromaticities=[0.64, 0.33, 0.3, 0.6, 0.15, 0.06, 0.3127, 0.329]
+'srgb_tx': get_transfer_gamma=0 get_chromaticities=[0.64, 0.33, 0.3, 0.6, 0.15, 0.06, 0.3127, 0.329]
+'Raw': get_transfer_gamma=0 get_chromaticities=None
+'no_such_space': get_transfer_gamma=0 get_chromaticities=None
 
 Done.
