@@ -36,6 +36,9 @@ Opened "../oiio-images/tahoe-gps.jpg" as a jpeg
   GPS:TimeStamp = (17.0, 56.0, 33.0)
   GPS:MapDatum = "WGS-84"
   GPS:DateStamp = "1915:08:08"
+  thumbnail_width = 320
+  thumbnail_height = 240
+  thumbnail_nchannels = 3
 
 Opened "grid.tx" as a tiff
   resolution 1024x1024+0+0
@@ -230,7 +233,7 @@ Testing read_native_deep_image:
 
 Testing get_thumbnail:
   get_thumbnail returns ImageBuf: True
-  thumbnail initialized: False
+  thumbnail initialized: True
 
 Testing has_error/geterror:
   scanline on tiled None: True
