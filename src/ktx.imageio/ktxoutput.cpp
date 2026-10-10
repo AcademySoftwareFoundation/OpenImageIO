@@ -245,19 +245,6 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         if (!ioproxy_use_or_open(m_filename))
             return false;
 
-        const auto compression = m_spec.get_string_attribute("compression",
-                                                             "none");
-        if (Strutil::iequals(compression, "none")) {
-            m_cmp = BlockCompression::NONE;
-        } else if (Strutil::iequals(compression, "astc")) {
-            m_cmp = BlockCompression::ASTC;
-        } else {
-            errorfmt(
-                "Unsupported/Unknown compression from string attribute \"compression\": ",
-                compression);
-            return false;
-        }
-
         // Currently only two colorspaces are tested, linear or REC709 sRGB
         const auto colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
                                                             "srgb_rec709_scene");
@@ -280,18 +267,43 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         }
 
         m_use_basis_universal = false;
-        if (auto Q = m_spec.find_attribute("ktx:codec", TypeDesc::STRING)) {
-            const auto& codec = Q->get_string();
-            if (!construct_basis_params(m_basis_params, codec)) {
+        if (auto Q = m_spec.find_attribute("compression", TypeDesc::STRING)) {
+            const auto& compression = Q->get_string();
+            // Check if this is a GPU block-compressed format (e.g., ASTC, BCn)
+            // otherwise check if it is a Basis Universal codec.
+            if (Strutil::iequals(compression, "astc")) {
+                m_cmp = BlockCompression::ASTC;
+#if 0 /* for when BCn gets added */
+            } else if (Strutil::iequals(compression, "bc1")) {
+                m_cmp = BlockCompression::BC1;
+            } else if (Strutil::iequals(compression, "bc1a")) {
+                m_cmp = BlockCompression::BC1A;
+            } else if (Strutil::iequals(compression, "bc2")) {
+                m_cmp = BlockCompression::BC2;
+            } else if (Strutil::iequals(compression, "bc3")) {
+                m_cmp = BlockCompression::BC3;
+            } else if (Strutil::iequals(compression, "bc4")) {
+                m_cmp = BlockCompression::BC4;
+            } else if (Strutil::iequals(compression, "bc5")) {
+                m_cmp = BlockCompression::BC5;
+            } else if (Strutil::iequals(compression, "bc6hu")) {
+                m_cmp = BlockCompression::BC6HU;
+            } else if (Strutil::iequals(compression, "bc6hs")) {
+                m_cmp = BlockCompression::BC6HS;
+            } else if (Strutil::iequals(compression, "bc7")) {
+                m_cmp = BlockCompression::BC7;
+#endif
+            } else if (!construct_basis_params(m_basis_params, compression)) {
                 close();
                 // construct_basis_params calls errorfmt
                 return false;
             }
+
             m_use_basis_universal = m_basis_params.codec
                                     != KTX_BASIS_CODEC_NONE;
             DBG std::cout
-                << "[ktxoutput] basis universal codec (from \"ktx:codec\"): "
-                << codec << '\n';
+                << "[ktxoutput] GPU block compression or basis universal codec (from \"compression\"): "
+                << compression << '\n';
         }
 
         //
@@ -302,8 +314,12 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // supported native GPU format.
         //
         const auto& supercompression_str
-            = m_spec.get_string_attribute("ktx:supercompressionscheme", "none");
-        if (Strutil::iequals(supercompression_str, "none")) {
+            = m_spec.get_string_attribute("ktx:super_compression_scheme",
+                                          "none");
+        // BasisLZ is automatically applied when input is ETC1S. It makes no
+        // sense to apply it manually. Just ignore it and set to NONE.
+        if (Strutil::iequals(supercompression_str, "none")
+            || Strutil::iequals(supercompression_str, "basis_lz")) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_NONE;
         } else if (Strutil::iequals(supercompression_str, "zstd")) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
@@ -316,7 +332,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
 
-        if (auto Q = m_spec.find_attribute("ktx:generatemipmaps",
+        if (auto Q = m_spec.find_attribute("ktx:generate_mipmaps",
                                            TypeDesc::INT)) {
             m_generate_mipmaps = static_cast<bool>(Q->get_int());
             DBG std::cout << "[ktxoutput] generate mipmaps: " << std::boolalpha
@@ -345,19 +361,18 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
 
-
-        if (m_is3D)
-            m_max_nmiplevels
-                = (uint32_t)floor(
-                      logf(std::min(std::min(m_spec.width, m_spec.height),
-                                    m_spec.depth))
-                      / logf(2))
-                  + 1;
-        else
-            m_max_nmiplevels = (uint32_t)floor(
-                                   logf(std::min(m_spec.width, m_spec.height))
-                                   / logf(2))
-                               + 1;
+        // clang-format-off
+        m_max_nmiplevels
+            = m_is3D
+                  ? (uint32_t)floor(
+                        logf(std::min(std::min(m_spec.width, m_spec.height),
+                                      m_spec.depth))
+                        / logf(2))
+                        + 1
+                  : (uint32_t)floor(logf(std::min(m_spec.width, m_spec.height))
+                                    / logf(2))
+                        + 1;
+        // clang-format-on
 
         DBG std::cout << "[ktxoutput] max number mip levels allowed: "
                       << m_max_nmiplevels << std::endl;
@@ -530,9 +545,9 @@ KtxOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
     const image_span data_img_span(static_cast<const std::byte*>(data),
-                                   m_spec.nchannels, m_spec.width,
-                                   m_spec.height, m_spec.depth, AutoStride,
-                                   xstride, ystride);
+                                   m_spec.nchannels, m_spec.tile_width,
+                                   m_spec.tile_height, m_spec.tile_depth,
+                                   AutoStride, xstride, ystride);
     return write_tile(x, y, z, format, data_img_span);
 }
 
@@ -544,13 +559,15 @@ KtxOutput::write_tile(int x, int y, int z, TypeDesc format,
 {
     // For a volume texture, read a single WIDTHx1x1 tile
     if (m_is3D) {
-        return write_tiles(x, x + m_spec.width, y, y + 1, z, z + 1, format,
-                           data);
+        DBG std::cout << "write_tile() invoked for 3D volume" << std::endl;
+        return write_tiles(x, x + m_spec.tile_width, y,
+                           y + 1 /* m_spec.tile_height == 1 */, z,
+                           z + 1 /* m_spec.tile_depth == 1 */, format, data);
     }
     // For a cubemap, read a single WIDTHxHEIGHTx1 tile
     // (Note: there is no such thing as 3D cubemaps)
-    return write_tiles(x, x + m_spec.width, y, y + m_spec.height, z, z + 1,
-                       format, data);
+    return write_tiles(x, x + m_spec.tile_width, y, y + m_spec.tile_height, z,
+                       z + 1 /* m_spec.tile_height == 1 */, format, data);
 }
 
 
@@ -561,26 +578,19 @@ KtxOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                        const image_span<const std::byte>& data)
 {
     // Basis checks on provided ranges
-    if (xbegin < 0 || xbegin >= xend || xend > m_spec.width || ybegin < 0
-        || ybegin >= yend || yend > m_spec.height || zbegin < 0
-        || zbegin >= zend || zend > m_spec.depth) {
+    if (xbegin != 0 || xend != m_spec.tile_width || ybegin < 0 || ybegin >= yend
+        || yend > m_spec.height || ybegin % m_spec.tile_height
+        || yend % m_spec.tile_height || zbegin < 0 || zbegin >= zend
+        || zend > m_spec.depth) {
         errorfmt(
-            "KTX write_tiles: Out of valid range scanline ranges. "
+            "KTX write_tiles: Invalid tiles ROI ranges. "
             "Provided: xbegin={} xend={} ybegin={} yend={} zbegin={} zend={}. "
             "Constraints: xbegin: must be 0, xend: must be {}; "
-            "ybegin: [0, min({},yend)[, yend>ybegin; "
+            "ybegin: [0, min({},yend)[, yend>ybegin, ybegin % {} == 0, yend % {} == 0; "
             "zbegin: [0, min({},zend)[, zend>zbegin",
             xbegin, xend, ybegin, yend, zbegin, zend, m_spec.width,
-            m_spec.height, m_spec.depth);
-        return false;
-    }
-
-    // Why not zbegin/zend? These are only used for volume textures and tile
-    // depth for said textures is always set to 1.
-    if (xbegin != 0 || xend != m_spec.width || ybegin % m_spec.height
-        || yend % m_spec.height) {
-        errorfmt(
-            "Invalid tiles ROI ranges. X and Y ranges should be multiples of width and height, respectively");
+            m_spec.height, m_spec.tile_height, m_spec.tile_height,
+            m_spec.depth);
         return false;
     }
 
@@ -589,14 +599,14 @@ KtxOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
 
     // Now data is guaranteed to be contiguous and native to our spec
 
-    const size_t pitch = m_spec.pixel_bytes() * m_spec.width;
-    auto pSrc          = data_native.data();
-    size_t offset      = ybegin * pitch;
+    auto pSrc = data_native.data();
     [[maybe_unused]] size_t nbr_written_bytes { 0 };
 
     // For a volume texture, do a memcpy for each depth slice
     if (m_is3D) {
-        size_t datalen = (yend - ybegin) * pitch;
+        const size_t pitch   = m_spec.pixel_bytes() * m_spec.tile_width;
+        const size_t offset  = ybegin * pitch;
+        const size_t datalen = (yend - ybegin) * pitch;
         for (int slice_idx = zbegin; slice_idx < zend; ++slice_idx) {
             memcpy(m_imgs[m_miplevel_idx][slice_idx].data() + offset,
                    pSrc
@@ -611,17 +621,21 @@ KtxOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
     }
 
     // else: Cubemap texture
-
-    size_t tile_size_in_bytes = m_spec.height * pitch;
-    for (int face_idx = (ybegin / m_spec.height);
-         (face_idx * m_spec.height) < yend; ++face_idx) {
-        memcpy(m_imgs[m_miplevel_idx][face_idx].data() + offset,
-               pSrc + (face_idx - ybegin / m_spec.height) * tile_size_in_bytes,
-               tile_size_in_bytes);
-        nbr_written_bytes += tile_size_in_bytes;
+    {
+        const size_t tile_size_in_bytes = m_spec.tile_bytes();
+        const int start_idx             = ybegin / m_spec.tile_height;
+        for (int face_idx = start_idx; (face_idx * m_spec.tile_height) < yend;
+             ++face_idx) {
+            memcpy(m_imgs[m_miplevel_idx][face_idx].data(),
+                   pSrc
+                       + static_cast<size_t>(face_idx - start_idx)
+                             * tile_size_in_bytes,
+                   tile_size_in_bytes);
+            nbr_written_bytes += tile_size_in_bytes;
+        }
+        DBG std::cout << "[ktxoutput] write_tiles wrote " << nbr_written_bytes
+                      << " bytes" << std::endl;
     }
-    DBG std::cout << "[ktxoutput] write_tiles wrote " << nbr_written_bytes
-                  << " bytes" << std::endl;
     return true;
 }
 
@@ -649,10 +663,29 @@ KtxOutput::close()
 void
 KtxOutput::append_mipmaps_vector()
 {
-    m_imgs.emplace_back(m_spec.depth);
-    for (auto& slices_vec : m_imgs[m_miplevel_idx]) {
-        slices_vec.resize(m_spec.scanline_bytes() * m_spec.height);
+    if (m_is3D) {
+        // safety check to be certain that this is being called after correctly
+        // updating the spec with the current miplevel dimensions
+        OIIO_ASSERT(m_spec.depth
+                    == (int)std::max(1u, m_basedepth >> m_miplevel_idx));
+        m_imgs.emplace_back(m_spec.depth);
+        for (auto& slices_or_faces_vec : m_imgs[m_miplevel_idx]) {
+            slices_or_faces_vec.resize(m_spec.scanline_bytes() * m_spec.height);
+        }
+        return;
     }
+
+    if (m_is_cubemap) {
+        m_imgs.emplace_back(6);
+        for (auto& slices_or_faces_vec : m_imgs[m_miplevel_idx]) {
+            slices_or_faces_vec.resize(m_spec.tile_bytes());
+        }
+        return;
+    }
+
+    // else: 2D texture
+    m_imgs.emplace_back(1);
+    m_imgs[m_miplevel_idx][0].resize(m_spec.image_bytes());
 }
 
 
@@ -749,88 +782,45 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
         return false;
     }
 
+    // Formatting is turned off because having single-statement ifs on multiple
+    // lines is really hard to follow...
+    // clang-format off
     if (params.codec == KTX_BASIS_CODEC_ETC1S) {
         // Params that only apply to ETC1S
-        if (auto Q = m_spec.find_attribute("ktx:etc1sCompressionLevel",
-                                           TypeDesc::UINT32))
-            params.etc1sCompressionLevel = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:etc1sQualityLevel",
-                                           TypeDesc::UINT32))
-            params.qualityLevel = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:etc1sMaxEndpoints",
-                                           TypeDesc::UINT32))
-            params.maxEndpoints = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:etc1sEndpointRDOThreshold",
-                                           TypeDesc::FLOAT))
-            params.endpointRDOThreshold = *(float*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:etc1sMaxSelectors",
-                                           TypeDesc::UINT32))
-            params.maxSelectors = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:etc1sSelectorRDOThreshold",
-                                           TypeDesc::FLOAT))
-            params.selectorRDOThreshold = *(float*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:etc1sNoEndpointRDO"))
-            params.noEndpointRDO = static_cast<bool>(Q->get_int());
-        if (auto Q = m_spec.find_attribute("ktx:etc1sNoSelectorRDO",
-                                           TypeDesc::INT))
-            params.noSelectorRDO = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:etc1s_compression_level", TypeDesc::UINT32)) params.etc1sCompressionLevel = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:etc1s_quality_level", TypeDesc::UINT32)) params.qualityLevel = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:etc1s_max_endpoints", TypeDesc::UINT32)) params.maxEndpoints = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:etc1s_endpoint_rdo_threshold", TypeDesc::FLOAT)) params.endpointRDOThreshold = *(float*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:etc1s_max_selectors", TypeDesc::UINT32)) params.maxSelectors = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:etc1s_selector_rdo_threshold", TypeDesc::FLOAT)) params.selectorRDOThreshold = *(float*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:etc1s_no_endpoint_rdo")) params.noEndpointRDO = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:etc1s_no_selector_rdo", TypeDesc::INT)) params.noSelectorRDO = static_cast<bool>(Q->get_int());
     } else if (params.codec == KTX_BASIS_CODEC_UASTC_LDR_4x4) {
-        // Params that only apply to UASTC
-        if (auto Q = m_spec.find_attribute("ktx:uastcFlags", TypeDesc::UINT32))
-            params.uastcFlags = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:uastcRDO", TypeDesc::INT))
-            params.uastcRDO = static_cast<bool>(Q->get_int());
-        if (auto Q = m_spec.find_attribute("ktx:uastcRDOQualityScalar",
-                                           TypeDesc::FLOAT))
-            params.uastcRDOQualityScalar = *(float*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:uastcRDODictSize",
-                                           TypeDesc::UINT32))
-            params.uastcRDODictSize = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute(
-                "ktx:uastcRDOMaxSmoothBlockErrorScale", TypeDesc::FLOAT))
-            params.uastcRDOMaxSmoothBlockErrorScale = *(float*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:uastcRDOMaxSmoothBlockStdDev",
-                                           TypeDesc::FLOAT))
-            params.uastcRDOMaxSmoothBlockStdDev = *(float*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:uastcRDODontFavorSimplerModes",
-                                           TypeDesc::INT))
-            params.uastcRDODontFavorSimplerModes = static_cast<bool>(
-                Q->get_int());
-        if (auto Q = m_spec.find_attribute("ktx:uastcRDONoMultithreading",
-                                           TypeDesc::INT))
-            params.uastcRDONoMultithreading = static_cast<bool>(Q->get_int());
-    } else if (params.codec == KTX_BASIS_CODEC_UASTC_HDR_4x4
-               || params.codec == KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE) {
-        if (auto Q = m_spec.find_attribute("ktx:uastcHDRQuality",
-                                           TypeDesc::UINT32))
-            params.uastcHDRQuality = *(uint32_t*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:uastcHDRUberMode",
-                                           TypeDesc::INT))
-            params.uastcHDRUberMode = static_cast<bool>(Q->get_int());
-        if (auto Q = m_spec.find_attribute("ktx:uastcHDRUltraQuant",
-                                           TypeDesc::INT))
-            params.uastcHDRUltraQuant = static_cast<bool>(Q->get_int());
-        if (auto Q = m_spec.find_attribute("ktx:uastcHDRFavorAstc",
-                                           TypeDesc::INT))
-            params.uastcHDRFavorAstc = static_cast<bool>(Q->get_int());
-        if (auto Q = m_spec.find_attribute("ktx:uastcHDRLambda",
-                                           TypeDesc::FLOAT))
-            params.uastcHDRLambda = *(float*)Q->data();
-        if (auto Q = m_spec.find_attribute("ktx:uastcHDRLevel",
-                                           TypeDesc::UINT32))
-            params.uastcHDRLevel = *(uint32_t*)Q->data();
+        // Params that only apply to UASTC LDR + RDO
+        if (auto Q = m_spec.find_attribute("ktx:uastc_flags", TypeDesc::UINT32)) params.uastcFlags = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:uastc_rdo", TypeDesc::INT)) params.uastcRDO = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:uastc_rdo_quality_scalar", TypeDesc::FLOAT)) params.uastcRDOQualityScalar = *(float*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:uastc_rdo_dict_size", TypeDesc::UINT32)) params.uastcRDODictSize = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:uastc_rdo_max_smooth_block_error_scale", TypeDesc::FLOAT)) params.uastcRDOMaxSmoothBlockErrorScale = *(float*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:uastc_rdo_max_smooth_block_std_dev", TypeDesc::FLOAT)) params.uastcRDOMaxSmoothBlockStdDev = *(float*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:uastc_rdo_dont_favor_simpler_modes", TypeDesc::INT)) params.uastcRDODontFavorSimplerModes = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:uastc_rdo_no_multithreading", TypeDesc::INT)) params.uastcRDONoMultithreading = static_cast<bool>(Q->get_int());
+    } else if (params.codec == KTX_BASIS_CODEC_UASTC_HDR_4x4 || params.codec == KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE) {
+        // Params that only apply to UASTC HDR
+        if (auto Q = m_spec.find_attribute("ktx:uastc_hdr_level", TypeDesc::UINT32)) params.uastcHDRLevel = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:uastc_hdr_quality", TypeDesc::UINT32)) params.uastcHDRQuality = *(uint32_t*)Q->data();
+        if (auto Q = m_spec.find_attribute("ktx:uastc_hdr_uber_mode", TypeDesc::INT)) params.uastcHDRUberMode = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:uastc_hdr_ultra_quant", TypeDesc::INT)) params.uastcHDRUltraQuant = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:uastc_hdr_favor_astc", TypeDesc::INT)) params.uastcHDRFavorAstc = static_cast<bool>(Q->get_int());
+        if (auto Q = m_spec.find_attribute("ktx:uastc_hdr_lambda", TypeDesc::FLOAT)) params.uastcHDRLambda = *(float*)Q->data();
     }
 
     // Params that apply to both ETC1S and UASTC
-    if (auto Q = m_spec.find_attribute("ktx:noSSE", TypeDesc::INT))
-        params.noSSE = static_cast<bool>(Q->get_int());
-    if (auto Q = m_spec.find_attribute("ktx:normalMap", TypeDesc::INT))
-        params.normalMap = static_cast<bool>(Q->get_int());
-    if (auto Q = m_spec.find_attribute("ktx:inputSwizzle",
-                                       TypeDesc(TypeDesc::CHAR, 4)))
-        memcpy(params.inputSwizzle, Q->data(), 4);
-    if (auto Q = m_spec.find_attribute("ktx:preSwizzle", TypeDesc::INT))
-        params.preSwizzle = static_cast<bool>(Q->get_int());
+    if (auto Q = m_spec.find_attribute("ktx:no_sse", TypeDesc::INT)) params.noSSE = static_cast<bool>(Q->get_int());
+    if (auto Q = m_spec.find_attribute("ktx:normalmap", TypeDesc::INT)) params.normalMap = static_cast<bool>(Q->get_int());
+    if (auto Q = m_spec.find_attribute("ktx:input_swizzle", TypeDesc(TypeDesc::CHAR, 4))) memcpy(params.inputSwizzle, Q->data(), 4);
+    if (auto Q = m_spec.find_attribute("ktx:pre_swizzle", TypeDesc::INT)) params.preSwizzle = static_cast<bool>(Q->get_int());
+    // clang-format on
 
     return true;
 }
@@ -861,11 +851,11 @@ KtxOutput::write_ktx2()
     create_info.vkFormat         = m_vkformat;
     create_info.pDfd             = nullptr;
     create_info.baseWidth        = m_basewidth;
-    create_info.baseHeight       = m_baseheight;
-    create_info.baseDepth        = m_basedepth;
-    create_info.numDimensions    = m_is1D ? 1 : m_basedepth > 1 ? 3u : 2u;
-    create_info.numLevels        = m_miplevel_idx + 1;
-    create_info.numLayers        = 1;
+    create_info.baseHeight    = m_is_cubemap ? m_baseheight / 6 : m_baseheight;
+    create_info.baseDepth     = m_basedepth;
+    create_info.numDimensions = m_is1D ? 1 : m_basedepth > 1 ? 3u : 2u;
+    create_info.numLevels     = m_miplevel_idx + 1;
+    create_info.numLayers     = 1;
     create_info.numFaces = (m_spec.tile_width > 1 && m_basedepth <= 1) ? 6 : 1;
     create_info.isArray  = KTX_FALSE;
     create_info.generateMipmaps = m_generate_mipmaps;
@@ -889,13 +879,16 @@ KtxOutput::write_ktx2()
     tex.reset(p_tex);
 
     if (result != KTX_SUCCESS) {
-        errorfmt("ktxTexture2_Create returnned ktx_error_code: {}",
+        errorfmt("ktxTexture2_Create returned ktx_error_code: {}",
                  static_cast<uint32_t>(result));
         return false;
     }
 
     DBG std::cout << "ktxTexture2_Create created texture successfully"
                   << std::endl;
+
+    if (m_is_cubemap)
+        OIIO_ASSERT(p_tex->numFaces == 6);
 
     //
     // At first, set uncompressed data for all miplevels, layers, slices, etc.

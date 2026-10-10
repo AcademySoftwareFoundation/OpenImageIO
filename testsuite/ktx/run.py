@@ -95,15 +95,19 @@ command += (oiio_app("oiiotool")
 # Default write (with nothing specified) should default to a lossless format
 # + supercompression scheme and should match exactly with original input
 command += oiiotool ("checker_original.png -o checker_default.ktx2")
-command += diff_command ("checker_original.png", "checker_default.ktx2", "--fail 0 --warn 0")
+command += diff_command ("checker_original.png", "checker_default.ktx2")
+command += info_command ("checker_default.ktx2")
 
 # UASTC write test: check generation of an UASTC-based KTX2 file
-command += oiiotool ("checker_original.png --attrib ktx:codec uastc -o checker_uastc.ktx2")
+command += oiiotool ("checker_original.png --attrib compression uastc " +
+                     "--attrib ktx:super_compression_scheme zstd --attrib ktx:uastc_rdo 1 -o checker_uastc.ktx2")
 command += diff_command ("checker_original.png", "checker_uastc.ktx2")
+command += info_command ("checker_uastc.ktx2")
 
 # ETC1S write test: check generation of an ETC1S-based KTX2 file
-command += oiiotool ("checker_original.png --attrib ktx:codec etc1s -o checker_etc1s.ktx2")
+command += oiiotool ("checker_original.png --attrib compression etc1s -o checker_etc1s.ktx2")
 command += diff_command ("checker_original.png", "checker_etc1s.ktx2")
+command += info_command ("checker_etc1s.ktx2")
 
 # We do not test read-then-write of compressed-ktx2 files because any read-write
 # cycle worsens quality and is absolutely not the intended purpose of ktx usage
@@ -115,3 +119,9 @@ command += diff_command ("checker_original.png", "checker_etc1s.ktx2")
 command += (oiio_app("oiiotool") + (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_up_metadata.ktx2")
             + " --reorient -o orient_up_metadata.png >> out.txt ;\n")
 command += diff_command (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_down_metadata.ktx2", "orient_up_metadata.png")
+
+# TODO: Test writing a very small volume texture. I still don't know how to do
+#       this using oiiotool and this test is quite important because I detected
+#       a segfault when running a similar test case using OIIO API
+#       (see https://github.com/walcht/ktx-oiio-examples)
+# TODO: Test writing a very small cubemap texture

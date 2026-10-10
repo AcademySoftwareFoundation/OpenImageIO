@@ -291,7 +291,7 @@ To test (of course, make sure image assets are downloaded - see the CMake flag a
 
 ## Misc Notes for Developers
 
-Use `clang-format-17` for formatting and not whatever version you have on your
+Use `clang-format-22` for formatting and not whatever version you have on your
 machine (in my case, clang-format v18 caused clang-format CI to fail):
 
 ```bash

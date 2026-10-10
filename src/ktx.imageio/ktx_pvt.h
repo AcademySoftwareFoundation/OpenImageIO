@@ -67,11 +67,20 @@ block_compression_name(BlockCompression cmp)
 
 
 
-struct KTXglFormat {
-    uint32_t glInternalformat;
-    uint32_t glFormat;
-    uint32_t glType;
-};
+static inline std::string
+basis_universal_codec_name(khr_df_model_e color_model)
+{
+    switch (color_model) {
+    // UASTC codecs
+    case khr_df_model_e::KHR_DF_MODEL_UASTC_LDR_4x4: return "UASTC-LDR-4x4";
+    case khr_df_model_e::KHR_DF_MODEL_UASTC_HDR_4x4: return "UASTC-HDR-4x4";
+    case khr_df_model_e::KHR_DF_MODEL_UASTC_HDR_6x6: return "UASTC-HDR-6x6";
+    // ETC1S codecs
+    case khr_df_model_e::KHR_DF_MODEL_ETC1S: return "ETC1S";
+    default: break;
+    }
+    return std::to_string(static_cast<uint32_t>(color_model));
+}
 
 
 
@@ -393,9 +402,9 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
         // LDR uncompressed formats
     case VK_FORMAT_R8_UNORM: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::NONE }; return true;
     case VK_FORMAT_R8G8_UNORM: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R8G8B8_UNORM:
+    case VK_FORMAT_R8G8B8_UNORM: [[fallthrough]];
     case VK_FORMAT_R8G8B8_SRGB: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R8G8B8A8_UNORM:
+    case VK_FORMAT_R8G8B8A8_UNORM: [[fallthrough]];
     case VK_FORMAT_R8G8B8A8_SRGB: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::NONE }; return true;
 
         // HDR uncompressed formats
@@ -425,50 +434,52 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
     case VK_FORMAT_BC7_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_UNORM }; return true;
     case VK_FORMAT_BC7_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_SRGB }; return true;
 
-        // LDR ASTC formats (2D blocks)
-    case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
-    case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
+        // LDR ASTC linear formats (2D blocks)
+    case VK_FORMAT_ASTC_4x4_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_5x4_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_5x5_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_6x5_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_6x6_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x5_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x6_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x8_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x5_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x6_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x8_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x10_UNORM_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_12x10_UNORM_BLOCK: [[fallthrough]];
     case VK_FORMAT_ASTC_12x12_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_UNORM }; return true;
-    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK:
-    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK:
+
+        // LDR ASTC sRGB formats (2D blocks)
+    case VK_FORMAT_ASTC_4x4_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_5x4_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_5x5_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_6x5_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_6x6_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x5_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x6_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x8_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x5_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x6_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x8_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: [[fallthrough]];
     case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB }; return true;
         
         // HDR ASTC formats (2D blocks)
-    case VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK:
-    case VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK:
+    case VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK: [[fallthrough]];
+    case VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK: [[fallthrough]];
     case VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK: formatinfo = { 4, TypeDesc::HALF, BlockCompression::ASTC, VK_FORMAT_R16G16B16A16_SFLOAT }; return true;
     default: break;
     }
