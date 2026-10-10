@@ -42,7 +42,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 3.9 (tested through 3.14).
-     * [nanobind](https://github.com/wjakob/nanobind) >= 2.8 (tested through 3.0 and master),
+     * [nanobind](https://github.com/wjakob/nanobind) >= 2.8 (tested through 3.1 and master),
        if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to either
        `nanobind` or `both`.  If not found at build time, nanobind will be
        automatically downloaded and built.
