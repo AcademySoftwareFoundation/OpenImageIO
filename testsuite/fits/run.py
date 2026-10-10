@@ -27,6 +27,9 @@ for f in files :
 
 command += info_command ("src/rgb.fits")
 command += rw_command ("src", "rgb.fits")
+# Rows are stored bottom-first; file row 0 (value 32) is the bottom scanline
+command += info_command ("--dumpdata src/rows.fits", info_program="oiiotool",
+                         verbose=False)
 
 # Regression tests for broken files
 command += info_command ("src/broken_no_END.fits", verbose=False, failureok=True)
