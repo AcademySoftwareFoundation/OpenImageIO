@@ -1557,7 +1557,7 @@ After having opened a KTX2 file, the following attributes may be set:
        This attribute by itself does not convey whether the read texture is an
        array texture or whether it is 1D (1D, 2D and 2D array textures are all
        ``"Plain Texture"``'s).
-   * - ``compression``
+   * - ``ktx:compression``
      - string
      - GPU-block compression type or Basis Universal codec of the input KTX2
        texture, if any. Can be one of the following values:
@@ -1623,7 +1623,7 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
    * - Output Configuration Attribute
      - Type
      - Meaning 
-   * - ``compression``
+   * - ``ktx:compression``
      - string
      - Optional GPU-block compression type or Basis Universal codec to apply.
        Can be one of the following values:
@@ -1633,6 +1633,10 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
        Defaults to ``"NONE"``. Both ``"UASTC"`` and ``"UASTC-LDR"`` are aliases
        for ``"UASTC-LDR-4x4"``. Similarly, ``"UASTC-HDR"`` is an alias for
        ``"UASTC-HDR-4x4"``.
+   * - ``ktx:normalized``
+     - int (bool)
+     - Should the target VkFormat be normalized if possible (UNORM or SNORM
+       based on the ImageSpec type). Defaults to false.
    * - ``ktx:super_compression_scheme``
      - string
      - Super-compression scheme to apply (i.e., additional layer of lossless

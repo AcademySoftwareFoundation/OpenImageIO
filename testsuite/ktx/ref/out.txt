@@ -98,8 +98,8 @@ Reading ../oiio-images/ktx2/r8g8b8a8_srgb_mip_astc.ktx2
     MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 03052CEA1E271CEB85C2A084E44DC23F5BD7345C
     channel list: R, G, B, A
-    compression: "ASTC"
     textureformat: "Plain Texture"
+    ktx:compression: "ASTC"
     ktx:miplevels: 7
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/ktx_app_astc_8x8.ktx2
@@ -107,16 +107,16 @@ Reading ../oiio-images/ktx2/ktx_app_astc_8x8.ktx2
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 1EF0757CD38CA8D9AF19EDF0B961FF7D5C635274
     channel list: R, G, B, A
-    compression: "ASTC"
     textureformat: "Plain Texture"
+    ktx:compression: "ASTC"
     ktx:miplevels: 11
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/color_grid_uastc_zstd_5.ktx2
 ../oiio-images/ktx2/color_grid_uastc_zstd_5.ktx2 : 1024 x 1024, 4 channel, uint8 ktx
     SHA-1: B631629A3A81C50B2CE264D8CCA4EC4E169DFD6E
     channel list: R, G, B, A
-    compression: "UASTC-LDR-4x4"
     textureformat: "Plain Texture"
+    ktx:compression: "UASTC-LDR-4x4"
     ktx:super_compression_scheme: "zstd"
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/Iron_Bars_001_normal_uastc_zstd_10.ktx2
@@ -124,8 +124,8 @@ Reading ../oiio-images/ktx2/Iron_Bars_001_normal_uastc_zstd_10.ktx2
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: D428118F2CD6DE70F04C9BD6D092A5A5DCAB195D
     channel list: R, G, B, A
-    compression: "UASTC-LDR-4x4"
     textureformat: "Plain Texture"
+    ktx:compression: "UASTC-LDR-4x4"
     ktx:miplevels: 11
     ktx:normalmap: 1
     ktx:super_compression_scheme: "zstd"
@@ -135,8 +135,8 @@ Reading ../oiio-images/ktx2/ktx_document_uastc_rdo_4_zstd_5.ktx2
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 8644BD94DE7A340007640D0063DF80FC2B744849
     channel list: R, G, B, A
-    compression: "UASTC-LDR-4x4"
     textureformat: "Plain Texture"
+    ktx:compression: "UASTC-LDR-4x4"
     ktx:miplevels: 11
     ktx:super_compression_scheme: "zstd"
     ktx:uastc_rdo: 1
@@ -147,8 +147,8 @@ Reading ../oiio-images/ktx2/cubemap_goldengate_uastc_rdo_4_zstd_5.ktx2
     SHA-1: 46F7D003AA78294995170727F8A8E154B5282347
     channel list: R, G, B, A
     tile size: 1024 x 1024
-    compression: "UASTC-LDR-4x4"
     textureformat: "CubeFace Environment"
+    ktx:compression: "UASTC-LDR-4x4"
     ktx:CubeMapSides: "+x -x +y -y +z -z"
     ktx:miplevels: 11
     ktx:super_compression_scheme: "zstd"
@@ -165,8 +165,8 @@ Reading ../oiio-images/ktx2/Desk_uastc_hdr4x4_zstd_15.ktx2
 ../oiio-images/ktx2/Desk_uastc_hdr4x4_zstd_15.ktx2 :  644 x  874, 4 channel, half ktx
     SHA-1: BD3B955A6D2F724D306F9AF402BBCA15DCFECC20
     channel list: R, G, B, A
-    compression: "UASTC-HDR-4x4"
     textureformat: "Plain Texture"
+    ktx:compression: "UASTC-HDR-4x4"
     ktx:super_compression_scheme: "zstd"
     ktx:uastc_hdr_ultra_quant: 1
     oiio:ColorSpace: "lin_rec709_scene"
@@ -174,23 +174,23 @@ Reading ../oiio-images/ktx2/Desk_uastc_hdr6x6i.ktx2
 ../oiio-images/ktx2/Desk_uastc_hdr6x6i.ktx2 :  644 x  874, 4 channel, half ktx
     SHA-1: 8E0DE70C334CFA0A84AC7FE815F7066DFAF1413B
     channel list: R, G, B, A
-    compression: "UASTC-HDR-6x6"
     textureformat: "Plain Texture"
+    ktx:compression: "UASTC-HDR-6x6"
     oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/ktx2/Desk_astc_hdr6x6.ktx2
 ../oiio-images/ktx2/Desk_astc_hdr6x6.ktx2 :  644 x  874, 4 channel, half ktx
     SHA-1: 1930E94C0D33036B77F929E1C5E6E6AD5154974F
     channel list: R, G, B, A
-    compression: "ASTC"
     textureformat: "Plain Texture"
+    ktx:compression: "ASTC"
     ktx:super_compression_scheme: "zstd"
     oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/ktx2/kodim17_blze.ktx2
 ../oiio-images/ktx2/kodim17_blze.ktx2 :  512 x  768, 4 channel, uint8 ktx
     SHA-1: 4313438D8827BD8CB040EBD28A27A64EC7B62F68
     channel list: R, G, B, A
-    compression: "ETC1S"
     textureformat: "Plain Texture"
+    ktx:compression: "ETC1S"
     ktx:super_compression_scheme: "basis_lz"
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/r8g8b8a8_srgb_mip_blze.ktx2
@@ -198,8 +198,8 @@ Reading ../oiio-images/ktx2/r8g8b8a8_srgb_mip_blze.ktx2
     MIP-map levels: 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: A6350253C75FF2B9E24C35E89381C23EC1A77D29
     channel list: R, G, B, A
-    compression: "ETC1S"
     textureformat: "Plain Texture"
+    ktx:compression: "ETC1S"
     ktx:miplevels: 7
     ktx:super_compression_scheme: "basis_lz"
     oiio:ColorSpace: "srgb_rec709_scene"
@@ -207,16 +207,16 @@ Reading ../oiio-images/ktx2/color_grid_blze.ktx2
 ../oiio-images/ktx2/color_grid_blze.ktx2 : 1024 x 1024, 4 channel, uint8 ktx
     SHA-1: 8C159DD2A2DC4FF1B2D6B84A0DF4E925A0FCBF46
     channel list: R, G, B, A
-    compression: "ETC1S"
     textureformat: "Plain Texture"
+    ktx:compression: "ETC1S"
     ktx:super_compression_scheme: "basis_lz"
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/alpha_simple_blze.ktx2
 ../oiio-images/ktx2/alpha_simple_blze.ktx2 :    8 x    8, 4 channel, uint8 ktx
     SHA-1: 23BD7228F104BBA18152E7FDC50825286379F581
     channel list: R, G, B, A
-    compression: "ETC1S"
     textureformat: "Plain Texture"
+    ktx:compression: "ETC1S"
     ktx:super_compression_scheme: "basis_lz"
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/cubemap_yokohama_blze.ktx2
@@ -225,8 +225,8 @@ Reading ../oiio-images/ktx2/cubemap_yokohama_blze.ktx2
     SHA-1: 524C36457DDE6B0EEE54C4B52D4908280FB33DB5
     channel list: R, G, B, A
     tile size: 2048 x 2048
-    compression: "ETC1S"
     textureformat: "CubeFace Environment"
+    ktx:compression: "ETC1S"
     ktx:CubeMapSides: "+x -x +y -y +z -z"
     ktx:miplevels: 12
     ktx:super_compression_scheme: "basis_lz"
@@ -235,8 +235,8 @@ Reading ../oiio-images/ktx2/FlightHelmet_baseColor_blze.ktx2
 ../oiio-images/ktx2/FlightHelmet_baseColor_blze.ktx2 : 2048 x 2048, 4 channel, uint8 ktx
     SHA-1: FD4B9268979E2925598D7D3FF663293FF3807926
     channel list: R, G, B, A
-    compression: "ETC1S"
     textureformat: "Plain Texture"
+    ktx:compression: "ETC1S"
     ktx:super_compression_scheme: "basis_lz"
     oiio:ColorSpace: "srgb_rec709_scene"
 Reading ../oiio-images/ktx2/Iron_Bars_001_normal_blze.ktx2
@@ -244,8 +244,8 @@ Reading ../oiio-images/ktx2/Iron_Bars_001_normal_blze.ktx2
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: 4B447C9281806EBDC73619B0622F7F3CCC317F05
     channel list: R, G, B, A
-    compression: "ETC1S"
     textureformat: "Plain Texture"
+    ktx:compression: "ETC1S"
     ktx:miplevels: 11
     ktx:normalmap: 1
     ktx:super_compression_scheme: "basis_lz"
@@ -255,8 +255,8 @@ Reading ../oiio-images/ktx2/ktx_document_blze.ktx2
     MIP-map levels: 1024x1024 512x512 256x256 128x128 64x64 32x32 16x16 8x8 4x4 2x2 1x1
     SHA-1: AE251370FDCA642A65531BAC14C939A2EC369DC5
     channel list: R, G, B, A
-    compression: "ETC1S"
     textureformat: "Plain Texture"
+    ktx:compression: "ETC1S"
     ktx:miplevels: 11
     ktx:super_compression_scheme: "basis_lz"
     oiio:ColorSpace: "srgb_rec709_scene"
@@ -294,8 +294,8 @@ Reading checker_uastc.ktx2
 checker_uastc.ktx2   :   64 x   64, 4 channel, uint8 ktx
     SHA-1: 5ECD9AA14E69DB4B9DB20262CE412BBDF40F93C6
     channel list: R, G, B, A
-    compression: "UASTC-LDR-4x4"
     textureformat: "Plain Texture"
+    ktx:compression: "UASTC-LDR-4x4"
     ktx:super_compression_scheme: "zstd"
     oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "checker_original.png" and "checker_etc1s.ktx2"
@@ -304,8 +304,8 @@ Reading checker_etc1s.ktx2
 checker_etc1s.ktx2   :   64 x   64, 4 channel, uint8 ktx
     SHA-1: 5ECD9AA14E69DB4B9DB20262CE412BBDF40F93C6
     channel list: R, G, B, A
-    compression: "ETC1S"
     textureformat: "Plain Texture"
+    ktx:compression: "ETC1S"
     ktx:super_compression_scheme: "basis_lz"
     oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "../oiio-images/ktx2/orient_down_metadata.ktx2" and "orient_up_metadata.png"

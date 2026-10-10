@@ -492,9 +492,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                      static_cast<uint32_t>(status));
             return false;
         }
-        // Save Basis Universal codec in the "compression" attribute (this
+        // Save Basis Universal codec in the "ktx:compression" attribute (this
         // attribute is also used to save GPU-block-based compressions)
-        m_spec.attribute("compression",
+        m_spec.attribute("ktx:compression",
                          basis_universal_codec_name(color_model));
     }
 
@@ -529,7 +529,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             return false;
         }
         m_cmp = format_info.compression;
-        m_spec.attribute("compression", block_compression_name(m_cmp));
+        m_spec.attribute("ktx:compression", block_compression_name(m_cmp));
         switch (m_cmp) {
 #if 0  // TODO: wait for my PR in libktx to be merged
             /* BCn GPU formats */

@@ -113,6 +113,10 @@ private:
     // will be passed to ktxTextureCreateInfo's generateMipmaps param.
     bool m_generate_mipmaps { false };
 
+    // Should the target VkFormat be UNORM (if possible, given other ImageSpec
+    // inforamtion)?
+    bool m_normalized { false };
+
     BlockCompression m_cmp { BlockCompression::NONE };
 
     bool m_use_basis_universal { false };
@@ -154,7 +158,7 @@ private:
 
     void append_mipmaps_vector();
 
-    void init();
+    void init() noexcept;
 
     bool write_ktx2();
 
@@ -267,7 +271,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         }
 
         m_use_basis_universal = false;
-        if (auto Q = m_spec.find_attribute("compression", TypeDesc::STRING)) {
+        if (auto Q = m_spec.find_attribute("ktx:compression",
+                                           TypeDesc::STRING)) {
             const auto& compression = Q->get_string();
             // Check if this is a GPU block-compressed format (e.g., ASTC, BCn)
             // otherwise check if it is a Basis Universal codec.
@@ -336,14 +341,19 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                                            TypeDesc::INT)) {
             m_generate_mipmaps = static_cast<bool>(Q->get_int());
             DBG std::cout << "[ktxoutput] generate mipmaps: " << std::boolalpha
-                          << m_generate_mipmaps << '\n';
+                          << m_generate_mipmaps << std::endl;
+        }
+
+        if (auto Q = m_spec.find_attribute("ktx:normalized", TypeDesc::INT)) {
+            m_normalized = static_cast<bool>(Q->get_int());
+            DBG std::cout << "[ktxoutput] normalized: " << std::boolalpha
+                          << m_normalized << std::endl;
         }
 
         //
         // User provided nothing about neither the target GPU block compression
         // nor the target Basis Universal codec. Default to writing uncompressed
-        // VK_FORMAT with ZSTD supercompression (write as losseless KTX2
-        // output).
+        // VK_FORMAT.
         //
         // If we intend to compress to BasisLZ/ETC1S or UASTC then we need to
         // figure the VkFormat so that ktxTexture_SetImageFromMemory does not
@@ -351,28 +361,20 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // telling it to allocate storage, how would it know the size of a given
         // subimage if we provide it with VK_FORMAT_UNDEFINED?)
         //
-        m_vkformat = get_vkformat_from_info(m_spec.nchannels, m_spec.format,
-                                            is_srgb);
+        m_vkformat = get_vkformat_from_info(m_spec, is_srgb, m_normalized);
         if (m_vkformat == VK_FORMAT_UNDEFINED) {
             close();
             errorfmt(
-                "Failed to determine VkFormat from nchannels={} format={} colorspace={}",
-                m_spec.nchannels, m_spec.format, colorspace);
+                "Failed to determine VkFormat from nchannels={} format={} colorspace={} normalize={}",
+                m_spec.nchannels, m_spec.format, colorspace, m_normalized);
             return false;
         }
 
-        // clang-format-off
-        m_max_nmiplevels
-            = m_is3D
-                  ? (uint32_t)floor(
-                        logf(std::min(std::min(m_spec.width, m_spec.height),
-                                      m_spec.depth))
-                        / logf(2))
-                        + 1
-                  : (uint32_t)floor(logf(std::min(m_spec.width, m_spec.height))
-                                    / logf(2))
-                        + 1;
-        // clang-format-on
+        // clang-format off
+        m_max_nmiplevels = m_is3D
+          ? (uint32_t)floor(logf(std::min(std::min(m_spec.width, m_spec.height), m_spec.depth)) / logf(2)) + 1
+          : (uint32_t)floor(logf(std::min(m_spec.width, m_spec.height)) / logf(2)) + 1;
+        // clang-format on
 
         DBG std::cout << "[ktxoutput] max number mip levels allowed: "
                       << m_max_nmiplevels << std::endl;
@@ -691,7 +693,7 @@ KtxOutput::append_mipmaps_vector()
 
 
 void
-KtxOutput::init()
+KtxOutput::init() noexcept
 {
     // TODO: calling open() after close() on this hasn't been tested yet ...
     m_initialized         = false;
@@ -707,6 +709,7 @@ KtxOutput::init()
     m_is_cubemap          = false;
     m_superCmp            = KTX_SS_NONE;
     m_generate_mipmaps    = false;
+    m_normalized          = false;
     m_cmp                 = BlockCompression::NONE;
     m_use_basis_universal = false;
     m_basis_params        = { 0 };

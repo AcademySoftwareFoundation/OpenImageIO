@@ -99,13 +99,13 @@ command += diff_command ("checker_original.png", "checker_default.ktx2")
 command += info_command ("checker_default.ktx2")
 
 # UASTC write test: check generation of an UASTC-based KTX2 file
-command += oiiotool ("checker_original.png --attrib compression uastc " +
+command += oiiotool ("checker_original.png --attrib ktx:compression uastc " +
                      "--attrib ktx:super_compression_scheme zstd --attrib ktx:uastc_rdo 1 -o checker_uastc.ktx2")
 command += diff_command ("checker_original.png", "checker_uastc.ktx2")
 command += info_command ("checker_uastc.ktx2")
 
 # ETC1S write test: check generation of an ETC1S-based KTX2 file
-command += oiiotool ("checker_original.png --attrib compression etc1s -o checker_etc1s.ktx2")
+command += oiiotool ("checker_original.png --attrib ktx:compression etc1s -o checker_etc1s.ktx2")
 command += diff_command ("checker_original.png", "checker_etc1s.ktx2")
 command += info_command ("checker_etc1s.ktx2")
 

@@ -1,4 +1,4 @@
-// Copyright Contributors to the OpenImageIO project.
+// Copyright Co tributors to the OpenImageIO project.
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
@@ -84,6 +84,7 @@ basis_universal_codec_name(khr_df_model_e color_model)
 
 
 
+// clang-format off
 //
 // Copied from KTX-Software/lib/src/vkformat_enum.h
 // KTX-Software commit: b9bcfeb1df982f38b11d460cdd9878aa748ebafb
@@ -92,100 +93,100 @@ basis_universal_codec_name(khr_df_model_e color_model)
 //
 enum VkFormat : uint32_t {
     VK_FORMAT_UNDEFINED                                  = 0,
-    VK_FORMAT_R4G4_UNORM_PACK8                           = 1,
-    VK_FORMAT_R4G4B4A4_UNORM_PACK16                      = 2,
-    VK_FORMAT_B4G4R4A4_UNORM_PACK16                      = 3,
-    VK_FORMAT_R5G6B5_UNORM_PACK16                        = 4,
-    VK_FORMAT_B5G6R5_UNORM_PACK16                        = 5,
-    VK_FORMAT_R5G5B5A1_UNORM_PACK16                      = 6,
-    VK_FORMAT_B5G5R5A1_UNORM_PACK16                      = 7,
-    VK_FORMAT_A1R5G5B5_UNORM_PACK16                      = 8,
+    VK_FORMAT_R4G4_UNORM_PACK8                           = 1,  // <-- NOT SUPPORTED
+    VK_FORMAT_R4G4B4A4_UNORM_PACK16                      = 2,  // <-- NOT SUPPORTED
+    VK_FORMAT_B4G4R4A4_UNORM_PACK16                      = 3,  // <-- NOT SUPPORTED
+    VK_FORMAT_R5G6B5_UNORM_PACK16                        = 4,  // <-- NOT SUPPORTED
+    VK_FORMAT_B5G6R5_UNORM_PACK16                        = 5,  // <-- NOT SUPPORTED
+    VK_FORMAT_R5G5B5A1_UNORM_PACK16                      = 6,  // <-- NOT SUPPORTED
+    VK_FORMAT_B5G5R5A1_UNORM_PACK16                      = 7,  // <-- NOT SUPPORTED
+    VK_FORMAT_A1R5G5B5_UNORM_PACK16                      = 8,  // <-- NOT SUPPORTED
     VK_FORMAT_R8_UNORM                                   = 9,
     VK_FORMAT_R8_SNORM                                   = 10,
-    VK_FORMAT_R8_USCALED                                 = 11,
-    VK_FORMAT_R8_SSCALED                                 = 12,
+    VK_FORMAT_R8_USCALED                                 = 11,  // <-- NOT SUPPORTED
+    VK_FORMAT_R8_SSCALED                                 = 12,  // <-- NOT SUPPORTED
     VK_FORMAT_R8_UINT                                    = 13,
     VK_FORMAT_R8_SINT                                    = 14,
     VK_FORMAT_R8_SRGB                                    = 15,
     VK_FORMAT_R8G8_UNORM                                 = 16,
     VK_FORMAT_R8G8_SNORM                                 = 17,
-    VK_FORMAT_R8G8_USCALED                               = 18,
-    VK_FORMAT_R8G8_SSCALED                               = 19,
+    VK_FORMAT_R8G8_USCALED                               = 18,  // <-- NOT SUPPORTED
+    VK_FORMAT_R8G8_SSCALED                               = 19,  // <-- NOT SUPPORTED
     VK_FORMAT_R8G8_UINT                                  = 20,
     VK_FORMAT_R8G8_SINT                                  = 21,
     VK_FORMAT_R8G8_SRGB                                  = 22,
     VK_FORMAT_R8G8B8_UNORM                               = 23,
     VK_FORMAT_R8G8B8_SNORM                               = 24,
-    VK_FORMAT_R8G8B8_USCALED                             = 25,
-    VK_FORMAT_R8G8B8_SSCALED                             = 26,
+    VK_FORMAT_R8G8B8_USCALED                             = 25,  // <-- NOT SUPPORTED
+    VK_FORMAT_R8G8B8_SSCALED                             = 26,  // <-- NOT SUPPORTED
     VK_FORMAT_R8G8B8_UINT                                = 27,
     VK_FORMAT_R8G8B8_SINT                                = 28,
     VK_FORMAT_R8G8B8_SRGB                                = 29,
     VK_FORMAT_B8G8R8_UNORM                               = 30,
     VK_FORMAT_B8G8R8_SNORM                               = 31,
-    VK_FORMAT_B8G8R8_USCALED                             = 32,
-    VK_FORMAT_B8G8R8_SSCALED                             = 33,
+    VK_FORMAT_B8G8R8_USCALED                             = 32,  // <-- NOT SUPPORTED
+    VK_FORMAT_B8G8R8_SSCALED                             = 33,  // <-- NOT SUPPORTED
     VK_FORMAT_B8G8R8_UINT                                = 34,
     VK_FORMAT_B8G8R8_SINT                                = 35,
     VK_FORMAT_B8G8R8_SRGB                                = 36,
     VK_FORMAT_R8G8B8A8_UNORM                             = 37,
     VK_FORMAT_R8G8B8A8_SNORM                             = 38,
-    VK_FORMAT_R8G8B8A8_USCALED                           = 39,
-    VK_FORMAT_R8G8B8A8_SSCALED                           = 40,
+    VK_FORMAT_R8G8B8A8_USCALED                           = 39,  // <-- NOT SUPPORTED
+    VK_FORMAT_R8G8B8A8_SSCALED                           = 40,  // <-- NOT SUPPORTED
     VK_FORMAT_R8G8B8A8_UINT                              = 41,
     VK_FORMAT_R8G8B8A8_SINT                              = 42,
     VK_FORMAT_R8G8B8A8_SRGB                              = 43,
     VK_FORMAT_B8G8R8A8_UNORM                             = 44,
     VK_FORMAT_B8G8R8A8_SNORM                             = 45,
-    VK_FORMAT_B8G8R8A8_USCALED                           = 46,
-    VK_FORMAT_B8G8R8A8_SSCALED                           = 47,
+    VK_FORMAT_B8G8R8A8_USCALED                           = 46,  // <-- NOT SUPPORTED
+    VK_FORMAT_B8G8R8A8_SSCALED                           = 47,  // <-- NOT SUPPORTED
     VK_FORMAT_B8G8R8A8_UINT                              = 48,
     VK_FORMAT_B8G8R8A8_SINT                              = 49,
     VK_FORMAT_B8G8R8A8_SRGB                              = 50,
-    VK_FORMAT_A8B8G8R8_UNORM_PACK32                      = 51,
-    VK_FORMAT_A8B8G8R8_SNORM_PACK32                      = 52,
-    VK_FORMAT_A8B8G8R8_USCALED_PACK32                    = 53,
-    VK_FORMAT_A8B8G8R8_SSCALED_PACK32                    = 54,
-    VK_FORMAT_A8B8G8R8_UINT_PACK32                       = 55,
-    VK_FORMAT_A8B8G8R8_SINT_PACK32                       = 56,
-    VK_FORMAT_A8B8G8R8_SRGB_PACK32                       = 57,
-    VK_FORMAT_A2R10G10B10_UNORM_PACK32                   = 58,
-    VK_FORMAT_A2R10G10B10_SNORM_PACK32                   = 59,
-    VK_FORMAT_A2R10G10B10_USCALED_PACK32                 = 60,
-    VK_FORMAT_A2R10G10B10_SSCALED_PACK32                 = 61,
-    VK_FORMAT_A2R10G10B10_UINT_PACK32                    = 62,
-    VK_FORMAT_A2R10G10B10_SINT_PACK32                    = 63,
-    VK_FORMAT_A2B10G10R10_UNORM_PACK32                   = 64,
-    VK_FORMAT_A2B10G10R10_SNORM_PACK32                   = 65,
-    VK_FORMAT_A2B10G10R10_USCALED_PACK32                 = 66,
-    VK_FORMAT_A2B10G10R10_SSCALED_PACK32                 = 67,
-    VK_FORMAT_A2B10G10R10_UINT_PACK32                    = 68,
-    VK_FORMAT_A2B10G10R10_SINT_PACK32                    = 69,
+    VK_FORMAT_A8B8G8R8_UNORM_PACK32                      = 51,  // <-- NOT SUPPORTED
+    VK_FORMAT_A8B8G8R8_SNORM_PACK32                      = 52,  // <-- NOT SUPPORTED
+    VK_FORMAT_A8B8G8R8_USCALED_PACK32                    = 53,  // <-- NOT SUPPORTED
+    VK_FORMAT_A8B8G8R8_SSCALED_PACK32                    = 54,  // <-- NOT SUPPORTED
+    VK_FORMAT_A8B8G8R8_UINT_PACK32                       = 55,  // <-- NOT SUPPORTED
+    VK_FORMAT_A8B8G8R8_SINT_PACK32                       = 56,  // <-- NOT SUPPORTED
+    VK_FORMAT_A8B8G8R8_SRGB_PACK32                       = 57,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2R10G10B10_UNORM_PACK32                   = 58,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2R10G10B10_SNORM_PACK32                   = 59,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2R10G10B10_USCALED_PACK32                 = 60,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2R10G10B10_SSCALED_PACK32                 = 61,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2R10G10B10_UINT_PACK32                    = 62,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2R10G10B10_SINT_PACK32                    = 63,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2B10G10R10_UNORM_PACK32                   = 64,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2B10G10R10_SNORM_PACK32                   = 65,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2B10G10R10_USCALED_PACK32                 = 66,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2B10G10R10_SSCALED_PACK32                 = 67,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2B10G10R10_UINT_PACK32                    = 68,  // <-- NOT SUPPORTED
+    VK_FORMAT_A2B10G10R10_SINT_PACK32                    = 69,  // <-- NOT SUPPORTED
     VK_FORMAT_R16_UNORM                                  = 70,
     VK_FORMAT_R16_SNORM                                  = 71,
-    VK_FORMAT_R16_USCALED                                = 72,
-    VK_FORMAT_R16_SSCALED                                = 73,
+    VK_FORMAT_R16_USCALED                                = 72,  // <-- NOT SUPPORTED
+    VK_FORMAT_R16_SSCALED                                = 73,  // <-- NOT SUPPORTED
     VK_FORMAT_R16_UINT                                   = 74,
     VK_FORMAT_R16_SINT                                   = 75,
     VK_FORMAT_R16_SFLOAT                                 = 76,
     VK_FORMAT_R16G16_UNORM                               = 77,
     VK_FORMAT_R16G16_SNORM                               = 78,
-    VK_FORMAT_R16G16_USCALED                             = 79,
-    VK_FORMAT_R16G16_SSCALED                             = 80,
+    VK_FORMAT_R16G16_USCALED                             = 79,  // <-- NOT SUPPORTED
+    VK_FORMAT_R16G16_SSCALED                             = 80,  // <-- NOT SUPPORTED
     VK_FORMAT_R16G16_UINT                                = 81,
     VK_FORMAT_R16G16_SINT                                = 82,
     VK_FORMAT_R16G16_SFLOAT                              = 83,
     VK_FORMAT_R16G16B16_UNORM                            = 84,
     VK_FORMAT_R16G16B16_SNORM                            = 85,
-    VK_FORMAT_R16G16B16_USCALED                          = 86,
-    VK_FORMAT_R16G16B16_SSCALED                          = 87,
+    VK_FORMAT_R16G16B16_USCALED                          = 86,  // <-- NOT SUPPORTED
+    VK_FORMAT_R16G16B16_SSCALED                          = 87,  // <-- NOT SUPPORTED
     VK_FORMAT_R16G16B16_UINT                             = 88,
     VK_FORMAT_R16G16B16_SINT                             = 89,
     VK_FORMAT_R16G16B16_SFLOAT                           = 90,
     VK_FORMAT_R16G16B16A16_UNORM                         = 91,
     VK_FORMAT_R16G16B16A16_SNORM                         = 92,
-    VK_FORMAT_R16G16B16A16_USCALED                       = 93,
-    VK_FORMAT_R16G16B16A16_SSCALED                       = 94,
+    VK_FORMAT_R16G16B16A16_USCALED                       = 93,  // <-- NOT SUPPORTED
+    VK_FORMAT_R16G16B16A16_SSCALED                       = 94,  // <-- NOT SUPPORTED
     VK_FORMAT_R16G16B16A16_UINT                          = 95,
     VK_FORMAT_R16G16B16A16_SINT                          = 96,
     VK_FORMAT_R16G16B16A16_SFLOAT                        = 97,
@@ -213,16 +214,16 @@ enum VkFormat : uint32_t {
     VK_FORMAT_R64G64B64A64_UINT                          = 119,
     VK_FORMAT_R64G64B64A64_SINT                          = 120,
     VK_FORMAT_R64G64B64A64_SFLOAT                        = 121,
-    VK_FORMAT_B10G11R11_UFLOAT_PACK32                    = 122,
-    VK_FORMAT_E5B9G9R9_UFLOAT_PACK32                     = 123,
-    VK_FORMAT_D16_UNORM                                  = 124,
-    VK_FORMAT_X8_D24_UNORM_PACK32                        = 125,
-    VK_FORMAT_D32_SFLOAT                                 = 126,
-    VK_FORMAT_S8_UINT                                    = 127,
-    VK_FORMAT_D16_UNORM_S8_UINT                          = 128,
-    VK_FORMAT_D24_UNORM_S8_UINT                          = 129,
-    VK_FORMAT_D32_SFLOAT_S8_UINT                         = 130,
-    VK_FORMAT_BC1_RGB_UNORM_BLOCK                        = 131,
+    VK_FORMAT_B10G11R11_UFLOAT_PACK32                    = 122,  // <-- NOT SUPPORTED
+    VK_FORMAT_E5B9G9R9_UFLOAT_PACK32                     = 123,  // <-- NOT SUPPORTED
+    VK_FORMAT_D16_UNORM                                  = 124,  // <-- NOT SUPPORTED
+    VK_FORMAT_X8_D24_UNORM_PACK32                        = 125,  // <-- NOT SUPPORTED
+    VK_FORMAT_D32_SFLOAT                                 = 126,  // <-- NOT SUPPORTED
+    VK_FORMAT_S8_UINT                                    = 127,  // <-- NOT SUPPORTED
+    VK_FORMAT_D16_UNORM_S8_UINT                          = 128,  // <-- NOT SUPPORTED
+    VK_FORMAT_D24_UNORM_S8_UINT                          = 129,  // <-- NOT SUPPORTED
+    VK_FORMAT_D32_SFLOAT_S8_UINT                         = 130,  // <-- NOT SUPPORTED
+    VK_FORMAT_BC1_RGB_UNORM_BLOCK                        = 131,  // TODO: BCn formats will be supported soon
     VK_FORMAT_BC1_RGB_SRGB_BLOCK                         = 132,
     VK_FORMAT_BC1_RGBA_UNORM_BLOCK                       = 133,
     VK_FORMAT_BC1_RGBA_SRGB_BLOCK                        = 134,
@@ -238,16 +239,16 @@ enum VkFormat : uint32_t {
     VK_FORMAT_BC6H_SFLOAT_BLOCK                          = 144,
     VK_FORMAT_BC7_UNORM_BLOCK                            = 145,
     VK_FORMAT_BC7_SRGB_BLOCK                             = 146,
-    VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK                    = 147,
-    VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK                     = 148,
-    VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK                  = 149,
-    VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK                   = 150,
-    VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK                  = 151,
-    VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK                   = 152,
-    VK_FORMAT_EAC_R11_UNORM_BLOCK                        = 153,
-    VK_FORMAT_EAC_R11_SNORM_BLOCK                        = 154,
-    VK_FORMAT_EAC_R11G11_UNORM_BLOCK                     = 155,
-    VK_FORMAT_EAC_R11G11_SNORM_BLOCK                     = 156,
+    VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK                    = 147,  // <-- NOT SUPPORTED
+    VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK                     = 148,  // <-- NOT SUPPORTED
+    VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK                  = 149,  // <-- NOT SUPPORTED
+    VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK                   = 150,  // <-- NOT SUPPORTED
+    VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK                  = 151,  // <-- NOT SUPPORTED
+    VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK                   = 152,  // <-- NOT SUPPORTED
+    VK_FORMAT_EAC_R11_UNORM_BLOCK                        = 153,  // <-- NOT SUPPORTED
+    VK_FORMAT_EAC_R11_SNORM_BLOCK                        = 154,  // <-- NOT SUPPORTED
+    VK_FORMAT_EAC_R11G11_UNORM_BLOCK                     = 155,  // <-- NOT SUPPORTED
+    VK_FORMAT_EAC_R11G11_SNORM_BLOCK                     = 156,  // <-- NOT SUPPORTED
     VK_FORMAT_ASTC_4x4_UNORM_BLOCK                       = 157,
     VK_FORMAT_ASTC_4x4_SRGB_BLOCK                        = 158,
     VK_FORMAT_ASTC_5x4_UNORM_BLOCK                       = 159,
@@ -276,46 +277,46 @@ enum VkFormat : uint32_t {
     VK_FORMAT_ASTC_12x10_SRGB_BLOCK                      = 182,
     VK_FORMAT_ASTC_12x12_UNORM_BLOCK                     = 183,
     VK_FORMAT_ASTC_12x12_SRGB_BLOCK                      = 184,
-    VK_FORMAT_G8B8G8R8_422_UNORM                         = 1000156000,
-    VK_FORMAT_B8G8R8G8_422_UNORM                         = 1000156001,
-    VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM                  = 1000156002,
-    VK_FORMAT_G8_B8R8_2PLANE_420_UNORM                   = 1000156003,
-    VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM                  = 1000156004,
-    VK_FORMAT_G8_B8R8_2PLANE_422_UNORM                   = 1000156005,
-    VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM                  = 1000156006,
-    VK_FORMAT_R10X6_UNORM_PACK16                         = 1000156007,
-    VK_FORMAT_R10X6G10X6_UNORM_2PACK16                   = 1000156008,
-    VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16         = 1000156009,
-    VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16     = 1000156010,
-    VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16     = 1000156011,
-    VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16 = 1000156012,
-    VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16  = 1000156013,
-    VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16 = 1000156014,
-    VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16  = 1000156015,
-    VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16 = 1000156016,
-    VK_FORMAT_R12X4_UNORM_PACK16                         = 1000156017,
-    VK_FORMAT_R12X4G12X4_UNORM_2PACK16                   = 1000156018,
-    VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16         = 1000156019,
-    VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16     = 1000156020,
-    VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16     = 1000156021,
-    VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16 = 1000156022,
-    VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16  = 1000156023,
-    VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16 = 1000156024,
-    VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16  = 1000156025,
-    VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16 = 1000156026,
-    VK_FORMAT_G16B16G16R16_422_UNORM                     = 1000156027,
-    VK_FORMAT_B16G16R16G16_422_UNORM                     = 1000156028,
-    VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM               = 1000156029,
-    VK_FORMAT_G16_B16R16_2PLANE_420_UNORM                = 1000156030,
-    VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM               = 1000156031,
-    VK_FORMAT_G16_B16R16_2PLANE_422_UNORM                = 1000156032,
-    VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM               = 1000156033,
-    VK_FORMAT_G8_B8R8_2PLANE_444_UNORM                   = 1000330000,
-    VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16  = 1000330001,
-    VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16  = 1000330002,
-    VK_FORMAT_G16_B16R16_2PLANE_444_UNORM                = 1000330003,
-    VK_FORMAT_A4R4G4B4_UNORM_PACK16                      = 1000340000,
-    VK_FORMAT_A4B4G4R4_UNORM_PACK16                      = 1000340001,
+    VK_FORMAT_G8B8G8R8_422_UNORM                         = 1000156000,  // <-- NOT SUPPORTED
+    VK_FORMAT_B8G8R8G8_422_UNORM                         = 1000156001,  // <-- NOT SUPPORTED
+    VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM                  = 1000156002,  // <-- NOT SUPPORTED
+    VK_FORMAT_G8_B8R8_2PLANE_420_UNORM                   = 1000156003,  // <-- NOT SUPPORTED
+    VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM                  = 1000156004,  // <-- NOT SUPPORTED
+    VK_FORMAT_G8_B8R8_2PLANE_422_UNORM                   = 1000156005,  // <-- NOT SUPPORTED
+    VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM                  = 1000156006,  // <-- NOT SUPPORTED
+    VK_FORMAT_R10X6_UNORM_PACK16                         = 1000156007,  // <-- NOT SUPPORTED
+    VK_FORMAT_R10X6G10X6_UNORM_2PACK16                   = 1000156008,  // <-- NOT SUPPORTED
+    VK_FORMAT_R10X6G10X6B10X6A10X6_UNORM_4PACK16         = 1000156009,  // <-- NOT SUPPORTED
+    VK_FORMAT_G10X6B10X6G10X6R10X6_422_UNORM_4PACK16     = 1000156010,  // <-- NOT SUPPORTED
+    VK_FORMAT_B10X6G10X6R10X6G10X6_422_UNORM_4PACK16     = 1000156011,  // <-- NOT SUPPORTED
+    VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16 = 1000156012,  // <-- NOT SUPPORTED
+    VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16  = 1000156013,  // <-- NOT SUPPORTED
+    VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16 = 1000156014,  // <-- NOT SUPPORTED
+    VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16  = 1000156015,  // <-- NOT SUPPORTED
+    VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16 = 1000156016,  // <-- NOT SUPPORTED
+    VK_FORMAT_R12X4_UNORM_PACK16                         = 1000156017,  // <-- NOT SUPPORTED
+    VK_FORMAT_R12X4G12X4_UNORM_2PACK16                   = 1000156018,  // <-- NOT SUPPORTED
+    VK_FORMAT_R12X4G12X4B12X4A12X4_UNORM_4PACK16         = 1000156019,  // <-- NOT SUPPORTED
+    VK_FORMAT_G12X4B12X4G12X4R12X4_422_UNORM_4PACK16     = 1000156020,  // <-- NOT SUPPORTED
+    VK_FORMAT_B12X4G12X4R12X4G12X4_422_UNORM_4PACK16     = 1000156021,  // <-- NOT SUPPORTED
+    VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16 = 1000156022,  // <-- NOT SUPPORTED
+    VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16  = 1000156023,  // <-- NOT SUPPORTED
+    VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16 = 1000156024,  // <-- NOT SUPPORTED
+    VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16  = 1000156025,  // <-- NOT SUPPORTED
+    VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16 = 1000156026,  // <-- NOT SUPPORTED
+    VK_FORMAT_G16B16G16R16_422_UNORM                     = 1000156027,  // <-- NOT SUPPORTED
+    VK_FORMAT_B16G16R16G16_422_UNORM                     = 1000156028,  // <-- NOT SUPPORTED
+    VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM               = 1000156029,  // <-- NOT SUPPORTED
+    VK_FORMAT_G16_B16R16_2PLANE_420_UNORM                = 1000156030,  // <-- NOT SUPPORTED
+    VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM               = 1000156031,  // <-- NOT SUPPORTED
+    VK_FORMAT_G16_B16R16_2PLANE_422_UNORM                = 1000156032,  // <-- NOT SUPPORTED
+    VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM               = 1000156033,  // <-- NOT SUPPORTED
+    VK_FORMAT_G8_B8R8_2PLANE_444_UNORM                   = 1000330000,  // <-- NOT SUPPORTED
+    VK_FORMAT_G10X6_B10X6R10X6_2PLANE_444_UNORM_3PACK16  = 1000330001,  // <-- NOT SUPPORTED
+    VK_FORMAT_G12X4_B12X4R12X4_2PLANE_444_UNORM_3PACK16  = 1000330002,  // <-- NOT SUPPORTED
+    VK_FORMAT_G16_B16R16_2PLANE_444_UNORM                = 1000330003,  // <-- NOT SUPPORTED
+    VK_FORMAT_A4R4G4B4_UNORM_PACK16                      = 1000340000,  // <-- NOT SUPPORTED
+    VK_FORMAT_A4B4G4R4_UNORM_PACK16                      = 1000340001,  // <-- NOT SUPPORTED
     VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK                      = 1000066000,
     VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK                      = 1000066001,
     VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK                      = 1000066002,
@@ -330,49 +331,50 @@ enum VkFormat : uint32_t {
     VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK                    = 1000066011,
     VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK                    = 1000066012,
     VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK                    = 1000066013,
-    VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG                = 1000054000,
-    VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG                = 1000054001,
-    VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG                = 1000054002,
-    VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG                = 1000054003,
-    VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG                 = 1000054004,
-    VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG                 = 1000054005,
-    VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG                 = 1000054006,
-    VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG                 = 1000054007,
-    VK_FORMAT_ASTC_3x3x3_UNORM_BLOCK_EXT                 = 1000288000,
-    VK_FORMAT_ASTC_3x3x3_SRGB_BLOCK_EXT                  = 1000288001,
-    VK_FORMAT_ASTC_3x3x3_SFLOAT_BLOCK_EXT                = 1000288002,
-    VK_FORMAT_ASTC_4x3x3_UNORM_BLOCK_EXT                 = 1000288003,
-    VK_FORMAT_ASTC_4x3x3_SRGB_BLOCK_EXT                  = 1000288004,
-    VK_FORMAT_ASTC_4x3x3_SFLOAT_BLOCK_EXT                = 1000288005,
-    VK_FORMAT_ASTC_4x4x3_UNORM_BLOCK_EXT                 = 1000288006,
-    VK_FORMAT_ASTC_4x4x3_SRGB_BLOCK_EXT                  = 1000288007,
-    VK_FORMAT_ASTC_4x4x3_SFLOAT_BLOCK_EXT                = 1000288008,
-    VK_FORMAT_ASTC_4x4x4_UNORM_BLOCK_EXT                 = 1000288009,
-    VK_FORMAT_ASTC_4x4x4_SRGB_BLOCK_EXT                  = 1000288010,
-    VK_FORMAT_ASTC_4x4x4_SFLOAT_BLOCK_EXT                = 1000288011,
-    VK_FORMAT_ASTC_5x4x4_UNORM_BLOCK_EXT                 = 1000288012,
-    VK_FORMAT_ASTC_5x4x4_SRGB_BLOCK_EXT                  = 1000288013,
-    VK_FORMAT_ASTC_5x4x4_SFLOAT_BLOCK_EXT                = 1000288014,
-    VK_FORMAT_ASTC_5x5x4_UNORM_BLOCK_EXT                 = 1000288015,
-    VK_FORMAT_ASTC_5x5x4_SRGB_BLOCK_EXT                  = 1000288016,
-    VK_FORMAT_ASTC_5x5x4_SFLOAT_BLOCK_EXT                = 1000288017,
-    VK_FORMAT_ASTC_5x5x5_UNORM_BLOCK_EXT                 = 1000288018,
-    VK_FORMAT_ASTC_5x5x5_SRGB_BLOCK_EXT                  = 1000288019,
-    VK_FORMAT_ASTC_5x5x5_SFLOAT_BLOCK_EXT                = 1000288020,
-    VK_FORMAT_ASTC_6x5x5_UNORM_BLOCK_EXT                 = 1000288021,
-    VK_FORMAT_ASTC_6x5x5_SRGB_BLOCK_EXT                  = 1000288022,
-    VK_FORMAT_ASTC_6x5x5_SFLOAT_BLOCK_EXT                = 1000288023,
-    VK_FORMAT_ASTC_6x6x5_UNORM_BLOCK_EXT                 = 1000288024,
-    VK_FORMAT_ASTC_6x6x5_SRGB_BLOCK_EXT                  = 1000288025,
-    VK_FORMAT_ASTC_6x6x5_SFLOAT_BLOCK_EXT                = 1000288026,
-    VK_FORMAT_ASTC_6x6x6_UNORM_BLOCK_EXT                 = 1000288027,
-    VK_FORMAT_ASTC_6x6x6_SRGB_BLOCK_EXT                  = 1000288028,
-    VK_FORMAT_ASTC_6x6x6_SFLOAT_BLOCK_EXT                = 1000288029,
-    VK_FORMAT_R16G16_SFIXED5_NV                          = 1000464000,
-    VK_FORMAT_A1B5G5R5_UNORM_PACK16_KHR                  = 1000470000,
-    VK_FORMAT_A8_UNORM_KHR                               = 1000470001,
+    VK_FORMAT_PVRTC1_2BPP_UNORM_BLOCK_IMG                = 1000054000,  // <-- NOT SUPPORTED
+    VK_FORMAT_PVRTC1_4BPP_UNORM_BLOCK_IMG                = 1000054001,  // <-- NOT SUPPORTED
+    VK_FORMAT_PVRTC2_2BPP_UNORM_BLOCK_IMG                = 1000054002,  // <-- NOT SUPPORTED
+    VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG                = 1000054003,  // <-- NOT SUPPORTED
+    VK_FORMAT_PVRTC1_2BPP_SRGB_BLOCK_IMG                 = 1000054004,  // <-- NOT SUPPORTED
+    VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG                 = 1000054005,  // <-- NOT SUPPORTED
+    VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG                 = 1000054006,  // <-- NOT SUPPORTED
+    VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG                 = 1000054007,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_3x3x3_UNORM_BLOCK_EXT                 = 1000288000,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_3x3x3_SRGB_BLOCK_EXT                  = 1000288001,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_3x3x3_SFLOAT_BLOCK_EXT                = 1000288002,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x3x3_UNORM_BLOCK_EXT                 = 1000288003,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x3x3_SRGB_BLOCK_EXT                  = 1000288004,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x3x3_SFLOAT_BLOCK_EXT                = 1000288005,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x4x3_UNORM_BLOCK_EXT                 = 1000288006,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x4x3_SRGB_BLOCK_EXT                  = 1000288007,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x4x3_SFLOAT_BLOCK_EXT                = 1000288008,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x4x4_UNORM_BLOCK_EXT                 = 1000288009,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x4x4_SRGB_BLOCK_EXT                  = 1000288010,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_4x4x4_SFLOAT_BLOCK_EXT                = 1000288011,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x4x4_UNORM_BLOCK_EXT                 = 1000288012,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x4x4_SRGB_BLOCK_EXT                  = 1000288013,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x4x4_SFLOAT_BLOCK_EXT                = 1000288014,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x5x4_UNORM_BLOCK_EXT                 = 1000288015,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x5x4_SRGB_BLOCK_EXT                  = 1000288016,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x5x4_SFLOAT_BLOCK_EXT                = 1000288017,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x5x5_UNORM_BLOCK_EXT                 = 1000288018,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x5x5_SRGB_BLOCK_EXT                  = 1000288019,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_5x5x5_SFLOAT_BLOCK_EXT                = 1000288020,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x5x5_UNORM_BLOCK_EXT                 = 1000288021,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x5x5_SRGB_BLOCK_EXT                  = 1000288022,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x5x5_SFLOAT_BLOCK_EXT                = 1000288023,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x6x5_UNORM_BLOCK_EXT                 = 1000288024,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x6x5_SRGB_BLOCK_EXT                  = 1000288025,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x6x5_SFLOAT_BLOCK_EXT                = 1000288026,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x6x6_UNORM_BLOCK_EXT                 = 1000288027,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x6x6_SRGB_BLOCK_EXT                  = 1000288028,  // <-- NOT SUPPORTED
+    VK_FORMAT_ASTC_6x6x6_SFLOAT_BLOCK_EXT                = 1000288029,  // <-- NOT SUPPORTED
+    VK_FORMAT_R16G16_SFIXED5_NV                          = 1000464000,  // <-- NOT SUPPORTED
+    VK_FORMAT_A1B5G5R5_UNORM_PACK16_KHR                  = 1000470000,  // <-- NOT SUPPORTED
+    VK_FORMAT_A8_UNORM_KHR                               = 1000470001,  // <-- NOT SUPPORTED
     VK_FORMAT_MAX_ENUM                                   = 0x7FFFFFFF
 };
+// clang-format on
 
 
 
@@ -411,7 +413,7 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
     case VK_FORMAT_R16G16B16_SFLOAT: formatinfo = { 3, TypeDesc::HALF, BlockCompression::NONE }; return true;
     case VK_FORMAT_R16G16B16A16_SFLOAT: formatinfo = { 4, TypeDesc::HALF, BlockCompression::NONE }; return true;
 
-        // ETC2 block-compressed formats
+        // ETC2 block-compressed formats (not supported)
     case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::ETC2_RGB, VK_FORMAT_R8G8B8A8_SRGB }; return true;
     case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ETC2_RGB_A1, VK_FORMAT_R8G8B8A8_SRGB }; return true;
     case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ETC2_RGBA, VK_FORMAT_R8G8B8A8_SRGB }; return true;
@@ -489,34 +491,222 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
 
 
 
+//
+// Gets the VkFormat from provided info (supplied from `ktxoutput->spec()`)
+//
+// Number of channels determines the number of channels in the returned
+// VkFormat (e.g., 3 => RGB). This is assuming the default channel names: RGBA.
+//
+// The type is determined based on the provided format (which usually
+// comes from `ktxoutput->spec()`) and also whether normalized is set. Just
+// using the type alone is insufficient to determine the VkFormat because we
+// can't, for instance, distinguish between VK_FORMAT_R8_UNORM and
+// VK_FORMAT_R8_UINT. This table showcases the VkFormat and its upload data
+// type:
+//
+// Vulkan format                        | Upload data type (per channel)
+// ------------------------------------ | --------------------------------------
+// VK_FORMAT_R8[G8[B8[A8]]]_UNORM       | UINT8
+// VK_FORMAT_R8[G8[B8[A8]]]_SNORM       | INT8
+// VK_FORMAT_R8[G8[B8[A8]]]_UINT        | UINT8
+// VK_FORMAT_R8[G8[B8[A8]]]_SINT        | INT8
+// VK_FORMAT_.+_SRGB                    | UINT8
+// VK_FORMAT_R16[G16[B16[A16]]]_SFLOAT  | HALF
+// VK_FORMAT_R16[G16[B16[A16]]]_UNORM   | UINT16
+// VK_FORMAT_R16[G16[B16[A16]]]_SNORM   | INT16
+// VK_FORMAT_R16[G16[B16[A16]]]_UINT    | UINT16
+// VK_FORMAT_R16[G16[B16[A16]]]_SINT    | INT16
+// VK_FORMAT_R32[G32[B32[A32]]]_SFLOAT  | FLOAT
+// VK_FORMAT_R32[G32[B32[A32]]]_UINT    | UINT32
+// VK_FORMAT_R32[G32[B32[A32]]]_SINT    | INT32
+// VK_FORMAT_R64[G64[B64[A64]]]_SFLOAT  | DOUBLE
+// VK_FORMAT_R64[G64[B64[A64]]]_UINT    | UINT64
+// VK_FORMAT_R64[G64[B64[A64]]]_SINT    | INT64
+//  VK_FORMAT_B8G8R8[A8]_UNORM          | UINT8
+//  VK_FORMAT_B8G8R8[A8]_SNORM          | INT8
+//  VK_FORMAT_B8G8R8[A8]_UINT           | UINT8
+//  VK_FORMAT_B8G8R8[A8]_SINT           | INT8
+//  VK_FORMAT_B8G8R8[A8]_SRGB           | UINT8
+//
+// As per the KTX2 specs, the _SRGB variants of VkFormat are determined based
+// on the supplied colorspace (if sRGB => VkFormat MUST be SRGB; unlike DDS).
+//
+// Swizzling isn't supported yet (e.g., VK_FORMAT_B8G8R8A8_SRGB) but it will be
+// soon (after robust testing on these formats is done).
+//
+// SRGB colorspace is prioritized over normalization (i.e., if `srg_colorspace`
+// is `true` and `normalized` is also `true`, `normalized` is ignored if an SRGB
+// output VkFormat is possible).
+//
 inline VkFormat
-get_vkformat_from_info(int nchannels, TypeDesc format, bool srgb_colorspace)
+get_vkformat_from_info(ImageSpec const& spec, bool srgb_colorspace,
+                       bool normalized) noexcept
 {
-    if (format != TypeDesc::UINT8 && format != TypeDesc::UINT16
-        && format != TypeDesc::HALF)
+    const auto& channelnames = spec.channelnames;
+    bool bgr_channels        = false;
+
+    // clang-format off
+    // For 1 channel, we only support R channel names
+    if (spec.nchannels == 1 && channelnames[0] != "R")
         return VK_FORMAT_UNDEFINED;
 
-    const bool is_ldr = format == TypeDesc::UINT8;
+    // For 2 channels, we only support RG channel names
+    if (spec.nchannels == 2 && !(channelnames[0] == "R"
+                              && channelnames[1] == "G"))
+        return VK_FORMAT_UNDEFINED;
 
-    switch (nchannels) {
-    case 1:
-        return is_ldr
-                   ? (srgb_colorspace ? VK_FORMAT_R8_SRGB : VK_FORMAT_R8_UNORM)
-                   : VK_FORMAT_R16_SFLOAT;
-    case 2:
-        return is_ldr ? (srgb_colorspace ? VK_FORMAT_R8G8_SRGB
-                                         : VK_FORMAT_R8G8_UNORM)
-                      : VK_FORMAT_R16G16_SFLOAT;
-    case 3:
-        return is_ldr ? (srgb_colorspace ? VK_FORMAT_R8G8B8_SRGB
-                                         : VK_FORMAT_R8G8B8_UNORM)
-                      : VK_FORMAT_R16G16B16_SFLOAT;
-    case 4:
-        return is_ldr ? (srgb_colorspace ? VK_FORMAT_R8G8B8A8_SRGB
-                                         : VK_FORMAT_R8G8B8A8_UNORM)
-                      : VK_FORMAT_R16G16B16A16_SFLOAT;
+    // For 3 channels, we support either RGB or BGR
+    if (spec.nchannels == 3) {
+        if ((   channelnames[0] == "B"
+             && channelnames[1] == "G"
+             && channelnames[2] == "R"))
+            bgr_channels = true;
+        else if (!(channelnames[0] == "R"
+                && channelnames[1] == "G"
+                && channelnames[2] == "B"))
+            return VK_FORMAT_UNDEFINED;
+    }
+
+    // For 4 channels, we support RGBA or BGRA
+    if (spec.nchannels == 4) {
+        if (   channelnames[0] == "B"
+            && channelnames[1] == "G"
+            && channelnames[2] == "R"
+            && channelnames[3] == "A")
+            bgr_channels = true;
+        else if (!(channelnames[0] == "R"
+                && channelnames[1] == "G"
+                && channelnames[2] == "B"
+                && channelnames[3] == "A"))
+            return VK_FORMAT_UNDEFINED;
+    }
+
+    if (bgr_channels) {
+      switch(static_cast<TypeDesc::BASETYPE>(spec.format.basetype)) {
+      case TypeDesc::UINT8: {
+        switch (spec.nchannels) {
+          case 3:  return srgb_colorspace ? VK_FORMAT_B8G8R8_SRGB : normalized ? VK_FORMAT_B8G8R8_UNORM : VK_FORMAT_B8G8R8_UINT;
+          case 4:  return srgb_colorspace ? VK_FORMAT_B8G8R8A8_SRGB : normalized ? VK_FORMAT_B8G8R8_UNORM : VK_FORMAT_B8G8R8A8_UINT;
+          default: return VK_FORMAT_UNDEFINED;
+        }
+      }
+      case TypeDesc::INT8: {
+        switch (spec.nchannels) {
+          case 3:  return normalized ? VK_FORMAT_B8G8R8_SNORM : VK_FORMAT_B8G8R8_SINT;
+          case 4:  return normalized ? VK_FORMAT_B8G8R8A8_SNORM : VK_FORMAT_B8G8R8A8_SINT;
+          default: return VK_FORMAT_UNDEFINED;
+        }
+      }
+      default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+
+    // else: R[G[B[A]]] channel names
+
+    switch (static_cast<TypeDesc::BASETYPE>(spec.format.basetype)) {
+    case TypeDesc::UINT8: {
+      switch (spec.nchannels) {
+        case 1:  return srgb_colorspace ? VK_FORMAT_R8_SRGB : normalized ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8_UINT;
+        case 2:  return srgb_colorspace ? VK_FORMAT_R8G8_SRGB : normalized ? VK_FORMAT_R8G8_UNORM : VK_FORMAT_R8G8_UINT;
+        case 3:  return srgb_colorspace ? VK_FORMAT_R8G8B8_SRGB : normalized ? VK_FORMAT_R8G8B8_UNORM : VK_FORMAT_R8G8B8_UINT;
+        case 4:  return srgb_colorspace ? VK_FORMAT_R8G8B8A8_SRGB : normalized ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R8G8B8A8_UINT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::INT8: {
+      switch (spec.nchannels) {
+        case 1:  return normalized ? VK_FORMAT_R8_SNORM : VK_FORMAT_R8_SINT;
+        case 2:  return normalized ? VK_FORMAT_R8G8_SNORM : VK_FORMAT_R8G8_SINT;
+        case 3:  return normalized ? VK_FORMAT_R8G8B8_SNORM : VK_FORMAT_R8G8B8_SINT;
+        case 4:  return normalized ? VK_FORMAT_R8G8B8A8_SNORM : VK_FORMAT_R8G8B8A8_SINT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::HALF: {
+      switch (spec.nchannels) {
+        case 1:  return VK_FORMAT_R16_SFLOAT;
+        case 2:  return VK_FORMAT_R16G16_SFLOAT;
+        case 3:  return VK_FORMAT_R16G16B16_SFLOAT;
+        case 4:  return VK_FORMAT_R16G16B16A16_SFLOAT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::UINT16: {
+      switch (spec.nchannels) {
+        case 1:  return normalized ? VK_FORMAT_R16_UNORM : VK_FORMAT_R16_UINT;
+        case 2:  return normalized ? VK_FORMAT_R16G16_UNORM : VK_FORMAT_R16G16_UINT;
+        case 3:  return normalized ? VK_FORMAT_R16G16B16_UNORM : VK_FORMAT_R16G16B16_UINT;
+        case 4:  return normalized ? VK_FORMAT_R16G16B16A16_UNORM : VK_FORMAT_R16G16B16A16_UINT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::INT16: {
+      switch (spec.nchannels) {
+        case 1:  return normalized ? VK_FORMAT_R16_SNORM : VK_FORMAT_R16_SINT;
+        case 2:  return normalized ? VK_FORMAT_R16G16_SNORM : VK_FORMAT_R16G16_SINT;
+        case 3:  return normalized ? VK_FORMAT_R16G16B16_SNORM : VK_FORMAT_R16G16B16_SINT;
+        case 4:  return normalized ? VK_FORMAT_R16G16B16A16_SNORM : VK_FORMAT_R16G16B16A16_SINT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::FLOAT: {
+      switch (spec.nchannels) {
+        case 1:  return VK_FORMAT_R32_SFLOAT;
+        case 2:  return VK_FORMAT_R32G32_SFLOAT;
+        case 3:  return VK_FORMAT_R32G32B32_SFLOAT;
+        case 4:  return VK_FORMAT_R32G32B32A32_SFLOAT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::UINT32: {
+      switch (spec.nchannels) {
+        case 1:  return VK_FORMAT_R32_UINT;
+        case 2:  return VK_FORMAT_R32G32_UINT;
+        case 3:  return VK_FORMAT_R32G32B32_UINT;
+        case 4:  return VK_FORMAT_R32G32B32A32_UINT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::INT32: {
+      switch (spec.nchannels) {
+        case 1:  return VK_FORMAT_R32_SINT;
+        case 2:  return VK_FORMAT_R32G32_SINT;
+        case 3:  return VK_FORMAT_R32G32B32_SINT;
+        case 4:  return VK_FORMAT_R32G32B32A32_SINT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::DOUBLE: {
+      switch (spec.nchannels) {
+        case 1:  return VK_FORMAT_R64_SFLOAT;
+        case 2:  return VK_FORMAT_R64G64_SFLOAT;
+        case 3:  return VK_FORMAT_R64G64B64_SFLOAT;
+        case 4:  return VK_FORMAT_R64G64B64A64_SFLOAT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::UINT64: {
+      switch (spec.nchannels) {
+        case 1:  return VK_FORMAT_R64_UINT;
+        case 2:  return VK_FORMAT_R64G64_UINT;
+        case 3:  return VK_FORMAT_R64G64B64_UINT;
+        case 4:  return VK_FORMAT_R64G64B64A64_UINT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+    case TypeDesc::INT64: {
+      switch (spec.nchannels) {
+        case 1:  return VK_FORMAT_R64_SINT;
+        case 2:  return VK_FORMAT_R64G64_SINT;
+        case 3:  return VK_FORMAT_R64G64B64_SINT;
+        case 4:  return VK_FORMAT_R64G64B64A64_SINT;
+        default: return VK_FORMAT_UNDEFINED;
+      }
+    }
+
     default: return VK_FORMAT_UNDEFINED;
     }
+    // clang-format on
 }
 
 
