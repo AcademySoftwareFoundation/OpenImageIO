@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -231,9 +232,15 @@ private:
     std::string m_configname;
     ColorConfig* m_self       = nullptr;
     bool m_config_is_built_in = false;
+    std::string m_init_filename;
+    std::once_flag m_init_flag;
+    bool m_init_ok = false;
 
 public:
-    Impl(ColorConfig* self) : m_self(self) {}
+    Impl(ColorConfig* self, string_view filename)
+        : m_self(self), m_init_filename(filename)
+    {
+    }
 
     ~Impl()
     {
@@ -247,6 +254,17 @@ public:
     }
 
     bool init(string_view filename);
+
+    // Load the config on first use: it is expensive, and many operations,
+    // such as reading images, never need it.
+    bool init_once()
+    {
+        std::call_once(m_init_flag, [this] {
+            OIIO::pvt::LoggedTimer logtime("ColorConfig::init");
+            m_init_ok = init(m_init_filename);
+        });
+        return m_init_ok;
+    }
 
     void add(const std::string& name, int index, int flags = 0)
     {
@@ -863,8 +881,8 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 
 
 ColorConfig::ColorConfig(string_view filename)
+    : m_impl(new ColorConfig::Impl(this, filename))
 {
-    (void)reset(filename);
 }
 
 
@@ -1027,7 +1045,6 @@ ColorConfig::Impl::init(string_view filename)
 bool
 ColorConfig::reset(string_view filename)
 {
-    OIIO::pvt::LoggedTimer logtime("ColorConfig::reset");
     if (m_impl
         && (filename == getImpl()->configname()
             || (filename == ""
@@ -1037,8 +1054,17 @@ ColorConfig::reset(string_view filename)
         return true;
     }
 
-    m_impl.reset(new ColorConfig::Impl(this));
-    return m_impl->init(filename);
+    m_impl.reset(new ColorConfig::Impl(this, filename));
+    return m_impl->init_once();
+}
+
+
+
+ColorConfig::Impl*
+ColorConfig::getImpl() const
+{
+    m_impl->init_once();
+    return m_impl.get();
 }
 
 
@@ -2397,6 +2423,14 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "unknown", nullptr },
 
     // Display referred interop IDs.
+    // The linear displays share their scene rows' codes, which come first,
+    // so CICP input still reads as the scene identity.
+    { "lin_rec709_display", nullptr, CICPPrimaries::Rec709,
+      CICPTransfer::Linear, CICPMatrix::BT709 },
+    { "lin_p3d65_display", nullptr, CICPPrimaries::P3D65, CICPTransfer::Linear,
+      CICPMatrix::BT709 },
+    { "lin_rec2020_display", nullptr, CICPPrimaries::Rec2020,
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
     { "srgb_rec709_display", "srgb_display", CICPPrimaries::Rec709,
       CICPTransfer::sRGB, CICPMatrix::BT709 },
     // Not all software interprets this CICP the same, see the
@@ -3125,7 +3159,10 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
     // including some format-specific things that we don't want to propagate
     // from input to output if we know that color space transformations have
     // occurred.
-    if (!equivalent(colorspace, "srgb_rec709_scene"))
+    // Only an existing "Exif:ColorSpace" needs the config, to judge sRGB.
+    if (spec.find_attribute("Exif:ColorSpace")
+        && colorspace != "srgb_rec709_scene"
+        && !equivalent(colorspace, "srgb_rec709_scene"))
         spec.erase_attribute("Exif:ColorSpace");
     spec.erase_attribute("tiff:ColorSpace");
     spec.erase_attribute("tiff:PhotometricInterpretation");

@@ -2233,9 +2233,12 @@ These are all non-positional flags that affect how all images are read in the
 ## {program}`oiiotool` commands that change the current image metadata
 
 This section describes {program}`oiiotool` commands that alter the metadata
-of the current image, but do not alter its pixel values. Only the current
-(i.e., top of stack) image is affected, not any images further down the
-stack.
+of the current image, but do not alter its pixel values. These commands
+alter the current image in place, so only the current (i.e., top of stack)
+image is affected, not any images further down the stack. Note, however,
+that if the current image has other references -- for example, because of
+a preceding ``--dup`` or ``--label`` -- the alteration will also be visible
+through those references (see the discussion of ``--dup``).
 
 If the `-a` flag has previously been set, these commands apply to all
 subimages or MIPmap levels of the current top image. Otherwise, they only
@@ -2744,6 +2747,11 @@ current top image.
     The name of the label must be in the form of an "identifier" (a sequence
     of alphanumeric characters and underscores, starting with a letter or
     underscore).
+
+    The label refers to the same image as the stack position that was
+    current when the label was created; in-place alterations of that image
+    (see the discussion of ``--dup``) will be visible through the label as
+    well.
 ```
 
 ```{eval-rst}
@@ -2752,6 +2760,13 @@ current top image.
     Duplicate the current image and push the duplicate on the stack. Note
     that this results in both the current and the next image on the stack
     being identical copies.
+
+    The duplicate is a second reference to the same image, not a deep copy
+    of the pixel data. Most commands replace the current image with a newly
+    computed result, but commands that alter the image in place (such as
+    the metadata commands described above, or drawing commands like
+    ``--text``) will appear to affect both stack positions until the
+    current image is replaced by one of those commands.
 ```
 
 ```{eval-rst}

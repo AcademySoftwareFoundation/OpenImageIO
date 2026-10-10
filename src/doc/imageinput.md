@@ -402,6 +402,11 @@ the ImageSpec. It is up to the ImageInput to read these from the file, if
 indeed the file format is able to carry additional data. Individual
 ImageInput implementations should document which metadata they read.
 
+Color metadata and format-defined color-space labels are recorded without
+resolving them through the process OpenColorIO configuration. Applications
+may interpret those values later using the color configuration and context
+appropriate to the operation they perform.
+
 #### Channel names
 
 In addition to specifying the number of color channels, the ImageSpec also
@@ -1039,4 +1044,3 @@ elaborated with error checking and reporting:
 :::{doxygenclass} OIIO::ImageInput
 :members:
 :::
-

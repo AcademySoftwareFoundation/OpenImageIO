@@ -797,17 +797,23 @@ padded_copy(const ImageBuf& src, bool pad_pixels,
 // exactly, so this compares the two rather than checking against a tolerance,
 // which would hide the one-pixel shift a mistake in the mapping arithmetic
 // actually causes. Pixel padding is what selects the fallback -- there is no
-// runtime switch to flip, the dispatch is by capability.
+// runtime switch to flip, the dispatch is by capability. Highway is not
+// bit-exact with either path, so turn it off (HWY_TEST may have left it on).
 static void
 check_against_fallback(const ImageBuf& src, const ImageSpec& dstspec,
                        bool interpolate)
 {
+    int prev_hwy = 0;
+    OIIO::getattribute("enable_hwy", prev_hwy);
+    OIIO::attribute("enable_hwy", 0);
+
     std::unique_ptr<char[]> fast_mem, slow_mem;
     ImageBuf fast_src = padded_copy(src, false, fast_mem);
     ImageBuf slow_src = padded_copy(src, true, slow_mem);
     ImageBuf fast(dstspec), slow(dstspec);
     OIIO_CHECK_ASSERT(ImageBufAlgo::resample(fast, fast_src, interpolate));
     OIIO_CHECK_ASSERT(ImageBufAlgo::resample(slow, slow_src, interpolate));
+    OIIO::attribute("enable_hwy", prev_hwy);
     if (memcmp(fast.localpixels(), slow.localpixels(), dstspec.image_bytes())
         == 0)
         return;
@@ -818,6 +824,52 @@ check_against_fallback(const ImageBuf& src, const ImageSpec& dstspec,
                    dstspec.nchannels, dstspec.format, cr.maxerror, cr.nfail,
                    size_t(dstspec.width) * dstspec.height * dstspec.nchannels);
     OIIO_CHECK_ASSERT(false && "resample paths disagree");
+}
+
+
+
+// resample() with channel ranges that don't fit the source: more dst channels
+// than src, a range past the last channel, and a negative chbegin.
+void
+test_resample_channel_bounds()
+{
+    std::cout << "test resample channel bounds\n";
+
+    ImageBuf src(ImageSpec(64, 48, 3, TypeFloat));
+    ImageBufAlgo::fill(src, { 0.25f, 0.5f, 0.75f });
+    const float untouched = 9.0f;
+
+    for (bool interp : { false, true }) {
+        // Extra dst channels have no source, so are left alone
+        ImageBuf wide(ImageSpec(33, 27, 5, TypeFloat));
+        ImageBufAlgo::fill(wide, { untouched, untouched, untouched, untouched,
+                                   untouched });
+        OIIO_CHECK_ASSERT(ImageBufAlgo::resample(wide, src, interp));
+        OIIO_CHECK_EQUAL(wide.getchannel(1, 1, 0, 0), 0.25f);
+        OIIO_CHECK_EQUAL(wide.getchannel(1, 1, 0, 1), 0.5f);
+        OIIO_CHECK_EQUAL(wide.getchannel(1, 1, 0, 2), 0.75f);
+        OIIO_CHECK_EQUAL(wide.getchannel(1, 1, 0, 3), untouched);
+        OIIO_CHECK_EQUAL(wide.getchannel(1, 1, 0, 4), untouched);
+
+        // A range past the last channel changes nothing
+        ImageBuf none(ImageSpec(33, 27, 3, TypeFloat));
+        ImageBufAlgo::fill(none, { untouched, untouched, untouched });
+        ROI past     = none.roi();
+        past.chbegin = 10;
+        past.chend   = 20;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::resample(none, src, interp, past));
+        OIIO_CHECK_EQUAL(none.getchannel(1, 1, 0, 0), untouched);
+        OIIO_CHECK_EQUAL(none.getchannel(1, 1, 0, 2), untouched);
+
+        // A negative chbegin behaves like 0
+        ImageBuf below(ImageSpec(33, 27, 3, TypeFloat));
+        ImageBufAlgo::fill(below, { untouched, untouched, untouched });
+        ROI neg     = below.roi();
+        neg.chbegin = -5;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::resample(below, src, interp, neg));
+        OIIO_CHECK_EQUAL(below.getchannel(1, 1, 0, 0), 0.25f);
+        OIIO_CHECK_EQUAL(below.getchannel(1, 1, 0, 2), 0.75f);
+    }
 }
 
 
@@ -2147,6 +2199,7 @@ main(int argc, char** argv)
     test_zover();
     test_resample_hwy_nearest();
     test_resample_correctness();
+    test_resample_channel_bounds();
     test_resample();
     test_compare();
     test_isConstantColor();
