@@ -633,8 +633,10 @@ DPXInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
 
     if (m_rawcolor) {
         // fast path - just read the scanline in
-        if (!m_dpx.ReadBlock(subimage, (unsigned char*)data, block))
+        if (!m_dpx.ReadBlock(subimage, (unsigned char*)data, block)) {
+            errorfmt("Failed to read scanlines {}-{}", ybegin, yend - 1);
             return false;
+        }
     } else {
         // read the scanline and convert to RGB
         unsigned char* ptr = (unsigned char*)data;
@@ -645,8 +647,10 @@ DPXInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
             ptr = m_decodebuf.data();
         }
 
-        if (!m_dpx.ReadBlock(subimage, ptr, block))
+        if (!m_dpx.ReadBlock(subimage, ptr, block)) {
+            errorfmt("Failed to read scanlines {}-{}", ybegin, yend - 1);
             return false;
+        }
         if (!dpx::ConvertToRGB(m_dpx.header, subimage, ptr, data, block))
             return false;
     }
