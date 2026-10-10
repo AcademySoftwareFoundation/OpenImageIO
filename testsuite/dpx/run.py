@@ -83,3 +83,15 @@ command += oiiotool("src/crash-large-origin.dpx -o crash-large-origin.tif",
 # check_open() must reject it up front.
 command += info_command("src/crash-origin-overflow.dpx", safematch=True,
                         failureok=True)
+
+# Regression test: a DPX whose pixel data is cut off after the first
+# scanline. libdpx ignored the short reads and reported success, so a tiny
+# file declaring huge images was "read" in full, which made the fuzzer time
+# out. The read must now fail.
+command += oiiotool("--testread src/truncated-pixels.dpx", failureok=True)
+
+# Regression test: a 10-bit DPX whose packing field holds 0x3001, which is
+# not a Packing enumerator. Loading it into the enum was undefined behavior
+# (flagged by UBSan). The read fails because the pixel data is too short
+# for the 16-bit words an unknown packing falls back to.
+command += oiiotool("--testread src/bad-packing.dpx", failureok=True)
