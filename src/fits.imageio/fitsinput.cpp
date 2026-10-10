@@ -115,7 +115,8 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
     std::vector<unsigned char> data_tmp(m_spec.scanline_bytes());
 
     if (!planar_channels()) {
-        size_t scanline_off = (size_t(z) * m_spec.height + (m_spec.height - y))
+        size_t scanline_off = (size_t(z) * m_spec.height
+                               + (m_spec.height - 1 - y))
                               * size_t(m_spec.scanline_bytes());
         if (Filesystem::fseek(m_fd, scanline_off, SEEK_CUR)) {
             errorfmt("Seek error");
@@ -139,8 +140,8 @@ FitsInput::read_native_scanline(int subimage, int miplevel, int y, int z,
         size_t row_bytes   = size_t(m_spec.width) * comp_size;
         size_t plane_bytes = row_bytes * size_t(m_spec.height)
                              * size_t(m_spec.depth);
-        size_t row_off     = (size_t(z) * m_spec.height + (m_spec.height - y))
-                             * row_bytes;
+        size_t row_off = (size_t(z) * m_spec.height + (m_spec.height - 1 - y))
+                         * row_bytes;
         std::vector<unsigned char> chan_row(row_bytes);
         for (int c = 0; c < m_spec.nchannels; ++c) {
             fsetpos(m_fd, &m_filepos);
