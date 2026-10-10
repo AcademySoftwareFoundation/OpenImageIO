@@ -10,20 +10,24 @@ on:
     paths:
       - '**'
       - '!**.md'
-      - '!**.rst'
-      - '!**/analysis.yml'
-      - '!**/docs.yml'
-      - '!**/scorecard.yml'
-      - '!**/wheel.yml'
+      - '!**/*.yml'
+      - '**/ci.yml'
+      - '**/build-steps.yml'
       - '!**.properties'
       - '!pyproject.toml'
       - '!docs/**'
+      - '!src/doc/**'
   pull_request:
     paths:
       - '**'
       - '!**.md'
-      - '!**.rst'
+      - '!**/*.yml'
+      - '**/ci.yml'
+      - '**/build-steps.yml'
+      - '!**.properties'
+      - '!pyproject.toml'
       - '!docs/**'
+      - '!src/doc/**'
   schedule:
     # Full nightly build
     - cron: "0 8 * * *"
