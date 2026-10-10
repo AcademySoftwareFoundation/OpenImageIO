@@ -4040,6 +4040,36 @@ is provided for minimal color support.
 
 % TODO: The documentation for this class is incomplete.
 
+:::{py:method} get_chromaticities (colorspace)
+Get the RGB primaries and white point of a color space with a known Color
+Interop ID, as `get_color_interop_id()` finds it: a sequence of eight floats
+(Rx, Ry, Gx, Gy, Bx, By, Wx, Wy, CIE 1931 xy), or None if they are unknown.
+
+Example:
+
+```python
+xy = colorconfig.get_chromaticities("ACEScg")
+if xy:
+    rx, ry, gx, gy, bx, by, wx, wy = xy
+```
+
+This function was added in OpenImageIO 3.2.
+:::
+
+:::{py:method} get_transfer_gamma (colorspace)
+Get the exponent of a color space's transfer function if it decodes as a pure
+power, 1.0 if it is linear, or 0 if it is neither or is unknown. Piecewise
+curves such as sRGB's report 0.
+
+Example:
+
+```python
+gamma = colorconfig.get_transfer_gamma("g22_rec709_scene")  # 2.2
+```
+
+This function was added in OpenImageIO 3.2.
+:::
+
 :::{py:method} get_cicp (colorspace)
 Find CICP code corresponding to the colorspace.
 Return a sequence of 4 ints, or None if not found.
