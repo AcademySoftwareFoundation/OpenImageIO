@@ -12,7 +12,10 @@ on:
       - 'src/doc/**'
       - 'src/include/OpenImageIO/**'
       - 'docs/**'
-      - '**/docs.yml'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/build-steps.yml'
+      - '.readthedocs.yml'
+      - 'testsuite/docs-examples-*/**'
   pull_request:
     paths:
       - 'src/doc/**'
@@ -36,7 +39,7 @@ concurrency:
 jobs:
   docs:
     name: "Docs / ${{matrix.desc}}"
-    # Scheduled runs only on the canonical fork; push runs anywhere (branch filter above ensures "fuzz" substring)
+    # Scheduled runs only on the canonical repository.
     if: github.event_name != 'schedule' || github.repository == 'AcademySoftwareFoundation/OpenImageIO'
     uses: ./.github/workflows/build-steps.yml
     with:
