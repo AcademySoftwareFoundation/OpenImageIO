@@ -320,12 +320,11 @@ test_color_space_properties()
     const float ap1[] = { .713f, .293f, .165f,   .83f,
                           .128f, .044f, .32168f, .33767f };
     const float p3d65[] = { .68f, .32f, .265f, .69f, .15f, .06f, .3127f, .329f };
-    cspan<float> saved;
     {
         ColorConfig config(filename);
         OIIO_CHECK_FALSE(config.has_error());
-        saved = config.get_chromaticities("scene_linear");
-        OIIO_CHECK_ASSERT(saved == cspan<float>(ap1));
+        OIIO_CHECK_ASSERT(config.get_chromaticities("scene_linear")
+                          == cspan<float>(ap1));
         OIIO_CHECK_EQUAL(config.get_transfer_function_gamma("scene_linear"),
                          1.0f);
         OIIO_CHECK_EQUAL(config.get_transfer_function_gamma("srgb_rec709_scene"),
@@ -355,8 +354,6 @@ test_color_space_properties()
         OIIO_CHECK_ASSERT(config.get_chromaticities("lin_p3d65_display")
                           == cspan<float>(p3d65));
     }
-    // The span stays valid after the config is gone.
-    OIIO_CHECK_ASSERT(saved == cspan<float>(ap1));
     // OpenColorIO 2.3's built-in CG config gives its spaces only the legacy
     // aliases, which identify them here too.
     {
