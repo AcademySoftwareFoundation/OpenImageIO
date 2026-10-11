@@ -1,13 +1,3 @@
-# Copyright Contributors to the OpenImageIO project.
-# SPDX-License-Identifier: Apache-2.0 AND BSD-3-Clause
-# https://github.com/AcademySoftwareFoundation/OpenImageIO
-#
-# Reference definitions of color interop identities. OpenImageIO converts to
-# and from them when the active config does not define them. Definitions
-# adapted from the Color Interop Forum reference configs and OpenColorIO are
-# BSD-3-Clause; see THIRD-PARTY.md.
-# CIF: Copyright (c) 2024, Academy Software Foundation.
-# OpenColorIO: Copyright Contributors to the OpenColorIO Project.
 ocio_profile_version: 2.3  # Keep in sync with minimum supported OCIO version
 name: oiio-interop-identities-v1.0.0
 
