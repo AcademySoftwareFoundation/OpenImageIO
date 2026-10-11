@@ -261,14 +261,15 @@ just exist in the OIIO namespace as general utilities. (See
 
 ## Color space properties
 
-`ColorConfig::get_chromaticities()` and `ColorConfig::get_transfer_gamma()`
-report a color space's primaries and transfer function. See
-{ref}`sec-pythoncolorconfig` for the Python bindings.
+`ColorConfig::get_chromaticities()` and
+`ColorConfig::get_transfer_function_gamma()` report a color space's primaries
+and transfer function. See {ref}`sec-pythoncolorconfig` for the Python
+bindings.
 
 :::{doxygenfunction} OIIO::ColorConfig::get_chromaticities
 :::
 
-:::{doxygenfunction} OIIO::ColorConfig::get_transfer_gamma
+:::{doxygenfunction} OIIO::ColorConfig::get_transfer_function_gamma
 :::
 
 > (sec-startupshutdown)=

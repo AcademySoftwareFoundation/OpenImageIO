@@ -341,7 +341,8 @@ public:
         return handle;
     }
 
-    // The properties get_chromaticities() and get_transfer_gamma() report.
+    // The properties get_chromaticities() and get_transfer_function_gamma()
+    // report.
     Properties properties(string_view colorspace) const;
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
@@ -2780,7 +2781,7 @@ ColorConfig::get_chromaticities(string_view colorspace) const
 
 
 float
-ColorConfig::get_transfer_gamma(string_view colorspace) const
+ColorConfig::get_transfer_function_gamma(string_view colorspace) const
 {
     return getImpl()->properties(colorspace).gamma;
 }

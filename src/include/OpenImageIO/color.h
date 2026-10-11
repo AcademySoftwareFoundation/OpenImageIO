@@ -445,7 +445,7 @@ public:
     /// (https://github.com/AcademySoftwareFoundation/ColorInterop), as
     /// `get_color_interop_id()` finds it: eight floats (Rx, Ry, Gx, Gy, Bx,
     /// By, Wx, Wy, CIE 1931 xy), or an empty span if they are unknown. The
-    /// span points into OIIO's own table, so it stays valid.
+    /// span is valid until this ColorConfig is reset or destroyed.
     ///
     /// @version 3.2
     OIIO_NODISCARD cspan<float> get_chromaticities(string_view colorspace) const;
@@ -458,7 +458,8 @@ public:
     /// encoding.
     ///
     /// @version 3.2
-    OIIO_NODISCARD float get_transfer_gamma(string_view colorspace) const;
+    OIIO_NODISCARD float
+    get_transfer_function_gamma(string_view colorspace) const;
 
     /// Find color interop ID corresponding to the CICP code.
     /// Returns empty string if not found.

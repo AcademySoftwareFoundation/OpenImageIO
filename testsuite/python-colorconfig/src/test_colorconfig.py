@@ -109,7 +109,7 @@ try:
     print (f"ociodisplay #5 (inverse look + forwards look):      {buf.get_pixels(oiio.HALF)}     ({buf.spec()['oiio:ColorSpace']})")
     for name in ("ACEScg", "g24_rec709_display", "srgb_tx", "Raw", "no_such_space"):
         xy = config.get_chromaticities(name)
-        print (f"'{name}': get_transfer_gamma={config.get_transfer_gamma(name):g} get_chromaticities={xy and [round(v, 5) for v in xy]}")
+        print (f"'{name}': get_transfer_function_gamma={config.get_transfer_function_gamma(name):g} get_chromaticities={xy and [round(v, 5) for v in xy]}")
     print ("")
 
     print ("Done.")
