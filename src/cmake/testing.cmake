@@ -103,6 +103,11 @@ macro (oiio_add_tests)
             set (_test_disabled TRUE)
         endif ()
     endforeach ()
+    # Default PYTHONPATH (see oiio_add_all_tests), placed first so that a
+    # PYTHONPATH in the caller's ENVIRONMENT overrides it.
+    if (NOT "${_pybind_tests_pythonpath}" STREQUAL "")
+        list (PREPEND _ats_ENVIRONMENT "${_pybind_tests_pythonpath}")
+    endif ()
     # Things we add to the environment for tests:
     # - For OCIO 2.2+, have the testsuite use the default built-in config.
     # - Some tests (e.g. cmake-consumer) configure their own child cmake
@@ -170,6 +175,40 @@ endmacro ()
 # directories with plugins are included.
 #
 macro (oiio_add_all_tests)
+
+    # PYTHONPATH entries pointing at this build's Python bindings.
+    # oiio_add_tests gives every test the pybind11 one by default, so any
+    # test that runs Python uses this build rather than whatever is in the
+    # ambient environment. Backend-specific tests override it with their
+    # own ENVIRONMENT entry. Empty where the Python tests can't run (see
+    # below for why sanitizer builds are excluded).
+    set (_pybind_tests_pythonpath "")
+    set (_nanobind_tests_pythonpath "")
+    if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE)
+        if (WIN32)
+            # On Windows CI we run the install target before tests. Use the
+            # installed package path to avoid multi-config output layout quirks.
+            set (_installed_python_site_packages
+                "${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_ROOT_DIR}")
+            oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
+                "${_installed_python_site_packages}")
+        else ()
+            oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
+                "${CMAKE_BINARY_DIR}/lib/python/site-packages")
+        endif ()
+        if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "both")
+            # In "both" mode, the nanobind module is kept isolated under its
+            # own build-tree location so it doesn't clobber the pybind11
+            # module that also lives in lib/python/site-packages.
+            oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
+                "${CMAKE_BINARY_DIR}/lib/python/nanobind")
+        else ()
+            # nanobind-only builds install the module to the same location
+            # pybind11 would have used (see setup_python_module_nanobind()
+            # in pythonutils.cmake).
+            set (_nanobind_tests_pythonpath "${_pybind_tests_pythonpath}")
+        endif ()
+    endif ()
 
     # Freestanding tests:
     oiio_add_tests (
@@ -256,29 +295,6 @@ macro (oiio_add_all_tests)
     # Python interpreter itself won't be linked with the right asan
     # libraries to run correctly.
     if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE)
-        if (WIN32)
-            # On Windows CI we run the install target before tests. Use the
-            # installed package path to avoid multi-config output layout quirks.
-            set (_installed_python_site_packages
-                "${CMAKE_INSTALL_PREFIX}/${PYTHON_SITE_ROOT_DIR}")
-            oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
-                "${_installed_python_site_packages}")
-        else ()
-            oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
-                "${CMAKE_BINARY_DIR}/lib/python/site-packages")
-        endif ()
-        if (OIIO_PYTHON_BINDINGS_BACKEND STREQUAL "both")
-            # In "both" mode, the nanobind module is kept isolated under its
-            # own build-tree location so it doesn't clobber the pybind11
-            # module that also lives in lib/python/site-packages.
-            oiio_tests_pythonpath_env_entry (_nanobind_tests_pythonpath
-                "${CMAKE_BINARY_DIR}/lib/python/nanobind")
-        else ()
-            # nanobind-only builds install the module to the same location
-            # pybind11 would have used (see setup_python_module_nanobind()
-            # in pythonutils.cmake).
-            set (_nanobind_tests_pythonpath "${_pybind_tests_pythonpath}")
-        endif ()
         # Keep in sync with the pybind11 python-* tests below as dual-backend
         # coverage expands. imageinput/imagebufalgo also need oiio-images.
         set (nanobind_python_tests
@@ -317,14 +333,12 @@ macro (oiio_add_all_tests)
                 python-typedesc
                 sourceprovenance
                 filters
-                ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
             # These Python tests also need access to oiio-images
             oiio_add_tests (
                 python-imageinput python-imageinput-colorconfig
                 python-imagebufalgo
                 IMAGEDIR oiio-images
-                ENVIRONMENT "${_pybind_tests_pythonpath}"
                 )
         else ()
             set (nanobind_python_test_suffix "")
@@ -365,7 +379,7 @@ macro (oiio_add_all_tests)
         ENABLEVAR OIIO_USE_HWY  USE_PYTHON OIIO_BUILD_PYTHON_PYBIND11
         DISABLEVAR BUILD_OIIOUTIL_ONLY SANITIZE
         SUFFIX ".hwy"
-        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1" "${_pybind_tests_pythonpath}"
+        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"
         IMAGEDIR oiio-images
         )
 
@@ -460,18 +474,15 @@ macro (oiio_add_all_tests)
         list (APPEND all_openexr_tests openexr-idmanifest)
     endif ()
     # Run all OpenEXR tests without core library
-    # (openexr-copy is Python-based, so pass along the site-packages
-    # PYTHONPATH -- it must not depend on the ambient shell environment
-    # already having it set, the way CI's ci-startup.bash does.)
     oiio_add_tests (${all_openexr_tests} openexr-luminance-chroma
-                    ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0 "${_pybind_tests_pythonpath}"
+                    ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=0
                     IMAGEDIR openexr-images
                     URL http://github.com/AcademySoftwareFoundation/openexr-images)
     # For OpenEXR >= 3.1, be sure to test with the core option on
     if (OpenEXR_VERSION VERSION_GREATER_EQUAL 3.1)
         oiio_add_tests (${all_openexr_tests}
                         SUFFIX ".core"
-                        ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=1 "${_pybind_tests_pythonpath}"
+                        ENVIRONMENT OPENIMAGEIO_OPTIONS=openexr:core=1
                         IMAGEDIR openexr-images
                         URL http://github.com/AcademySoftwareFoundation/openexr-images)
     endif ()
