@@ -1,6 +1,6 @@
 Reading ../fits-images/pg93/tst0001.fits
 ../fits-images/pg93/tst0001.fits :  123 x  321, 1 channel, uint8 fits
-    SHA-1: FC4F635D410B219477B709E4D6F993E9AA42C7B3
+    SHA-1: 9D6899E3436462BD5D68ED9D3DC46988C9EC9230
     channel list: Y
     Blocked: "T"
     Cdelt1: -2.3
@@ -22,7 +22,7 @@ Comparing "../fits-images/pg93/tst0001.fits" and "tst0001.fits"
 PASS
 Reading ../fits-images/pg93/tst0003.fits
 ../fits-images/pg93/tst0003.fits :  137 x  271, 1 channel, int fits
-    SHA-1: 9D2DEE3C1411AB38B5DBAD0532F3679B797B2374
+    SHA-1: 78021F85A40B32545C09A0DB336F5E63B8DA44B0
     channel list: Y
     Blocked: "T"
     Cdelt1: -0.12321
@@ -46,7 +46,7 @@ Comparing "../fits-images/pg93/tst0003.fits" and "tst0003.fits"
 PASS
 Reading ../fits-images/pg93/tst0005.fits
 ../fits-images/pg93/tst0005.fits :  102 x  109, 1 channel, float fits
-    SHA-1: 763996BCEADB93234A73AD0D714C3E9D874014CE
+    SHA-1: 7BC233329B4AC47B868789D07161625D441D5625
     channel list: Y
     Blocked: "T"
     Cdelt1: 3.1
@@ -66,7 +66,7 @@ Comparing "../fits-images/pg93/tst0005.fits" and "tst0005.fits"
 PASS
 Reading ../fits-images/pg93/tst0006.fits
 ../fits-images/pg93/tst0006.fits :   77 x  173, 1 channel, double fits
-    SHA-1: B043726D3F76840AAC84713C1A6C323D85CADC74
+    SHA-1: 5F44FE18609290408E2D9C79814A8EC8C2B0E6AA
     channel list: Y
     Blocked: "T"
     Cdelt1: -0.25
@@ -86,7 +86,7 @@ Comparing "../fits-images/pg93/tst0006.fits" and "tst0006.fits"
 PASS
 Reading ../fits-images/pg93/tst0007.fits
 ../fits-images/pg93/tst0007.fits :   38 x    1, 1 channel, float fits
-    SHA-1: 32FB2E046F09E6DC814A6040B03706174EAE7229
+    SHA-1: A7D6FC1EE92579B87A15E12829BCEDBCE9B15497
     channel list: Y
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 This is a test file containing special 32-bit IEEE FP values
@@ -143,7 +143,7 @@ Comparing "../fits-images/pg93/tst0007.fits" and "tst0007.fits"
 PASS
 Reading ../fits-images/pg93/tst0008.fits
 ../fits-images/pg93/tst0008.fits :   38 x    1, 1 channel, double fits
-    SHA-1: 5C21742E65AF385B106DE98BE7004190C6F2E2BC
+    SHA-1: E25F3AB1177CFE3CAADAE14A111FED96B38E180B
     channel list: Y
     Comment: "This test file was created by P.Grosbol, ESO (pgrosbol@eso.org)
 This is a test file containing special 64-bit IEEE FP values
@@ -199,7 +199,7 @@ Comparing "../fits-images/pg93/tst0008.fits" and "tst0008.fits"
 PASS
 Reading ../fits-images/pg93/tst0013.fits
 ../fits-images/pg93/tst0013.fits :  128 x  128, 1 channel, float fits
-    SHA-1: 2DAE86283E1BCB155774A83F88C75B045FB9B28C
+    SHA-1: CFA194DFE0CDFBEE3909B38D30F7C4B9D2707A25
     channel list: Y
     Airmass: 1.019
     Blocked: "T"
@@ -279,7 +279,7 @@ Comparing "../fits-images/ftt4b/file002.fits" and "file002.fits"
 PASS
 Reading ../fits-images/ftt4b/file003.fits
 ../fits-images/ftt4b/file003.fits :  512 x  512, 1 channel, int16 fits
-    SHA-1: 5CC4340F5D8AB2B776D2E12BFE946CA5CAFA38C6
+    SHA-1: 7392F2629C68D1FFAC0D4018728E891279F04E72
     channel list: Y
     Blank: -32768
     Bscale: 2.59397e-05
@@ -493,7 +493,7 @@ Comparing "../fits-images/ftt4b/file003.fits" and "file003.fits"
 PASS
 Reading ../fits-images/ftt4b/file006.fits
 ../fits-images/ftt4b/file006.fits :  512 x  512, 3 channel, uint8 fits
-    SHA-1: 9FF70B84DD1529A9404B0E80BDE7B334F691F90A
+    SHA-1: F53C85008F3A1621B8C07432A45D8D1BC929BCA1
     channel list: R, G, B
     Blank: 0
     Bscale: 1
@@ -607,7 +607,7 @@ Comparing "../fits-images/ftt4b/file009.fits" and "file009.fits"
 PASS
 Reading ../fits-images/ftt4b/file012.fits
 ../fits-images/ftt4b/file012.fits :  513 x  513, 1 channel, int16 fits
-    SHA-1: 844CE9474D5C9E91154E41D7ED417173DE57286D
+    SHA-1: F9208868454227E5B7D85E316C1C69D5DBBFE6E4
     channel list: Y
     Bscale: 2.85522e-06
     Bunit: "JY/BEAM"
@@ -745,7 +745,7 @@ Comparing "../fits-images/ftt4b/file012.fits" and "file012.fits"
 PASS
 Reading src/rgb.fits
 src/rgb.fits         :   32 x   32, 3 channel, float fits
-    SHA-1: F7E36E977DEA527FE023283D9A6E6941BA439AE1
+    SHA-1: B135F88A9D826A4339B68EA0BE0DA66EB4543A4C
     channel list: R, G, B
     A_0_0: 0
     A_0_1: 0
@@ -844,7 +844,7 @@ Rotation (0.0deg, cropped=TRUE, clamped=TRUE)"
     oiio:subimages: 1
 Reading src/rgb.fits
 src/rgb.fits         :   32 x   32, 3 channel, float fits
-    SHA-1: F7E36E977DEA527FE023283D9A6E6941BA439AE1
+    SHA-1: B135F88A9D826A4339B68EA0BE0DA66EB4543A4C
     channel list: R, G, B
     A_0_0: 0
     A_0_1: 0
@@ -943,6 +943,12 @@ Rotation (0.0deg, cropped=TRUE, clamped=TRUE)"
     oiio:subimages: 1
 Comparing "src/rgb.fits" and "rgb.fits"
 PASS
+src/rows.fits        :    1 x    4, 1 channel, uint8 fits
+    SHA-1: 45E35FAF802D112E178651B60BD01237EB4D3B9C
+    Pixel (0, 0): 128 (0.5019608)
+    Pixel (0, 1): 96 (0.37647063)
+    Pixel (0, 2): 64 (0.2509804)
+    Pixel (0, 3): 32 (0.1254902)
 oiiotool ERROR: read : "src/broken_no_END.fits": Hit end of file unexpectedly (offset=5760)
 Full command line was:
 > oiiotool --info --hash src/broken_no_END.fits
