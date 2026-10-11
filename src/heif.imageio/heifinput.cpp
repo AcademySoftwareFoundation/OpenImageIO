@@ -266,7 +266,19 @@ HeifInput::seek_subimage(int subimage, int miplevel)
     m_himage   = heif::Image();
     m_spec     = ImageSpec();
 
-    if (!read_subimage_spec(subimage)) {
+    // The libheif C++ wrapper throws on errors (e.g. get_image_handle() on a
+    // damaged file), so don't let that escape.
+    bool ok = false;
+    try {
+        ok = read_subimage_spec(subimage);
+    } catch (const heif::Error& err) {
+        std::string e = err.get_message();
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+    } catch (const std::exception& err) {
+        std::string e = err.what();
+        errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
+    }
+    if (!ok) {
         // Nor keep the spec of an image we refused or could not decode:
         // spec() would report it, and read_scanline() would size its
         // buffer from it.
