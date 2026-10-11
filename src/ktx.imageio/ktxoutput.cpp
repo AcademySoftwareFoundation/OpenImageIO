@@ -163,9 +163,14 @@ private:
     bool write_ktx2();
 
     bool construct_basis_params(ktxBasisParams& params, std::string_view codec,
-                                uint32_t threads = 1) const;
+                                uint32_t threads = 1) const noexcept;
 
-    // bool construct_astc_params(ktxAstcParams& param) const;
+    bool construct_astc_params(ktxAstcParams& params,
+                               uint32_t threads = 1) const noexcept;
+
+    bool try_parse_astc_block_dimensions(
+        string_view block_dims_str,
+        ktx_pack_astc_block_dimension_e& block_dims) const noexcept;
 
     // bool construct_bcn_params(ktxBCnParams& params) const;
 };
@@ -271,8 +276,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         }
 
         m_use_basis_universal = false;
-        if (auto Q = m_spec.find_attribute("ktx:compression",
-                                           TypeDesc::STRING)) {
+        if (auto Q = m_spec.find_attribute("ktx:codec", TypeDesc::STRING)) {
             const auto& compression = Q->get_string();
             // Check if this is a GPU block-compressed format (e.g., ASTC, BCn)
             // otherwise check if it is a Basis Universal codec.
@@ -319,22 +323,19 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // supported native GPU format.
         //
         const auto& supercompression_str
-            = m_spec.get_string_attribute("ktx:super_compression_scheme",
-                                          "none");
+            = m_spec.get_string_attribute("compression", "none");
         // BasisLZ is automatically applied when input is ETC1S. It makes no
-        // sense to apply it manually. Just ignore it and set to NONE.
-        if (Strutil::iequals(supercompression_str, "none")
-            || Strutil::iequals(supercompression_str, "basis_lz")) {
+        // sense to apply it manually.
+        if (Strutil::iequals(supercompression_str, "none")) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_NONE;
         } else if (Strutil::iequals(supercompression_str, "zstd")) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
         } else if (Strutil::iequals(supercompression_str, "zip" /* zlib */)) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_ZLIB;
         } else {
-            close();
-            errorfmt("Unsupported supercompression scheme: {}",
-                     supercompression_str);
-            return false;
+            // If anything else is specified (even BasisLZ) just default to ZSTD
+            // because it is lossless and produces the highest compression.
+            m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
         }
 
         if (auto Q = m_spec.find_attribute("ktx:generate_mipmaps",
@@ -751,7 +752,7 @@ KtxOutput::init() noexcept
 bool
 KtxOutput::construct_basis_params(ktxBasisParams& params,
                                   std::string_view codec,
-                                  uint32_t threads) const
+                                  uint32_t threads) const noexcept
 {
     // Set defaults
     params             = { 0 };
@@ -828,6 +829,90 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
     return true;
 }
 
+
+
+bool
+KtxOutput::construct_astc_params(ktxAstcParams& params,
+                                 uint32_t threads) const noexcept
+{
+    // set sensible defaults
+    params = {
+        .structSize  = sizeof(ktxAstcParams),
+        .verbose     = false,
+        .threadCount = threads,
+        .blockDimension
+        = ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4,
+        // KTX Tools does not expose this parameter so leave it as default
+        .mode         = KTX_PACK_ASTC_ENCODER_MODE_DEFAULT,
+        .qualityLevel = KTX_PACK_ASTC_QUALITY_LEVEL_THOROUGH,
+        .normalMap    = false,
+        .perceptual   = false,
+        .inputSwizzle = { '\0' }
+    };
+
+    // clang-format off
+    if (auto Q = m_spec.find_attribute("ktx:astc_block_dimensions", TypeDesc::STRING)) {
+        ktx_pack_astc_block_dimension_e block_dims;
+        // we don't care if this fails; just default to 4x4
+        if (try_parse_astc_block_dimensions(Q->get_string(), block_dims))
+            params.blockDimension = block_dims;
+    }
+    if (auto Q = m_spec.find_attribute("ktx:astc_quality_level", TypeDesc::UINT32)) params.qualityLevel = *static_cast<const uint32_t*>(Q->data());
+    if (auto Q = m_spec.find_attribute("ktx:normalmap", TypeDesc::INT)) params.normalMap = static_cast<bool>(Q->get_int());
+    if (auto Q = m_spec.find_attribute("ktx:perceptual", TypeDesc::INT)) params.perceptual = static_cast<bool>(Q->data());
+    if (auto Q = m_spec.find_attribute("ktx:input_swizzle", TypeDesc(TypeDesc::CHAR, 4))) memcpy(params.inputSwizzle, Q->data(), 4);
+    // clang-format on
+
+    return true;
+}
+
+
+
+bool
+KtxOutput::try_parse_astc_block_dimensions(
+    string_view block_dims_str,
+    ktx_pack_astc_block_dimension_e& block_dims) const noexcept
+{
+    // clang-format off
+  static std::unordered_map<std::string, ktx_pack_astc_block_dimension_e> block_dims_str_to_enum{
+    { "4x4",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4 },
+    { "5x4",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x4 },
+    { "5x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5 },
+    { "6x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x5 },
+    { "6x6",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6 },
+    { "8x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x5 },
+    { "8x6",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x6 },
+    { "10x5",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x5 },
+    { "10x6",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x6 },
+    { "8x8",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x8 },
+    { "10x8",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x8 },
+    { "10x10", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x10 },
+    { "12x10", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_12x10 },
+    { "12x12", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_12x12 },
+    { "3x3x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_3x3x3 },
+    { "4x3x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x3x3 },
+    { "4x4x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4x3 },
+    { "4x4x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4x4 },
+    { "5x4x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x4x4 },
+    { "5x5x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5x4 },
+    { "5x5x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5x5 },
+    { "6x5x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x5x5 },
+    { "6x6x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6x5 },
+    { "6x6x6", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6x6 },
+  };
+    // clang-format on
+
+    auto block_dims_str_lower = std::string(block_dims_str);
+    Strutil::to_lower(block_dims_str_lower);
+
+    if (auto it = block_dims_str_to_enum.find(block_dims_str_lower);
+        it != block_dims_str_to_enum.end()) {
+        block_dims = it->second;
+        return true;
+    }
+
+    return false;
+}
 
 
 bool
@@ -932,6 +1017,11 @@ KtxOutput::write_ktx2()
                         return false;
                     }
 
+                    // TODO: this cast to (ktxTexture*) is actually UB (lifetime
+                    // of ktxTexture hasn't properly started, etc.).
+                    // libktx doesn't expose: ktxTexture2_SetImageFromStdioStream
+                    // so for the moment use this until this issue here gets
+                    // solved: https://github.com/KhronosGroup/KTX-Software/issues/1273
                     auto status = ktxTexture_SetImageFromMemory(
                         (ktxTexture*)tex.get(), level_idx, 0,
                         face_idx + slice_idx, data_ptr, data_size);
@@ -961,7 +1051,11 @@ KtxOutput::write_ktx2()
         switch (m_cmp) {
             // ASTC
         case BlockCompression::ASTC: {
-            // TODO: expose ASTC compression quality parameter as spec attribute
+            if (!construct_astc_params(m_astc_params)) {
+                close();
+                // construct_astc_params calls errorfmt
+                return false;
+            }
             if (auto status = ktxTexture2_CompressAstcEx(tex.get(),
                                                          &m_astc_params);
                 status != KTX_SUCCESS) {
@@ -1005,31 +1099,38 @@ KtxOutput::write_ktx2()
         if (auto status = ktxTexture2_CompressBasisEx(tex.get(),
                                                       &m_basis_params);
             status != KTX_SUCCESS) {
-            errorfmt("ktxTexture2_CompressBasisEx returned error code: ",
+            errorfmt("ktxTexture2_CompressBasisEx returned error code: {}",
                      static_cast<uint32_t>(status));
             return false;
         }
     }
 
     //
-    // Finally, apply the supercompression scheme (if any). Supercompression
-    // can be applied (especially if RDO is used with BCn/ASTC) to significantly
-    // reduce disk file size at the expense of additional CPU data load time
-    // (i.e., data now has to be inflated before being uploaded to the GPU).
+    // Finally, apply the supercompression scheme (if any and only if the
+    // texture does NOT already have a supercompression applied).
     //
-    if (m_superCmp == KTX_SS_ZLIB) {
-        if (auto status = ktxTexture2_DeflateZLIB(tex.get(), m_zlib_level);
-            status != KTX_SUCCESS) {
-            errorfmt("ktxTexture2_DeflateZLIB returned KTX exit error code: {}",
-                     static_cast<uint32_t>(status));
-            return false;
-        }
-    } else if (m_superCmp == KTX_SS_ZSTD) {
-        if (auto status = ktxTexture2_DeflateZstd(tex.get(), m_zstd_level);
-            status != KTX_SUCCESS) {
-            errorfmt("ktxTexture2_DeflateZstd returned KTX exit error code: {}",
-                     static_cast<uint32_t>(status));
-            return false;
+    // Supercompression can be applied (especially if RDO is used with BCn/ASTC)
+    // to significantly reduce disk file size at the expense of additional CPU
+    // data load time (i.e., data now has to be inflated before being uploaded
+    // to the GPU).
+    //
+    if (tex->supercompressionScheme == KTX_SS_NONE) {
+        if (m_superCmp == KTX_SS_ZLIB) {
+            if (auto status = ktxTexture2_DeflateZLIB(tex.get(), m_zlib_level);
+                status != KTX_SUCCESS) {
+                errorfmt(
+                    "ktxTexture2_DeflateZLIB returned KTX exit error code: {}",
+                    static_cast<uint32_t>(status));
+                return false;
+            }
+        } else if (m_superCmp == KTX_SS_ZSTD) {
+            if (auto status = ktxTexture2_DeflateZstd(tex.get(), m_zstd_level);
+                status != KTX_SUCCESS) {
+                errorfmt(
+                    "ktxTexture2_DeflateZstd returned KTX exit error code: {}",
+                    static_cast<uint32_t>(status));
+                return false;
+            }
         }
     }
 

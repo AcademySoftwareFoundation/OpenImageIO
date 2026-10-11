@@ -1557,15 +1557,15 @@ After having opened a KTX2 file, the following attributes may be set:
        This attribute by itself does not convey whether the read texture is an
        array texture or whether it is 1D (1D, 2D and 2D array textures are all
        ``"Plain Texture"``'s).
-   * - ``ktx:compression``
+   * - ``ktx:codec``
      - string
-     - GPU-block compression type or Basis Universal codec of the input KTX2
+     - Basis Universal codec or GPU-block compression type of the input KTX2
        texture, if any. Can be one of the following values:
             ``"ASTC"`` ``"UASTC"`` ``"UASTC-LDR"`` ``"UASTC-LDR-4x4"``
             ``"ETC1S"`` ``"UASTC-HDR"`` ``"UASTC-HDR-4x4"`` ``"UASTC-HDR-6x6"``
        Both ``"UASTC"`` and ``"UASTC-LDR"`` are aliases for ``"UASTC-LDR-4x4"``.
        Similarly, ``"UASTC-HDR"`` is an alias for ``"UASTC-HDR-4x4"``.
-   * - ``ktx:super_compression_scheme``
+   * - ``compression``
      - string
      - Only set if the input KTX2 texture was further compressed using a
        super-compression scheme. Can be one of the following values:
@@ -1623,9 +1623,9 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
    * - Output Configuration Attribute
      - Type
      - Meaning 
-   * - ``ktx:compression``
+   * - ``ktx:codec``
      - string
-     - Optional GPU-block compression type or Basis Universal codec to apply.
+     - Optional Basis Universal codec or GPU-block compression type to apply.
        Can be one of the following values:
             ``"NONE"`` ``"ASTC"`` ``"UASTC"`` ``"UASTC-LDR"``
             ``"UASTC-LDR-4x4"`` ``"ETC1S"`` ``"UASTC-HDR"`` ``"UASTC-HDR-4x4"``
@@ -1637,7 +1637,7 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
      - int (bool)
      - Should the target VkFormat be normalized if possible (UNORM or SNORM
        based on the ImageSpec type). Defaults to false.
-   * - ``ktx:super_compression_scheme``
+   * - ``compression``
      - string
      - Super-compression scheme to apply (i.e., additional layer of lossless
        compression). It is recommended to set this if RDO is applied. Can be one
@@ -1836,6 +1836,27 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
      - Disable selector rate distortion optimizations. Slightly faster, less
        noisy output, but lower quality per output bit. Only used if
        ``compression`` is set to ``ETC1S``. Ignored otherwise.
+       Defaults to false.
+   * - ``ktx:astc_block_dimensions``
+     - string
+     - ASTC block dimensions. Can be set to any of the following values:
+            ``"4x4"`` ``"5x4"`` ``"5x5"`` ``"6x5"`` ``"6x6"`` ``"8x5"``
+            ``"8x6"`` ``"10x5"`` ``"10x6"`` ``"8x8"`` ``"10x8"`` ``"10x10"``
+            ``"12x10"`` ``"12x12"`` ``"3x3x3"`` ``"4x3x3"`` ``"4x4x3"``
+            ``"4x4x4"`` ``"5x4x4"`` ``"5x5x4"`` ``"5x5x5"`` ``"6x5x5"``
+            ``"6x6x5"`` ``"6x6x6"``
+       Defaults to ``"4x4"``.
+   * - ``ktx:astc_quality_level``
+     - uint
+     - ASTC quality level. Range is [0, 100]. 0 is fastest/lowest compression.
+       100 is slowest/highest compression.
+       Defaults to 60 (i.e., medium quality).
+   * - ``ktx:perceptual``
+     - int (bool)
+     - Whether the codec should optimize for perceptual error, instead of direct
+       RMS error. This aims to improves perceived image quality, but typically
+       lowers the measured PSNR score. Perceptual methods are currently only
+       available for normal maps and RGB color data.
        Defaults to false.
 ```
 

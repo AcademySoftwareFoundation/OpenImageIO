@@ -181,7 +181,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // GPU-block compression).
     //
     // If KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT is provided for any
-    // of the ktxTexture_CreateFrom* calls, then libktx will allocate an
+    // of the ktxTexture2_CreateFrom* calls, then libktx will allocate an
     // internal buffer large enough to hold all data inflated IF AND ONLY IF
     // supercompressionScheme == KTX_SS_ZSTD or KTX_SS_ZLIB.
     //
@@ -206,7 +206,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         m_tex.reset(p_tex);
         if (KTX_SUCCESS != res) {
             errorfmt("Failed to create ktx texture using "
-                     "ktxTexture_CreateFromStdioStream");
+                     "ktxTexture2_CreateFromStdioStream");
             return false;
         }
     } else /* (proxytype == "memreader") */ {
@@ -219,7 +219,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         m_tex.reset(p_tex);
         if (KTX_SUCCESS != res) {
             errorfmt(
-                "Failed to create ktx texture using ktxTexture_CreateFromMemory");
+                "Failed to create ktx texture using ktxTexture2_CreateFromMemory");
             return false;
         }
     }
@@ -279,16 +279,12 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // ktxTexture2_TranscodeBasis).
     //
     switch (m_tex->supercompressionScheme) {
-    case KTX_SS_ZSTD:
-        m_spec.attribute("ktx:super_compression_scheme", "zstd");
-        break;
-    case KTX_SS_ZLIB:
-        m_spec.attribute("ktx:super_compression_scheme", "zip" /* zlib */);
-        break;
+    case KTX_SS_ZSTD: m_spec.attribute("compression", "zstd"); break;
+    case KTX_SS_ZLIB: m_spec.attribute("compression", "zip" /* zlib */); break;
     case KTX_SS_BASIS_LZ:
         // This scheme is applied automatically through libktx'
         // `ktxTexture2_CompressBasisEx` function.
-        m_spec.attribute("ktx:super_compression_scheme", "basis_lz");
+        m_spec.attribute("compression", "basis_lz");
     default: break;
     }
     // is this a 1D texture? If so, save that it is because we can't figure it
@@ -403,7 +399,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                     " Metadata \"KTXorientation\" {} is invalid.",
                     val_str);
                 if (val_str.length() != m_tex->numDimensions) {
-                    errorfmt(error_msg.c_str());
+                    errorfmt("{}", error_msg);
                     return false;
                 }
                 int orientation = 1;
@@ -414,7 +410,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                     } else if (val_str[0] == KTX_ORIENT_X_RIGHT) {
                         orientation = 1;
                     } else {
-                        errorfmt(error_msg.c_str());
+                        errorfmt("{}", error_msg);
                         return false;
                     }
                     break;
@@ -433,7 +429,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                                && val_str[1] == KTX_ORIENT_Y_DOWN) {
                         orientation = 1;
                     } else {
-                        errorfmt(error_msg.c_str());
+                        errorfmt("{}", error_msg);
                         return false;
                     }
                     break;
@@ -492,10 +488,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                      static_cast<uint32_t>(status));
             return false;
         }
-        // Save Basis Universal codec in the "ktx:compression" attribute (this
+        // Save Basis Universal codec in the "ktx:codec" attribute (this
         // attribute is also used to save GPU-block-based compressions)
-        m_spec.attribute("ktx:compression",
-                         basis_universal_codec_name(color_model));
+        m_spec.attribute("ktx:codec", basis_universal_codec_name(color_model));
     }
 
     //
@@ -529,7 +524,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             return false;
         }
         m_cmp = format_info.compression;
-        m_spec.attribute("ktx:compression", block_compression_name(m_cmp));
+        m_spec.attribute("ktx:codec", block_compression_name(m_cmp));
         switch (m_cmp) {
 #if 0  // TODO: wait for my PR in libktx to be merged
             /* BCn GPU formats */
@@ -883,7 +878,7 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     if (auto status = ktxTexture2_GetImageOffset(m_tex.get(), miplevel,
                                                  subimage, 0, &offset);
         status != KTX_SUCCESS) {
-        errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
+        errorfmt("ktxTexture2_GetImageOffset failed with exit code: {}",
                  static_cast<uint32_t>(status));
         return false;
     }
@@ -988,6 +983,8 @@ KtxInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
     }
 
     // Check that our pitch (from spec) is equal to the one reported by libktx
+    // TODO: this cast is probably UB. Wait for my suggestion to libktx to add
+    // ktxTexture2_GetRowPitch that simply takes a ktxTexture2*
     if (auto libktx_pitch_in_bytes
         = ktxTexture_GetRowPitch((ktxTexture*)m_tex.get(), miplevel);
         pitch_in_bytes != libktx_pitch_in_bytes) {
@@ -1007,7 +1004,7 @@ KtxInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                                                      subimage, face_idx,
                                                      &offset);
             status != KTX_SUCCESS) {
-            errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
+            errorfmt("ktxTexture2_GetImageOffset failed with exit code: {}",
                      static_cast<uint32_t>(status));
             return false;
         }
@@ -1090,7 +1087,7 @@ KtxInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
                                                      subimage, slice_idx,
                                                      &offset);
             status != KTX_SUCCESS) {
-            errorfmt("ktxTexture_GetImageOffset failed with exit code: {}",
+            errorfmt("ktxTexture2_GetImageOffset failed with exit code: {}",
                      static_cast<uint32_t>(status));
             return false;
         }

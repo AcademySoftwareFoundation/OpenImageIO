@@ -99,15 +99,20 @@ command += diff_command ("checker_original.png", "checker_default.ktx2")
 command += info_command ("checker_default.ktx2")
 
 # UASTC write test: check generation of an UASTC-based KTX2 file
-command += oiiotool ("checker_original.png --attrib ktx:compression uastc " +
-                     "--attrib ktx:super_compression_scheme zstd --attrib ktx:uastc_rdo 1 -o checker_uastc.ktx2")
+command += oiiotool ("checker_original.png --attrib ktx:codec uastc " +
+                     "--compression zstd --attrib ktx:uastc_rdo 1 -o checker_uastc.ktx2")
 command += diff_command ("checker_original.png", "checker_uastc.ktx2")
 command += info_command ("checker_uastc.ktx2")
 
 # ETC1S write test: check generation of an ETC1S-based KTX2 file
-command += oiiotool ("checker_original.png --attrib ktx:compression etc1s -o checker_etc1s.ktx2")
+command += oiiotool ("checker_original.png --attrib ktx:codec etc1s --compression zstd -o checker_etc1s.ktx2")
 command += diff_command ("checker_original.png", "checker_etc1s.ktx2")
 command += info_command ("checker_etc1s.ktx2")
+
+# ASTC 6x6 block write test: check generation of an ASTC-block-compressed KTX2 file
+command += oiiotool ("checker_original.png --attrib ktx:codec astc --attrib ktx:astc_block_dimensions 6x6 --compression zstd -o checker_astc_6x6.ktx2")
+command += diff_command ("checker_original.png", "checker_astc_6x6.ktx2")
+command += info_command ("checker_astc_6x6.ktx2")
 
 # We do not test read-then-write of compressed-ktx2 files because any read-write
 # cycle worsens quality and is absolutely not the intended purpose of ktx usage
