@@ -54,5 +54,15 @@ command += oiiotool("reorient0-rotated.tif oriented.tif --diff")
 redirect_pop()
 ###############
 
+# Damaged file: test-10bit.avif with the ipma entry for item 1 renumbered,
+# so the primary item has no properties. libheif's C++ wrapper throws from
+# get_image_handle(), which used to escape open() and abort.
+# https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/5550
+redirect_push("out-damaged.txt")
+redirect += " 2>&1 "    # the error goes to stderr
+command += info_command(os.path.join(imagedir, "damaged-noprops.avif"),
+                        failureok=True)
+redirect_pop()
+
 # avif conversion is expected to fail if libheif is built without AV1 support
 failureok = 1
