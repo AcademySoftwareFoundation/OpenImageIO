@@ -208,9 +208,9 @@ declare_colorconfig(py_module& m)
             },
             "colorspace"_a)
         .def(
-            "get_transfer_gamma",
+            "get_transfer_function_gamma",
             [](const ColorConfig& self, const std::string& colorspace) {
-                return self.get_transfer_gamma(colorspace);
+                return self.get_transfer_function_gamma(colorspace);
             },
             "colorspace"_a)
         .def("configname", &ColorConfig::configname)
