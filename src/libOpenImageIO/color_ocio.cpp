@@ -1691,10 +1691,11 @@ ColorConfig::Impl::equivalent(string_view color_space1, string_view resolved1,
         return true;
 
     // If "resolved" names (after converting aliases and roles to color
-    // spaces) match, they are equivalent.
+    // spaces) match, they are equivalent. OCIO matches names in any case and
+    // resolves them to its own spelling, so this comparison can be exact.
     if (resolved1.empty() || resolved2.empty())
         return false;
-    if (Strutil::iequals(resolved1, resolved2))
+    if (resolved1 == resolved2)
         return true;
 
     // If the color spaces' flags (when masking only the bits that refer to
