@@ -231,7 +231,7 @@ namespace dpx
 	 * \enum Packing
 	 * \brief Component data packing method
 	 */
-	enum Packing
+	enum Packing : U16
 	{
 		kPacked = 0,									//!< Packed into 32-bit words
 		kFilledMethodA = 1,								//!< Filled to 32-bit words, method A

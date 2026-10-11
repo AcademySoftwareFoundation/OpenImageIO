@@ -162,7 +162,8 @@ namespace dpx
 			// determine buffer offset
 			int bufoff = line * datums;
 	
-			fd->Read(dpxHeader, element, offset, readBuf, readSize);
+			if (!fd->Read(dpxHeader, element, offset, readBuf, readSize))
+				return false;
 	
 			// unpack the words in the buffer
 #if RLE_WORKING			
@@ -295,7 +296,8 @@ namespace dpx
 			// calculate buffer offset
 			int bufoff = line * dpxHeader.Width() * numberOfComponents;
 	
-			fd->Read(dpxHeader, element, offset, readBuf, readSize);
+			if (!fd->Read(dpxHeader, element, offset, readBuf, readSize))
+				return false;
 
 			// unpack the words in the buffer
 			int count = (block.x2 - block.x1 + 1) * numberOfComponents;
@@ -351,11 +353,13 @@ namespace dpx
 						
 			if (BUFTYPE == SRCTYPE)
 			{
-				fd->ReadDirect(dpxHeader, element, offset, reinterpret_cast<unsigned char *>(data + int64_t(width)*line), int64_t(width)*bytes);
+				if (!fd->ReadDirect(dpxHeader, element, offset, reinterpret_cast<unsigned char *>(data + int64_t(width)*line), int64_t(width)*bytes))
+					return false;
 			}
 			else
 			{
-				fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*bytes);
+				if (!fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*bytes))
+					return false;
 
 				// convert data
 				for (int i = 0; i < width; i++)
@@ -393,7 +397,8 @@ namespace dpx
 			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * 2 +
 						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line) * eolnPad;
 	
-			fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*2);
+			if (!fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*2))
+				return false;
 
 			// convert data
 			for (int i = 0; i < width; i++)

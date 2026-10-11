@@ -245,3 +245,9 @@ Full command line was:
 oiiotool ERROR: read : "src/crash-origin-overflow.dpx": dpx pixel data window origin+size is out of range: origin (0, 2147483647, 0), size 4x4x1. Possible corrupt input?
 Full command line was:
 > oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/crash-origin-overflow.dpx
+oiiotool ERROR: testread : "src/truncated-pixels.dpx": Failed to read scanlines 0-3
+Full command line was:
+> oiiotool --testread src/truncated-pixels.dpx
+oiiotool ERROR: testread : "src/bad-packing.dpx": Failed to read scanlines 0-3
+Full command line was:
+> oiiotool --testread src/bad-packing.dpx
