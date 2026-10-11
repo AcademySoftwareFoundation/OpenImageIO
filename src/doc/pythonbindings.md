@@ -4056,7 +4056,7 @@ if xy:
 This function was added in OpenImageIO 3.2.
 :::
 
-:::{py:method} get_transfer_gamma (colorspace)
+:::{py:method} get_transfer_function_gamma (colorspace)
 Get the exponent of a color space's transfer function if it decodes as a pure
 power, 1.0 if it is linear, or 0 if it is neither or is unknown. Piecewise
 curves such as sRGB's report 0.
@@ -4064,7 +4064,7 @@ curves such as sRGB's report 0.
 Example:
 
 ```python
-gamma = colorconfig.get_transfer_gamma("g22_rec709_scene")  # 2.2
+gamma = colorconfig.get_transfer_function_gamma("g22_rec709_scene")  # 2.2
 ```
 
 This function was added in OpenImageIO 3.2.
