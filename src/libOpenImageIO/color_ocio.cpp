@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -215,6 +216,13 @@ public:
     OCIO::ConfigRcPtr config_;
     OCIO::ConfigRcPtr builtinconfig_;
 
+    // A color space's chromaticities (in the ColorInteropID table, or null)
+    // and transfer function gamma.
+    struct Properties {
+        const float* xy = nullptr;
+        float gamma     = 0.0f;
+    };
+
 private:
     std::vector<CSInfo> colorspaces;
     std::string scene_linear_alias;  // Alias for a scene-linear color space
@@ -231,9 +239,15 @@ private:
     std::string m_configname;
     ColorConfig* m_self       = nullptr;
     bool m_config_is_built_in = false;
+    std::string m_init_filename;
+    std::once_flag m_init_flag;
+    bool m_init_ok = false;
 
 public:
-    Impl(ColorConfig* self) : m_self(self) {}
+    Impl(ColorConfig* self, string_view filename)
+        : m_self(self), m_init_filename(filename)
+    {
+    }
 
     ~Impl()
     {
@@ -247,6 +261,17 @@ public:
     }
 
     bool init(string_view filename);
+
+    // Load the config on first use: it is expensive, and many operations,
+    // such as reading images, never need it.
+    bool init_once()
+    {
+        std::call_once(m_init_flag, [this] {
+            OIIO::pvt::LoggedTimer logtime("ColorConfig::init");
+            m_init_ok = init(m_init_filename);
+        });
+        return m_init_ok;
+    }
 
     void add(const std::string& name, int index, int flags = 0)
     {
@@ -304,6 +329,9 @@ public:
         }
         return handle;
     }
+
+    // The properties get_chromaticities() and get_transfer_gamma() report.
+    Properties properties(string_view colorspace) const;
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
@@ -863,8 +891,8 @@ ColorConfig::Impl::IdentifyBuiltinColorSpace(const char* name) const
 
 
 ColorConfig::ColorConfig(string_view filename)
+    : m_impl(new ColorConfig::Impl(this, filename))
 {
-    (void)reset(filename);
 }
 
 
@@ -1027,7 +1055,6 @@ ColorConfig::Impl::init(string_view filename)
 bool
 ColorConfig::reset(string_view filename)
 {
-    OIIO::pvt::LoggedTimer logtime("ColorConfig::reset");
     if (m_impl
         && (filename == getImpl()->configname()
             || (filename == ""
@@ -1037,8 +1064,17 @@ ColorConfig::reset(string_view filename)
         return true;
     }
 
-    m_impl.reset(new ColorConfig::Impl(this));
-    return m_impl->init(filename);
+    m_impl.reset(new ColorConfig::Impl(this, filename));
+    return m_impl->init_once();
+}
+
+
+
+ColorConfig::Impl*
+ColorConfig::getImpl() const
+{
+    m_impl->init_once();
+    return m_impl.get();
 }
 
 
@@ -2451,23 +2487,53 @@ enum class CICPRange : int {
     Full   = 1,
 };
 
+// Chromaticities (Rx, Ry, Gx, Gy, Bx, By, Wx, Wy) of the published gamuts.
+constexpr float xy_rec709[]   = { .64f, .33f, .30f,   .60f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_p3d65[]    = { .68f, .32f, .265f,  .69f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_rec2020[]  = { .708f, .292f, .17f,   .797f,
+                                  .131f, .046f, .3127f, .329f };
+constexpr float xy_adobergb[] = { .64f, .33f, .21f,   .71f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_ap0[]      = { .7347f, .2653f, 0.0f,    1.0f,
+                                  .0001f, -.077f, .32168f, .33767f };
+constexpr float xy_ap1[]      = { .713f, .293f, .165f,   .83f,
+                                  .128f, .044f, .32168f, .33767f };
+// CIE XYZ taken as RGB, so R = G = B is illuminant E.
+constexpr float xy_xyz[] = { 1.0f, 0.0f, 0.0f,     1.0f,
+                             0.0f, 0.0f, 1.0f / 3, 1.0f / 3 };
+
+// A color interop ID with what OIIO knows about it: a legacy alias for older
+// configs, its CICP code if it has one, and its chromaticities (Rx, Ry, Gx, Gy,
+// Bx, By, Wx, Wy) and gamma if it has RGB primaries. Gamma is 1 for linear,
+// the exponent of a pure power, or 0 for any other curve (sRGB, extended
+// sRGB, PQ, HLG).
 struct ColorInteropID {
-    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias)
+    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias,
+                             const float* chromaticities = nullptr,
+                             float gamma                 = 0.0f)
         : interop_id(interop_id)
         , legacy_alias(legacy_alias)
         , cicp({ 0, 0, 0, 0 })
         , has_cicp(false)
+        , chromaticities(chromaticities)
+        , gamma(gamma)
     {
     }
 
     constexpr ColorInteropID(const char* interop_id, const char* legacy_alias,
                              CICPPrimaries primaries, CICPTransfer transfer,
-                             CICPMatrix matrix)
+                             CICPMatrix matrix,
+                             const float* chromaticities = nullptr,
+                             float gamma                 = 0.0f)
         : interop_id(interop_id)
         , legacy_alias(legacy_alias)
         , cicp({ int(primaries), int(transfer), int(matrix),
                  int(CICPRange::Full) })
         , has_cicp(true)
+        , chromaticities(chromaticities)
+        , gamma(gamma)
     {
     }
 
@@ -2475,6 +2541,8 @@ struct ColorInteropID {
     const char* legacy_alias;
     std::array<int, 4> cicp;
     bool has_cicp;
+    const float* chromaticities;
+    float gamma;
 };
 
 // Mapping between color interop ID and CICP, based on Color Interop Forum
@@ -2483,28 +2551,28 @@ constexpr ColorInteropID color_interop_ids[] = {
     // Scene referred interop IDs first so they are the default in automatic
     // conversion from CICP to interop ID. Some are not display color spaces
     // at all, but can be represented by CICP anyway.
-    { "lin_ap1_scene", "lin_ap1" },
-    { "lin_ap0_scene", "lin_ap0" },
+    { "lin_ap1_scene", "lin_ap1", xy_ap1, 1.0f },
+    { "lin_ap0_scene", "lin_ap0", xy_ap0, 1.0f },
     { "lin_rec709_scene", "lin_rec709", CICPPrimaries::Rec709,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_rec709, 1.0f },
     { "lin_p3d65_scene", "lin_p3d65", CICPPrimaries::P3D65,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_p3d65, 1.0f },
     { "lin_rec2020_scene", "lin_rec2020", CICPPrimaries::Rec2020,
-      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
-    { "lin_adobergb_scene", "lin_adobergb" },
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL, xy_rec2020, 1.0f },
+    { "lin_adobergb_scene", "lin_adobergb", xy_adobergb, 1.0f },
     { "lin_ciexyzd65_scene", "cie_xyz_d65", CICPPrimaries::XYZD65,
-      CICPTransfer::Linear, CICPMatrix::Unspecified },
+      CICPTransfer::Linear, CICPMatrix::Unspecified, xy_xyz, 1.0f },
     { "srgb_rec709_scene", "srgb_texture", CICPPrimaries::Rec709,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { "g24_rec709_scene", "g24_rec709" },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_rec709, 0.0f },
+    { "g24_rec709_scene", "g24_rec709", xy_rec709, 2.4f },
     { "g22_rec709_scene", "g22_rec709", CICPPrimaries::Rec709,
-      CICPTransfer::Gamma22, CICPMatrix::BT709 },
-    { "g18_rec709_scene", "g18_rec709" },
-    { "srgb_ap1_scene", "srgb_ap1" },
-    { "g22_ap1_scene", "g22_ap1" },
+      CICPTransfer::Gamma22, CICPMatrix::BT709, xy_rec709, 2.2f },
+    { "g18_rec709_scene", "g18_rec709", xy_rec709, 1.8f },
+    { "srgb_ap1_scene", "srgb_ap1", xy_ap1, 0.0f },
+    { "g22_ap1_scene", "g22_ap1", xy_ap1, 2.2f },
     { "srgb_p3d65_scene", "srgb_p3d65", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { "g22_adobergb_scene", nullptr },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
+    { "g22_adobergb_scene", nullptr, xy_adobergb, 563.0f / 256.0f },
     { "data", nullptr },
     { "unknown", nullptr },
 
@@ -2512,37 +2580,39 @@ constexpr ColorInteropID color_interop_ids[] = {
     // The linear displays share their scene rows' codes, which come first,
     // so CICP input still reads as the scene identity.
     { "lin_rec709_display", nullptr, CICPPrimaries::Rec709,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_rec709, 1.0f },
     { "lin_p3d65_display", nullptr, CICPPrimaries::P3D65, CICPTransfer::Linear,
-      CICPMatrix::BT709 },
+      CICPMatrix::BT709, xy_p3d65, 1.0f },
     { "lin_rec2020_display", nullptr, CICPPrimaries::Rec2020,
-      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL, xy_rec2020, 1.0f },
     { "srgb_rec709_display", "srgb_display", CICPPrimaries::Rec709,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_rec709, 0.0f },
     // Not all software interprets this CICP the same, see the
     // "QuickTime Gamma Shift" issue. We follow the CIF recommendation and
     // interpret it as BT.1886.
     { "g24_rec709_display", "rec1886_rec709_display", CICPPrimaries::Rec709,
-      CICPTransfer::BT709, CICPMatrix::BT709 },
+      CICPTransfer::BT709, CICPMatrix::BT709, xy_rec709, 2.4f },
     { "srgb_p3d65_display", "displayp3_display", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
     { "srgbe_p3d65_display", "displayp3_hdr_display", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
     { "pq_p3d65_display", "st2084_p3d65_display", CICPPrimaries::P3D65,
-      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL, xy_p3d65, 0.0f },
     { "pq_rec2020_display", "rec2100_pq_display", CICPPrimaries::Rec2020,
-      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL, xy_rec2020, 0.0f },
     { "hlg_rec2020_display", "rec2100_hlg_display", CICPPrimaries::Rec2020,
-      CICPTransfer::HLG, CICPMatrix::Rec2020_NCL },
-    // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
-    // display is more likely meant to be written as sRGB. On read the
-    // scene referred interop ID will be used.
-    { "g22_rec709_display", nullptr
-      /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
+      CICPTransfer::HLG, CICPMatrix::Rec2020_NCL, xy_rec2020, 0.0f },
+    // No CICP mapping (Rec709, Gamma22, BT709) to keep previous behavior
+    // unchanged, as Gamma 2.2 display is more likely meant to be written as
+    // sRGB. On read the scene referred interop ID will be used.
+    { "g22_rec709_display", nullptr, xy_rec709, 2.2f },
     // No CICP code for Adobe RGB primaries.
-    { "g22_adobergb_display", nullptr },
+    { "g22_adobergb_display", nullptr, xy_adobergb, 563.0f / 256.0f },
     { "g26_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
-      CICPTransfer::Gamma26, CICPMatrix::BT709 },
+      CICPTransfer::Gamma26, CICPMatrix::BT709, xy_p3d65, 2.6f },
+    // The DCDM XYZ encodings have no properties: neither curve is a pure
+    // power (DCI headroom scaling precedes the 2.6 power), and no RGB
+    // primaries are reported for display XYZ encodings.
     { "g26_xyzd65_display", nullptr, CICPPrimaries::XYZD65,
       CICPTransfer::Gamma26, CICPMatrix::Unspecified },
     { "pq_xyzd65_display", nullptr, CICPPrimaries::XYZD65, CICPTransfer::PQ,
@@ -2613,6 +2683,58 @@ ColorConfig::get_cicp(string_view colorspace) const
         }
     }
     return cspan<int>();
+}
+
+
+
+ColorConfig::Impl::Properties
+ColorConfig::Impl::properties(string_view colorspace) const
+{
+    // Identify the space as get_cicp() does, so that every name it accepts
+    // gives the same answer here.
+    const string_view interop_id = m_self->get_color_interop_id(colorspace);
+    OCIO::ConstColorSpaceRcPtr cs;
+    if (config_ && !disable_ocio && !colorspace.empty()) {
+        try {
+            cs = config_->getColorSpace(c_str(m_self->resolve(colorspace)));
+        } catch (const std::exception& e) {
+            DBG("OCIO exception looking up {}: {}\n", colorspace, e.what());
+        }
+    }
+    if (cs && cs->isData())
+        return {};
+    const string_view encoding(cs ? cs->getEncoding() : "");
+    const bool linear = encoding == "scene-linear"
+                        || encoding == "display-linear";
+    Properties result;
+    for (const ColorInteropID& interop : color_interop_ids) {
+        if (interop.chromaticities && interop_id == interop.interop_id) {
+            // An ID contradicting a declared linear encoding is ignored.
+            if (!(linear && interop.gamma != 1.0f))
+                result = { interop.chromaticities, interop.gamma };
+            break;
+        }
+    }
+    if (linear)
+        result.gamma = 1.0f;
+    return result;
+}
+
+
+
+cspan<float>
+ColorConfig::get_chromaticities(string_view colorspace) const
+{
+    const float* xy = getImpl()->properties(colorspace).xy;
+    return xy ? cspan<float>(xy, 8) : cspan<float>();
+}
+
+
+
+float
+ColorConfig::get_transfer_gamma(string_view colorspace) const
+{
+    return getImpl()->properties(colorspace).gamma;
 }
 
 
@@ -3245,7 +3367,10 @@ ColorConfig::set_colorspace(ImageSpec& spec, string_view colorspace) const
     // including some format-specific things that we don't want to propagate
     // from input to output if we know that color space transformations have
     // occurred.
-    if (!equivalent(colorspace, "srgb_rec709_scene"))
+    // Only an existing "Exif:ColorSpace" needs the config, to judge sRGB.
+    if (spec.find_attribute("Exif:ColorSpace")
+        && colorspace != "srgb_rec709_scene"
+        && !equivalent(colorspace, "srgb_rec709_scene"))
         spec.erase_attribute("Exif:ColorSpace");
     spec.erase_attribute("tiff:ColorSpace");
     spec.erase_attribute("tiff:PhotometricInterpretation");

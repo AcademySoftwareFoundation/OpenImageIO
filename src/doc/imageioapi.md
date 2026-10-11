@@ -257,6 +257,20 @@ just exist in the OIIO namespace as general utilities. (See
 :::{doxygenfunction} OIIO::equivalent_colorspace
 :::
 
+(sec-colorspaceproperties)=
+
+## Color space properties
+
+`ColorConfig::get_chromaticities()` and `ColorConfig::get_transfer_gamma()`
+report a color space's primaries and transfer function. See
+{ref}`sec-pythoncolorconfig` for the Python bindings.
+
+:::{doxygenfunction} OIIO::ColorConfig::get_chromaticities
+:::
+
+:::{doxygenfunction} OIIO::ColorConfig::get_transfer_gamma
+:::
+
 > (sec-startupshutdown)=
 
 ## Startup and Shutdown

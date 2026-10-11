@@ -905,7 +905,8 @@ public:
     /// nothing about the color space if `name` is empty). The core operation
     /// is to set the "oiio:ColorSpace" attribute, but it also removes or
     /// alters several other attributes that may hint color space in ways that
-    /// might be contradictory or no longer true.
+    /// might be contradictory or no longer true. The default color config is
+    /// only loaded if it is needed.
     ///
     /// @version 2.5
     void set_colorspace(string_view name);
@@ -4404,6 +4405,7 @@ OIIO_API void set_colorspace(ImageSpec& spec, string_view name);
 /// but it also removes or alters several other attributes that may hint color
 /// space in ways that might be contradictory or no longer true. This uses the
 /// current default color config to adjudicate color space name equivalencies.
+/// The default color config is only loaded if it is needed.
 ///
 /// @version 3.0
 OIIO_API void set_colorspace_rec709_gamma(ImageSpec& spec, float gamma);

@@ -77,9 +77,10 @@ class OIIO_API ColorConfig {
 public:
     /// Construct a ColorConfig using the named OCIO configuration file,
     /// or if filename is empty, to the current color configuration
-    /// specified by env variable $OCIO.
+    /// specified by env variable $OCIO. The configuration is loaded when
+    /// it is first needed, not here.
     ///
-    /// Multiple calls to this are potentially expensive. A ColorConfig
+    /// Loading a configuration is potentially expensive. A ColorConfig
     /// should usually be shared by an app for its entire runtime.
     ColorConfig(string_view filename = "");
 
@@ -439,6 +440,26 @@ public:
     OIIO_NODISCARD string_view
     get_color_interop_id(string_view colorspace) const;
 
+    /// Get the RGB primaries and white point of a color space with a known
+    /// Color Interop ID
+    /// (https://github.com/AcademySoftwareFoundation/ColorInterop), as
+    /// `get_color_interop_id()` finds it: eight floats (Rx, Ry, Gx, Gy, Bx,
+    /// By, Wx, Wy, CIE 1931 xy), or an empty span if they are unknown. The
+    /// span points into OIIO's own table, so it stays valid.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD cspan<float> get_chromaticities(string_view colorspace) const;
+
+    /// Get the exponent of a color space's transfer function if it decodes
+    /// as a pure power, 1.0 if it is linear, or 0 if it is neither or is
+    /// unknown. Piecewise curves such as sRGB's report 0. Like
+    /// `get_chromaticities()`, it answers for a known Color Interop ID, and
+    /// it reports 1.0 for any color space whose config declares a linear
+    /// encoding.
+    ///
+    /// @version 3.2
+    OIIO_NODISCARD float get_transfer_gamma(string_view colorspace) const;
+
     /// Find color interop ID corresponding to the CICP code.
     /// Returns empty string if not found.
     ///
@@ -485,7 +506,7 @@ private:
 
     class Impl;
     std::unique_ptr<Impl> m_impl;
-    Impl* getImpl() const { return m_impl.get(); }
+    Impl* getImpl() const;  // Loads the configuration on first use
 };
 
 OIIO_NAMESPACE_3_1_END
