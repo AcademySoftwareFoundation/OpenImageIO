@@ -23,6 +23,7 @@ Release 3.3 (anticipated Sep/Oct, 2027?) -- compared to 3.2.1.0
 ### 🐛  Fixes and feature enhancements
 
 - *dicom*: A failed `seek_subimage` no longer leaves the reader pointing at a refused subimage, and frames past the first are now reachable. [#5474](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5474)
+- *psd*: Accept empty adjustment and pixel layer rectangles without rejecting the document, while retaining canvas and layer size limits.
 - *jpegxl*: Propagate encoder and write failures at `close()` to callers, reject incomplete pixel buffers before calling libjxl, and clear buffered scanlines when an output is reused. [#5509](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5509) (by @zachlewis / Zach Lewis)
 - *png*: Preserve PNG Third Edition mastering display metadata (mDCV) as ten integer `mdcv_*` attributes on read (PNG and PNG-encoded ICO); written only when the record is complete, valid, and accompanied by cICP. [#5512](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5512) (by @zachlewis / Zach Lewis)
 - *iconvert*: Use a private ImageCache to gather subimage specs, avoiding a shutdown-time crash from files left open in the shared cache. [#5508](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5508) (by @zachlewis / Zach Lewis)

@@ -237,7 +237,8 @@ private:
     bool read_header();
     bool validate_header();
     static bool validate_signature(const char signature[4]);
-    bool validate_resolution(string_view name, uint32_t width, uint32_t height);
+    bool validate_resolution(string_view name, uint32_t width, uint32_t height,
+                             bool allow_empty = false);
 
     //Color Mode Data
     bool load_color_data();
@@ -1010,13 +1011,14 @@ PSDInput::validate_signature(const char signature[4])
 
 
 bool
-PSDInput::validate_resolution(string_view name, uint32_t width, uint32_t height)
+PSDInput::validate_resolution(string_view name, uint32_t width, uint32_t height,
+                              bool allow_empty)
 {
-    if (width < 1 || width > m_maxres) {
+    if ((!allow_empty && width < 1) || width > m_maxres) {
         errorfmt("[{}] invalid image width {}", name, width);
         return false;
     }
-    if (height < 1 || height > m_maxres) {
+    if ((!allow_empty && height < 1) || height > m_maxres) {
         errorfmt("[{}] invalid image height {}", name, height);
         return false;
     }
@@ -1632,7 +1634,8 @@ PSDInput::load_layer(Layer& layer)
     int64_t h    = int64_t(layer.bottom) - int64_t(layer.top);
     layer.width  = uint32_t(w < 0 ? -w : w);
     layer.height = uint32_t(h < 0 ? -h : h);
-    if (!validate_resolution("Layer Record", layer.width, layer.height))
+    // Adjustment layers and empty pixel layers may have an empty rectangle.
+    if (!validate_resolution("Layer Record", layer.width, layer.height, true))
         return false;
     layer.channel_info.resize(layer.channel_count);
     for (uint16_t channel = 0; channel < layer.channel_count; channel++) {

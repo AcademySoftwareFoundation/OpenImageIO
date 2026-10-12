@@ -545,6 +545,7 @@ macro (oiio_add_all_tests)
     oiio_add_tests (psd psd-colormodes
                     ENABLEVAR ENABLE_PSD
                     IMAGEDIR oiio-images/psd)
+    oiio_add_tests (psd-empty-layers ENABLEVAR ENABLE_PSD)
     oiio_add_tests (ptex
                     FOUNDVAR Ptex_FOUND ENABLEVAR ENABLE_PTEX)
     oiio_add_tests (raw raw-thumbnail
