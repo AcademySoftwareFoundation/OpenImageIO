@@ -27,14 +27,12 @@
 
 // General TIFF information:
 // TIFF 6.0 spec:
-//     http://partners.adobe.com/public/developer/en/tiff/TIFF6.pdf
-// Other Adobe TIFF docs:
-//     http://partners.adobe.com/public/developer/tiff/index.html
+//     https://download.osgeo.org/libtiff/doc/TIFF6.pdf
 // Adobe extensions to allow 16 (and 24) bit float in TIFF (ugh, not on
 // their developer page, only on Chris Cox's web site?):
 //     http://chriscox.org/TIFFTN3d1.pdf
 // Libtiff:
-//     http://remotesensing.org/libtiff/
+//     http://www.simplesystems.org/libtiff/
 
 
 // clang-format off
@@ -1481,6 +1479,16 @@ TIFFInput::readspec(bool read_meta)
     if (s && !strcmp(s, "Shadow")) {
         for (int c = 0; c < m_spec.nchannels; ++c)
             m_spec.channelnames[c] = "z";
+    }
+
+    // Set miplevels attribute in MIP emulation case (m_emulate_mipmap = true).
+    if (m_emulate_mipmap) {
+        // libtiff's TIFFNumberOfDirectories() returns tdir_t (uint32_t after
+        // libtiff v4.5.0, uint16_t before it), but the int cast seems safe for
+        // any realistic directory count here.
+        int nmiplevels = (int)TIFFNumberOfDirectories(m_tif);
+        if (nmiplevels > 1)
+            m_spec.attribute("oiio:miplevels", nmiplevels);
     }
 
     /// read color profile

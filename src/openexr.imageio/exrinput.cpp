@@ -422,8 +422,11 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     spec.deep = Strutil::istarts_with(header->type(), "deep");
 
-    if (levelmode != Imf::ONE_LEVEL)
+    if (levelmode != Imf::ONE_LEVEL) {
         spec.attribute("openexr:roundingmode", roundingmode);
+        if (nmiplevels > 1)
+            spec.attribute("oiio:miplevels", nmiplevels);
+    }
 
     const Imf::EnvmapAttribute* envmap;
     envmap = header->findTypedAttribute<Imf::EnvmapAttribute>("envmap");
@@ -1193,11 +1196,6 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     m_subimage = subimage;
     m_miplevel = miplevel;
     m_spec     = part.spec;
-
-    //! Add the number of miplevels as an attribute for the first miplevel.
-    //! TOFIX: adding the following attribute breaks unit tests
-    // if (m_miplevel == 0 && part.nmiplevels > 1)
-    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     // The checks below reject this subimage. Invalidate rather than leave it
     // as the current one, or a repeat of this same seek would take the early

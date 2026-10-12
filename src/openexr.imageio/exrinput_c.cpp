@@ -599,8 +599,11 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     spec.deep = (storage == EXR_STORAGE_DEEP_TILED
                  || storage == EXR_STORAGE_DEEP_SCANLINE);
 
-    if (levelmode != EXR_TILE_ONE_LEVEL)
+    if (levelmode != EXR_TILE_ONE_LEVEL) {
         spec.attribute("openexr:roundingmode", (int)roundingmode);
+        if (nmiplevels > 1)
+            spec.attribute("oiio:miplevels", nmiplevels);
+    }
 
     exr_envmap_t envmap;
     rv = exr_attr_get_envmap(ctxt, subimage, "envmap", &envmap);
@@ -1217,11 +1220,6 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     m_subimage = subimage;
     m_miplevel = miplevel;
     m_spec     = part.spec;
-
-    //! Add the number of miplevels as an attribute for the first miplevel.
-    //! TOFIX: adding the following attribute breaks unit tests
-    // if (m_miplevel == 0 && part.nmiplevels > 1)
-    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     // The checks below reject this subimage, so don't leave it as the
     // current one with a spec that failed validation.
