@@ -248,11 +248,13 @@ test_interop_identities_conversion()
                 "file_rules:\n  - !<Rule> {{name: Default, colorspace: default}}\n"
                 "displays:\n  XYZ:\n    - !<View> {{name: Bridge, "
                 "view_transform: bridge, display_colorspace: CIE-XYZ-D65}}\n"
+                "    - !<View> {{name: Raw, colorspace: Raw}}\n"
                 "view_transforms:\n  - !<ViewTransform> {{name: bridge, "
                 "from_scene_reference: !<BuiltinTransform> "
                 "{{style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD}}}}\n"
                 "colorspaces:\n"
                 "  - !<ColorSpace> {{name: ACES2065-1, aliases: [{}]}}\n"
+                "  - !<ColorSpace> {{name: Raw, isdata: true}}\n"
                 "display_colorspaces:\n"
                 "  - !<ColorSpace> {{name: CIE-XYZ-D65}}\n",
                 aliases)));
@@ -281,15 +283,32 @@ test_interop_identities_conversion()
             OIIO_CHECK_EQUAL_THRESH(rgb[0], 1.0f, 1.0e-4f);
             OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.0f, 1.0e-4f);
         }
-        // The display pipeline runs from the config's interchange space.
-        auto display = config.createDisplayTransform("XYZ", "Bridge",
-                                                     "lin_rec709_scene", "");
-        OIIO_CHECK_ASSERT(display);
-        if (display) {
-            float rgb[3] = { 1.0f, 0.0f, 0.0f };
-            display->apply(rgb);
-            for (int c = 0; c < 3; ++c)
-                OIIO_CHECK_EQUAL_THRESH(rgb[c], rec709_red_xyz[c], 1.0e-4f);
+        // The display pipeline runs from the config's interchange space,
+        // which also picks the default view.
+        const char* view = config.getDefaultViewName("XYZ", "lin_rec709_scene");
+        OIIO_CHECK_EQUAL(string_view(view), "Bridge");
+        for (string_view v : { "Bridge", "" }) {
+            auto display = config.createDisplayTransform("XYZ", v,
+                                                         "lin_rec709_scene",
+                                                         "");
+            OIIO_CHECK_ASSERT(display);
+            if (display) {
+                float rgb[3] = { 1.0f, 0.0f, 0.0f };
+                display->apply(rgb);
+                for (int c = 0; c < 3; ++c)
+                    OIIO_CHECK_EQUAL_THRESH(rgb[c], rec709_red_xyz[c], 1.0e-4f);
+            }
+        }
+        // A data view leaves the pixels alone.
+        auto raw = config.createDisplayTransform("XYZ", "Raw",
+                                                 "lin_rec709_scene", "");
+        OIIO_CHECK_ASSERT(raw);
+        if (raw) {
+            float rgb[3] = { 0.25f, 0.5f, 0.75f };
+            raw->apply(rgb);
+            OIIO_CHECK_EQUAL(rgb[0], 0.25f);
+            OIIO_CHECK_EQUAL(rgb[1], 0.5f);
+            OIIO_CHECK_EQUAL(rgb[2], 0.75f);
         }
     }
 

@@ -1503,6 +1503,9 @@ ColorConfig::getDefaultViewName(string_view display) const
 }
 
 
+static ustring viewing_rules_space(const OCIO::ConstConfigRcPtr& config,
+                                   ustring name);
+
 const char*
 ColorConfig::getDefaultViewName(string_view display,
                                 string_view inputColorSpace) const
@@ -1514,8 +1517,10 @@ ColorConfig::getDefaultViewName(string_view display,
             inputColorSpace = getImpl()->config_->getColorSpaceFromFilepath(
                 c_str(inputColorSpace));
         if (getImpl()->config_ && !disable_ocio)
-            return getImpl()->config_->getDefaultView(c_str(display),
-                                                      c_str(inputColorSpace));
+            return getImpl()->config_->getDefaultView(
+                c_str(display), viewing_rules_space(getImpl()->config_,
+                                                    ustring(inputColorSpace))
+                                    .c_str());
     } catch (std::exception& e) {
         DBG("OCIO exception in getDefaultViewName: {}", e.what());
     }
@@ -1886,6 +1891,37 @@ external_endpoint(const OCIO::ConstConfigRcPtr& config, ustring name,
 
 
 
+// The interchange role a color space of another config reaches this config
+// through: the display one for a display-referred space, the scene one
+// otherwise.
+static const char*
+interchange_role(const OCIO::ConstColorSpaceRcPtr& cs)
+{
+    return cs && cs->getReferenceSpaceType() == OCIO::REFERENCE_SPACE_DISPLAY
+               ? OCIO::ROLE_INTERCHANGE_DISPLAY
+               : OCIO::ROLE_INTERCHANGE_SCENE;
+}
+
+
+
+// The color space whose viewing rules pick the default view for `name`: the
+// name itself or, for a space from the identities config, the interchange
+// space it reaches this config through.
+static ustring
+viewing_rules_space(const OCIO::ConstConfigRcPtr& config, ustring name)
+{
+    OCIO::ConstConfigRcPtr endpoint = config;
+    OCIO::ConstContextRcPtr ctx;
+    external_endpoint(config, name, endpoint, ctx);
+    if (endpoint != config)
+        if (auto cs = config->getColorSpace(
+                interchange_role(endpoint->getColorSpace(name.c_str()))))
+            return ustring(cs->getName());
+    return name;
+}
+
+
+
 ColorProcessorHandle
 ColorConfig::createColorProcessor(string_view inputColorSpace,
                                   string_view outputColorSpace,
@@ -2160,9 +2196,11 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                 p = legacy_viewing_pipeline->getProcessor(config, context);
             } else if (auto cs = srcconfig->getColorSpace(
                            inputColorSpace.c_str());
-                       cs && cs->isData()) {
-                // Data bypasses the display, as OCIO has it bypass any
-                // conversion between configs.
+                       (cs && cs->isData())
+                       || isData(getDisplayViewColorSpaceName(display.string(),
+                                                              view.string()))) {
+                // Data at either end bypasses the display, as it bypasses
+                // OCIO's own conversions between configs.
                 p = config->getProcessor(context,
                                          OCIO::GroupTransform::Create(), dir);
             } else {
@@ -2170,16 +2208,11 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                 // this config's interchange space for its reference space
                 // type, and the viewing pipeline, looks included, runs from
                 // there. The forward chain is built and inverted as a whole.
-                const char* interchange
-                    = cs
-                              && cs->getReferenceSpaceType()
-                                     == OCIO::REFERENCE_SPACE_DISPLAY
-                          ? OCIO::ROLE_INTERCHANGE_DISPLAY
-                          : OCIO::ROLE_INTERCHANGE_SCENE;
-                auto chain = OCIO::Config::GetProcessorFromConfigs(
-                                 srccontext, srcconfig, inputColorSpace.c_str(),
-                                 context, config, interchange)
-                                 ->createGroupTransform();
+                const char* interchange = interchange_role(cs);
+                auto chain              = OCIO::Config::GetProcessorFromConfigs(
+                                              srccontext, srcconfig, inputColorSpace.c_str(),
+                                              context, config, interchange)
+                                              ->createGroupTransform();
                 transform->setSrc(interchange);
                 legacy_viewing_pipeline->setDisplayViewTransform(transform);
                 chain->appendTransform(
