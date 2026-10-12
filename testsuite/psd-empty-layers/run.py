@@ -11,5 +11,9 @@ for compression in (0, 1):
         filename = f"empty-layer-{width}x{height}-{compression}.psd"
         command += info_command(filename, verbose=False, extraargs="-a")
 
+for filename in ("hidden-empty-layer-0.psd", "hidden-empty-layer-1.psd",
+                 "hidden-populated-layer.psd"):
+    command += info_command(filename, verbose=False, extraargs="-a")
+
 command += info_command("empty-layer-invalid-canvas.psd", failureok=True)
 command += info_command("empty-layer-oversized.psd", failureok=True)

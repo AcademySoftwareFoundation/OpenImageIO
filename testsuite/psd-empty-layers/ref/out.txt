@@ -52,6 +52,33 @@ empty-layer-2x0-1.psd :    2 x    2, 3 channel, uint8 psd (4 subimages)
     SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
  subimage  3:    1 x    1, 3 channel, uint8 psd (4 subimages)
     SHA-1: 5818BEB65A1338D7C80684EEC2EA2ECB0DB183D0
+hidden-empty-layer-0.psd :    2 x    2, 3 channel, uint8 psd (4 subimages)
+ subimage  0:    2 x    2, 3 channel, uint8 psd
+    SHA-1: 6585CA1F6B702CF27768484219F6F9200F4E9192
+ subimage  1:    1 x    1, 3 channel, uint8 psd (4 subimages)
+    SHA-1: E3FF44389E80210E4545A907BE55980CEB6EA821
+ subimage  2:    0 x    0, 3 channel, uint8 psd (4 subimages)
+    SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
+ subimage  3:    1 x    1, 3 channel, uint8 psd (4 subimages)
+    SHA-1: 5818BEB65A1338D7C80684EEC2EA2ECB0DB183D0
+hidden-empty-layer-1.psd :    2 x    2, 3 channel, uint8 psd (4 subimages)
+ subimage  0:    2 x    2, 3 channel, uint8 psd
+    SHA-1: 6585CA1F6B702CF27768484219F6F9200F4E9192
+ subimage  1:    1 x    1, 3 channel, uint8 psd (4 subimages)
+    SHA-1: E3FF44389E80210E4545A907BE55980CEB6EA821
+ subimage  2:    0 x    0, 3 channel, uint8 psd (4 subimages)
+    SHA-1: DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
+ subimage  3:    1 x    1, 3 channel, uint8 psd (4 subimages)
+    SHA-1: 5818BEB65A1338D7C80684EEC2EA2ECB0DB183D0
+hidden-populated-layer.psd :    2 x    2, 3 channel, uint8 psd (4 subimages)
+ subimage  0:    2 x    2, 3 channel, uint8 psd
+    SHA-1: 6585CA1F6B702CF27768484219F6F9200F4E9192
+ subimage  1:    1 x    1, 3 channel, uint8 psd (4 subimages)
+    SHA-1: E3FF44389E80210E4545A907BE55980CEB6EA821
+ subimage  2:    1 x    1, 3 channel, uint8 psd (4 subimages)
+    SHA-1: E3FF44389E80210E4545A907BE55980CEB6EA821
+ subimage  3:    1 x    1, 3 channel, uint8 psd (4 subimages)
+    SHA-1: 5818BEB65A1338D7C80684EEC2EA2ECB0DB183D0
 oiiotool ERROR: read : [Header] invalid image height 0
 failed to open "empty-layer-invalid-canvas.psd": failed load_header
 Full command line was:
