@@ -1423,8 +1423,8 @@ ImageCacheFile::release()
         // pressure on the cache, it'll get freed next time around.
         return;
     }
-    if (m_used)
-        m_used = false;
+    if (m_used.load(std::memory_order_relaxed))
+        m_used.store(false, std::memory_order_relaxed);
     else if (m_allow_release)
         close();
     m_input_mutex.unlock();
