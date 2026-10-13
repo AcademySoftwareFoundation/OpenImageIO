@@ -196,6 +196,13 @@ public:
     /// doesn't exist, or if the specified transformation is illegal (for
     /// example, it may require the inversion of a 3D-LUT, etc).
     ///
+    /// A color space the config doesn't define, named exactly as a Color
+    /// Interop ID (https://github.com/AcademySoftwareFoundation/ColorInterop),
+    /// such as `lin_rec709_scene` or `ocio:lin_awg4_scene`, is taken from
+    /// OIIO's built-in config of those IDs and reaches the config through its
+    /// interchange roles. Setting the environment variable
+    /// `OIIO_DISABLE_BUILTIN_OCIO_CONFIGS` to 1 turns this off.
+    ///
     /// The handle is actually a shared_ptr, so when you're done with a
     /// ColorProcess, just discard it. ColorProcessor(s) remain valid even
     /// if the ColorConfig that created them no longer exists.
@@ -305,6 +312,8 @@ public:
     ///
     /// It is possible that this will return an empty handle if one of the
     /// color spaces or the display or view doesn't exist or is not allowed.
+    /// An input color space the config doesn't define, named exactly as a
+    /// Color Interop ID, is accepted as `createColorProcessor()` accepts it.
     ///
     /// The handle is actually a shared_ptr, so when you're done with a
     /// ColorProcess, just discard it. ColorProcessor(s) remain valid even
