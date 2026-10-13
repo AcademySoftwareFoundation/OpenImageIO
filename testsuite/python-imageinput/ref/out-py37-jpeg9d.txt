@@ -242,6 +242,11 @@ Testing has_error/geterror:
   geterror persists: True
   has_error after clear: False
 
+Testing read range sanity:
+  huge yend clamped to height: True
+  inverted scanline range None: True
+  bad tile range None: True
+
 is_imageio_format_name('tiff') = True
 is_imageio_format_name('txff') = False
 Done.

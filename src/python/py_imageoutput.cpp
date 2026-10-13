@@ -73,8 +73,10 @@ ImageOutput_write_scanlines(ImageOutput& self, int ybegin, int yend, int z,
                       buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
-    if (static_cast<int>(buf.size)
-        < self.spec().width * self.spec().nchannels * (yend - ybegin)) {
+    if (yend < ybegin
+        || imagesize_t(buf.size)
+               < clamped_mult64(imagesize_t(spec.width) * spec.nchannels,
+                                imagesize_t(int64_t(yend) - ybegin))) {
         self.errorfmt("write_scanlines was not passed a long enough array");
         return false;
     }
@@ -134,9 +136,12 @@ ImageOutput_write_tiles(ImageOutput& self, int xbegin, int xend, int ybegin,
                       buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
-    if (static_cast<int>(buf.size) < (xend - xbegin) * (yend - ybegin)
-                                         * (zend - zbegin)
-                                         * self.spec().nchannels) {
+    if (xend < xbegin || yend < ybegin || zend < zbegin
+        || imagesize_t(buf.size) < clamped_mult64(
+               clamped_mult64(imagesize_t(int64_t(xend) - xbegin),
+                              imagesize_t(int64_t(yend) - ybegin)),
+               clamped_mult64(imagesize_t(int64_t(zend) - zbegin),
+                              imagesize_t(spec.nchannels)))) {
         self.errorfmt("write_tiles was not passed a long enough array");
         return false;
     }
