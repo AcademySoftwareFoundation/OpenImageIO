@@ -395,7 +395,7 @@ macro (oiio_add_all_tests)
                     ENABLEVAR ENABLE_DPX
                     IMAGEDIR oiio-images/dpx URL "Recent checkout of OpenImageIO-images")
     oiio_add_tests (ktx
-                    ENABLEVAR ENABLE_KTX
+                    FOUNDVAR Ktx_FOUND ENABLEVAR ENABLE_KTX
                     IMAGEDIR oiio-images/ktx2)
     oiio_add_tests (dds
                     ENABLEVAR ENABLE_DDS

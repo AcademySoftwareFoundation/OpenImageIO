@@ -836,20 +836,19 @@ KtxOutput::construct_astc_params(ktxAstcParams& params,
                                  uint32_t threads) const noexcept
 {
     // set sensible defaults
-    params = {
-        .structSize  = sizeof(ktxAstcParams),
-        .verbose     = false,
-        .threadCount = threads,
-        .blockDimension
-        = ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4,
-        // KTX Tools does not expose this parameter so leave it as default
-        .mode         = KTX_PACK_ASTC_ENCODER_MODE_DEFAULT,
-        .qualityLevel = KTX_PACK_ASTC_QUALITY_LEVEL_THOROUGH,
-        .normalMap    = false,
-        .perceptual   = false,
-        .inputSwizzle = { '\0' }
-    };
-
+    params             = { 0 };
+    params.structSize  = sizeof(ktxAstcParams);
+    params.verbose     = false;
+    params.threadCount = threads;
+    params.blockDimension
+        = ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4;
+    // KTX Tools does not expose this parameter so leave it as default
+    params.mode         = KTX_PACK_ASTC_ENCODER_MODE_DEFAULT;
+    params.qualityLevel = KTX_PACK_ASTC_QUALITY_LEVEL_THOROUGH;
+    params.normalMap    = false;
+    params.perceptual   = false;
+    // assigning '\0' to first element means no swizzle
+    params.inputSwizzle[0] = '\0';
     // clang-format off
     if (auto Q = m_spec.find_attribute("ktx:astc_block_dimensions", TypeDesc::STRING)) {
         ktx_pack_astc_block_dimension_e block_dims;
@@ -873,40 +872,11 @@ KtxOutput::try_parse_astc_block_dimensions(
     string_view block_dims_str,
     ktx_pack_astc_block_dimension_e& block_dims) const noexcept
 {
-    // clang-format off
-  static std::unordered_map<std::string, ktx_pack_astc_block_dimension_e> block_dims_str_to_enum{
-    { "4x4",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4 },
-    { "5x4",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x4 },
-    { "5x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5 },
-    { "6x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x5 },
-    { "6x6",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6 },
-    { "8x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x5 },
-    { "8x6",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x6 },
-    { "10x5",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x5 },
-    { "10x6",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x6 },
-    { "8x8",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x8 },
-    { "10x8",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x8 },
-    { "10x10", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x10 },
-    { "12x10", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_12x10 },
-    { "12x12", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_12x12 },
-    { "3x3x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_3x3x3 },
-    { "4x3x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x3x3 },
-    { "4x4x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4x3 },
-    { "4x4x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4x4 },
-    { "5x4x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x4x4 },
-    { "5x5x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5x4 },
-    { "5x5x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5x5 },
-    { "6x5x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x5x5 },
-    { "6x6x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6x5 },
-    { "6x6x6", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6x6 },
-  };
-    // clang-format on
-
     auto block_dims_str_lower = std::string(block_dims_str);
     Strutil::to_lower(block_dims_str_lower);
 
-    if (auto it = block_dims_str_to_enum.find(block_dims_str_lower);
-        it != block_dims_str_to_enum.end()) {
+    if (auto it = astc_block_dims_str_to_enum.find(block_dims_str_lower);
+        it != astc_block_dims_str_to_enum.end()) {
         block_dims = it->second;
         return true;
     }

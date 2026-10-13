@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include "ktx_pvt.h"
+#include <limits>
 #include <regex>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -75,6 +76,8 @@ public:
 
     const std::string& filename() const { return m_filename; }
 
+    void init() noexcept;
+
     bool close() override;
 
     int current_subimage(void) const override { return m_subimage; }
@@ -84,7 +87,7 @@ public:
     bool seek_subimage(int subimage, int miplevel) override;
 
 private:
-    std::string m_filename;
+    std::string m_filename {};
 
     // KTX2 texture.
     std::unique_ptr<ktxTexture2, decltype(ktxTexture2_Destroy)*> m_tex {
@@ -124,7 +127,7 @@ OIIO_EXPORT int ktx_imageio_version = OIIO_PLUGIN_VERSION;
 OIIO_EXPORT const char*
 ktx_imageio_library_version()
 {
-    return "ktx v" OIIO_STRINGIZE(Ktx_VERSION_MAJOR) "." OIIO_STRINGIZE(
+    return "libktx v" OIIO_STRINGIZE(Ktx_VERSION_MAJOR) "." OIIO_STRINGIZE(
         Ktx_VERSION_MINOR) "." OIIO_STRINGIZE(Ktx_VERSION_PATCH);
 }
 OIIO_EXPORT ImageInput*
@@ -174,25 +177,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     //
-    // KTX can hold layered compressions (i.e., on top of the potential GPU-
-    // compatible compression like ASTC, the whole data can be furthermore
-    // compressed using a super compression scheme). We call such compression
-    // `supercompression` and does NOT refer to the usual compression (e.g.,
-    // GPU-block compression).
-    //
-    // If KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT is provided for any
-    // of the ktxTexture2_CreateFrom* calls, then libktx will allocate an
-    // internal buffer large enough to hold all data inflated IF AND ONLY IF
-    // supercompressionScheme == KTX_SS_ZSTD or KTX_SS_ZLIB.
-    //
-    // Whithin the same call, ALL the texture data is then loaded. This is not
-    // ideal especially when dealing with, for instance, 3D textures, or even
-    // worse, 3D array textures.
-    //
-    // TODO: per-subimage and per-miplevel ktx loading
-    // Implementing the per-subimage allocation approach requires some effort.
-    // For the moment, let's make sure this approach is working (i.e., all tests
-    // are passing).
+    // Load just the header (the flag KTX_TEXTURE_CREATE_NO_FLAGS means the data
+    // isn't loaded). We load the actual images AFTER performing check_open()s.
     //
     // For under-the-hood details, see official libktx repo:
     // https://github.com/KhronosGroup/KTX-Software/blob/main/lib/src/texture.c
@@ -224,8 +210,11 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
-    // For the moment we don't support 3D texture arrays because of the lack of
-    // testing on libktx part. 3D texture arrays are rarely used anyway ...
+    // We don't support 3D texture arrays because no graphics/compute API
+    // supports these. `ktx info` on a 3D texture KTX2 file outputs the
+    // following:
+    //  warning-3014: File contains a 3D array texture.
+    //  File contains a 3D array texture. No API supports these.
     if (m_tex->isArray && m_tex->numDimensions == 3) {
         errorfmt("3D texture arrays are not supported");
         return false;
@@ -234,14 +223,41 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     const bool is_hdr = ktxTexture2_IsHDR(m_tex.get());
     DBG std::cout << "[ktxinput] is_hdr: " << is_hdr << '\n';
 
-    // height can be 0 for 1D textures.
-    m_spec       = ImageSpec(m_tex->baseWidth,
-                             std::max(m_tex->baseHeight, 1u)
-                                 * (m_tex->isCubemap ? 6 : 1),
-                             4 /* dummy value - will be overwritten */,
-                             TypeDesc::UINT8);
-    m_spec.depth = m_spec.full_depth = m_tex->baseDepth;
-    std::string colorspace           = get_colorspace();
+    // Create a default spec and seek_subimage to set the dimensions based on
+    // the texture type (format is set later based on the input VkFormat).
+    m_spec = ImageSpec();
+    if (!seek_subimage(0, 0))
+        return false;  // errorfmt is set via seek_subimage
+
+    //
+    // Make sure to set the nchannels, channelnames, and format BEFORE any
+    // check_open() calls.
+    //
+    // In case of a Basis Universal texture: there isn't a "fixed" nchannels.
+    // It depends on what our transcode target is. In OIIO, we will always
+    // either transcode to KTX_TTF_RGBA32 or KTX_TTF_RGB_HALF. The former is
+    // LDR while the latter is HDR.
+    //
+    if (ktxTexture2_IsTranscodable(m_tex.get())) {
+        m_spec.nchannels = is_hdr ? 3 : 4;
+        m_spec.format    = is_hdr ? TypeDesc::HALF : TypeDesc::UINT8;
+        m_spec.default_channel_names();
+    } else /* non-basisu-encoded texture; nchannels is fixed in VkFormat */ {
+        FormatInfo format_info;
+        if (!get_info_from_vkformat(static_cast<VkFormat>(m_tex->vkFormat),
+                                    format_info)) {
+            close();
+            errorfmt("Could not extract format info from provided "
+                     "VkFormat: {}. This format is unsupported",
+                     m_tex->vkFormat);
+            return false;
+        }
+        m_spec.nchannels = format_info.nbrchannels;
+        m_spec.format    = format_info.typedesc;
+        m_spec.default_channel_names();
+    }
+
+    std::string colorspace = get_colorspace();
     if (Strutil::iequals(colorspace, "unknown"))
         return false;  // errorfmt set by get_colorspace()
     m_spec.set_colorspace(colorspace);
@@ -249,8 +265,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // Set textureformat attribute
     if (m_tex->numDimensions == 1) {
         m_spec.attribute("textureformat", "Plain Texture");
-    }
-    if (m_tex->numDimensions == 2) {
+    } else if (m_tex->numDimensions == 2) {
         if (m_tex->isCubemap) {
             m_spec.attribute("textureformat", "CubeFace Environment");
             // In KTX (as per the specs) cubemap faces are always in this order
@@ -266,8 +281,14 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     //
+    // KTX can hold layered compressions (i.e., on top of the potential GPU-
+    // compatible compression like ASTC, the whole data can be furthermore
+    // compressed using a super compression scheme). We call such compression
+    // `supercompression` and does NOT refer to the usual compression (e.g.,
+    // GPU-block compression, or Basis Universal codecs).
+    //
     // Make sure to save everything that is needed to recreate this "exact same"
-    // KTX texture from OIIO API (i.e., fields of `ktxTextureCreateInfo`).
+    // KTX2 texture from OIIO API (i.e., fields of `ktxTextureCreateInfo`).
     // Of course, the term "exact same" takes into account the quality loss when
     // reading lossy-compressed KTX2 files and saving them as KTX2 files again.
     //
@@ -298,7 +319,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // Save number of miplevels to give the option to users to avoid having to
     // figure it out by calling `seek_subimage` multiple times
     if (m_tex->numLevels > 1)
-        m_spec.extra_attribs.attribute("ktx:miplevels", m_tex->numLevels);
+        m_spec.extra_attribs.attribute("oiio:miplevels", m_tex->numLevels);
     if (m_tex->generateMipmaps)
         m_spec.extra_attribs.attribute("ktx:generate_mipmaps", true);
 
@@ -363,7 +384,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 // non-default mipmap generation params, etc.
                 // Should be NUL terminated.
                 //
-                auto cval = reinterpret_cast<const char*>(val);
+                auto cval = static_cast<const char*>(val);
                 if (vallen <= 1 || cval[vallen - 1] != '\0') {
                     errorfmt(
                         "Invalid KTX2 file: an empty or non-null "
@@ -382,12 +403,13 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 //
                 OIIO_ASSERT(vallen == 1);
                 errorfmt("Incomplete cubemaps are currently not supported");
+                return false;
             } else if (attr_name == KTX_ORIENTATION_KEY) {
                 // KTX may define a different orientation than the one used by OIIO. See:
                 //  https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_ktxorientation
                 OIIO_ASSERT(vallen <= 4);  // at most '[rl][du][oi]\0'
-                auto cval = reinterpret_cast<const char*>(val);
-                if (vallen <= 1 || cval[vallen - 1] != '\0') {
+                auto cval = static_cast<const char*>(val);
+                if (vallen <= 1 || vallen > 4 || cval[vallen - 1] != '\0') {
                     errorfmt(
                         "Invalid KTX2 file: an empty or non-null "
                         "terminated string for \"KTXorientation\" metadata");
@@ -454,13 +476,78 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    // Load the actual image data (libktx owns the data buffer)
+    //
+    // BEFORE actually loading/uncompressing the data, impose some reasonable
+    // limits on the dimensions.
+    //
+    // These ranges are set based on similar limits used in DDS plugin.
+    //
+    // The following calculations assume worst-case scenario with
+    // VK_FORMAT_R64G64B64A64_SFLOAT input textures (i.e., 4 channels with each
+    // 8 bytes). For:
+    //  - 2D textures:        32768 * 32768         => 32 GBs
+    //  - 2D array textures:  32768 * 32768 * 2048  => 65536 GBs
+    //  - cubemaps:           16384 * 98304         => 48 GBs
+    //  - cubemap textures:   16384 * 98304 * 2048  => 98304 GBs
+    //  - 3D textures:        4096 * 4096 * 4096    => 2048 GBs
+    //
+    // For non-array textures: rely on the memory size checks inside check_open.
+    // For array texture: check_open checks are insufficient because they don't
+    // take into account nbr subimages (i.e., nbr layers in array)!
+    //
+    if (m_tex->isArray) {
+        if (m_tex->numLayers > 2048) {
+            errorfmt(
+                "number of layers in input KTX2 texture exceeds the limit: {} > {}",
+                m_tex->numLayers, 2048);
+            return false;
+        }
+        int limit_imagesize_MB = 0;
+        OIIO::getattribute("limits:imagesize_MB", TypeDesc::INT,
+                           &limit_imagesize_MB);
+        const auto array_size_in_bytes = m_spec.image_bytes(true)
+                                         * imagesize_t(m_tex->numLayers);
+        if (limit_imagesize_MB
+            && array_size_in_bytes
+                   > limit_imagesize_MB * imagesize_t(1024 * 1024)) {
+            errorfmt(
+                "input texture array is too large ({} MB) and exceeds the set memory limits of: {} MB",
+                float(array_size_in_bytes) / float(1024 * 1024),
+                limit_imagesize_MB);
+            return false;
+        }
+    }
+    if (m_tex->baseDepth > 1) {
+        // 3D texture (3D texture arrays not supported)
+        if (!check_open(m_spec, { 0, 4096, 0, 4096, 0, 4096, 0, 4 }))
+            return false;
+    } else if (m_tex->isCubemap) {
+        // Cubemap textures or Cubemap texture arrays
+        if (!check_open(m_spec, { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 }))
+            return false;
+    } else {
+        // 1D/2D textures or 1D/2D texture arrays
+        if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
+            return false;
+    }
+
+    //
+    // Load the image(s) data (libktx owns the data buffer). This is where the
+    // buffer allocation for un-supercompressed textures occurs.
+    //
+    // TODO: per-subimage and per-miplevel KTX2 loading
+    // Implementing the per-subimage allocation approach requires some effort.
+    // For the moment, let's make sure this approach is working.
     if (auto result = ktxTexture2_LoadImageData(m_tex.get(), NULL, 0);
         result != KTX_SUCCESS) {
         errorfmt("ktxTexture2_LoadImageData returned Ktx error code: {}",
                  static_cast<uint32_t>(result));
         return false;
     }
+
+    // At this point: images are certainly not super-compressed but are
+    // potentially basisu-compressed, GPU-block-compressed, or simply
+    // uncompressed.
 
     //
     // Do we need to transcode this texture (i.e., is this a Basis Universal
@@ -471,7 +558,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //
     // Important:
     // This modifies the KtxTexture2 (m_tex) therefore make sure to save
-    // essential properties for proper KTX2 regeneration.
+    // essential properties for proper KTX2 regeneration/roundtrip.
     //
     // Note:
     // Do not use ktxTexture2_NeedsTranscoding as it returns false for
@@ -481,7 +568,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     if (ktxTexture2_IsTranscodable(m_tex.get())) {
         khr_df_model_e color_model = ktxTexture2_GetColorModel_e(m_tex.get());
         if (auto status = ktxTexture2_TranscodeBasis(
-                m_tex.get(), is_hdr ? KTX_TTF_RGBA_HALF : KTX_TTF_RGBA32, 0);
+                m_tex.get(), is_hdr ? KTX_TTF_RGB_HALF : KTX_TTF_RGBA32, 0);
             status != KTX_SUCCESS) {
             errorfmt("failed to transcode KTX2 texture to raw pixels. "
                      "ktxTexture2_TranscodeBasis returned Ktx error code: {}",
@@ -492,6 +579,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         // attribute is also used to save GPU-block-based compressions)
         m_spec.attribute("ktx:codec", basis_universal_codec_name(color_model));
     }
+
+    // At this point: images are certainly not basisu-compressed and are either
+    // GPU-block-compressed (e.g., ASTC) or simply uncompressed.
 
     //
     // Decode GPU-compression if any (using libktx). Supported formats:
@@ -513,7 +603,6 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     //    PVRTC: not planned (there are pending PRs in libktx).
     //
     if (m_tex->isCompressed /* i.e., is GPU block compressed? */) {
-        // m_cmp = get_block_compression_from_format(m_tex->vkFormat);
         FormatInfo format_info;
         if (!get_info_from_vkformat(static_cast<VkFormat>(m_tex->vkFormat),
                                     format_info)) {
@@ -560,12 +649,19 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
             /* ASTC formats */
         case BlockCompression::ASTC: {
-            const uint32_t blocksize = get_astc_block_size(
-                static_cast<VkFormat>(m_tex->vkFormat));
-            if (blocksize == 0) {
-                errorfmt(
-                    "Failed to determine block size for ASTC-compressed texture from its VkFormat {}",
-                    m_tex->vkFormat);
+            // save the ASTC block dimensions from its VkFormat
+            if (auto it = std::find_if(astc_block_dims_str_to_enum.cbegin(),
+                                       astc_block_dims_str_to_enum.cend(),
+                                       [&](auto const& pair) {
+                                           return pair.second
+                                                  == format_info.astc_block_dims;
+                                       });
+                it != astc_block_dims_str_to_enum.end()) {
+                m_spec.attribute("ktx:astc_block_dimensions", it->first);
+            } else {
+                // should only occur if astc_block_dims_str_to_enum and
+                // get_info_from_vkformat are not in sync
+                OIIO_ASSERT(false);
                 return false;
             }
             //
@@ -597,6 +693,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     OIIO_ASSERT(!m_tex->isCompressed);
+
+    // At this point: images are certainly uncompressed (non-basisu-encoded,
+    // non-supercompressed, and non-GPU-block-compressed).
 
     //
     // This could mean one of the following as per the specs at:
@@ -631,7 +730,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    auto format = static_cast<VkFormat>(m_tex->vkFormat);
+    const auto format = static_cast<VkFormat>(m_tex->vkFormat);
 
     //
     // Important:
@@ -648,25 +747,9 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     }
     m_spec.set_format(format_info.typedesc);
     m_spec.nchannels = format_info.nbrchannels;
-
-    if (m_tex->baseDepth > 1) {  // Volume texture are limited to 4096x4096x4096
-        if (!check_open(m_spec, { 0, 4096, 0, 4096, 0, 4096, 0, 4 }))
-            return false;
-    } else if (m_tex->numFaces
-               > 1) {  // Cubemap texture are limited to 16384x16384
-        if (!check_open(m_spec, { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 }))
-            return false;
-    } else {  // 2D texture are limited to 32768x32768
-        if (!check_open(m_spec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
-            return false;
-    }
-
-    if (!check_open(m_spec, { 0, 65535, 0, 65535, 0, 65535, 0, 4 }))
-        return false;
-
-    if (!seek_subimage(0, 0))
-        // errorfmt is set via seek_subimage
-        return false;
+    // Save whether this is a UNORM/SNORM VkFormat so that it can be reproduced
+    if (format_info.normalized_vkformat)
+        m_spec.attribute("ktx:normalized", true);
 
     newspec = m_spec;
     return true;
@@ -674,13 +757,25 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
 
 
+void
+KtxInput::init() noexcept
+{
+    m_filename = std::string();
+    m_tex.reset(nullptr);
+    m_subimage = -1;
+    m_miplevel = -1;
+    m_cmp      = BlockCompression::NONE;
+    m_config.reset(nullptr);
+    ioproxy_clear();
+}
+
+
+
 bool
 KtxInput::close()
 {
-    // Check if already closed
-    if (!ioproxy_opened())
-        return true;
-    ioproxy_clear();
+    // Re-initialize to default so that this same instance can be re-opened
+    init();
     return true;
 };
 
@@ -747,13 +842,19 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     // dimensions of a miplevel. See:
     //  https://github.com/KhronosGroup/KTX-Software/lib/src/texture.c
     //
-    const size_t width  = std::max(m_tex->baseWidth >> miplevel, 1u);
-    const size_t height = std::max(m_tex->baseHeight >> miplevel, 1u);
-    const size_t depth  = std::max(m_tex->baseDepth >> miplevel, 1u);
+    const uint32_t width  = std::max(m_tex->baseWidth >> miplevel, 1u);
+    const uint32_t height = std::max(m_tex->baseHeight >> miplevel, 1u);
+    const uint32_t depth  = std::max(m_tex->baseDepth >> miplevel, 1u);
 
-    m_spec.width = m_spec.full_width = width;
-    m_spec.height = m_spec.full_height = height;
-    m_spec.depth = m_spec.full_depth = depth;
+    // Checks against overflows
+    const uint32_t int_max = static_cast<uint32_t>(
+        std::numeric_limits<int>::max());
+    if (width > int_max || height > int_max || depth > int_max)
+        return false;
+
+    m_spec.width = m_spec.full_width = static_cast<int>(width);
+    m_spec.height = m_spec.full_height = static_cast<int>(height);
+    m_spec.depth = m_spec.full_depth = static_cast<int>(depth);
 
     //
     // For volume texture, pretend it's a tiled texture with:
@@ -762,7 +863,7 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     // read_native_scanlines with a depth parameter (i.e., `z` parameter).
     //
     if (m_tex->numDimensions == 3) {
-        m_spec.tile_width  = width;
+        m_spec.tile_width  = static_cast<int>(width);
         m_spec.tile_height = 1;
         m_spec.tile_depth  = 1;
     }
@@ -770,9 +871,12 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     // Pretend a 1x6 layout (libktx doesn't provide access to cubemaps as whole
     // textures but rather through a per-face index API)
     if (m_tex->isCubemap) {
-        m_spec.height = m_spec.full_height = height * 6;
-        m_spec.tile_width                  = width;
-        m_spec.tile_height                 = height;
+        // Overflow check
+        if (height > int_max / 6)
+            return false;
+        m_spec.height = m_spec.full_height = static_cast<int>(height * 6);
+        m_spec.tile_width                  = static_cast<int>(width);
+        m_spec.tile_height                 = static_cast<int>(height);
         m_spec.tile_depth                  = 1;
     }
 

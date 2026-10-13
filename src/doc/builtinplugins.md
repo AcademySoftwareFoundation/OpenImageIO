@@ -1546,7 +1546,7 @@ After having opened a KTX2 file, the following attributes may be set:
      - int
      - Number of layers in a KTX2 array texture. Only set if input KTX2 texture
        is an array texture.
-   * - ``ktx:miplevels``
+   * - ``oiio:miplevels``
      - int
      - Number of mip levels for the input KTX2 texture. Only set if the texture
        contains mip levels (i.e., number of miplevels > 1).
