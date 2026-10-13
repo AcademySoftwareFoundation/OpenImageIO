@@ -113,9 +113,9 @@ private:
     // will be passed to ktxTextureCreateInfo's generateMipmaps param.
     bool m_generate_mipmaps { false };
 
-    // Should the target VkFormat be UNORM (if possible, given other ImageSpec
-    // inforamtion)?
-    bool m_normalized { false };
+    // Should the target VkFormat be UNORM/SNORM (if possible, given other
+    // ImageSpec inforamtion and depending on the ImageSpec::format)?
+    bool m_normalized { true };
 
     BlockCompression m_cmp { BlockCompression::NONE };
 

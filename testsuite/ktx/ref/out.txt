@@ -129,7 +129,6 @@ Reading ../oiio-images/ktx2/Iron_Bars_001_normal_uastc_zstd_10.ktx2
     compression: "zstd"
     textureformat: "Plain Texture"
     ktx:codec: "UASTC-LDR-4x4"
-    ktx:normalized: 1
     ktx:normalmap: 1
     oiio:ColorSpace: "lin_rec709_scene"
     oiio:miplevels: 11
@@ -163,6 +162,7 @@ Reading ../oiio-images/ktx2/Desk_small_zstd_15.ktx2
     channel list: R, G, B
     compression: "zstd"
     textureformat: "Plain Texture"
+    ktx:normalized: 0
     oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/ktx2/Desk_uastc_hdr4x4_zstd_15.ktx2
 ../oiio-images/ktx2/Desk_uastc_hdr4x4_zstd_15.ktx2 :  644 x  874, 3 channel, half ktx
@@ -171,6 +171,7 @@ Reading ../oiio-images/ktx2/Desk_uastc_hdr4x4_zstd_15.ktx2
     compression: "zstd"
     textureformat: "Plain Texture"
     ktx:codec: "UASTC-HDR-4x4"
+    ktx:normalized: 0
     ktx:uastc_hdr_ultra_quant: 1
     oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/ktx2/Desk_uastc_hdr6x6i.ktx2
@@ -179,6 +180,7 @@ Reading ../oiio-images/ktx2/Desk_uastc_hdr6x6i.ktx2
     channel list: R, G, B
     textureformat: "Plain Texture"
     ktx:codec: "UASTC-HDR-6x6"
+    ktx:normalized: 0
     oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/ktx2/Desk_astc_hdr6x6.ktx2
 ../oiio-images/ktx2/Desk_astc_hdr6x6.ktx2 :  644 x  874, 4 channel, half ktx
@@ -188,6 +190,7 @@ Reading ../oiio-images/ktx2/Desk_astc_hdr6x6.ktx2
     textureformat: "Plain Texture"
     ktx:astc_block_dimensions: "6x6"
     ktx:codec: "ASTC"
+    ktx:normalized: 0
     oiio:ColorSpace: "lin_rec709_scene"
 Reading ../oiio-images/ktx2/kodim17_blze.ktx2
 ../oiio-images/ktx2/kodim17_blze.ktx2 :  512 x  768, 4 channel, uint8 ktx
@@ -251,7 +254,6 @@ Reading ../oiio-images/ktx2/Iron_Bars_001_normal_blze.ktx2
     compression: "basis_lz"
     textureformat: "Plain Texture"
     ktx:codec: "ETC1S"
-    ktx:normalized: 1
     ktx:normalmap: 1
     oiio:ColorSpace: "lin_rec709_scene"
     oiio:miplevels: 11

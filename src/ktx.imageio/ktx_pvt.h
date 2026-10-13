@@ -415,7 +415,7 @@ struct FormatInfo {
     BlockCompression compression { BlockCompression::NONE };
     VkFormat uncompressed_format { VK_FORMAT_UNDEFINED };
     /* Does the VkFormat contain a UNORM or SNORM specifier? */
-    bool normalized_vkformat { false };
+    bool normalized_vkformat { true };
     /* ASTC block dimensions. Only valid if compression is `ASTC` */
     ktx_pack_astc_block_dimension_e astc_block_dims {
         ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4
@@ -425,6 +425,10 @@ struct FormatInfo {
 
 
 //
+// Get ImageSpec-related information, block compression type (if any), and
+// uncompressed VkFormat (for block-compressed formats) for the given VkFormat.
+//
+// Notes:
 // Colorspace detection should be done via the color model and transfer function
 // and not via VkFormat. See:
 // https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_data_format_descriptor
@@ -443,16 +447,16 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
         /* ------------------------------------------------------------------ */
 
         // 8-bit R[G[B[A]]] uncompressed UNORM formats
-    case       VK_FORMAT_R8_UNORM: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case     VK_FORMAT_R8G8_UNORM: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case   VK_FORMAT_R8G8B8_UNORM: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case VK_FORMAT_R8G8B8A8_UNORM: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
+    case       VK_FORMAT_R8_UNORM: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::NONE }; return true;
+    case     VK_FORMAT_R8G8_UNORM: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::NONE }; return true;
+    case   VK_FORMAT_R8G8B8_UNORM: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::NONE }; return true;
+    case VK_FORMAT_R8G8B8A8_UNORM: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::NONE }; return true;
 
         // 8-bit R[G[B[A]]] uncompressed SNORM formats
-    case       VK_FORMAT_R8_SNORM: formatinfo = { 1, TypeDesc::INT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case     VK_FORMAT_R8G8_SNORM: formatinfo = { 2, TypeDesc::INT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case   VK_FORMAT_R8G8B8_SNORM: formatinfo = { 3, TypeDesc::INT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case VK_FORMAT_R8G8B8A8_SNORM: formatinfo = { 4, TypeDesc::INT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
+    case       VK_FORMAT_R8_SNORM: formatinfo = { 1, TypeDesc::INT8, BlockCompression::NONE }; return true;
+    case     VK_FORMAT_R8G8_SNORM: formatinfo = { 2, TypeDesc::INT8, BlockCompression::NONE }; return true;
+    case   VK_FORMAT_R8G8B8_SNORM: formatinfo = { 3, TypeDesc::INT8, BlockCompression::NONE }; return true;
+    case VK_FORMAT_R8G8B8A8_SNORM: formatinfo = { 4, TypeDesc::INT8, BlockCompression::NONE }; return true;
 
         // 8-bit R[G[B[A]]] uncompressed SRGB formats
     case       VK_FORMAT_R8_SRGB: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::NONE }; return true;
@@ -460,17 +464,17 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
     case   VK_FORMAT_R8G8B8_SRGB: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::NONE }; return true;
     case VK_FORMAT_R8G8B8A8_SRGB: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::NONE }; return true;
 
-        // 8-bit R[G[B[A]]] uncompressed UINT formats
-    case       VK_FORMAT_R8_UINT: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::NONE }; return true;
-    case     VK_FORMAT_R8G8_UINT: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::NONE }; return true;
-    case   VK_FORMAT_R8G8B8_UINT: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R8G8B8A8_UINT: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::NONE }; return true;
+        // 8-bit R[G[B[A]]] uncompressed UINT formats (not normalized)
+    case       VK_FORMAT_R8_UINT: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case     VK_FORMAT_R8G8_UINT: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case   VK_FORMAT_R8G8B8_UINT: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R8G8B8A8_UINT: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
-        // 8-bit R[G[B[A]]] uncompressed SINT formats
-    case       VK_FORMAT_R8_SINT: formatinfo = { 1, TypeDesc::INT8, BlockCompression::NONE }; return true;
-    case     VK_FORMAT_R8G8_SINT: formatinfo = { 2, TypeDesc::INT8, BlockCompression::NONE }; return true;
-    case   VK_FORMAT_R8G8B8_SINT: formatinfo = { 3, TypeDesc::INT8, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R8G8B8A8_SINT: formatinfo = { 4, TypeDesc::INT8, BlockCompression::NONE }; return true;
+        // 8-bit R[G[B[A]]] uncompressed SINT formats (not normalized)
+    case       VK_FORMAT_R8_SINT: formatinfo = { 1, TypeDesc::INT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case     VK_FORMAT_R8G8_SINT: formatinfo = { 2, TypeDesc::INT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case   VK_FORMAT_R8G8B8_SINT: formatinfo = { 3, TypeDesc::INT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R8G8B8A8_SINT: formatinfo = { 4, TypeDesc::INT8, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
         // TODO: BGRA formats (need to add std::array<char, 4> channelnames to FormatInfo)
 
@@ -480,34 +484,34 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
         /* ------------------------------------------------------------------ */
 
         // 16-bit uncompressed UNORM formats
-    case          VK_FORMAT_R16_UNORM: formatinfo = { 1, TypeDesc::UINT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case       VK_FORMAT_R16G16_UNORM: formatinfo = { 2, TypeDesc::UINT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case    VK_FORMAT_R16G16B16_UNORM: formatinfo = { 3, TypeDesc::UINT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case VK_FORMAT_R16G16B16A16_UNORM: formatinfo = { 4, TypeDesc::UINT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
+    case          VK_FORMAT_R16_UNORM: formatinfo = { 1, TypeDesc::UINT16, BlockCompression::NONE }; return true;
+    case       VK_FORMAT_R16G16_UNORM: formatinfo = { 2, TypeDesc::UINT16, BlockCompression::NONE }; return true;
+    case    VK_FORMAT_R16G16B16_UNORM: formatinfo = { 3, TypeDesc::UINT16, BlockCompression::NONE }; return true;
+    case VK_FORMAT_R16G16B16A16_UNORM: formatinfo = { 4, TypeDesc::UINT16, BlockCompression::NONE }; return true;
 
         // 16-bit uncompressed SNORM formats
-    case          VK_FORMAT_R16_SNORM: formatinfo = { 1, TypeDesc::INT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case       VK_FORMAT_R16G16_SNORM: formatinfo = { 2, TypeDesc::INT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case    VK_FORMAT_R16G16B16_SNORM: formatinfo = { 3, TypeDesc::INT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
-    case VK_FORMAT_R16G16B16A16_SNORM: formatinfo = { 4, TypeDesc::INT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, true }; return true;
+    case          VK_FORMAT_R16_SNORM: formatinfo = { 1, TypeDesc::INT16, BlockCompression::NONE }; return true;
+    case       VK_FORMAT_R16G16_SNORM: formatinfo = { 2, TypeDesc::INT16, BlockCompression::NONE }; return true;
+    case    VK_FORMAT_R16G16B16_SNORM: formatinfo = { 3, TypeDesc::INT16, BlockCompression::NONE }; return true;
+    case VK_FORMAT_R16G16B16A16_SNORM: formatinfo = { 4, TypeDesc::INT16, BlockCompression::NONE }; return true;
 
         // 16-bit uncompressed SFLOAT formats
-    case          VK_FORMAT_R16_SFLOAT: formatinfo = { 1, TypeDesc::HALF, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R16G16_SFLOAT: formatinfo = { 2, TypeDesc::HALF, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R16G16B16_SFLOAT: formatinfo = { 3, TypeDesc::HALF, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R16G16B16A16_SFLOAT: formatinfo = { 4, TypeDesc::HALF, BlockCompression::NONE }; return true;
+    case          VK_FORMAT_R16_SFLOAT: formatinfo = { 1, TypeDesc::HALF, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R16G16_SFLOAT: formatinfo = { 2, TypeDesc::HALF, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R16G16B16_SFLOAT: formatinfo = { 3, TypeDesc::HALF, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R16G16B16A16_SFLOAT: formatinfo = { 4, TypeDesc::HALF, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
         // 16-bit uncompressed UINT formats
-    case          VK_FORMAT_R16_UINT: formatinfo = { 1, TypeDesc::UINT16, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R16G16_UINT: formatinfo = { 2, TypeDesc::UINT16, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R16G16B16_UINT: formatinfo = { 3, TypeDesc::UINT16, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R16G16B16A16_UINT: formatinfo = { 4, TypeDesc::UINT16, BlockCompression::NONE }; return true;
+    case          VK_FORMAT_R16_UINT: formatinfo = { 1, TypeDesc::UINT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R16G16_UINT: formatinfo = { 2, TypeDesc::UINT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R16G16B16_UINT: formatinfo = { 3, TypeDesc::UINT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R16G16B16A16_UINT: formatinfo = { 4, TypeDesc::UINT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
         // 16-bit uncompressed SINT formats
-    case          VK_FORMAT_R16_SINT: formatinfo = { 1, TypeDesc::INT16, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R16G16_SINT: formatinfo = { 2, TypeDesc::INT16, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R16G16B16_SINT: formatinfo = { 3, TypeDesc::INT16, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R16G16B16A16_SINT: formatinfo = { 4, TypeDesc::INT16, BlockCompression::NONE }; return true;
+    case          VK_FORMAT_R16_SINT: formatinfo = { 1, TypeDesc::INT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R16G16_SINT: formatinfo = { 2, TypeDesc::INT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R16G16B16_SINT: formatinfo = { 3, TypeDesc::INT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R16G16B16A16_SINT: formatinfo = { 4, TypeDesc::INT16, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
 
         /* ------------------------------------------------------------------ */
@@ -515,22 +519,22 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
         /* ------------------------------------------------------------------ */
 
         // 32-bit uncompressed SFLOAT formats
-    case          VK_FORMAT_R32_SFLOAT: formatinfo = { 1, TypeDesc::FLOAT, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R32G32_SFLOAT: formatinfo = { 2, TypeDesc::FLOAT, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R32G32B32_SFLOAT: formatinfo = { 3, TypeDesc::FLOAT, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R32G32B32A32_SFLOAT: formatinfo = { 4, TypeDesc::FLOAT, BlockCompression::NONE }; return true;
+    case          VK_FORMAT_R32_SFLOAT: formatinfo = { 1, TypeDesc::FLOAT, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R32G32_SFLOAT: formatinfo = { 2, TypeDesc::FLOAT, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R32G32B32_SFLOAT: formatinfo = { 3, TypeDesc::FLOAT, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R32G32B32A32_SFLOAT: formatinfo = { 4, TypeDesc::FLOAT, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
         // 32-bit uncompressed UINT formats
-    case          VK_FORMAT_R32_UINT: formatinfo = { 1, TypeDesc::UINT32, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R32G32_UINT: formatinfo = { 2, TypeDesc::UINT32, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R32G32B32_UINT: formatinfo = { 3, TypeDesc::UINT32, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R32G32B32A32_UINT: formatinfo = { 4, TypeDesc::UINT32, BlockCompression::NONE }; return true;
+    case          VK_FORMAT_R32_UINT: formatinfo = { 1, TypeDesc::UINT32, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R32G32_UINT: formatinfo = { 2, TypeDesc::UINT32, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R32G32B32_UINT: formatinfo = { 3, TypeDesc::UINT32, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R32G32B32A32_UINT: formatinfo = { 4, TypeDesc::UINT32, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
         // 32-bit uncompressed SINT formats
-    case          VK_FORMAT_R32_SINT: formatinfo = { 1, TypeDesc::INT32, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R32G32_SINT: formatinfo = { 2, TypeDesc::INT32, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R32G32B32_SINT: formatinfo = { 3, TypeDesc::INT32, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R32G32B32A32_SINT: formatinfo = { 4, TypeDesc::INT32, BlockCompression::NONE }; return true;
+    case          VK_FORMAT_R32_SINT: formatinfo = { 1, TypeDesc::INT32, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R32G32_SINT: formatinfo = { 2, TypeDesc::INT32, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R32G32B32_SINT: formatinfo = { 3, TypeDesc::INT32, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R32G32B32A32_SINT: formatinfo = { 4, TypeDesc::INT32, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
 
         /* ------------------------------------------------------------------ */
@@ -538,22 +542,22 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
         /* ------------------------------------------------------------------ */
 
         // 64-bit uncompressed SFLOAT formats
-    case          VK_FORMAT_R64_SFLOAT: formatinfo = { 1, TypeDesc::DOUBLE, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R64G64_SFLOAT: formatinfo = { 2, TypeDesc::DOUBLE, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R64G64B64_SFLOAT: formatinfo = { 3, TypeDesc::DOUBLE, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R64G64B64A64_SFLOAT: formatinfo = { 4, TypeDesc::DOUBLE, BlockCompression::NONE }; return true;
+    case          VK_FORMAT_R64_SFLOAT: formatinfo = { 1, TypeDesc::DOUBLE, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R64G64_SFLOAT: formatinfo = { 2, TypeDesc::DOUBLE, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R64G64B64_SFLOAT: formatinfo = { 3, TypeDesc::DOUBLE, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R64G64B64A64_SFLOAT: formatinfo = { 4, TypeDesc::DOUBLE, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
-        // 32-bit uncompressed UINT formats
-    case          VK_FORMAT_R64_UINT: formatinfo = { 1, TypeDesc::UINT64, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R64G64_UINT: formatinfo = { 2, TypeDesc::UINT64, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R64G64B64_UINT: formatinfo = { 3, TypeDesc::UINT64, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R64G64B64A64_UINT: formatinfo = { 4, TypeDesc::UINT64, BlockCompression::NONE }; return true;
+        // 64-bit uncompressed UINT formats
+    case          VK_FORMAT_R64_UINT: formatinfo = { 1, TypeDesc::UINT64, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R64G64_UINT: formatinfo = { 2, TypeDesc::UINT64, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R64G64B64_UINT: formatinfo = { 3, TypeDesc::UINT64, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R64G64B64A64_UINT: formatinfo = { 4, TypeDesc::UINT64, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
-        // 32-bit uncompressed SINT formats
-    case          VK_FORMAT_R64_SINT: formatinfo = { 1, TypeDesc::INT64, BlockCompression::NONE }; return true;
-    case       VK_FORMAT_R64G64_SINT: formatinfo = { 2, TypeDesc::INT64, BlockCompression::NONE }; return true;
-    case    VK_FORMAT_R64G64B64_SINT: formatinfo = { 3, TypeDesc::INT64, BlockCompression::NONE }; return true;
-    case VK_FORMAT_R64G64B64A64_SINT: formatinfo = { 4, TypeDesc::INT64, BlockCompression::NONE }; return true;
+        // 64-bit uncompressed SINT formats
+    case          VK_FORMAT_R64_SINT: formatinfo = { 1, TypeDesc::INT64, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case       VK_FORMAT_R64G64_SINT: formatinfo = { 2, TypeDesc::INT64, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case    VK_FORMAT_R64G64B64_SINT: formatinfo = { 3, TypeDesc::INT64, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
+    case VK_FORMAT_R64G64B64A64_SINT: formatinfo = { 4, TypeDesc::INT64, BlockCompression::NONE, VK_FORMAT_UNDEFINED, false }; return true;
 
 
         /* ------------------------------------------------------------------ */
@@ -562,29 +566,29 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
 
         // ETC2 block-compressed formats (not supported)
     case    VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::ETC2_RGB, VK_FORMAT_R8G8B8A8_SRGB }; return true;
-    case   VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::ETC2_RGB, VK_FORMAT_R8G8B8A8_UNORM, true }; return true;
+    case   VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::ETC2_RGB, VK_FORMAT_R8G8B8A8_UNORM }; return true;
     case  VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ETC2_RGB_A1, VK_FORMAT_R8G8B8A8_SRGB }; return true;
     case  VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ETC2_RGBA, VK_FORMAT_R8G8B8A8_SRGB }; return true;
-    case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ETC2_RGB_A1, VK_FORMAT_R8G8B8A8_UNORM, true }; return true;
-    case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ETC2_RGBA, VK_FORMAT_R8G8B8A8_UNORM, true }; return true;
+    case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ETC2_RGB_A1, VK_FORMAT_R8G8B8A8_UNORM }; return true;
+    case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ETC2_RGBA, VK_FORMAT_R8G8B8A8_UNORM }; return true;
 
         // BCn formats
-    case   VK_FORMAT_BC1_RGB_SRGB_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::BC1, VK_FORMAT_R8G8B8A8_SRGB, false }; return true;
-    case  VK_FORMAT_BC1_RGB_UNORM_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::BC1, VK_FORMAT_R8G8B8A8_UNORM, true }; return true;
-    case  VK_FORMAT_BC1_RGBA_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC1A, VK_FORMAT_R8G8B8A8_SRGB, false }; return true;
-    case VK_FORMAT_BC1_RGBA_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC1A, VK_FORMAT_R8G8B8A8_UNORM, true }; return true;
-    case       VK_FORMAT_BC2_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC2, VK_FORMAT_R8G8B8A8_SRGB, false }; return true;
-    case      VK_FORMAT_BC2_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC2, VK_FORMAT_R8G8B8A8_UNORM, true }; return true;
-    case       VK_FORMAT_BC3_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC3, VK_FORMAT_R8G8B8A8_SRGB, false }; return true;
-    case      VK_FORMAT_BC3_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC3, VK_FORMAT_R8G8B8A8_UNORM, true }; return true;
-    case      VK_FORMAT_BC4_UNORM_BLOCK: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::BC4, VK_FORMAT_R8_UNORM, true }; return true;
-    case      VK_FORMAT_BC4_SNORM_BLOCK: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::BC4, VK_FORMAT_R8_SNORM, true }; return true;
-    case      VK_FORMAT_BC5_UNORM_BLOCK: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::BC5, VK_FORMAT_R8G8_UNORM, true }; return true;
-    case      VK_FORMAT_BC5_SNORM_BLOCK: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::BC5, VK_FORMAT_R8G8_SNORM, true }; return true;
+    case   VK_FORMAT_BC1_RGB_SRGB_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::BC1, VK_FORMAT_R8G8B8A8_SRGB }; return true;
+    case  VK_FORMAT_BC1_RGB_UNORM_BLOCK: formatinfo = { 3, TypeDesc::UINT8, BlockCompression::BC1, VK_FORMAT_R8G8B8A8_UNORM }; return true;
+    case  VK_FORMAT_BC1_RGBA_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC1A, VK_FORMAT_R8G8B8A8_SRGB }; return true;
+    case VK_FORMAT_BC1_RGBA_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC1A, VK_FORMAT_R8G8B8A8_UNORM }; return true;
+    case       VK_FORMAT_BC2_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC2, VK_FORMAT_R8G8B8A8_SRGB }; return true;
+    case      VK_FORMAT_BC2_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC2, VK_FORMAT_R8G8B8A8_UNORM }; return true;
+    case       VK_FORMAT_BC3_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC3, VK_FORMAT_R8G8B8A8_SRGB }; return true;
+    case      VK_FORMAT_BC3_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC3, VK_FORMAT_R8G8B8A8_UNORM }; return true;
+    case      VK_FORMAT_BC4_UNORM_BLOCK: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::BC4, VK_FORMAT_R8_UNORM }; return true;
+    case      VK_FORMAT_BC4_SNORM_BLOCK: formatinfo = { 1, TypeDesc::UINT8, BlockCompression::BC4, VK_FORMAT_R8_SNORM }; return true;
+    case      VK_FORMAT_BC5_UNORM_BLOCK: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::BC5, VK_FORMAT_R8G8_UNORM }; return true;
+    case      VK_FORMAT_BC5_SNORM_BLOCK: formatinfo = { 2, TypeDesc::UINT8, BlockCompression::BC5, VK_FORMAT_R8G8_SNORM }; return true;
     case    VK_FORMAT_BC6H_UFLOAT_BLOCK: formatinfo = { 3, TypeDesc::HALF, BlockCompression::BC6HU, VK_FORMAT_R16G16B16_SFLOAT, false }; return true;
     case    VK_FORMAT_BC6H_SFLOAT_BLOCK: formatinfo = { 3, TypeDesc::HALF, BlockCompression::BC6HS, VK_FORMAT_R16G16B16_SFLOAT, false }; return true;
-    case       VK_FORMAT_BC7_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_SRGB, false }; return true;
-    case      VK_FORMAT_BC7_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_UNORM, true }; return true;
+    case       VK_FORMAT_BC7_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_SRGB }; return true;
+    case      VK_FORMAT_BC7_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::BC7, VK_FORMAT_R8G8B8A8_UNORM }; return true;
 
         // LDR ASTC linear formats (2D blocks)
     case   VK_FORMAT_ASTC_4x4_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_UNORM, true, KTX_PACK_ASTC_BLOCK_DIMENSION_4x4 }; return true;
@@ -603,20 +607,20 @@ get_info_from_vkformat(VkFormat vkformat, FormatInfo& formatinfo)
     case VK_FORMAT_ASTC_12x12_UNORM_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_UNORM, true, KTX_PACK_ASTC_BLOCK_DIMENSION_12x12 }; return true;
 
         // LDR ASTC sRGB formats (2D blocks)
-    case   VK_FORMAT_ASTC_4x4_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_4x4 }; return true;
-    case   VK_FORMAT_ASTC_5x4_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_5x4 }; return true;
-    case   VK_FORMAT_ASTC_5x5_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_5x5 }; return true;
-    case   VK_FORMAT_ASTC_6x5_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_6x5 }; return true;
-    case   VK_FORMAT_ASTC_6x6_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_6x6 }; return true;
-    case   VK_FORMAT_ASTC_8x5_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_8x5 }; return true;
-    case   VK_FORMAT_ASTC_8x6_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_8x6 }; return true;
-    case   VK_FORMAT_ASTC_8x8_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_8x8 }; return true;
-    case  VK_FORMAT_ASTC_10x5_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_10x5 }; return true;
-    case  VK_FORMAT_ASTC_10x6_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_10x6 }; return true;
-    case  VK_FORMAT_ASTC_10x8_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_10x8 }; return true;
-    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_10x10 }; return true;
-    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_12x10 }; return true;
-    case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, false, KTX_PACK_ASTC_BLOCK_DIMENSION_12x12 }; return true;
+    case   VK_FORMAT_ASTC_4x4_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_4x4 }; return true;
+    case   VK_FORMAT_ASTC_5x4_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_5x4 }; return true;
+    case   VK_FORMAT_ASTC_5x5_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_5x5 }; return true;
+    case   VK_FORMAT_ASTC_6x5_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_6x5 }; return true;
+    case   VK_FORMAT_ASTC_6x6_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_6x6 }; return true;
+    case   VK_FORMAT_ASTC_8x5_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_8x5 }; return true;
+    case   VK_FORMAT_ASTC_8x6_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_8x6 }; return true;
+    case   VK_FORMAT_ASTC_8x8_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_8x8 }; return true;
+    case  VK_FORMAT_ASTC_10x5_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_10x5 }; return true;
+    case  VK_FORMAT_ASTC_10x6_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_10x6 }; return true;
+    case  VK_FORMAT_ASTC_10x8_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_10x8 }; return true;
+    case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_10x10 }; return true;
+    case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_12x10 }; return true;
+    case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: formatinfo = { 4, TypeDesc::UINT8, BlockCompression::ASTC, VK_FORMAT_R8G8B8A8_SRGB, true, KTX_PACK_ASTC_BLOCK_DIMENSION_12x12 }; return true;
         
         // HDR ASTC formats (2D blocks)
     case   VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK: formatinfo = { 4, TypeDesc::HALF, BlockCompression::ASTC, VK_FORMAT_R16G16B16A16_SFLOAT, false, KTX_PACK_ASTC_BLOCK_DIMENSION_4x4 }; return true;

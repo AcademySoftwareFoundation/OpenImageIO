@@ -747,9 +747,10 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     }
     m_spec.set_format(format_info.typedesc);
     m_spec.nchannels = format_info.nbrchannels;
-    // Save whether this is a UNORM/SNORM VkFormat so that it can be reproduced
-    if (format_info.normalized_vkformat)
-        m_spec.attribute("ktx:normalized", true);
+    // Save whether this is not a UNORM/SNORM VkFormat so that it can be
+    // reproduced
+    if (!format_info.normalized_vkformat)
+        m_spec.attribute("ktx:normalized", false);
 
     newspec = m_spec;
     return true;
@@ -1354,11 +1355,16 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params) noexcep
         std::regex uastc_hdr_lambda_re("--uastc-hdr-lambda\\s+((\\d*[.])?\\d+)", f);
         std::regex uastc_hdr_6x6i_level_re("--uastc-hdr-6x6i-level\\s+(\\d+)", f);
 
+        // KTX Tools sets uses `--uastc-quality` to set the quality for UASTC LDR/HDR.
+        // These are NOT UASTC quality flags but rather a quality setting with the valid range [0, 4]
         if (std::smatch m; std::regex_search(ktx_sc_params, m, uastc_quality_re) && m.size() == 2) {
-            auto uastc_quality = Strutil::stoui(m[1].str());
-            const uint32_t uastc_flags = (unsigned int)~KTX_PACK_UASTC_LEVEL_MASK | uastc_quality;
-            m_spec.extra_attribs.attribute("ktx:uastc_flags", uastc_flags);
-            m_spec.extra_attribs.attribute("ktx:uastc_hdr_quality", uastc_quality);
+            // KTX Tools users may set `--uastc-quality` to something higher than 4 hence why we clamp it here
+            // Least significant 4 bits are for the level (e.g., fastest, slowest, etc.)
+            // These are the most important bits. The ramaining bits are for advanced codec quality options and cannot
+            // be set by KTX Tools' `--uastc-quality` option. This is why we set the remaining bits to 0 (default).
+            const uint32_t uastc_quality_level = std::max<uint32_t>(Strutil::stoui(m[1].str()), KTX_PACK_UASTC_MAX_LEVEL);
+            m_spec.extra_attribs.attribute("ktx:uastc_flags", uastc_quality_level);
+            m_spec.extra_attribs.attribute("ktx:uastc_hdr_quality", uastc_quality_level);
         }
 
         if (Strutil::icontains(ktx_sc_params, "--uastc-rdo")) m_spec.extra_attribs.attribute("ktx:uastc_rdo", true);

@@ -1636,7 +1636,9 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
    * - ``ktx:normalized``
      - int (bool)
      - Should the target VkFormat be normalized if possible (UNORM or SNORM
-       based on the ImageSpec type). Defaults to false.
+       based on the ImageSpec type). This attribute is ignored if the colorspace
+       is SRGB or the ImageSpec type does not have a corresponding UNORM/SNORM
+       VkFormat output (e.g., UINT64). Defaults to true.
    * - ``compression``
      - string
      - Super-compression scheme to apply (i.e., additional layer of lossless
@@ -1680,7 +1682,9 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
        Defaults to no swizzle (i.e., zero'ed array).
    * - ``ktx:uastc_flags``
      - uint
-     - A set of ``ktx_pack_uastc_flag_bits`` controlling UASTC encoding.
+     - A set of ``ktx_pack_uastc_flag_bits`` controlling UASTC encoding. The
+       least significant 4 bit are the most important and determine the quality
+       level for both UASTC-LDR and UASTC-HDR.
        Defaults to 0 (maps to libktx' KTX_PACK_UASTC_LEVEL_FASTEST).
    * - ``ktx:uastc_rdo``
      - int (bool)
