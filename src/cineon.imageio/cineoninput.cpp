@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 #include <cmath>
+#include <limits>
 
 #include "libcineon/Cineon.h"
 
@@ -138,6 +139,13 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
 
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })
         || !check_compression_ratio(m_spec, Filesystem::file_size(name))) {
+        close();
+        return false;
+    }
+
+    if (m_spec.scanline_bytes() > size_t(std::numeric_limits<int>::max())) {
+        errorfmt("Image resolution {}x{} with {} channels exceeds decodable buffer limits",
+                 m_cin.header.Width(), m_cin.header.Height(), nchannels);
         close();
         return false;
     }

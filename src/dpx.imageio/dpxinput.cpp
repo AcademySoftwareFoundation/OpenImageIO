@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <iomanip>
+#include <limits>
 #include <memory>
 
 #include <OpenEXR/ImfTimeCode.h>  //For TimeCode support
@@ -231,6 +232,14 @@ DPXInput::seek_subimage(int subimage, int miplevel)
 
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1 << 16, 0, 8 })
         || !check_compression_ratio(m_spec, m_filesize)) {
+        m_spec = ImageSpec();
+        return false;
+    }
+
+    if (m_spec.scanline_bytes() > size_t(std::numeric_limits<int>::max())) {
+        errorfmt(
+            "Image resolution {}x{} with {} channels exceeds decodable buffer limits",
+            m_dpx.header.Width(), m_dpx.header.Height(), ncomps);
         m_spec = ImageSpec();
         return false;
     }
