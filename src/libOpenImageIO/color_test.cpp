@@ -273,6 +273,101 @@ test_linear_display_cicp()
 
 
 static void
+test_interop_identities_conversion()
+{
+    // A color interop ID the config doesn't define converts through OIIO's
+    // built-in identities config and this config's interchange roles.
+    const std::string filename = Filesystem::temp_directory_path() + "/"
+                                 + Filesystem::unique_path() + ".ocio";
+    auto write_config          = [&](string_view aliases) {
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+            filename,
+            Strutil::fmt::format(
+                "ocio_profile_version: 2.3\n"
+                "roles: {{aces_interchange: ACES2065-1, "
+                "cie_xyz_d65_interchange: CIE-XYZ-D65, default: ACES2065-1}}\n"
+                "file_rules:\n  - !<Rule> {{name: Default, colorspace: default}}\n"
+                "displays:\n  XYZ:\n    - !<View> {{name: Bridge, "
+                "view_transform: bridge, display_colorspace: CIE-XYZ-D65}}\n"
+                "    - !<View> {{name: Raw, colorspace: Raw}}\n"
+                "view_transforms:\n  - !<ViewTransform> {{name: bridge, "
+                "from_scene_reference: !<BuiltinTransform> "
+                "{{style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD}}}}\n"
+                "colorspaces:\n"
+                "  - !<ColorSpace> {{name: ACES2065-1, aliases: [{}]}}\n"
+                "  - !<ColorSpace> {{name: Raw, isdata: true}}\n"
+                "display_colorspaces:\n"
+                "  - !<ColorSpace> {{name: CIE-XYZ-D65}}\n",
+                aliases)));
+    };
+    // Linear Rec.709 red in ACES2065-1 and in CIE XYZ.
+    const float rec709_red_ap0[3] = { 0.439633f, 0.0897764f, 0.0175412f };
+    const float rec709_red_xyz[3] = { 0.412391f, 0.212639f, 0.0193308f };
+
+    write_config("");
+    {
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        auto to_ap0 = config.createColorProcessor("lin_rec709_scene",
+                                                  "ACES2065-1");
+        auto back   = config.createColorProcessor("ACES2065-1",
+                                                  "lin_rec709_scene");
+        OIIO_CHECK_ASSERT(to_ap0 && back);
+        OIIO_CHECK_ASSERT(
+            config.createColorProcessor("ocio:lin_awg4_scene", "ACES2065-1"));
+        if (to_ap0 && back) {
+            float rgb[3] = { 1.0f, 0.0f, 0.0f };
+            to_ap0->apply(rgb);
+            for (int c = 0; c < 3; ++c)
+                OIIO_CHECK_EQUAL_THRESH(rgb[c], rec709_red_ap0[c], 1.0e-4f);
+            back->apply(rgb);
+            OIIO_CHECK_EQUAL_THRESH(rgb[0], 1.0f, 1.0e-4f);
+            OIIO_CHECK_EQUAL_THRESH(rgb[1], 0.0f, 1.0e-4f);
+        }
+        // The display pipeline runs from the config's interchange space,
+        // which also picks the default view.
+        const char* view = config.getDefaultViewName("XYZ", "lin_rec709_scene");
+        OIIO_CHECK_EQUAL(string_view(view), "Bridge");
+        for (string_view v : { "Bridge", "" }) {
+            auto display = config.createDisplayTransform("XYZ", v,
+                                                         "lin_rec709_scene",
+                                                         "");
+            OIIO_CHECK_ASSERT(display);
+            if (display) {
+                float rgb[3] = { 1.0f, 0.0f, 0.0f };
+                display->apply(rgb);
+                for (int c = 0; c < 3; ++c)
+                    OIIO_CHECK_EQUAL_THRESH(rgb[c], rec709_red_xyz[c], 1.0e-4f);
+            }
+        }
+        // A data view leaves the pixels alone.
+        auto raw = config.createDisplayTransform("XYZ", "Raw",
+                                                 "lin_rec709_scene", "");
+        OIIO_CHECK_ASSERT(raw);
+        if (raw) {
+            float rgb[3] = { 0.25f, 0.5f, 0.75f };
+            raw->apply(rgb);
+            OIIO_CHECK_EQUAL(rgb[0], 0.25f);
+            OIIO_CHECK_EQUAL(rgb[1], 0.5f);
+            OIIO_CHECK_EQUAL(rgb[2], 0.75f);
+        }
+    }
+
+    // A name the config defines keeps its meaning, even when it misnames
+    // the space.
+    write_config("lin_rec709_scene");
+    {
+        ColorConfig config(filename);
+        auto proc = config.createColorProcessor("lin_rec709_scene",
+                                                "ACES2065-1");
+        OIIO_CHECK_ASSERT(proc && proc->isNoOp());
+    }
+    Filesystem::remove(filename);
+}
+
+
+
+static void
 test_gamma_pair_conversion()
 {
     // OCIO < 2.5 composes back-to-back exponents in the wrong direction under
@@ -406,6 +501,7 @@ main(int argc, char* argv[])
     test_namespaced_ids();
     test_Rec709_conversion();
     test_linear_display_cicp();
+    test_interop_identities_conversion();
     test_gamma_pair_conversion();
     test_color_space_properties();
 
