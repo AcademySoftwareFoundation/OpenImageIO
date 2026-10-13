@@ -18,6 +18,7 @@
     YResolution: 72
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 11
     oiio:SHA-1: "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -441,6 +442,7 @@ src/mip.tif :    2 x    2, 3 channel, uint8 tiff
     oiio:AverageColor: "0.25,0.5,0.75"
     oiio:BitsPerSample: 8
     oiio:ConstantColor: "0.25,0.5,0.75"
+    oiio:miplevels: 2
     oiio:SHA-1: "1042D991FBDE596CF8FBC5660BC809AC057D8B9A"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
