@@ -796,6 +796,10 @@ DDSInput::seek_subimage(int subimage, int miplevel)
 
     m_subimage = subimage;
     m_miplevel = miplevel;
+
+    if ((m_dds.flags & DDS_MIPMAPCOUNT) && (int)m_dds.mipmaps > 1)
+        m_spec.attribute("oiio:miplevels", (int)m_dds.mipmaps);
+
     return true;
 }
 
