@@ -189,9 +189,7 @@ pause(int delay) noexcept
 class atomic_backoff {
 public:
     atomic_backoff(int pausemax = 16, int spins = 0) noexcept
-        : m_count(1)
-        , m_pausemax(pausemax)
-        , m_spins(spins)
+        : m_count(1), m_pausemax(pausemax), m_spins(spins)
     {
     }
 
