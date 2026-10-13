@@ -84,6 +84,12 @@ command += oiiotool("src/crash-large-origin.dpx -o crash-large-origin.tif",
 command += info_command("src/crash-origin-overflow.dpx", safematch=True,
                         failureok=True)
 
+# Regression test: a DPX whose end-of-line padding (2^31) goes negative in
+# the int the readers use. A negative padding lets a tiny file stand in for
+# a huge image, which reached a 32-bit overflow of the output buffer offset.
+# The file must be rejected on open.
+command += info_command("src/bad-eolpad.dpx", safematch=True, failureok=True)
+
 # Regression test: a DPX whose pixel data is cut off after the first
 # scanline. libdpx ignored the short reads and reported success, so a tiny
 # file declaring huge images was "read" in full, which made the fuzzer time

@@ -64,7 +64,7 @@ namespace dpx
 
 	// this function is called when the DataSize is 10 bit and the packing method is kFilledMethodA or kFilledMethodB
 	template<typename BUF, int PADDINGBITS>
-	void Unfill10bitFilled(U32 *readBuf, const int x, BUF *data, int count, int bufoff, const int numberOfComponents)
+	void Unfill10bitFilled(U32 *readBuf, const int x, BUF *data, int count, int64_t bufoff, const int numberOfComponents)
 	{
 		// unpack the words in the buffer
 		BUF *obuf = data + bufoff;
@@ -160,7 +160,7 @@ namespace dpx
 			readSize = readSize / 3 * 4;
 			
 			// determine buffer offset
-			int bufoff = line * datums;
+			int64_t bufoff = int64_t(line) * datums;
 	
 			if (!fd->Read(dpxHeader, element, offset, readBuf, readSize))
 				return false;
@@ -214,7 +214,7 @@ namespace dpx
 	// 10 bit, packed data
 	// 12 bit, packed data
 	template <typename BUF, U32 MASK, int MULTIPLIER, int REMAIN, int REVERSE>
-	void UnPackPacked(U32 *readBuf, const int bitDepth, BUF *data, int count, int bufoff)
+	void UnPackPacked(U32 *readBuf, const int bitDepth, BUF *data, int count, int64_t bufoff)
 	{
 		// unpack the words in the buffer
 		BUF *obuf = data + bufoff;
@@ -294,7 +294,7 @@ namespace dpx
 			readSize = ((readSize + 31) / 32) * sizeof(U32);
 
 			// calculate buffer offset
-			int bufoff = line * dpxHeader.Width() * numberOfComponents;
+			int64_t bufoff = int64_t(line) * dpxHeader.Width() * numberOfComponents;
 	
 			if (!fd->Read(dpxHeader, element, offset, readBuf, readSize))
 				return false;

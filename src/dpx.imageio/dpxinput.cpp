@@ -235,6 +235,16 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         return false;
     }
 
+    // The readers hold end-of-line padding in an int, so a larger value
+    // would go negative and step rows backward through the file.
+    if (m_dpx.header.EndOfLinePadding(subimage)
+        > (unsigned int)std::numeric_limits<int>::max()) {
+        errorfmt("Invalid DPX end-of-line padding {}",
+                 m_dpx.header.EndOfLinePadding(subimage));
+        m_spec = ImageSpec();
+        return false;
+    }
+
     if ((int)m_dpx.header.xOriginalSize > 0)
         m_spec.full_width = m_dpx.header.xOriginalSize;
     if ((int)m_dpx.header.yOriginalSize > 0)
