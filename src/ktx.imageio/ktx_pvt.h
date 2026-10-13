@@ -39,6 +39,37 @@ enum class BlockCompression : uint8_t {
 
 
 
+// clang-format off
+static std::unordered_map<std::string, ktx_pack_astc_block_dimension_e> astc_block_dims_str_to_enum{
+  { "4x4",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4 },
+  { "5x4",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x4 },
+  { "5x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5 },
+  { "6x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x5 },
+  { "6x6",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6 },
+  { "8x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x5 },
+  { "8x6",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x6 },
+  { "10x5",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x5 },
+  { "10x6",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x6 },
+  { "8x8",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x8 },
+  { "10x8",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x8 },
+  { "10x10", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x10 },
+  { "12x10", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_12x10 },
+  { "12x12", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_12x12 },
+  { "3x3x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_3x3x3 },
+  { "4x3x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x3x3 },
+  { "4x4x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4x3 },
+  { "4x4x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4x4 },
+  { "5x4x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x4x4 },
+  { "5x5x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5x4 },
+  { "5x5x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5x5 },
+  { "6x5x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x5x5 },
+  { "6x6x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6x5 },
+  { "6x6x6", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6x6 },
+};
+// clang-format on
+
+
+
 static inline std::string
 block_compression_name(BlockCompression cmp)
 {
@@ -828,33 +859,17 @@ get_vkformat_from_info(ImageSpec const& spec, bool srgb_colorspace,
     // clang-format on
 }
 
-// clang-format off
-static std::unordered_map<std::string, ktx_pack_astc_block_dimension_e> astc_block_dims_str_to_enum{
-  { "4x4",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4 },
-  { "5x4",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x4 },
-  { "5x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5 },
-  { "6x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x5 },
-  { "6x6",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6 },
-  { "8x5",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x5 },
-  { "8x6",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x6 },
-  { "10x5",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x5 },
-  { "10x6",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x6 },
-  { "8x8",   ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_8x8 },
-  { "10x8",  ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x8 },
-  { "10x10", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_10x10 },
-  { "12x10", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_12x10 },
-  { "12x12", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_12x12 },
-  { "3x3x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_3x3x3 },
-  { "4x3x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x3x3 },
-  { "4x4x3", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4x3 },
-  { "4x4x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4x4 },
-  { "5x4x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x4x4 },
-  { "5x5x4", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5x4 },
-  { "5x5x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_5x5x5 },
-  { "6x5x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x5x5 },
-  { "6x6x5", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6x5 },
-  { "6x6x6", ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_6x6x6 },
-};
-// clang-format on
+
+
+inline uint32_t
+calculate_nbr_mip_levels(uint32_t dimension) noexcept
+{
+    uint32_t nmips = 0;
+    while (dimension > 0) {
+        dimension >>= 1;
+        ++nmips;
+    }
+    return nmips;
+}
 
 OIIO_PLUGIN_NAMESPACE_END

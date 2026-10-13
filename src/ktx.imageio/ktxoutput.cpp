@@ -250,10 +250,6 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             != TypeDesc::UINT8 /* && m_spec.format != TypeDesc::UINT16 */)
             m_spec.set_format(TypeDesc::UINT8);
 
-        ioproxy_retrieve_from_config(m_spec);
-        if (!ioproxy_use_or_open(m_filename))
-            return false;
-
         // Currently only two colorspaces are tested, linear or REC709 sRGB
         const auto colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
                                                             "srgb_rec709_scene");
@@ -371,11 +367,9 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
 
-        // clang-format off
-        m_max_nmiplevels = m_is3D
-          ? (uint32_t)floor(logf(std::min(std::min(m_spec.width, m_spec.height), m_spec.depth)) / logf(2)) + 1
-          : (uint32_t)floor(logf(std::min(m_spec.width, m_spec.height)) / logf(2)) + 1;
-        // clang-format on
+        m_max_nmiplevels = calculate_nbr_mip_levels(
+            m_is3D ? std::min({ m_spec.width, m_spec.height, m_spec.depth })
+                   : std::min(m_spec.width, m_spec.height));
 
         DBG std::cout << "[ktxoutput] max number mip levels allowed: "
                       << m_max_nmiplevels << std::endl;
@@ -388,6 +382,10 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 
         // Reserve space for base-level mipmap (level 0)
         append_mipmaps_vector();
+
+        ioproxy_retrieve_from_config(m_spec);
+        if (!ioproxy_use_or_open(m_filename))
+            return false;
 
         m_initialized = true;
         return true;
@@ -405,12 +403,11 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
 
-        uint32_t miplevel_width = std::max(1u,
-                                           m_basewidth >> (m_miplevel_idx + 1));
-        uint32_t miplevel_height = std::max(1u, m_baseheight
-                                                    >> (m_miplevel_idx + 1));
-        uint32_t miplevel_depth = std::max(1u,
-                                           m_basedepth >> (m_miplevel_idx + 1));
+        // clang-format off
+        uint32_t miplevel_width  = std::max(1u, m_basewidth >> (m_miplevel_idx + 1));
+        uint32_t miplevel_height = std::max(1u, m_baseheight >> (m_miplevel_idx + 1));
+        uint32_t miplevel_depth  = std::max(1u, m_basedepth >> (m_miplevel_idx + 1));
+        // clang-format on
 
         // Copy the new mip level size.  Keep everything else from the
         // original level.
@@ -914,8 +911,8 @@ KtxOutput::write_ktx2()
     create_info.numDimensions = m_is1D ? 1 : m_basedepth > 1 ? 3u : 2u;
     create_info.numLevels     = m_miplevel_idx + 1;
     create_info.numLayers     = 1;
-    create_info.numFaces = (m_spec.tile_width > 1 && m_basedepth <= 1) ? 6 : 1;
-    create_info.isArray  = KTX_FALSE;
+    create_info.numFaces      = m_is_cubemap ? 6 : 1;
+    create_info.isArray       = KTX_FALSE;
     create_info.generateMipmaps = m_generate_mipmaps;
 
     DBG std::cout << "calling ktxTexture2_Create with: "
