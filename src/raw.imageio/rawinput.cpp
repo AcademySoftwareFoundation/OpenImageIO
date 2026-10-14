@@ -64,7 +64,7 @@ public:
     int supports(string_view feature) const override
     {
         return (feature == "exif" || feature == "thumbnail"
-                /* not yet? || feature == "iptc"*/);
+                || feature == "ioproxy" /* not yet? || feature == "iptc"*/);
     }
     bool open(const std::string& name, ImageSpec& newspec) override;
     bool open(const std::string& name, ImageSpec& newspec,
@@ -77,6 +77,7 @@ public:
 private:
     bool m_process  = true;
     bool m_unpacked = false;
+    std::unique_ptr<uint8_t[]> m_raw;
     std::unique_ptr<LibRaw> m_processor;
     libraw_processed_image_t* m_image = nullptr;
     libraw_processed_image_t* m_thumb = nullptr;
@@ -442,13 +443,35 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             = (char*)bad_pixels_attr->get_ustring().c_str();
     }
 
-#ifdef _WIN32
-    // Convert to wide chars, just on Windows.
-    int ret = m_processor->open_file(
-        Strutil::utf8_to_utf16wstring(name).c_str());
-#else
-    int ret = m_processor->open_file(name.c_str());
-#endif
+    if (!ioproxy_use_or_open(m_filename)) {
+        return false;
+    }
+    Filesystem::IOProxy* m_io = ioproxy();
+    std::string proxytype     = m_io->proxytype();
+    if (proxytype != "file" && proxytype != "memreader") {
+        errorfmt("RAW reader can't handle proxy type {}", proxytype);
+        close();
+        return false;
+    }
+    int ret = LIBRAW_UNSPECIFIED_ERROR;
+    if (proxytype == "file") {
+        size_t size = m_io->size();
+        if (!m_raw) {
+            m_raw.reset(new uint8_t[size]);
+            size_t result = m_io->read(m_raw.get(), size);
+            if (result != size) {
+                errorfmt("Failed to read {} bytes from \"{}\"", size,
+                         m_filename);
+                return false;
+            }
+        }
+        const void* data = reinterpret_cast<const void*>(m_raw.get());
+        ret              = m_processor->open_buffer(data, size);
+    } else { /*(proxytype == "memreader")*/
+        auto buffer = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
+        const void* data = reinterpret_cast<const void*>(buffer.data());
+        ret              = m_processor->open_buffer(data, buffer.size());
+    }
     if (ret != LIBRAW_SUCCESS) {
         const char* err = libraw_strerror(ret);
         errorfmt("Could not open file \"{}\", {}", m_filename,
