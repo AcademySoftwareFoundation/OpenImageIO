@@ -156,6 +156,10 @@ private:
     // Note: slice_idx and face_idx are mutually exclusive so summing them is
     //       perfectly fine.
     //
+    // TODO: just allocate a whole contiguous vector per miplevel for a whole
+    //       subimage. It's easier, safer (we can use copy_to_image_buffer from
+    //       OIIO) and just removes one additional annoying indirection.
+    //
     std::vector<std::vector<std::vector<uint8_t>>> m_imgs;
 
     void append_mipmaps_vector();
@@ -242,16 +246,16 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         } else if (Strutil::iequals(textureformat, "CubeFace Environment")) {
             // In KTX2, cubemaps are 'simulated' as 1x6 layout (tiles along the
             // height)
-            if (userspec.width != userspec.tile_width
+            if (userspec.depth > 1 || userspec.width != userspec.tile_width
                 || userspec.height != userspec.tile_height * 6
                 || userspec.tile_depth != 1) {
                 errorfmt(
-                    "For cubemap textures:"
+                    "For cubemap textures: depth must be <= 1 (provided {});"
                     " tile width must be: {} (provided {});"
                     " tile height must be 1/6th the height: {}/6 (provided {});"
                     " tile depth must be: 1 (provided {}) ",
-                    userspec.width, userspec.tile_width, userspec.height,
-                    userspec.tile_height, userspec.tile_depth);
+                    userspec.depth, userspec.width, userspec.tile_width,
+                    userspec.height, userspec.tile_height, userspec.tile_depth);
                 return false;
             }
             // Cubemap texture are limited to 16384x16384
@@ -268,7 +272,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                 return false;
             }
             if (userspec.tile_width != 0 || userspec.tile_height != 0
-                || userspec.tile_depth != 0) {
+                || userspec.tile_depth > 1 /* tile_depth is by default 1 */) {
                 errorfmt(
                     "Provided a tiled texture but \"textureformat\" attribute "
                     "is not set to \"CubeFace Environment\"");
@@ -482,6 +486,9 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             m_spec.tile_depth  = 1;
         }
 
+        // TODO: make this return false on failure so that the user gracefully
+        //       gets informed about out-of-memory (most probable cause of
+        //       failure).
         // Reserve memory for this mip level
         append_mipmaps_vector();
 
@@ -702,6 +709,9 @@ KtxOutput::close()
 void
 KtxOutput::append_mipmaps_vector()
 {
+    // TODO: this might reserve a lot of memory; maybe do checks rather than
+    //       just letting the resize() calls below throw?
+
     if (m_is3D) {
         // safety check to be certain that this is being called after correctly
         // updating the spec with the current miplevel dimensions
