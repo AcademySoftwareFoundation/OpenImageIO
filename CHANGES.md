@@ -1,3 +1,9 @@
+Release 3.2.1.2 (Oct 14, 2026) -- compared to 3.2.1.1
+-----------------------------------------------------
+No code changes, this is just a new release tag to force a Python 3.15 wheel
+build.
+
+
 Release 3.2.1.1 (Oct 2, 2026) -- compared to 3.2.1.0
 ----------------------------------------------------
   - *fix(ImageInput/Output)*: Honor the data window origin in the `image_span` read/write methods. [#5531](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5531)
