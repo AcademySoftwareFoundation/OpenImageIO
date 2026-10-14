@@ -4069,7 +4069,7 @@ OIIO_API std::string geterror(bool clear = true);
 ///   If nonzero (the default), `ColorConfig::get_chromaticities()` and
 ///   `get_transfer_function_gamma()` may analyze the transforms of a color
 ///   space with no known Color Interop ID to derive its primaries and
-///   transfer function. If zero, they answer only from what the config
+///   whether it is linear. If zero, they answer only from what the config
 ///   declares and the names OpenImageIO knows.
 ///
 /// - `ustring:cleanup` (int: 0)

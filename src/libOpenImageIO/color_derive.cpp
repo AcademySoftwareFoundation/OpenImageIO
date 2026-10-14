@@ -2,12 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
-// Deriving a color space's properties from what its transforms do, for a
-// color space that no known Color Interop ID describes.
+// Deriving the primaries of a color space from what its transforms do.
 
 #include <algorithm>
-#include <array>
 #include <cmath>
+#include <cstring>
+#include <functional>
+#include <string>
+#include <unordered_set>
+
+#include <OpenImageIO/Imath.h>
 
 #include "color_derive.h"
 
@@ -18,252 +22,470 @@ OIIO_NAMESPACE_BEGIN
 
 namespace {
 
-using Mat3 = std::array<double, 9>;  // Row-major, applied to column vectors
-using Vec3 = std::array<double, 3>;
+using Imath::M33d;
+using Imath::V3d;
 
-Mat3
-mat3_mul(const Mat3& a, const Mat3& b)
+// Matrices here apply to column vectors.
+V3d
+apply(const M33d& m, const V3d& v)
 {
-    Mat3 m {};
-    for (int r = 0; r < 3; ++r)
-        for (int c = 0; c < 3; ++c)
-            for (int k = 0; k < 3; ++k)
-                m[3 * r + c] += a[3 * r + k] * b[3 * k + c];
-    return m;
+    return V3d(m[0][0] * v.x + m[0][1] * v.y + m[0][2] * v.z,
+               m[1][0] * v.x + m[1][1] * v.y + m[1][2] * v.z,
+               m[2][0] * v.x + m[2][1] * v.y + m[2][2] * v.z);
 }
 
-Vec3
-mat3_apply(const Mat3& m, const Vec3& v)
-{
-    return { m[0] * v[0] + m[1] * v[1] + m[2] * v[2],
-             m[3] * v[0] + m[4] * v[1] + m[5] * v[2],
-             m[6] * v[0] + m[7] * v[1] + m[8] * v[2] };
-}
 
-Mat3
-mat3_inverse(const Mat3& m)
-{
-    const Mat3 adjugate { m[4] * m[8] - m[5] * m[7], m[2] * m[7] - m[1] * m[8],
-                          m[1] * m[5] - m[2] * m[4], m[5] * m[6] - m[3] * m[8],
-                          m[0] * m[8] - m[2] * m[6], m[2] * m[3] - m[0] * m[5],
-                          m[3] * m[7] - m[4] * m[6], m[1] * m[6] - m[0] * m[7],
-                          m[0] * m[4] - m[1] * m[3] };
-    const double det = m[0] * adjugate[0] + m[1] * adjugate[3]
-                       + m[2] * adjugate[6];
-    Mat3 inverse;
-    for (int i = 0; i < 9; ++i)
-        inverse[i] = adjugate[i] / det;
-    return inverse;
-}
 
-// CIE XYZ, with Y = 1, of the CIE xy chromaticity (x, y).
-Vec3
+V3d
 xy_to_XYZ(double x, double y)
 {
-    return { x / y, 1.0, (1.0 - x - y) / y };
+    return V3d(x / y, 1.0, (1.0 - x - y) / y);
 }
+
+
 
 // The RGB to CIE XYZ matrix of primaries and white given as CIE xy.
-Mat3
-rgb_to_XYZ(const float* xy)
+M33d
+rgb_to_XYZ(const double xy[8])
 {
-    Mat3 m;
-    for (int c = 0; c < 3; ++c) {
-        const Vec3 primary = xy_to_XYZ(xy[2 * c], xy[2 * c + 1]);
-        for (int r = 0; r < 3; ++r)
-            m[3 * r + c] = primary[r];
+    const V3d r = xy_to_XYZ(xy[0], xy[1]);
+    const V3d g = xy_to_XYZ(xy[2], xy[3]);
+    const V3d b = xy_to_XYZ(xy[4], xy[5]);
+    const M33d primaries(r.x, g.x, b.x, r.y, g.y, b.y, r.z, g.z, b.z);
+    const V3d s = apply(primaries.inverse(), xy_to_XYZ(xy[6], xy[7]));
+    return primaries * M33d(s.x, 0.0, 0.0, 0.0, s.y, 0.0, 0.0, 0.0, s.z);
+}
+
+
+
+// CIE XYZ of the white points a reading is tried under.
+const V3d white_D65(0.95045592705167, 1.0, 1.08905775075988);
+const V3d white_D60(0.95264607456985, 1.0, 1.00882518435159);  // ACES
+const V3d white_DCI(0.89458689458689, 1.0, 0.95441595441595);
+const V3d white_D50(0.96429567642956771, 1.0, 0.82510460251046047);
+
+enum class Adaptation { Bradford, CAT02, None };
+
+// Chromatic adaptation of CIE XYZ from white `from` to white `to`.
+M33d
+adapt(const V3d& from, const V3d& to, Adaptation method)
+{
+    static const M33d bradford(0.8951, 0.2664, -0.1614, -0.7502, 1.7135, 0.0367,
+                               0.0389, -0.0685, 1.0296);
+    static const M33d cat02(0.7328, 0.4296, -0.1624, -0.7036, 1.6975, 0.0061,
+                            0.0030, 0.0136, 0.9834);
+    if (method == Adaptation::None
+        || (std::abs(from.x - to.x) <= 1e-12 && std::abs(from.y - to.y) <= 1e-12
+            && std::abs(from.z - to.z) <= 1e-12))
+        return M33d();
+    const M33d& cone   = method == Adaptation::Bradford ? bradford : cat02;
+    const V3d response = apply(cone, from);
+    const V3d target   = apply(cone, to);
+    return cone.inverse()
+           * M33d(target.x / response.x, 0.0, 0.0, 0.0, target.y / response.y,
+                  0.0, 0.0, 0.0, target.z / response.z)
+           * cone;
+}
+
+
+
+// The interchange space a color space's matrices are read against:
+// ACES2065-1 for a scene-referred space, CIE XYZ with a D65 white for a
+// display-referred one.
+struct Reference {
+    M33d to_XYZ;
+    M33d from_XYZ;
+    V3d white;  // CIE XYZ
+};
+
+const Reference&
+reference(bool display)
+{
+    static const Reference aces = [] {
+        const double ap0[8] = { .7347, .2653, 0.0,    1.0,
+                                .0001, -.077, .32168, .33767 };
+        Reference r;
+        r.to_XYZ   = rgb_to_XYZ(ap0);
+        r.from_XYZ = r.to_XYZ.inverse();
+        r.white    = apply(r.to_XYZ, V3d(1.0, 1.0, 1.0));
+        return r;
+    }();
+    static const Reference xyz = [] {
+        Reference r;
+        r.white = white_D65;
+        return r;
+    }();
+    return display ? xyz : aces;
+}
+
+
+
+// The coordinate rounded to six decimals, or to fewer when it is within 2e-7
+// of that, so that equal primaries read through different matrices compare
+// equal.
+double
+round_coordinate(double value)
+{
+    const double rounded = std::round(value * 1e6) / 1e6;
+    for (double scale : { 1e5, 1e4, 1e3, 1e2 }) {
+        const double coarser = std::round(rounded * scale) / scale;
+        if (std::abs(rounded - coarser) <= 2e-7)
+            return coarser + 0.0;  // No negative zero
     }
-    const Vec3 scale = mat3_apply(mat3_inverse(m), xy_to_XYZ(xy[6], xy[7]));
-    for (int r = 0; r < 3; ++r)
-        for (int c = 0; c < 3; ++c)
-            m[3 * r + c] *= scale[c];
-    return m;
+    return rounded + 0.0;
 }
 
-// Chromatic adaptation of CIE XYZ from white `from` to white `to`, scaling
-// the `cone` responses (von Kries).
-Mat3
-adaptation(const Mat3& cone, const Vec3& from, const Vec3& to)
+
+
+// The chromaticities (R G B W) that a linear RGB to CIE XYZ matrix gives.
+std::array<double, 8>
+chromaticities(const M33d& rgb_to_xyz)
 {
-    const Vec3 f = mat3_apply(cone, from), t = mat3_apply(cone, to);
-    const Mat3 scale { t[0] / f[0], 0, 0, 0, t[1] / f[1], 0, 0, 0, t[2] / f[2] };
-    return mat3_mul(mat3_inverse(cone), mat3_mul(scale, cone));
+    std::array<double, 8> xy;
+    const V3d basis[4] = { V3d(1.0, 0.0, 0.0), V3d(0.0, 1.0, 0.0),
+                           V3d(0.0, 0.0, 1.0), V3d(1.0, 1.0, 1.0) };
+    for (int i = 0; i < 4; ++i) {
+        const V3d XYZ    = apply(rgb_to_xyz, basis[i]);
+        const double sum = XYZ.x + XYZ.y + XYZ.z;
+        xy[2 * i]        = round_coordinate(XYZ.x / sum);
+        xy[2 * i + 1]    = round_coordinate(XYZ.y / sum);
+    }
+    // A white with x equal to y is CIE XYZ's own, illuminant E.
+    if (xy[6] == xy[7])
+        xy[6] = xy[7] = 1.0 / 3.0;
+    return xy;
 }
 
-const Mat3 bradford_cone { 0.8951, 0.2664, -0.1614, -0.7502, 1.7135,
-                           0.0367, 0.0389, -0.0685, 1.0296 };
-const Mat3 cat02_cone { 0.7328, 0.4296, -0.1624, -0.7036, 1.6975,
-                        0.0061, 0.0030, 0.0136,  0.9834 };
 
-// Whether two matrices are the same up to a positive scale, which the gain
-// of a curve ahead of a matrix introduces.
+
+// Decimal places of a coordinate, up to nine.
+int
+decimal_places(double value)
+{
+    long long scaled = std::llround(std::abs(value) * 1e9);
+    if (scaled == 0)
+        return 0;
+    int places = 9;
+    for (; places > 0 && scaled % 10 == 0; --places)
+        scaled /= 10;
+    return places;
+}
+
+
+
+// How few decimals the primaries' coordinates have: 1 when none has any, 0
+// when each has `cap` or more.
+double
+exactness(const std::array<double, 8>& xy, int cap)
+{
+    int total = 0;
+    for (int i = 0; i < 6; ++i)
+        total += std::min(decimal_places(xy[i]), cap);
+    return 1.0 - double(total) / double(cap * 6);
+}
+
+
+
+// The gamut among `gamuts` that the matrix reproduces within 1e-5, reached
+// under Bradford, CAT02 or no chromatic adaptation.
+const float*
+known_gamut(const M33d& rgb_to_reference, const Reference& ref,
+            cspan<const float*> gamuts)
+{
+    const float* found = nullptr;
+    double closest     = 1e-5;
+    for (const float* gamut : gamuts) {
+        // CIE XYZ taken as RGB has primaries on y = 0, and no such matrix.
+        if (gamut[1] == 0.0f || gamut[3] == 0.0f || gamut[5] == 0.0f)
+            continue;
+        double xy[8];
+        std::copy(gamut, gamut + 8, xy);
+        const M33d to_XYZ = rgb_to_XYZ(xy);
+        const V3d white   = apply(to_XYZ, V3d(1.0, 1.0, 1.0));
+        for (Adaptation method :
+             { Adaptation::Bradford, Adaptation::CAT02, Adaptation::None }) {
+            const M33d candidate = ref.from_XYZ
+                                   * adapt(white, ref.white, method) * to_XYZ;
+            double residual      = 0.0;
+            for (int r = 0; r < 3; ++r)
+                for (int c = 0; c < 3; ++c)
+                    residual = std::max(residual,
+                                        std::abs(candidate[r][c]
+                                                 - rgb_to_reference[r][c]));
+            if (residual < closest) {
+                closest = residual;
+                found   = gamut;
+            }
+        }
+    }
+    return found;
+}
+
+
+
+// For primaries no known gamut matches: read them under each usual white
+// point and adaptation, take the first reading whose coordinates are round
+// enough, and otherwise the roundest, or failing that the first (D65,
+// Bradford).
+std::array<double, 8>
+roundest_reading(const M33d& rgb_to_reference, const Reference& ref)
+{
+    const M33d rgb_to_XYZ = ref.to_XYZ * rgb_to_reference;
+    std::array<double, 8> best;
+    double best_rank = 0.0;
+    bool first       = true;
+    for (const V3d& white : { white_D65, white_D60, white_DCI, white_D50 }) {
+        for (Adaptation method : { Adaptation::Bradford, Adaptation::CAT02 }) {
+            const std::array<double, 8> xy = chromaticities(
+                adapt(ref.white, white, method) * rgb_to_XYZ);
+            if (first) {
+                best  = xy;
+                first = false;
+            }
+            if (exactness(xy, 6) > 0.6)
+                return xy;
+            const double rank = exactness(xy, 9);
+            if (rank > best_rank && rank > 0.2) {
+                best_rank = rank;
+                best      = xy;
+            }
+        }
+    }
+    return best;
+}
+
+
+
+// The matrices that lead the conversion from the interchange space `role` to
+// the color space `name`, multiplied into one: clamps are skipped, so are
+// matrices that only scale, and the first curve ends them.
 bool
-same_up_to_scale(const Mat3& a, const Mat3& b)
+leading_matrices(const OCIO::Config& config, const char* role, const char* name,
+                 M33d& matrices)
 {
-    double norm_a = 0.0, norm_b = 0.0;
-    for (int i = 0; i < 9; ++i) {
-        norm_a += a[i] * a[i];
-        norm_b += b[i] * b[i];
-    }
-    norm_a = std::sqrt(norm_a);
-    norm_b = std::sqrt(norm_b);
-    if (!(norm_a > 0.0 && norm_b > 0.0))
+    OCIO::ConstGroupTransformRcPtr group;
+    try {
+        // Lossless optimization folds and cancels matrices without composing
+        // LUTs, which only the curves after the matrices would use; over
+        // OCIO's built-in configs it reads the same matrices as any heavier
+        // optimization, much faster.
+        group = config.getProcessor(role, name)
+                    ->getOptimizedProcessor(OCIO::OptimizationFlags(
+                        OCIO::OPTIMIZATION_LOSSLESS
+                        & ~OCIO::OPTIMIZATION_SIMPLIFY_OPS))
+                    ->createGroupTransform();
+    } catch (const std::exception&) {
         return false;
-    for (int i = 0; i < 9; ++i)
-        if (!(std::abs(a[i] / norm_a - b[i] / norm_b) < 1.0e-5))
-            return false;
+    }
+    matrices.makeIdentity();
+    for (int i = 0, n = group->getNumTransforms(); i < n; ++i) {
+        const OCIO::ConstTransformRcPtr transform = group->getTransform(i);
+        if (transform->getTransformType() == OCIO::TRANSFORM_TYPE_RANGE)
+            continue;
+        auto matrix = OCIO::DynamicPtrCast<const OCIO::MatrixTransform>(
+            transform);
+        if (!matrix)
+            break;
+        double m[16];
+        matrix->getMatrix(m);
+        M33d step(m[0], m[1], m[2], m[4], m[5], m[6], m[8], m[9], m[10]);
+        bool mixes = false;
+        for (int r = 0; r < 3; ++r)
+            for (int c = 0; c < 3; ++c)
+                mixes |= r != c && std::abs(step[r][c]) > 0.1;
+        if (!mixes)
+            continue;
+        if (matrix->getDirection() == OCIO::TRANSFORM_DIR_INVERSE)
+            step.invert();
+        matrices = step * matrices;
+    }
     return true;
 }
 
-double
-vec3_length(const Vec3& v)
+
+
+// Whether a transform, other than a group, file or color space reference, is
+// one whose matrices and curves describe a color encoding: not a 3D LUT,
+// grade, look, view or rendering.
+bool
+is_simple_transform(const OCIO::ConstTransformRcPtr& transform)
 {
-    return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    switch (transform->getTransformType()) {
+    case OCIO::TRANSFORM_TYPE_BUILTIN: {
+        auto builtin = OCIO::DynamicPtrCast<const OCIO::BuiltinTransform>(
+            transform);
+        const std::string style(builtin ? builtin->getStyle() : "");
+        return style.rfind("ACES-OUTPUT", 0) != 0
+               && style.rfind("ACES-LMT", 0) != 0;
+    }
+    case OCIO::TRANSFORM_TYPE_FIXED_FUNCTION: {
+#if OCIO_VERSION_HEX > 0x02040000
+        auto ff = OCIO::DynamicPtrCast<const OCIO::FixedFunctionTransform>(
+            transform);
+        return ff
+               && (ff->getStyle() == OCIO::FIXED_FUNCTION_LIN_TO_DOUBLE_LOG
+                   || ff->getStyle() == OCIO::FIXED_FUNCTION_LIN_TO_GAMMA_LOG);
+#else
+        return false;
+#endif
+    }
+    case OCIO::TRANSFORM_TYPE_MATRIX:
+    case OCIO::TRANSFORM_TYPE_RANGE:
+    case OCIO::TRANSFORM_TYPE_EXPONENT:
+    case OCIO::TRANSFORM_TYPE_EXPONENT_WITH_LINEAR:
+    case OCIO::TRANSFORM_TYPE_LOG:
+    case OCIO::TRANSFORM_TYPE_LOG_AFFINE:
+    case OCIO::TRANSFORM_TYPE_LOG_CAMERA:
+    case OCIO::TRANSFORM_TYPE_ALLOCATION:
+    case OCIO::TRANSFORM_TYPE_LUT1D:
+    case OCIO::TRANSFORM_TYPE_GRADING_RGB_CURVE: return true;
+    default: return false;
+    }
+}
+
+
+
+bool
+has_context_variable(const char* s)
+{
+    return s && (std::strchr(s, '$') || std::strchr(s, '%'));
+}
+
+
+
+// Whether a color space's transforms (from the reference if it has them,
+// otherwise to it) include anything but simple ones, following color space
+// references. Data and is-unique spaces count as complex, and so does a
+// reference cycle.
+bool
+is_complex(const OCIO::Config& config, const OCIO::ConstColorSpaceRcPtr& cs,
+           std::unordered_set<std::string>& visiting)
+{
+    if (!cs || cs->isData() || cs->hasCategory("is-unique")
+        || has_context_variable(cs->getName()))
+        return true;
+    if (!visiting.insert(cs->getName()).second)
+        return true;
+    std::function<bool(const OCIO::ConstTransformRcPtr&)> complex_transform;
+    complex_transform = [&](const OCIO::ConstTransformRcPtr& transform) {
+        if (!transform)
+            return false;
+        switch (transform->getTransformType()) {
+        // Files are taken as simple, whatever they hold.
+        case OCIO::TRANSFORM_TYPE_FILE: return false;
+        case OCIO::TRANSFORM_TYPE_GROUP: {
+            auto group = OCIO::DynamicPtrCast<const OCIO::GroupTransform>(
+                transform);
+            for (int i = 0, n = group ? group->getNumTransforms() : 0; i < n;
+                 ++i)
+                if (complex_transform(group->getTransform(i)))
+                    return true;
+            return !group;
+        }
+        case OCIO::TRANSFORM_TYPE_COLORSPACE: {
+            auto cst = OCIO::DynamicPtrCast<const OCIO::ColorSpaceTransform>(
+                transform);
+            if (!cst)
+                return true;
+            if (has_context_variable(cst->getSrc())
+                || has_context_variable(cst->getDst()))
+                return false;
+            return is_complex(config, config.getColorSpace(cst->getSrc()),
+                              visiting)
+                   || is_complex(config, config.getColorSpace(cst->getDst()),
+                                 visiting);
+        }
+        default: return !is_simple_transform(transform);
+        }
+    };
+    auto from          = cs->getTransform(OCIO::COLORSPACE_DIR_FROM_REFERENCE);
+    const bool complex = complex_transform(
+        from ? from : cs->getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE));
+    visiting.erase(cs->getName());
+    return complex;
+}
+
+
+
+// The color space a transform chain ends in, when its last step is a
+// ColorSpaceTransform, following groups and their inversion.
+std::string
+trailing_color_space(const OCIO::ConstTransformRcPtr& transform,
+                     OCIO::TransformDirection direction)
+{
+    if (!transform)
+        return {};
+    const bool inverse = (direction == OCIO::TRANSFORM_DIR_INVERSE)
+                         != (transform->getDirection()
+                             == OCIO::TRANSFORM_DIR_INVERSE);
+    if (auto cst = OCIO::DynamicPtrCast<const OCIO::ColorSpaceTransform>(
+            transform)) {
+        const char* end = inverse ? cst->getSrc() : cst->getDst();
+        return end ? end : "";
+    }
+    auto group = OCIO::DynamicPtrCast<const OCIO::GroupTransform>(transform);
+    if (!group || group->getNumTransforms() == 0)
+        return {};
+    return trailing_color_space(
+        group->getTransform(inverse ? 0 : group->getNumTransforms() - 1),
+        inverse ? OCIO::TRANSFORM_DIR_INVERSE : OCIO::TRANSFORM_DIR_FORWARD);
+}
+
+
+
+bool
+derive(const OCIO::Config& config, const OCIO::ColorSpace& cs,
+       cspan<const float*> gamuts, std::array<float, 8>& xy, int depth)
+{
+    if (cs.isData())
+        return false;
+    const bool display = cs.getReferenceSpaceType()
+                         == OCIO::REFERENCE_SPACE_DISPLAY;
+    const char* role   = display ? OCIO::ROLE_INTERCHANGE_DISPLAY
+                                 : OCIO::ROLE_INTERCHANGE_SCENE;
+    if (!config.hasRole(role))
+        return false;
+
+    // A space whose transforms are not simple but that ends in another
+    // color space answers as that one.
+    std::unordered_set<std::string> visiting;
+    if (depth < 8
+        && is_complex(config, config.getColorSpace(cs.getName()), visiting)) {
+        const std::string target = trailing_color_space(
+            cs.getTransform(OCIO::COLORSPACE_DIR_FROM_REFERENCE),
+            OCIO::TRANSFORM_DIR_FORWARD);
+        if (!target.empty() && target != cs.getName())
+            if (auto other = config.getColorSpace(target.c_str()))
+                if (derive(config, *other, gamuts, xy, depth + 1))
+                    return true;
+    }
+
+    M33d reference_to_rgb;
+    if (!leading_matrices(config, role, cs.getName(), reference_to_rgb)
+        || std::abs(reference_to_rgb.determinant()) < 1e-12)
+        return false;
+    const M33d rgb_to_reference = reference_to_rgb.inverse();
+    const Reference& ref        = reference(display);
+    if (const float* gamut = known_gamut(rgb_to_reference, ref, gamuts)) {
+        std::copy(gamut, gamut + 8, xy.begin());
+        return true;
+    }
+    const std::array<double, 8> read = roundest_reading(rgb_to_reference, ref);
+    for (int i = 0; i < 8; ++i)
+        xy[i] = float(read[i]);
+    return true;
 }
 
 }  // namespace
 
 
 
-void
-pvt::derive_color_space_properties(const OCIO::Config& config,
-                                   const OCIO::ColorSpace& cs,
-                                   cspan<const float*> gamuts, const float* ap0,
-                                   const float*& xy, float& gamma)
+bool
+pvt::derive_chromaticities(const OCIO::Config& config,
+                           const OCIO::ColorSpace& cs,
+                           cspan<const float*> gamuts, std::array<float, 8>& xy)
 {
-    if (cs.isData())
-        return;
-    const bool display = cs.getReferenceSpaceType()
-                         == OCIO::REFERENCE_SPACE_DISPLAY;
-    const char* role   = display ? OCIO::ROLE_INTERCHANGE_DISPLAY
-                                 : OCIO::ROLE_INTERCHANGE_SCENE;
-    OCIO::ConstProcessorRcPtr decode;
-    OCIO::ConstCPUProcessorRcPtr cpu;
-    try {
-        if (!config.hasRole(role))
-            return;
-        decode = config.getProcessor(cs.getName(), role);
-        // No approximate powers and no fused operations, so a power curve
-        // reads back as its exponent.
-        cpu = decode->getOptimizedCPUProcessor(OCIO::OPTIMIZATION_NONE);
-    } catch (const std::exception&) {
-        return;
-    }
-    auto decoded = [&](const Vec3& rgb) {
-        float pixel[3] = { float(rgb[0]), float(rgb[1]), float(rgb[2]) };
-        cpu->applyRGB(pixel);
-        return Vec3 { pixel[0], pixel[1], pixel[2] };
-    };
-    // A shared per-channel curve f followed by a matrix M decodes white less
-    // white with one channel lowered to `t` as (f(1) - f(t)) times that
-    // channel's column of M: each such probe is a multiple of its column, by
-    // the same factor in all three channels, and the columns add up to white
-    // less black. Probing down from white keeps every decoded value positive,
-    // so a decoder that clamps negatives still reads as a matrix. Anything
-    // else, such as a 3D LUT or a rendering, establishes nothing.
-    const Vec3 black = decoded({ 0.0, 0.0, 0.0 });
-    const Vec3 white = decoded({ 1.0, 1.0, 1.0 });
-    auto lowered     = [&](int channel, double t) {
-        Vec3 rgb { 1.0, 1.0, 1.0 };
-        rgb[channel]     = t;
-        const Vec3 value = decoded(rgb);
-        return Vec3 { white[0] - value[0], white[1] - value[1],
-                      white[2] - value[2] };
-    };
-    Mat3 matrix;
-    Vec3 excess { white[0] - black[0], white[1] - black[1],
-                  white[2] - black[2] };
-    double scale = 0.0;
-    for (int c = 0; c < 3; ++c) {
-        const Vec3 column = lowered(c, 0.0);
-        for (int r = 0; r < 3; ++r) {
-            matrix[3 * r + c] = column[r];
-            excess[r] -= column[r];
-        }
-        scale = std::max(scale, vec3_length(column));
-    }
-    if (!(scale > 0.0) || !std::isfinite(scale))
-        return;
-    const double tolerance = 1.0e-5 * scale;
-    if (!(vec3_length(excess) <= tolerance))
-        return;
-    // How far f(t) has risen from f(0) toward f(1), at two probes.
-    const double probes[2] = { 0.18, 0.5 };
-    double rises[2]        = {};
-    for (int p = 0; p < 2; ++p) {
-        for (int c = 0; c < 3; ++c) {
-            Vec3 value   = lowered(c, probes[p]);
-            double dot   = 0.0;
-            double norm2 = 0.0;
-            for (int r = 0; r < 3; ++r) {
-                dot += value[r] * matrix[3 * r + c];
-                norm2 += matrix[3 * r + c] * matrix[3 * r + c];
-            }
-            const double factor = dot / norm2;
-            for (int r = 0; r < 3; ++r)
-                value[r] -= factor * matrix[3 * r + c];
-            if (!(vec3_length(value) <= tolerance)
-                || (c > 0 && !(std::abs(1.0 - factor - rises[p]) <= 1.0e-5)))
-                return;
-            rises[p] = 1.0 - factor;
-        }
-    }
-
-    // Name the matrix as a published gamut, reached through the interchange
-    // with no chromatic adaptation, Bradford or CAT02.
-    const Vec3 interchange_white = display ? xy_to_XYZ(0.3127, 0.3290)
-                                           : xy_to_XYZ(ap0[6], ap0[7]);
-    const Mat3 from_ap0          = mat3_inverse(rgb_to_XYZ(ap0));
-    for (const float* gamut : gamuts) {
-        if (!gamut[1] || !gamut[3] || !gamut[5] || !gamut[7])
-            continue;  // CIE XYZ, which has no RGB primaries
-        const Mat3 to_XYZ      = rgb_to_XYZ(gamut);
-        const Vec3 gamut_white = xy_to_XYZ(gamut[6], gamut[7]);
-        for (const Mat3* cone :
-             { (const Mat3*)nullptr, &bradford_cone, &cat02_cone }) {
-            Mat3 expected = cone ? mat3_mul(adaptation(*cone, gamut_white,
-                                                       interchange_white),
-                                            to_XYZ)
-                                 : to_XYZ;
-            if (!display)
-                expected = mat3_mul(from_ap0, expected);
-            if (same_up_to_scale(matrix, expected)) {
-                xy = gamut;
-                break;
-            }
-        }
-        if (xy)
-            break;
-    }
-
-    // A pure power passes through black and scales each probe by its power.
-    // It is reported only as an exponent the transforms state, so exactly.
-    if (!(vec3_length(black) <= tolerance && rises[0] > 0.0 && rises[1] > 0.0))
-        return;
-    const double power = std::log(rises[0]) / std::log(probes[0]);
-    if (!(std::abs(std::log(rises[1]) / std::log(probes[1]) - power)
-          <= 1.0e-4 * power))
-        return;
-    if (std::abs(power - 1.0) <= 1.0e-4) {
-        gamma = 1.0f;
-        return;
-    }
-    auto ops = decode->createGroupTransform();
-    for (int i = 0, n = ops->getNumTransforms(); i < n; ++i) {
-        auto exponent = OCIO::DynamicPtrCast<const OCIO::ExponentTransform>(
-            ops->getTransform(i));
-        if (!exponent)
-            continue;
-        double value[4];
-        exponent->getValue(value);
-        if (value[0] != value[1] || value[0] != value[2] || !(value[0] > 0.0))
-            continue;
-        for (double stated : { value[0], 1.0 / value[0] })
-            if (std::abs(stated - power) <= 1.0e-4 * power) {
-                gamma = float(stated);
-                return;
-            }
-    }
+    return derive(config, cs, gamuts, xy, 0);
 }
 
 OIIO_NAMESPACE_END
