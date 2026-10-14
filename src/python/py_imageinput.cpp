@@ -68,8 +68,6 @@ ImageInput_read_scanlines(ImageInput& self, int subimage, int miplevel,
     imagesize_t size = clamped_mult64(clamped_mult64(imagesize_t(yend - ybegin),
                                                      imagesize_t(width)),
                                       imagesize_t(pixelsize));
-    if (size > std::numeric_limits<size_t>::max())
-        return py::none();
     std::unique_ptr<char[]> data(new char[size]);
     bool ok;
     {
@@ -110,9 +108,7 @@ ImageInput_read_tiles(ImageInput& self, int subimage, int miplevel, int xbegin,
         clamped_mult64(imagesize_t(xend - xbegin), imagesize_t(yend - ybegin)),
         imagesize_t(zend - zbegin));
     imagesize_t size = clamped_mult64(npixels, imagesize_t(pixelsize));
-    if (size > std::numeric_limits<size_t>::max())
-        return py::none();
-    int dims = spec.tile_depth > 1 ? 4 : 3;
+    int dims         = spec.tile_depth > 1 ? 4 : 3;
     std::unique_ptr<char[]> data(new char[size]);
     bool ok;
     {

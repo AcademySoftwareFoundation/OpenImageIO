@@ -53,8 +53,6 @@ ImageCacheWrap::get_pixels(const std::string& filename_, int subimage,
                          imagesize_t(int64_t(zend) - zbegin));
     imagesize_t size = clamped_mult64(npixels, imagesize_t(chend - chbegin)
                                                    * datatype.size());
-    if (size > std::numeric_limits<size_t>::max())
-        return py::none();
     std::unique_ptr<char[]> data(new char[size]);
     bool ok;
     {

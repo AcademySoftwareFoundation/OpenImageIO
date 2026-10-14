@@ -65,6 +65,10 @@ ImageOutput_write_scanlines(ImageOutput& self, int ybegin, int yend, int z,
         self.errorfmt("Cannot write scanlines to a filed file.");
         return false;
     }
+    if (yend < ybegin) {
+        self.errorfmt("write_scanlines was not passed an invalid y range");
+        return false;
+    }
     oiio_bufinfo buf = oiio_bufinfo_from_object(buffer, spec.nchannels,
                                                 spec.width, yend - ybegin, 1,
                                                 2);
@@ -73,10 +77,9 @@ ImageOutput_write_scanlines(ImageOutput& self, int ybegin, int yend, int z,
                       buf.error.size() ? buf.error.c_str() : "unspecified");
         return false;  // failed sanity checks
     }
-    if (yend < ybegin
-        || imagesize_t(buf.size)
-               < clamped_mult64(imagesize_t(spec.width) * spec.nchannels,
-                                imagesize_t(int64_t(yend) - ybegin))) {
+    if (imagesize_t(buf.size)
+        < clamped_mult64(imagesize_t(spec.width) * spec.nchannels,
+                         imagesize_t(int64_t(yend) - ybegin))) {
         self.errorfmt("write_scanlines was not passed a long enough array");
         return false;
     }
