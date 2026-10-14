@@ -334,6 +334,25 @@ def test_imageinput_api () :
     ii.close ()
     print ("")
 
+    # Out-of-range requests must not mis-size the result buffer. A huge
+    # yend once wrapped the 32-bit size computation to a tiny allocation.
+    print ("Testing read range sanity:")
+    ii = oiio.ImageInput.open ("testu16.tif")
+    assert ii is not None
+    spec = ii.spec ()
+    data = ii.read_scanlines (0, 0, 0, 4194305, 0, 0, 1, oiio.UINT8)
+    print ("  huge yend clamped to height:",
+           data is not None and data.shape[0] == spec.height)
+    data = ii.read_scanlines (0, 0, 2, 1, 0, 0, 1, oiio.UINT8)
+    print ("  inverted scanline range None:", data is None)
+    ii.close ()
+    ii = oiio.ImageInput.open ("grid.tx")
+    assert ii is not None
+    data = ii.read_tiles (0, 0, 0, 65536, 0, 65537, 0, 1, 0, 1, oiio.UINT8)
+    print ("  bad tile range None:", data is None)
+    ii.close ()
+    print ("")
+
 
 
 ######################################################################
