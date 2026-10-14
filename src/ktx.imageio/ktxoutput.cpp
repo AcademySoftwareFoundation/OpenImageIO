@@ -127,42 +127,30 @@ private:
 
     ktxAstcParams m_astc_params { 0 };  // Params for ASTC GPU block compression
 
-    // ktxBCnParams m_bcn_params { 0 }; // Params for BCn GPU block compression
-
     uint32_t m_zlib_level { 9 };  // Only for Zlib supercompression. Defaults to
                                   // highest compression level.
 
     uint32_t m_zstd_level { 22 };  // Only for ZSTD supercompression. Defaults
                                    // to highest compression level.
 
-    std::vector<unsigned char> m_scratch;
+    //
+    // Container for raw (i.e., uncompressed) texture data structured as:
+    //   mip level -> pixels (all faces/slices in same contiguous array)
+    //
+    // To access underlying data: m_imgs[miplevel_idx] + face_or_slice_offset
+    //
+    // NOTES:
+    //  - The number of slices/faces is known before hand (i.e., appending
+    //    slices/faces is NOT supported).
+    //  - libktx only supports writing whole images (i.e., miplevel + layer +
+    //    slice/face hence why we keep a large std::vector at all times. This is
+    //    also needed because we apply compression upon file closure and not
+    //    each time on write_scanline(s). The latter isn't even supported by
+    //    libktx (as far as I know).
+    //
+    std::vector<std::vector<uint8_t>> m_imgs;
 
-    //
-    // Container for raw (i.e., uncompressed) texture data structured as
-    // follows:
-    //   mip level -> slice/face -> pixels
-    //
-    // The number of slices/faces is known before hand (i.e., appending
-    // slices/faces is not supported). This significantly simplifies the
-    // implementation.
-    //
-    // Q. Why store all subimages/levels/slices/faces here?
-    // A. libktx only supports writing whole images (i.e.,
-    //    miplevel+layer+slice/face hence why we keep a large std::vector at
-    //    all times. This is also needed because we apply compression upon file
-    //    closure and not each time on write_scanline(s).
-    //
-    // To access underlying data: [miplevel_idx][slice_idx + face_idx]
-    // Note: slice_idx and face_idx are mutually exclusive so summing them is
-    //       perfectly fine.
-    //
-    // TODO: just allocate a whole contiguous vector per miplevel for a whole
-    //       subimage. It's easier, safer (we can use copy_to_image_buffer from
-    //       OIIO) and just removes one additional annoying indirection.
-    //
-    std::vector<std::vector<std::vector<uint8_t>>> m_imgs;
-
-    void append_mipmaps_vector();
+    bool append_mipmaps_vector() noexcept;
 
     void init() noexcept;
 
@@ -171,14 +159,12 @@ private:
     bool construct_basis_params(ktxBasisParams& params, std::string_view codec,
                                 uint32_t threads = 1) const noexcept;
 
-    bool construct_astc_params(ktxAstcParams& params,
+    void construct_astc_params(ktxAstcParams& params,
                                uint32_t threads = 1) const noexcept;
 
     bool try_parse_astc_block_dimensions(
         string_view block_dims_str,
         ktx_pack_astc_block_dimension_e& block_dims) const noexcept;
-
-    // bool construct_bcn_params(ktxBCnParams& params) const;
 
     // Copied as is from imageoutput.cpp because it is currently
     // translation-unit static and not usable from here
@@ -207,11 +193,12 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 {
     if (mode == Create) {
         //
-        // "textureformat" attribute is used to consistently determine the kind
-        // of the texture to write. Even if depth is > 1, "textureformat" MUST
-        // be set to "Volume Texture" for it to be considered a volume texture.
-        // Likewise for cubemaps; user MUST set this to Cubemap Environment for
-        // the output to be a cubmap texture.
+        // "textureformat" attribute is used to determine unambiguously the kind
+        // of texture to write. For cubemaps, user MUST set this to
+        // "CubeFace Environment" for the output to be a cubmap texture (this is
+        // done instead of just checking tile_width to avoid ambiguity).
+        // For volumes, user MUST either set depth > 1 or set the attribute to
+        // "Volume Texture"
         //
         std::string textureformat {};
         if (auto Q = userspec.find_attribute("textureformat", TypeDesc::STRING))
@@ -228,10 +215,11 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         //  outputs (e.g., it could simply be that provided userspec corresponds
         //  to a tiled image; exr for instance).
         //
-        if (Strutil::iequals(textureformat, "Volume Texture")) {
-            if (userspec.depth <= 1 || userspec.tile_width != userspec.width
+        if (userspec.depth > 1
+            || Strutil::iequals(textureformat, "Volume Texture")) {
+            if (userspec.depth < 1 || userspec.tile_width != userspec.width
                 || userspec.tile_height != 1 || userspec.tile_depth != 1) {
-                errorfmt("For volume textures: depth must be > 1 (provided {});"
+                errorfmt("For volume textures: depth must be >= 1 (provided {});"
                          " tile width must be: {} (provided {});"
                          " tile height must be: 1 (provided {});"
                          " tile depth must be: 1 (provided {})",
@@ -426,7 +414,15 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         OIIO_ASSERT(m_miplevel_idx == 0);
 
         // Reserve space for base-level mipmap (level 0)
-        append_mipmaps_vector();
+        if (!append_mipmaps_vector()) {
+            // if we can't even allocate base-level mipmap => close()
+            close();
+            errorfmt(
+                "Failed to create internal buffer to hold the base mip level "
+                "image. This is probably due to insufficient memory and/or "
+                "large image dimensions.");
+            return false;
+        }
 
         ioproxy_retrieve_from_config(m_spec);
         if (!ioproxy_use_or_open(m_filename))
@@ -486,11 +482,18 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             m_spec.tile_depth  = 1;
         }
 
-        // TODO: make this return false on failure so that the user gracefully
-        //       gets informed about out-of-memory (most probable cause of
-        //       failure).
         // Reserve memory for this mip level
-        append_mipmaps_vector();
+        if (!append_mipmaps_vector()) {
+            // Don't close as the caller may need to access the previously
+            // written data!
+            // close();
+            errorfmt(
+                "Failed to create internal buffer to hold data for the mip "
+                "level {}. This is probably due to insufficient memory and/or "
+                "large image dimensions.",
+                m_miplevel_idx);
+            return false;
+        }
 
         return true;
     }  // mode == AppendMIPLevel
@@ -523,21 +526,15 @@ KtxOutput::write_scanline(int y, TypeDesc format,
 
 
 bool
-KtxOutput::write_scanlines(int ybegin, int yend, int z, TypeDesc format,
+KtxOutput::write_scanlines(int ybegin, int yend, int /* z */, TypeDesc format,
                            const void* data, stride_t xstride, stride_t ystride)
 {
     const image_span data_img_span(static_cast<const std::byte*>(data),
                                    m_spec.nchannels, m_spec.width,
                                    yend - ybegin, 1, AutoStride, xstride,
-                                   ystride, AutoStride, format.size());
-    // For Cubemaps it should be obvious that write_tiles() should be used for
-    // Cubemaps; unlike the case for Volumes which is somewhat a hack ...
-    if (m_is_cubemap)
-        return false;
-    // For 3D volumes, fallback to write_tiles()
-    if (m_is3D)
-        return write_tiles(0, m_spec.width, ybegin, yend, z, z + 1, format,
-                           data_img_span);
+                                   ystride, AutoStride,
+                                   format.is_unknown() ? m_spec.format.size()
+                                                       : format.size());
     return write_scanlines(ybegin, yend, format, data_img_span);
 }
 
@@ -547,8 +544,7 @@ bool
 KtxOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
                            const image_span<const std::byte>& data)
 {
-    // For Cubemaps use write_tiles()
-    // For Volumes use write_tiles() or write_scanlines() with `z` parameter
+    // For cubemaps and volumes use write_tiles()
     if (m_is_cubemap || m_is3D)
         return false;
 
@@ -562,34 +558,9 @@ KtxOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
     if (!check_span_size(format, m_spec.width * size_t(yend - ybegin), data))
         return false;
 
-    //
-    // Convert to the native format the current specs expects. This is needed
-    // for mainly two reasons:
-    //  1. To convert a given TypeDesc::FLOAT into native format that this KTX2
-    //     writer expects (i.e., TypeDesc::UINT8 or TypeDesc::UINT16).
-    //  2. And/Or to 'contiguize' the data
-    //
-    // Returned data pointer may be the same as the provided pointer (i.e., no
-    // conversion is needed because supplied data is already in native format
-    // and is already contiguous).
-    //
-    // Importantly, the data that we get is both contiguous and in 100%
-    // accordance with the current spec.
-    //
-    cspan<std::byte> data_native = to_native(0, m_spec.width, ybegin, yend, 0,
-                                             1, format, data, m_scratch);
-
-    // data should now be contiguous and of the expected format (UINT8 or
-    // UINT16) so simply memcpy into internal buffer that will be written on
-    // close().
-    const size_t pitch = m_spec.scanline_bytes();
-    auto pSrc          = data_native.data();
-    size_t offset      = ybegin * pitch;
-    size_t datalen     = (yend - ybegin) * pitch;
-    memcpy(m_imgs[m_miplevel_idx][0].data() + offset, pSrc, datalen);
-    DBG std::cout << "write_scanlines wrote " << datalen << " bytes"
-                  << std::endl;
-    return true;
+    return copy_to_image_buffer(0, m_spec.width, ybegin, yend, 0, 1, format,
+                                data.data(), AutoStride, AutoStride, AutoStride,
+                                m_imgs[m_miplevel_idx].data());
 }
 
 
@@ -602,7 +573,8 @@ KtxOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
                                    m_spec.nchannels, m_spec.tile_width,
                                    m_spec.tile_height, m_spec.tile_depth,
                                    AutoStride, xstride, ystride, zstride,
-                                   format.size());
+                                   format.is_unknown() ? m_spec.format.size()
+                                                       : format.size());
     return write_tile(x, y, z, format, data_img_span);
 }
 
@@ -637,49 +609,12 @@ KtxOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                          data))
         return false;  // check_span_size sets errorfmt
 
-    cspan<std::byte> data_native = to_native(xbegin, xend, ybegin, yend, zbegin,
-                                             zend, format, data, m_scratch, 0);
-
-    // Now data is guaranteed to be contiguous and native to our spec
-
-    auto pSrc = data_native.data();
-    [[maybe_unused]] size_t nbr_written_bytes { 0 };
-
-    // For a volume texture, do a memcpy for each depth slice
-    if (m_is3D) {
-        const size_t pitch   = m_spec.pixel_bytes() * m_spec.tile_width;
-        const size_t offset  = ybegin * pitch;
-        const size_t datalen = size_t(yend - ybegin) * pitch;
-        for (int slice_idx = zbegin; slice_idx < zend; ++slice_idx) {
-            memcpy(m_imgs[m_miplevel_idx][slice_idx].data() + offset,
-                   pSrc
-                       + size_t(slice_idx - zbegin) * pitch
-                             * size_t(yend - ybegin),
-                   datalen);
-            nbr_written_bytes += datalen;
-        }
-        DBG std::cout << "[ktxoutput] write_tiles wrote " << nbr_written_bytes
-                      << " bytes" << std::endl;
-        return true;
-    }
-
-    // else: Cubemap texture
-    {
-        const size_t tile_size_in_bytes = m_spec.tile_bytes();
-        const int start_idx             = ybegin / m_spec.tile_height;
-        for (int face_idx = start_idx; (face_idx * m_spec.tile_height) < yend;
-             ++face_idx) {
-            memcpy(m_imgs[m_miplevel_idx][face_idx].data(),
-                   pSrc
-                       + static_cast<size_t>(face_idx - start_idx)
-                             * tile_size_in_bytes,
-                   tile_size_in_bytes);
-            nbr_written_bytes += tile_size_in_bytes;
-        }
-        DBG std::cout << "[ktxoutput] write_tiles wrote " << nbr_written_bytes
-                      << " bytes" << std::endl;
-    }
-    return true;
+    // copy_tile_to_image_buffer is a wrapper around this and does checks that
+    // we already have done + it copies the whole ImageSpec so just use this
+    // directly.
+    return copy_to_image_buffer(xbegin, xend, ybegin, yend, zbegin, zend,
+                                format, data.data(), AutoStride, AutoStride,
+                                AutoStride, m_imgs[m_miplevel_idx].data());
 }
 
 
@@ -706,35 +641,19 @@ KtxOutput::close()
 
 
 
-void
-KtxOutput::append_mipmaps_vector()
+// Be absolutely certain that this is called AFTER updating the spec with
+// dimensions for current miplevel!
+bool
+KtxOutput::append_mipmaps_vector() noexcept
 {
-    // TODO: this might reserve a lot of memory; maybe do checks rather than
-    //       just letting the resize() calls below throw?
-
-    if (m_is3D) {
-        // safety check to be certain that this is being called after correctly
-        // updating the spec with the current miplevel dimensions
-        OIIO_ASSERT(m_spec.depth
-                    == (int)std::max(1u, m_basedepth >> m_miplevel_idx));
-        m_imgs.emplace_back(m_spec.depth);
-        for (auto& slices_or_faces_vec : m_imgs[m_miplevel_idx]) {
-            slices_or_faces_vec.resize(m_spec.scanline_bytes() * m_spec.height);
-        }
-        return;
+    try {
+        m_imgs.emplace_back(1);
+        m_imgs[m_miplevel_idx].resize(m_spec.image_bytes());
+        return true;
+    } catch (...) {
+        // Probably some out-of-memory exception occured; just return false
+        return false;
     }
-
-    if (m_is_cubemap) {
-        m_imgs.emplace_back(6);
-        for (auto& slices_or_faces_vec : m_imgs[m_miplevel_idx]) {
-            slices_or_faces_vec.resize(m_spec.tile_bytes());
-        }
-        return;
-    }
-
-    // else: 2D texture
-    m_imgs.emplace_back(1);
-    m_imgs[m_miplevel_idx][0].resize(m_spec.image_bytes());
 }
 
 
@@ -760,44 +679,24 @@ KtxOutput::init() noexcept
     m_use_basis_universal = false;
     m_basis_params        = { 0 };
     m_astc_params         = { 0 };
-    // m_bcn_params = { 0 };
-    m_zlib_level = 9;
-    m_zstd_level = 22;
+    m_zlib_level          = 9;
+    m_zstd_level          = 22;
     // clear & release the capacity even though m_imgs' capacity itself is
     // negligeable (it just holds nbr miplevels elements)
-    std::vector<std::vector<std::vector<uint8_t>>>().swap(m_imgs);
-    // we don't want the scratch vector to be sitting around with some large
-    // capacity => just reset it
-    std::vector<unsigned char>().swap(m_scratch);
+    // swap is noexcept and constructor an empty vector doesn't allocate
+    // anything => no worries about exceptions
+    std::vector<std::vector<uint8_t>>().swap(m_imgs);
     ioproxy_clear();
 }
 
 
 
 //
-// Contruct ktxBasisParams struct from given input (from the provided
-// ImageSpec). There are two ways to approach this:
-//   1. Expect the whole ktxBasisParams to be provided by the user
-//   2. Search for each individual field
+// Contruct ktxBasisParams struct from the Basis Universal attributes in
+// current ImageSpec.
 //
-// Option 1) has the following benefits:
-//   -  Expose only one attribute "ktx:basisparams"
-// But:
-//   -  The user has to be aware of which libktx version is used (very bad)
-//   -  Less safe (?)
-//
-// Options 2) has the following benefits:
-//   -  User just has to provide each parameter separately thus => don't have
-//      to care about which libktx version is used.
-//   -  Safer (?)
-// But:
-//   -  A lot of "ktx:<param-name>" attributes have to be exposed. We can
-//      provide "high-level" parameters but that will make writing KTX2 output
-//      using OIIO significantly less customizable.
-//
-// TODO: update comment when we finally agree on which approach.
-//
-// For the moment, option 2) option 2) is opted for.
+// Returns false if provided `codec` does not correspond to a valid Basis
+// Universal codec.
 //
 bool
 KtxOutput::construct_basis_params(ktxBasisParams& params,
@@ -881,7 +780,13 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
 
 
 
-bool
+//
+// Contruct ktxAstcParams struct from the ASTC GPU block compression attributes
+// in current ImageSpec.
+//
+// Unlike `construct_basis_params`, this always succeeds.
+//
+void
 KtxOutput::construct_astc_params(ktxAstcParams& params,
                                  uint32_t threads) const noexcept
 {
@@ -911,8 +816,6 @@ KtxOutput::construct_astc_params(ktxAstcParams& params,
     if (auto Q = m_spec.find_attribute("ktx:perceptual", TypeDesc::INT)) params.perceptual = static_cast<bool>(Q->get_int());
     if (auto Q = m_spec.find_attribute("ktx:input_swizzle", TypeDesc(TypeDesc::CHAR, 4))) memcpy(params.inputSwizzle, Q->data(), 4);
     // clang-format on
-
-    return true;
 }
 
 
@@ -1025,6 +928,11 @@ KtxOutput::write_ktx2() noexcept
     if (m_is_cubemap)
         OIIO_ASSERT(p_tex->numFaces == 6);
 
+    const size_t slice_or_face_size = m_is3D         ? m_spec.scanline_bytes()
+                                                           * m_spec.height
+                                      : m_is_cubemap ? m_spec.tile_bytes()
+                                                     : m_spec.image_bytes();
+
     //
     // At first, set uncompressed data for all miplevels, layers, slices, etc.
     // The loop over slices and the loop over faces are mutually exclusive
@@ -1041,26 +949,27 @@ KtxOutput::write_ktx2() noexcept
     //
     for (uint32_t level_idx = 0; level_idx < tex->numLevels; ++level_idx) {
         const uint32_t depth = std::max(tex->baseDepth >> level_idx, 1u);
-        // Since array layers are not supported, this loop will only execute once
+        // Since array layers are not supported this loop will only execute once
         for (ktx_uint32_t layer_idx = 0; layer_idx < tex->numLayers;
              ++layer_idx) {
             for (uint32_t face_idx = 0; face_idx < tex->numFaces; ++face_idx) {
                 for (uint32_t slice_idx = 0; slice_idx < depth; ++slice_idx) {
                     // Faces and Slices are mutually exclusive, addition is fine
-                    auto data_ptr
-                        = m_imgs[level_idx][slice_idx + face_idx].data();
-                    const size_t data_size
-                        = m_imgs[level_idx][slice_idx + face_idx].size();
+                    const size_t slice_or_face_offset = (face_idx + slice_idx)
+                                                        * slice_or_face_size;
+                    auto data_ptr = m_imgs[level_idx].data();
 
                     // Before anything, be absolutely certain that what we are about
                     // to write is of the exact same size (in bytes) of what libktx
                     // expects us to write for this mip level.
                     const size_t expected_size
                         = ktxTexture2_GetImageSize(tex.get(), level_idx);
-                    if (data_size != expected_size) {
+                    if (slice_or_face_size != expected_size) {
                         errorfmt(
-                            "libktx expects {} bytes to be written for this mip level {} but {} bytes are instead attempted to be written",
-                            expected_size, level_idx, data_size);
+                            "libktx expects {} bytes to be written for this mip"
+                            " level {} but {} bytes are instead attempted to "
+                            "be written",
+                            expected_size, level_idx, slice_or_face_size);
                         return false;
                     }
 
@@ -1071,7 +980,8 @@ KtxOutput::write_ktx2() noexcept
                     // solved: https://github.com/KhronosGroup/KTX-Software/issues/1273
                     auto status = ktxTexture_SetImageFromMemory(
                         (ktxTexture*)tex.get(), level_idx, 0,
-                        face_idx + slice_idx, data_ptr, data_size);
+                        face_idx + slice_idx, data_ptr + slice_or_face_offset,
+                        slice_or_face_size);
                     if (status != KTX_SUCCESS) {
                         errorfmt(
                             "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
@@ -1080,13 +990,17 @@ KtxOutput::write_ktx2() noexcept
                     }
                     DBG std::cout << fmt::format(
                         "ktxTexture_SetImageFromMemory for slice_idx={} face_idx={} level_idx={} wrote {} bytes",
-                        slice_idx, face_idx, level_idx, data_size)
+                        slice_idx, face_idx, level_idx, slice_or_face_size)
                                   << std::endl;
                 }  // slices
             }  // faces
         }  // layers
     }  // mip levels
 
+    // TODO: At this point we pay the memory price for at least 2X the size of
+    // the whole uncompressed image (with all its mipmaps, layers, faces/slices,
+    // etc.). It would be nice to just have a per-slice/face compression
+    // somehow implemented here.
 
     //
     // After having written all necessary uncompressed data, check if the
@@ -1098,10 +1012,7 @@ KtxOutput::write_ktx2() noexcept
         switch (m_cmp) {
             // ASTC
         case BlockCompression::ASTC: {
-            if (!construct_astc_params(m_astc_params)) {
-                // construct_astc_params calls errorfmt
-                return false;
-            }
+            construct_astc_params(m_astc_params);
             if (auto status = ktxTexture2_CompressAstcEx(tex.get(),
                                                          &m_astc_params);
                 status != KTX_SUCCESS) {
