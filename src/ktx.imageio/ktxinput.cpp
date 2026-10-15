@@ -280,6 +280,10 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         return false;  // should never occur
     }
 
+    DBG std::cout << "[ktxinput] \"textureformat\": \""
+                  << m_spec.get_string_attribute("textureformat") << '"'
+                  << std::endl;
+
     //
     // KTX can hold layered compressions (i.e., on top of the potential GPU-
     // compatible compression like ASTC, the whole data can be furthermore

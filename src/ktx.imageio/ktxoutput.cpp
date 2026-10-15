@@ -200,9 +200,10 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // For volumes, user MUST either set depth > 1 or set the attribute to
         // "Volume Texture"
         //
-        std::string textureformat {};
-        if (auto Q = userspec.find_attribute("textureformat", TypeDesc::STRING))
-            textureformat = Q->get_string();
+        const auto textureformat = userspec.get_string_attribute(
+            "textureformat");
+        DBG std::cout << "[ktxoutput] got textureformat: " << textureformat
+                      << std::endl;
 
         //
         // Before anything, do some basic checks on the given dimensions
@@ -873,8 +874,10 @@ KtxOutput::write_ktx2() noexcept
     // Q. Why not create this in open()?
     // A. open() can be called with AppendMIPLevel mode which means we don't
     //    actually know the number of miplevels to create this texture with
-    //    until a call to close(). libktx doesn't support changing texture
-    //    attributes after its creation.
+    //    until a call to close(). libktx doesn't support appending mip levels.
+    //    It would be really nice for libktx to support appending mip levels
+    //    (at least to uncompressed textures) so that we can save significant
+    //    memory allocations and memcpy's.
     //
     std::unique_ptr<ktxTexture2, decltype(ktxTexture2_Destroy)*> tex {
         nullptr, ktxTexture2_Destroy
@@ -928,11 +931,6 @@ KtxOutput::write_ktx2() noexcept
     if (m_is_cubemap)
         OIIO_ASSERT(p_tex->numFaces == 6);
 
-    const size_t slice_or_face_size = m_is3D         ? m_spec.scanline_bytes()
-                                                           * m_spec.height
-                                      : m_is_cubemap ? m_spec.tile_bytes()
-                                                     : m_spec.image_bytes();
-
     //
     // At first, set uncompressed data for all miplevels, layers, slices, etc.
     // The loop over slices and the loop over faces are mutually exclusive
@@ -948,12 +946,18 @@ KtxOutput::write_ktx2() noexcept
     //  will cause a segfault!
     //
     for (uint32_t level_idx = 0; level_idx < tex->numLevels; ++level_idx) {
-        const uint32_t depth = std::max(tex->baseDepth >> level_idx, 1u);
+        const size_t miplvl_width  = std::max(tex->baseWidth >> level_idx, 1u);
+        const size_t miplvl_height = std::max(tex->baseHeight >> level_idx, 1u);
+        const size_t miplvl_depth  = std::max(tex->baseDepth >> level_idx, 1u);
         // Since array layers are not supported this loop will only execute once
         for (ktx_uint32_t layer_idx = 0; layer_idx < tex->numLayers;
              ++layer_idx) {
             for (uint32_t face_idx = 0; face_idx < tex->numFaces; ++face_idx) {
-                for (uint32_t slice_idx = 0; slice_idx < depth; ++slice_idx) {
+                for (uint32_t slice_idx = 0; slice_idx < miplvl_depth;
+                     ++slice_idx) {
+                    const size_t slice_or_face_size = miplvl_width
+                                                      * miplvl_height
+                                                      * m_spec.pixel_bytes();
                     // Faces and Slices are mutually exclusive, addition is fine
                     const size_t slice_or_face_offset = (face_idx + slice_idx)
                                                         * slice_or_face_size;

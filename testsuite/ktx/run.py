@@ -26,6 +26,9 @@
 # instead is that we test that we call libktx correctly and that parameters
 # (which are numerous) are passed correctly.
 #
+# Testing via C++ OpenImageIO is also done separately in this repo:
+#   https://github.com/walcht/ktx-oiio-examples
+#
 
 # save the error output
 redirect = ' >> out.txt 2>&1 '
@@ -125,8 +128,18 @@ command += (oiio_app("oiiotool") + (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_up_m
             + " --reorient -o orient_up_metadata.png >> out.txt ;\n")
 command += diff_command (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_down_metadata.ktx2", "orient_up_metadata.png")
 
-# TODO: Test writing a very small volume texture. I still don't know how to do
-#       this using oiiotool and this test is quite important because I detected
-#       a segfault when running a similar test case using OIIO API
-#       (see https://github.com/walcht/ktx-oiio-examples)
-# TODO: Test writing a very small cubemap texture
+# roundtrip test (read then write) for a small cubemap texture
+reference_cubemap_mip_texture = OIIO_TESTSUITE_IMAGEDIR + "/" + "valid_R8G8B8A8_SRGB_CUBE_MIP.ktx2"
+command += info_command (reference_cubemap_mip_texture)
+command += oiiotool (f"{reference_cubemap_mip_texture} -o valid_R8G8B8A8_SRGB_CUBE_MIP_rewritten.ktx2")
+command += diff_command (reference_cubemap_mip_texture, "valid_R8G8B8A8_SRGB_CUBE_MIP_rewritten.ktx2")
+
+# TODO: for some reason, for input cubemap with no mipmaps the command fails
+#       to pass "textureformat" from input to output, I have no idea why...
+#       oiiotool build/testsuite/oiio-images/ktx2/valid_R8G8B8_SRGB_CUBE_MIP.ktx2 -o cubemap_mip.ktx2
+
+# roundtrip test (read then write) for a small volume texture
+reference_volume_texture = OIIO_TESTSUITE_IMAGEDIR + "/" + "valid_R8G8B8_SRGB_3D.ktx2"
+command += info_command (reference_volume_texture)
+command += oiiotool (f"{reference_volume_texture} -o valid_R8G8B8_SRGB_3D_rewritten.ktx2")
+command += diff_command (reference_volume_texture, "valid_R8G8B8_SRGB_3D_rewritten.ktx2")
