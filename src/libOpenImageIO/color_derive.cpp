@@ -137,23 +137,25 @@ round_coordinate(double value)
 
 
 
-// The chromaticities (R G B W) that a linear RGB to CIE XYZ matrix gives.
-std::array<double, 8>
-chromaticities(const M33d& rgb_to_xyz)
+// The chromaticities (R G B W) that a linear RGB to CIE XYZ matrix gives, or
+// false if one of them has no CIE xy (X + Y + Z is zero).
+bool
+chromaticities(const M33d& rgb_to_xyz, std::array<double, 8>& xy)
 {
-    std::array<double, 8> xy;
     const V3d basis[4] = { V3d(1.0, 0.0, 0.0), V3d(0.0, 1.0, 0.0),
                            V3d(0.0, 0.0, 1.0), V3d(1.0, 1.0, 1.0) };
     for (int i = 0; i < 4; ++i) {
         const V3d XYZ    = apply(rgb_to_xyz, basis[i]);
         const double sum = XYZ.x + XYZ.y + XYZ.z;
-        xy[2 * i]        = round_coordinate(XYZ.x / sum);
-        xy[2 * i + 1]    = round_coordinate(XYZ.y / sum);
+        if (!std::isfinite(sum) || std::abs(sum) < 1e-12)
+            return false;
+        xy[2 * i]     = round_coordinate(XYZ.x / sum);
+        xy[2 * i + 1] = round_coordinate(XYZ.y / sum);
     }
     // A white with x equal to y is CIE XYZ's own, illuminant E.
     if (xy[6] == xy[7])
         xy[6] = xy[7] = 1.0 / 3.0;
-    return xy;
+    return true;
 }
 
 
@@ -226,24 +228,28 @@ known_gamut(const M33d& rgb_to_reference, const Reference& ref,
 // For primaries no known gamut matches: read them under each usual white
 // point and adaptation, take the first reading whose coordinates are round
 // enough, and otherwise the roundest, or failing that the first (D65,
-// Bradford).
-std::array<double, 8>
-roundest_reading(const M33d& rgb_to_reference, const Reference& ref)
+// Bradford). False if no reading has CIE xy.
+bool
+roundest_reading(const M33d& rgb_to_reference, const Reference& ref,
+                 std::array<double, 8>& best)
 {
     const M33d rgb_to_XYZ = ref.to_XYZ * rgb_to_reference;
-    std::array<double, 8> best;
-    double best_rank = 0.0;
-    bool first       = true;
+    double best_rank      = 0.0;
+    bool found            = false;
     for (const V3d& white : { white_D65, white_D60, white_DCI, white_D50 }) {
         for (Adaptation method : { Adaptation::Bradford, Adaptation::CAT02 }) {
-            const std::array<double, 8> xy = chromaticities(
-                adapt(ref.white, white, method) * rgb_to_XYZ);
-            if (first) {
+            std::array<double, 8> xy;
+            if (!chromaticities(adapt(ref.white, white, method) * rgb_to_XYZ,
+                                xy))
+                continue;
+            if (!found) {
                 best  = xy;
-                first = false;
+                found = true;
             }
-            if (exactness(xy, 6) > 0.6)
-                return xy;
+            if (exactness(xy, 6) > 0.6) {
+                best = xy;
+                return true;
+            }
             const double rank = exactness(xy, 9);
             if (rank > best_rank && rank > 0.2) {
                 best_rank = rank;
@@ -251,14 +257,21 @@ roundest_reading(const M33d& rgb_to_reference, const Reference& ref)
             }
         }
     }
-    return best;
+    return found;
 }
 
 
 
+bool is_simple_transform(const OCIO::ConstTransformRcPtr& transform);
+
+
+
 // The matrices that lead the conversion from the interchange space `role` to
-// the color space `name`, multiplied into one: clamps are skipped, so are
-// matrices that only scale, and the first curve ends them.
+// the color space `name`, multiplied into one: clamps and exposures (matrices
+// that scale every channel alike) are skipped, and the first curve ends them.
+// A conversion with no matrix mixing channels ahead of its first curve is in
+// the interchange space's own primaries if every later step acts on each
+// channel alone, and otherwise establishes none: this returns false.
 bool
 leading_matrices(const OCIO::Config& config, const char* role, const char* name,
                  M33d& matrices)
@@ -278,26 +291,41 @@ leading_matrices(const OCIO::Config& config, const char* role, const char* name,
         return false;
     }
     matrices.makeIdentity();
+    bool mixed  = false;  // A matrix ahead of the curves mixes channels
+    bool curved = false;  // A curve came first
     for (int i = 0, n = group->getNumTransforms(); i < n; ++i) {
         const OCIO::ConstTransformRcPtr transform = group->getTransform(i);
         if (transform->getTransformType() == OCIO::TRANSFORM_TYPE_RANGE)
             continue;
         auto matrix = OCIO::DynamicPtrCast<const OCIO::MatrixTransform>(
             transform);
-        if (!matrix)
-            break;
+        if (!matrix) {
+            if (mixed)
+                break;
+            if (!is_simple_transform(transform))
+                return false;
+            curved = true;
+            continue;
+        }
         double m[16];
         matrix->getMatrix(m);
         M33d step(m[0], m[1], m[2], m[4], m[5], m[6], m[8], m[9], m[10]);
         bool mixes = false;
         for (int r = 0; r < 3; ++r)
             for (int c = 0; c < 3; ++c)
-                mixes |= r != c && std::abs(step[r][c]) > 0.1;
-        if (!mixes)
+                mixes |= r != c && std::abs(step[r][c]) > 1e-9;
+        if (curved) {
+            if (mixes)
+                return false;
+            continue;
+        }
+        if (!mixes && std::abs(step[1][1] - step[0][0]) <= 1e-9
+            && std::abs(step[2][2] - step[0][0]) <= 1e-9)
             continue;
         if (matrix->getDirection() == OCIO::TRANSFORM_DIR_INVERSE)
             step.invert();
         matrices = step * matrices;
+        mixed |= mixes;
     }
     return true;
 }
@@ -319,7 +347,7 @@ is_simple_transform(const OCIO::ConstTransformRcPtr& transform)
                && style.rfind("ACES-LMT", 0) != 0;
     }
     case OCIO::TRANSFORM_TYPE_FIXED_FUNCTION: {
-#if OCIO_VERSION_HEX > 0x02040000
+#if OCIO_VERSION_HEX >= 0x02040000
         auto ff = OCIO::DynamicPtrCast<const OCIO::FixedFunctionTransform>(
             transform);
         return ff
@@ -451,9 +479,13 @@ derive(const OCIO::Config& config, const OCIO::ColorSpace& cs,
     std::unordered_set<std::string> visiting;
     if (depth < 8
         && is_complex(config, config.getColorSpace(cs.getName()), visiting)) {
-        const std::string target = trailing_color_space(
-            cs.getTransform(OCIO::COLORSPACE_DIR_FROM_REFERENCE),
-            OCIO::TRANSFORM_DIR_FORWARD);
+        std::string target;
+        if (auto from = cs.getTransform(OCIO::COLORSPACE_DIR_FROM_REFERENCE))
+            target = trailing_color_space(from, OCIO::TRANSFORM_DIR_FORWARD);
+        else
+            target = trailing_color_space(
+                cs.getTransform(OCIO::COLORSPACE_DIR_TO_REFERENCE),
+                OCIO::TRANSFORM_DIR_INVERSE);
         if (!target.empty() && target != cs.getName())
             if (auto other = config.getColorSpace(target.c_str()))
                 if (derive(config, *other, gamuts, xy, depth + 1))
@@ -470,7 +502,9 @@ derive(const OCIO::Config& config, const OCIO::ColorSpace& cs,
         std::copy(gamut, gamut + 8, xy.begin());
         return true;
     }
-    const std::array<double, 8> read = roundest_reading(rgb_to_reference, ref);
+    std::array<double, 8> read;
+    if (!roundest_reading(rgb_to_reference, ref, read))
+        return false;
     for (int i = 0; i < 8; ++i)
         xy[i] = float(read[i]);
     return true;

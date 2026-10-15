@@ -456,8 +456,9 @@ public:
     /// By, Wx, Wy, CIE 1931 xy), or an empty span if they are unknown. A
     /// color space of the config without such an ID, or whose ID OpenImageIO
     /// has no primaries for, has them derived by analyzing its transforms,
-    /// unless the `colorconfig:analyze_transforms` attribute is 0. The span
-    /// is valid until this ColorConfig is reset or destroyed.
+    /// unless the `colorconfig:analyze_transforms` attribute is 0; `data`
+    /// and `unknown` have none. The span is valid until this ColorConfig is
+    /// reset or destroyed.
     ///
     /// @version 3.2
     OIIO_NODISCARD cspan<float> get_chromaticities(string_view colorspace) const;

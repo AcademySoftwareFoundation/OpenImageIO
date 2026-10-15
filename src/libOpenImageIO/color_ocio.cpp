@@ -227,11 +227,12 @@ public:
         float gamma     = 0.0f;
     };
 
-    // What a color space's transforms establish about it.
+    // What a color space's transforms establish about it, each worked out
+    // the first time it is needed: -1 until then.
     struct Derived {
         std::array<float, 8> xy;
-        bool has_xy = false;
-        bool linear = false;
+        int8_t has_xy = -1;
+        int8_t linear = -1;
     };
 
 private:
@@ -359,8 +360,10 @@ public:
     Properties properties(string_view colorspace) const;
 
     // What the transforms of a color space of this config establish about
-    // it, worked out once per color space.
-    const Derived& derived(const OCIO::ColorSpace& cs) const;
+    // it: its chromaticities, or else whether it is linear, each worked out
+    // once per color space.
+    const Derived& derived(const OCIO::ColorSpace& cs,
+                           bool chromaticities) const;
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
@@ -2820,18 +2823,17 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "g22_adobergb_display", nullptr, xy_adobergb, 563.0f / 256.0f },
     { "g26_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
       CICPTransfer::Gamma26, CICPMatrix::BT709, xy_p3d65, 2.6f },
-    // The DCDM XYZ encodings have no properties: neither curve is a pure
-    // power (DCI headroom scaling precedes the 2.6 power), and no RGB
-    // primaries are reported for display XYZ encodings.
+    // The DCDM XYZ encodings have no gamma: neither curve is a pure power
+    // (DCI headroom scaling precedes the 2.6 power).
     { "g26_xyzd65_display", nullptr, CICPPrimaries::XYZD65,
-      CICPTransfer::Gamma26, CICPMatrix::Unspecified },
+      CICPTransfer::Gamma26, CICPMatrix::Unspecified, xy_xyz, 0.0f },
     { "pq_xyzd65_display", nullptr, CICPPrimaries::XYZD65, CICPTransfer::PQ,
-      CICPMatrix::Unspecified },
+      CICPMatrix::Unspecified, xy_xyz, 0.0f },
 
     // OpenColorIO interop IDs, last so that the official ones above take
     // priority when converting a CICP to an interop ID.
     { "ocio:lin_ciexyzd65_display", "cie_xyz_d65", CICPPrimaries::XYZD65,
-      CICPTransfer::Linear, CICPMatrix::Unspecified },
+      CICPTransfer::Linear, CICPMatrix::Unspecified, xy_xyz, 1.0f },
     { "ocio:acescc_ap1_scene", nullptr, xy_ap1, 0.0f },
     { "ocio:acescct_ap1_scene", nullptr, xy_ap1, 0.0f },
     { "ocio:itu709_rec709_scene", nullptr, xy_rec709, 0.0f },
@@ -2970,27 +2972,44 @@ ColorConfig::get_cicp(string_view colorspace) const
 
 
 const ColorConfig::Impl::Derived&
-ColorConfig::Impl::derived(const OCIO::ColorSpace& cs) const
+ColorConfig::Impl::derived(const OCIO::ColorSpace& cs,
+                           bool chromaticities) const
 {
     const string_view name(cs.getName());
     {
         spin_rw_read_lock lock(m_mutex);
         auto found = m_derived.find(name);
-        if (found != m_derived.end())
+        if (found != m_derived.end()
+            && (chromaticities ? found->second.has_xy : found->second.linear)
+                   >= 0)
             return found->second;
     }
     // Worked out without the lock; the first answer stored is kept.
     Derived result;
-    result.has_xy = OIIO::pvt::derive_chromaticities(*config_, cs,
-                                                     known_gamuts(), result.xy);
-    try {
-        result.linear = config_->isColorSpaceLinear(cs.getName(),
-                                                    cs.getReferenceSpaceType());
-    } catch (const std::exception& e) {
-        DBG("OCIO exception checking linearity of {}: {}\n", name, e.what());
+    if (chromaticities) {
+        result.has_xy = OIIO::pvt::derive_chromaticities(*config_, cs,
+                                                         known_gamuts(),
+                                                         result.xy);
+    } else {
+        result.linear = 0;
+        try {
+            result.linear
+                = config_->isColorSpaceLinear(cs.getName(),
+                                              cs.getReferenceSpaceType());
+        } catch (const std::exception& e) {
+            DBG("OCIO exception checking linearity of {}: {}\n", name,
+                e.what());
+        }
     }
     spin_rw_write_lock lock(m_mutex);
-    return m_derived.emplace(name, result).first->second;
+    Derived& stored = m_derived.try_emplace(std::string(name)).first->second;
+    if (stored.has_xy < 0 && result.has_xy >= 0) {
+        stored.xy     = result.xy;
+        stored.has_xy = result.has_xy;
+    }
+    if (stored.linear < 0 && result.linear >= 0)
+        stored.linear = result.linear;
+    return stored;
 }
 
 
@@ -3058,15 +3077,17 @@ ColorConfig::Impl::properties(string_view colorspace) const
     // The primaries are the ID's: the table's (a row without them says the
     // ID has none), or those of OpenImageIO's own definition of an ID the
     // table lacks. A space with neither has them derived from its transforms.
-    const Derived* own = analyze && !row ? &derived(*cs) : nullptr;
     Properties result;
     if (row) {
         result.xy = row->chromaticities;
-    } else if (own) {
+    } else if (analyze) {
         if (!interop_id.empty() && !disable_builtin_configs)
             result.xy = builtin_id_chromaticities(interop_id);
-        if (!result.xy && own->has_xy)
-            result.xy = own->xy.data();
+        if (!result.xy) {
+            const Derived& own = derived(*cs, true);
+            if (own.has_xy > 0)
+                result.xy = own.xy.data();
+        }
     }
 
     // The transfer function is the space's own, never its ID's. A declared
@@ -3083,7 +3104,7 @@ ColorConfig::Impl::properties(string_view colorspace) const
             result.gamma = 1.0f;
         else if (result.gamma == 1.0f)
             result.gamma = 0.0f;
-    } else if (own && own->linear) {
+    } else if (analyze && !row && derived(*cs, false).linear > 0) {
         result.gamma = 1.0f;
     }
     return result;

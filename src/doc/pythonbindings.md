@@ -4046,7 +4046,8 @@ Interop ID, as `get_color_interop_id()` finds it: a sequence of eight floats
 (Rx, Ry, Gx, Gy, Bx, By, Wx, Wy, CIE 1931 xy), or None if they are unknown.
 A color space of the config without such an ID, or whose ID OpenImageIO has no
 primaries for, has them derived by analyzing its transforms, unless the
-`colorconfig:analyze_transforms` attribute is 0.
+`colorconfig:analyze_transforms` attribute is 0; `data` and `unknown` have
+none.
 
 Example:
 
