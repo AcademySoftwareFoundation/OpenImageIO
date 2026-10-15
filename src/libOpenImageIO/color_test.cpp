@@ -502,6 +502,11 @@ test_derived_color_space_properties()
     OIIO_CHECK_ASSERT(Filesystem::write_text_file(
         cube, "LUT_3D_SIZE 2\n0.1 0.1 0.1\n1 0 0\n0 1 0\n1 1 0\n"
               "0 0 1\n1 0 1\n0 1 1\n1 1 1\n"));
+    const std::string spi1d = Filesystem::temp_directory_path() + "/"
+                              + Filesystem::unique_path() + ".spi1d";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        spi1d, "Version 1\nFrom 0.0 1.0\nLength 2\nComponents 1\n"
+               "{\n0.0\n0.5\n}\n"));
     auto scene = [](const char* name, const char* transform) {
         return Strutil::fmt::format(
             "  - !<ColorSpace>\n    name: {}\n    to_scene_reference: {}\n",
@@ -602,7 +607,23 @@ test_derived_color_space_properties()
             + "  - !<ColorSpace>\n    name: Shaper Cube\n"
               "    from_scene_reference: !<GroupTransform> {children: ["
               "!<LogTransform> {base: 2}, !<FileTransform> {src: '"
-            + cube + "', interpolation: linear}]}\n"
+            + cube
+            + "', interpolation: linear}]}\n"
+            // A 3D LUT file ahead of a ColorSpaceTransform answers as its
+            // color space.
+            + "  - !<ColorSpace>\n    name: Cube Then AP1\n"
+              "    from_scene_reference: !<GroupTransform> {children: ["
+              "!<FileTransform> {src: '"
+            + cube
+            + "', interpolation: linear}, !<ColorSpaceTransform> "
+              "{src: ACES2065-1, dst: ACEScg}]}\n"
+            // A 1D LUT file is simple, so the matrix after it mixes encoded
+            // values.
+            + "  - !<ColorSpace>\n    name: Curve Then AP1\n"
+              "    from_scene_reference: !<GroupTransform> {children: ["
+              "!<FileTransform> {src: '"
+            + spi1d
+            + "'}, !<ColorSpaceTransform> {src: ACES2065-1, dst: ACEScg}]}\n"
             + "display_colorspaces:\n"
               "  - !<ColorSpace> {name: CIE-XYZ-D65}\n"
             + display("Monitor 1886", "REC.1886-REC.709")
@@ -653,6 +674,8 @@ test_derived_color_space_properties()
                  Expected { "Said Linear", ap1, 1.0f },
                  Expected { "Cube", ap1, 0.0f },
                  Expected { "Shaper Cube", nullptr, 0.0f },
+                 Expected { "Cube Then AP1", ap1, 0.0f },
+                 Expected { "Curve Then AP1", nullptr, 0.0f },
                  Expected { "CIE-XYZ-D65", xyz, 1.0f },
                  Expected { "Monitor 1886", rec709, 0.0f },
                  Expected { "Monitor P3", p3d65, 0.0f },
@@ -681,6 +704,7 @@ test_derived_color_space_properties()
     }
     Filesystem::remove(filename);
     Filesystem::remove(cube);
+    Filesystem::remove(spi1d);
 
     // OpenColorIO 2.5 reads a declared interop_id. The ID gives the
     // primaries, from the table or from OpenImageIO's own definition of it,

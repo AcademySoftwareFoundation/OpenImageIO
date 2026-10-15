@@ -12,6 +12,8 @@
 #include <unordered_set>
 
 #include <OpenImageIO/Imath.h>
+#include <OpenImageIO/filesystem.h>
+#include <OpenImageIO/strutil.h>
 
 #include "color_derive.h"
 
@@ -399,8 +401,18 @@ is_complex(const OCIO::Config& config, const OCIO::ConstColorSpaceRcPtr& cs,
         if (!transform)
             return false;
         switch (transform->getTransformType()) {
-        // Files are taken as simple, whatever they hold.
-        case OCIO::TRANSFORM_TYPE_FILE: return false;
+        // A file is simple only in a format for matrices, 1D LUTs or CLF
+        // process lists; any other, such as a 3D LUT, is not.
+        case OCIO::TRANSFORM_TYPE_FILE: {
+            auto file = OCIO::DynamicPtrCast<const OCIO::FileTransform>(
+                transform);
+            const std::string ext
+                = Filesystem::extension(file ? file->getSrc() : "", false);
+            for (const char* simple : { "spimtx", "spi1d", "ctf", "clf" })
+                if (Strutil::iequals(ext, simple))
+                    return false;
+            return true;
+        }
         case OCIO::TRANSFORM_TYPE_GROUP: {
             auto group = OCIO::DynamicPtrCast<const OCIO::GroupTransform>(
                 transform);
