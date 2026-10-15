@@ -1,3 +1,9 @@
+Release 3.2.1.3 (Oct 15, 2026) -- compared to 3.2.1.2
+-----------------------------------------------------
+Another no-change release tag to force a Python 3.15 wheel publish.
+Sorry.
+
+
 Release 3.2.1.2 (Oct 14, 2026) -- compared to 3.2.1.1
 -----------------------------------------------------
 No code changes, this is just a new release tag to force a Python 3.15 wheel

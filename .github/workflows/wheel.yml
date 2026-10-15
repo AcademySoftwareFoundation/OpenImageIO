@@ -541,7 +541,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-    if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v3.0.') || startsWith(github.event.ref, 'refs/tags/v3.1.')) && github.event.repository.fork == false
+    if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v3.2.') || startsWith(github.event.ref, 'refs/tags/v3.1.')) && github.event.repository.fork == false
     steps:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
 
