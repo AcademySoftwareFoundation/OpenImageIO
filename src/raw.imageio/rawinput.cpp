@@ -1698,7 +1698,8 @@ RawInput::do_process()
 
         m_image = m_processor->dcraw_make_mem_image(&ret);
         if (!m_image) {
-            errorfmt("LibRaw failed to create in memory image");
+            errorfmt("LibRaw failed to create in memory image ({})",
+                     libraw_strerror(ret));
             return false;
         }
 
@@ -1879,7 +1880,8 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
 
     if (errcode != 0) {
         if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_THUMBNAIL)
-            thumb_errorfmt(this, m_thumb_index, "unpack_thumb_ex error");
+            thumb_errorfmt(this, m_thumb_index, "unpack_thumb_ex error ({})",
+                           libraw_strerror(errcode));
         return false;
     }
 
@@ -1887,7 +1889,8 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         m_thumb(m_processor->dcraw_make_mem_thumb(&errcode),
                 LibRaw::dcraw_clear_mem);
     if (m_thumb == nullptr) {
-        thumb_errorfmt(this, subimage, "dcraw_make_mem_thumb error");
+        thumb_errorfmt(this, subimage, "dcraw_make_mem_thumb error ({})",
+                       libraw_strerror(errcode));
         return false;
     }
 
