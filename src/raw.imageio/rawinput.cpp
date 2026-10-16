@@ -289,6 +289,33 @@ libraw_xtrans_filter_to_str(char (&filters)[6][6])
     }
     return result;
 }
+
+
+// Sometimes LibRaw returns error codes that are its own -- they are all
+// negative values and use libraw_strerror to turn into strings. But they also
+// mix in positive error codes like EINVAL, for which we use C stderror.
+std::string
+libraw_errmsg(int ret)
+{
+    std::string msg;
+    if (ret < 0) {
+        // libraw specific error -- use its lookup
+        if (const char* m = libraw_strerror(ret))
+            msg = m;
+    } else if (ret > 0) {
+        // C style error code, use safe version of strerror
+        const size_t maxbuf = 100;
+        char buf[maxbuf]    = { 0 };
+        if (strerror_r(ret, buf, maxbuf) == 0)
+            msg = std::string(buf);
+    } else if (ret == 0) {
+        msg = "ok";  // 0 means "no error"
+    }
+    if (msg.empty())
+        msg = "unknown error";
+    return msg;
+}
+
 }  // namespace
 
 bool
@@ -450,9 +477,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     int ret = m_processor->open_file(name.c_str());
 #endif
     if (ret != LIBRAW_SUCCESS) {
-        const char* err = libraw_strerror(ret);
         errorfmt("Could not open file \"{}\", {}", m_filename,
-                 err ? err : "unknown error");
+                 libraw_errmsg(ret));
         return false;
     }
 
@@ -487,9 +513,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     OIIO_ASSERT(!m_unpacked);
     if (unpack) {
         if ((ret = m_processor->unpack()) != LIBRAW_SUCCESS) {
-            const char* err = libraw_strerror(ret);
             errorfmt("Could not unpack \"{}\", {}", m_filename,
-                     err ? err : "unknown error");
+                     libraw_errmsg(ret));
             return false;
         }
         m_unpacked = true;
@@ -993,16 +1018,14 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             // Get unadjusted max value (need to force a read first)
             ret = m_processor->raw2image_ex(/*subtract_black=*/true);
             if (ret != LIBRAW_SUCCESS) {
-                const char* err = libraw_strerror(ret);
                 errorfmt("HighlightMode adjustment detection read failed ({})",
-                         err ? err : "unknown error");
+                         libraw_errmsg(ret));
                 return false;
             }
             ret = m_processor->adjust_maximum();
             if (ret != LIBRAW_SUCCESS) {
-                const char* err = libraw_strerror(ret);
                 errorfmt("HighlightMode minimum adjustment failed ({})",
-                         err ? err : "unknown error");
+                         libraw_errmsg(ret));
                 return false;
             }
             float unadjusted = m_processor->imgdata.color.maximum;
@@ -1014,9 +1037,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
             // Get new max value
             ret = m_processor->adjust_maximum();
             if (ret != LIBRAW_SUCCESS) {
-                const char* err = libraw_strerror(ret);
                 errorfmt("HighlightMode maximum adjustment failed ({})",
-                         err ? err : "unknown error");
+                         libraw_errmsg(ret));
                 return false;
             }
             float adjusted = m_processor->imgdata.color.maximum;
@@ -1690,16 +1712,14 @@ RawInput::do_process()
     if (!m_image) {
         int ret = m_processor->dcraw_process();
         if (ret != LIBRAW_SUCCESS) {
-            const char* err = libraw_strerror(ret);
-            errorfmt("Processing image failed, {}",
-                     err ? err : "unknown error");
+            errorfmt("Processing image failed, {}", libraw_errmsg(ret));
             return false;
         }
 
         m_image = m_processor->dcraw_make_mem_image(&ret);
         if (!m_image) {
             errorfmt("LibRaw failed to create in memory image ({})",
-                     libraw_strerror(ret));
+                     libraw_errmsg(ret));
             return false;
         }
 
@@ -1881,7 +1901,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
     if (errcode != 0) {
         if (errcode != LIBRAW_REQUEST_FOR_NONEXISTENT_THUMBNAIL)
             thumb_errorfmt(this, m_thumb_index, "unpack_thumb_ex error ({})",
-                           libraw_strerror(errcode));
+                           libraw_errmsg(errcode));
         return false;
     }
 
@@ -1890,7 +1910,7 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
                 LibRaw::dcraw_clear_mem);
     if (m_thumb == nullptr) {
         thumb_errorfmt(this, subimage, "dcraw_make_mem_thumb error ({})",
-                       libraw_strerror(errcode));
+                       libraw_errmsg(errcode));
         return false;
     }
 
@@ -1933,7 +1953,8 @@ RawInput::get_thumbnail(ImageBuf& thumb, int subimage)
         auto image_input = OIIO::ImageInput::create(image_type, false);
         if (image_input == nullptr) {
             thumb_errorfmt(this, m_thumb_index,
-                           "OIIO::ImageInput::create(\{}\") error", image_type);
+                           "OIIO::ImageInput::create(\"{}\") error",
+                           image_type);
             return false;
         }
 
