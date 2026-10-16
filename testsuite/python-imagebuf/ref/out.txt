@@ -35,6 +35,7 @@ Constructing from a bare numpy array:
 
  from 0-d array has_error: True
 Testing read of ../common/textures/grid.tx:
+miplevel: 0  /  11
 channels: 4
 name: ../common/textures/grid.tx
 file_format_name: tiff
@@ -74,6 +75,7 @@ Printing the whole spec to be sure:
   planarconfig = "contig"
   compression = "zip"
   PixelAspectRatio = 1.0
+  oiio:miplevels = 11
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
   oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
   oiio:SourceFileFormat = "tiff"
@@ -104,6 +106,7 @@ Resetting to a different MIP level:
   planarconfig = "contig"
   compression = "zip"
   PixelAspectRatio = 1.0
+  oiio:miplevels = 11
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
   oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
   oiio:SourceFileFormat = "tiff"
@@ -253,6 +256,12 @@ Testing error handling for out-of-range subimage, miplevel
   tahoe-tiny.tif subimage 1 mip 0: False Error reading: could not seek to subimage 1
   tahoe-tiny.tif subimage 0 mip 0: True 
   tahoe-tiny.tif subimage 0 mip 1: False Could not seek to subimage=0 miplevel=1
+
+Testing the number of miplevels
+  ../common/bayer.png nmiplevels: 1
+  ../common/grid-small.exr nmiplevels: 1
+  ../common/textures/grid.tx nmiplevels: 11
+  ../common/tahoe-tiny.tif nmiplevels: 1
 
 Done.
 Comparing "out.tif" and "ref/out.tif"

@@ -17,6 +17,7 @@ grid.tx              : 1000 x 1000, 4 channel, uint8 tiff
     YResolution: 72
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 10
     oiio:SHA-1: "9B24D4CC05313A43973AC384718D81D19183B691"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -35,6 +36,7 @@ checker.tx           :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -54,6 +56,7 @@ checker.tx           :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -77,6 +80,7 @@ grid-resize.tx       : 1024 x 1024, 4 channel, uint8 tiff
     YResolution: 72
     oiio:AverageColor: "0.608983,0.608434,0.608728,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 11
     oiio:SHA-1: "2E23E9B4C6E707427A73B5433B23104D4183724E"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -99,6 +103,7 @@ tahoe-resize.tx      :  512 x  512, 3 channel, uint8 tiff
     YResolution: 96
     oiio:AverageColor: "0.101931,0.216697,0.425473"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 10
     oiio:SHA-1: "799C1441E4B45378165DE450828109AF330A3F87"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -117,6 +122,7 @@ checker-uint16.tx    :  128 x  128, 4 channel, uint16 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 16
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -135,6 +141,7 @@ checker-1chan.tx     :  128 x  128, 1 channel, uint8 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "1D0A2254373A69C054C08672041FC7DE3BAE5179"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 1
@@ -153,6 +160,7 @@ checker-16x32tile.tx :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -171,6 +179,7 @@ checker-seplzw.tx    :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 5
     tiff:PhotometricInterpretation: 2
@@ -189,6 +198,7 @@ checker-clamp.tx     :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "clamp,clamp"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -207,6 +217,7 @@ checker-permir.tx    :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "periodic,mirror"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -244,6 +255,7 @@ checker-camera.tx    :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -262,6 +274,7 @@ checker-opaque.tx    :  128 x  128, 3 channel, uint8 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "2BE3743A64D4309645F94CA7B37D0CD08AF0B38E"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -281,6 +294,7 @@ gray-mono.tx         :  256 x  256, 1 channel, uint8 tiff
     oiio:AverageColor: "0.25098"
     oiio:BitsPerSample: 8
     oiio:ConstantColor: "0.25098"
+    oiio:miplevels: 9
     oiio:SHA-1: "24049CDF337F17E162291C7B626E0588A9D71160"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 1
@@ -300,6 +314,7 @@ pink-mono.tx         :  256 x  256, 3 channel, uint8 tiff
     oiio:AverageColor: "0.25098,0.2,0.14902"
     oiio:BitsPerSample: 8
     oiio:ConstantColor: "0.25098,0.2,0.14902"
+    oiio:miplevels: 9
     oiio:SHA-1: "41B1A0D1C1EBB4CEEBC7BCEE2CAB2AAAB4139724"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -318,6 +333,7 @@ checker-prman.tx     :  128 x  128, 4 channel, int16 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 16
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -365,6 +381,7 @@ checker-exr.pdq      :  128 x  128, 4 channel, half openexr
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -399,6 +416,7 @@ small.tx             :   64 x   64, 3 channel, uint8 tiff
     oiio:AverageColor: "1,0,0"
     oiio:BitsPerSample: 8
     oiio:ConstantColor: "1,0,0"
+    oiio:miplevels: 7
     oiio:SHA-1: "1DD1CB3C76F9A491B115F85A6DAC1B1A8DD2D3CB"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
@@ -458,6 +476,7 @@ bumpslope.exr        :   64 x   64, 6 channel, half openexr
     uvslopes_scale: 0
     wrapmodes: "black,black"
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
+    oiio:miplevels: 7
     oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -548,6 +567,7 @@ bumpslope-central.exr :   64 x   64, 6 channel, half openexr
     uvslopes_scale: 0
     wrapmodes: "black,black"
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00487623,0.00476811,-1.36547e-05"
+    oiio:miplevels: 7
     oiio:SHA-1: "E332A489C2BCDE63C2DB6A68E847CF396642F0A6"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -642,6 +662,7 @@ bumpslope-normal.exr :  128 x  128, 6 channel, half openexr
     version: 1
     wrapmodes: "black,black"
     oiio:AverageColor: "-1,-5.0059e-05,5.46902e-05,0.00489737,0.00494693,4.87366e-05"
+    oiio:miplevels: 8
     oiio:SHA-1: "BC210B60E71DDBBA147EAD3C638ACC908C11CF6C"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -744,6 +765,7 @@ cdf.exr              :   64 x   64, 1 channel, half openexr
     textureformat: "Plain Texture"
     wrapmodes: "black,black"
     oiio:AverageColor: "0.499779"
+    oiio:miplevels: 7
     oiio:SHA-1: "00DFB31D0260CC466CDCF9FE42446D4896E655FE"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -776,6 +798,7 @@ bumpslope-cdf.exr    :   64 x   64, 6 channel, half openexr
     uvslopes_scale: 0
     wrapmodes: "black,black"
     oiio:AverageColor: "0.499779,-0.000457942,-4.17233e-05,0.00197116,0.00178894,3.45764e-05"
+    oiio:miplevels: 7
     oiio:SHA-1: "49B533110A914CE89BE0B14753A6A4CC037C964F"
     oiio:subimages: 1
     openexr:lineOrder: "increasingY"
@@ -794,6 +817,7 @@ checker-attribs.tx   :  128 x  128, 4 channel, uint8 tiff
     wrapmodes: "black,black"
     oiio:AverageColor: "0.5,0.5,0.5,1"
     oiio:BitsPerSample: 8
+    oiio:miplevels: 8
     oiio:SHA-1: "D924CA144A02479D1507F5910F5FC8F51EF78765"
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2

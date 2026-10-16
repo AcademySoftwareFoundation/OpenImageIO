@@ -184,6 +184,10 @@ red & green channels).
      - string
      - For environment maps, which cube faces are present (e.g., ``"+x -x
        +y -y"`` if *x* & *y* faces are present, but not *z*).
+   * - ``oiio:miplevels``
+     - int
+     - The number of MIP levels, only for MIP-mapped files with more than
+       one level.
 
 ```
 
@@ -1660,6 +1664,10 @@ The official OpenEXR site is <http://www.openexr.com/>.
    * - ``oiio:subimages``
      - int
      - The number of "parts" (subimages) in the file.
+   * - ``oiio:miplevels``
+     - int
+     - The number of MIP levels of the part (subimage), only for MIP-mapped
+       parts with more than one level.
    * - ``smpte:TimeCode``
      - int[2]
      - SMPTE time code (vecsemantics will be marked as TIMECODE)
@@ -2271,6 +2279,10 @@ Ptex files at all.
    * - ``wrapmode``
      - string
      - the wrap mode as specified by the Ptex file.
+   * - ``oiio:miplevels``
+     - int
+     - The number of MIP levels of the face (subimage), only when the face
+       has more than one level.
    * - *other*
      -
      - Any other arbitrary metadata in the Ptex file will be stored directly

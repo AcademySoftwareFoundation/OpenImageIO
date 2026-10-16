@@ -1267,7 +1267,8 @@ public:
     /// Return the number of MIP levels of the current subimage within the
     /// file this ImageBuf refers to. This will always be 1 for an ImageBuf
     /// that was not constructed as a direct reference to a file, or if this
-    /// subimage within the file was not MIP-mapped.
+    /// subimage within the file was not MIP-mapped. A return value of 0
+    /// indicates an error.
     int nmiplevels() const;
 
     /// Return the number of color channels in the image. This is equivalent

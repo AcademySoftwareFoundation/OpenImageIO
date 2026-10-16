@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <atomic>
 #include <functional>
 #include <iostream>
 
@@ -33,6 +34,7 @@ static spin_mutex print_mutex;  // make the prints not clobber each other
 long long accum = 0;
 float faccum    = 0;
 spin_mutex mymutex;
+std::atomic<long long> expected_accum(0);
 
 
 
@@ -69,6 +71,7 @@ do_accum(int iterations)
         std::cout << "thread " << std::this_thread::get_id()
                   << ", accum = " << accum << "\n";
     }
+    expected_accum += iterations;
 #if 1
     for (int i = 0; i < iterations; ++i) {
         spin_lock lock(mymutex);
@@ -129,6 +132,7 @@ main(int argc, char* argv[])
     else
         timed_thread_wedge(do_accum, numthreads, iterations, ntrials,
                            numthreads);
+    OIIO_CHECK_EQUAL(accum, expected_accum.load());
 
     return unit_test_failures;
 }

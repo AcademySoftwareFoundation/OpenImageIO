@@ -65,6 +65,7 @@ Opened "grid.tx" as a tiff
   planarconfig = "contig"
   compression = "zip"
   PixelAspectRatio = 1.0
+  oiio:miplevels = 11
   oiio:AverageColor = "0.608983,0.608434,0.608728,1"
   oiio:SHA-1 = "233A1D3412A54A5F49814AB7BFFD04F56F46D3D7"
 Subimage 0 MIP level 1 :
@@ -240,6 +241,11 @@ Testing has_error/geterror:
   has_error: True
   geterror persists: True
   has_error after clear: False
+
+Testing read range sanity:
+  huge yend clamped to height: True
+  inverted scanline range None: True
+  bad tile range None: True
 
 is_imageio_format_name('tiff') = True
 is_imageio_format_name('txff') = False

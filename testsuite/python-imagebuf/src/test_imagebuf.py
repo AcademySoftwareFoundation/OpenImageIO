@@ -222,6 +222,14 @@ def test_outofrange_subimage_miplevel() :
         print(" ", f, "subimage 0 mip 1:", ok, buf.geterror())
 
 
+# Test for the number of MIP levels.
+def test_nmiplevels():
+    print("\nTesting the number of miplevels")
+    for f in ["../common/bayer.png", "../common/grid-small.exr",
+              "../common/textures/grid.tx", "../common/tahoe-tiny.tif"]:
+        buf = oiio.ImageBuf(f, 0, 0)
+        print(" ", f, "nmiplevels:", buf.nmiplevels)
+
 
 ######################################################################
 # main test starts here
@@ -349,6 +357,7 @@ try:
     test_copy_metadata ()
     test_repr_png ()
     test_outofrange_subimage_miplevel ()
+    test_nmiplevels()
 
     print ("\nDone.")
 except Exception as detail:
