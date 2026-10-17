@@ -142,23 +142,16 @@ yield() noexcept
 inline void
 pause(int delay) noexcept
 {
-#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
     OIIO_PAUSE_NOUNROLL
-    for (int i = 0; i < delay; ++i)
-        __asm__ __volatile__("pause;");
-
-#elif defined(__GNUC__) && defined(__aarch64__)
-    // isb, not yield: yield is effectively a nop (e.g. on Apple Silicon).
-    OIIO_PAUSE_NOUNROLL
-    for (int i = 0; i < delay; ++i)
-        __asm__ __volatile__("isb" ::: "memory");
-
-#elif defined(__GNUC__) && (defined(__arm__) || defined(__s390__))
-    for (int i = 0; i < delay; ++i)
-        __asm__ __volatile__("NOP;");
-
-#elif defined(_MSC_VER)
     for (int i = 0; i < delay; ++i) {
+#if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+        __asm__ __volatile__("pause;");
+#elif defined(__GNUC__) && defined(__aarch64__)
+        // isb, not yield: yield is effectively a nop (e.g. on Apple Silicon).
+        __asm__ __volatile__("isb" ::: "memory");
+#elif defined(__GNUC__) && (defined(__arm__) || defined(__s390__))
+        __asm__ __volatile__("NOP;");
+#elif defined(_MSC_VER)
 // A reimplementation of winnt.h YieldProcessor,
 // to avoid including windows headers.
 #    if defined(_M_AMD64)
@@ -172,13 +165,10 @@ pause(int delay) noexcept
 #    else
         _asm pause
 #    endif
-    }
-
 #else
-    // No pause on this platform, just punt
-    for (int i = 0; i < delay; ++i)
-        ;
+        // No pause on this platform, just punt
 #endif
+    }
 }
 
 
