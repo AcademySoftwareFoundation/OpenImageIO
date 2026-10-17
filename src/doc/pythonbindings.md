@@ -4044,6 +4044,9 @@ is provided for minimal color support.
 Get the RGB primaries and white point of a color space with a known Color
 Interop ID, as `get_color_interop_id()` finds it: a sequence of eight floats
 (Rx, Ry, Gx, Gy, Bx, By, Wx, Wy, CIE 1931 xy), or None if they are unknown.
+A color space of the config without such an ID, or whose ID OpenImageIO has no
+primaries for, has them derived by analyzing its transforms, unless the
+`colorconfig:analyze_transforms` attribute is 0.
 
 Example:
 
@@ -4059,7 +4062,10 @@ This function was added in OpenImageIO 3.2.
 :::{py:method} get_transfer_function_gamma (colorspace)
 Get the exponent of a color space's transfer function if it decodes as a pure
 power, 1.0 if it is linear, or 0 if it is neither or is unknown. Piecewise
-curves such as sRGB's report 0.
+curves such as sRGB's report 0. A color space whose config declares an
+encoding is linear only if that encoding is linear for its reference type.
+Otherwise it answers for a known Color Interop ID, or, like
+`get_chromaticities()`, by analyzing transforms.
 
 Example:
 
