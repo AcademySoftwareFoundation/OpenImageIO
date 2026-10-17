@@ -43,7 +43,7 @@ years between them.
 
 Minor (API backward-compatible) releases are scheduled annually, targeted at
 late summer (SIGGRAPH time) to be in beta, and early autumn for a full
-release.
+release (aiming for no later than October).
 
 Patch (API and ABI backward-compatible) releases are scheduled monthly,
 usually aiming for the first day of each month.
@@ -131,7 +131,7 @@ project during this soft freeze.
 
 ### Branching for annual major/minor releases
 
-By mid-June (about 1-2 months before the beta of a new annual big release),
+By mid-July (about 1-2 months before the beta of a new annual big release),
 you should branch and mark it as an alpha.
 
 At the tip of "main", create a new branch named `dev-MAJOR.MINOR` that will
@@ -219,6 +219,11 @@ have a heading added at the top for the *next* version.
      developer previews.
    - The `${PROJECT_NAME}_SUPPORTED_RELEASE` variable should be `ON` for any
      release branch, `OFF` for main.
+   - For an annual release's first non-beta, non-rc tag (i.e., when it becomes
+     the new official supported release for the next year), be sure that the
+     wheel.yml workflow's "upload_pypi" job is set up to publish that version.
+     Decide also if there are old release branches that should no longer
+     publish to PyPI and remove those from the publish criteria.
 
 6. In the https://github.com/AcademySoftwareFoundation/OpenImageIO-images project, create a branch
    `dev-x.y` for the major/minor branch, and in the main oiio repo, update
