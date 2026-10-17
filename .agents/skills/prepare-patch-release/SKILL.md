@@ -30,6 +30,8 @@ with a "v" prepended, for example, `v3.1.4.0`.
 - [ ] Review @INSTALL.md for changes.
 - [ ] Review @CREDITS.md for changes.
 - [ ] Review @SECURITY.md for changes.
+- [ ] For a release branch (not main, and not still alpha/beta/rc status),
+      check that wheel.yml's upload_pypi step will publish the branch.
 
 ## Steps to determine the versions of the last and new releases.
 
