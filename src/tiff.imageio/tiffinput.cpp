@@ -1554,12 +1554,13 @@ TIFFInput::readspec(bool read_meta)
 
     // Search for IPTC metadata in IIM form -- but older versions of
     // libtiff botch the size, so ignore it for very old libtiff.
-    int iptcsize         = 0;
+    uint32_t iptccount   = 0;
     const char* iptcdata = nullptr;
     TypeDesc iptctype    = tiffgetfieldtype(TIFFTAG_RICHTIFFIPTC);
-    if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)
-        && iptcsize > 0) {
+    if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptccount, &iptcdata)
+        && iptccount > 0 && iptcdata) {
         std::vector<char> iptc;
+        size_t iptcsize = iptccount;
         if (iptctype.size() == 4) {
             // Some TIFF files in the wild inexplicably think their IPTC
             // data are stored as longs, and we have to undo any byte
@@ -1571,7 +1572,7 @@ TIFFInput::readspec(bool read_meta)
         } else {
             iptc.assign(iptcdata, iptcdata + iptcsize);
         }
-        decode_iptc_iim(&iptc[0], iptcsize, m_spec);
+        decode_iptc_iim(string_view(iptc.data(), iptc.size()), m_spec);
     }
 
     // Search for an XML packet containing XMP (IPTC, Exif, etc.)
