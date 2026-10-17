@@ -148,7 +148,7 @@ pause(int delay) noexcept
         __asm__ __volatile__("pause;");
 
 #elif defined(__GNUC__) && defined(__aarch64__)
-    // isb, not yield: on Apple Silicon, yield is effectively a nop.
+    // isb, not yield: yield is effectively a nop (e.g. on Apple Silicon).
     OIIO_PAUSE_NOUNROLL
     for (int i = 0; i < delay; ++i)
         __asm__ __volatile__("isb" ::: "memory");
