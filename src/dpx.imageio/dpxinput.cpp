@@ -235,6 +235,28 @@ DPXInput::seek_subimage(int subimage, int miplevel)
         return false;
     }
 
+    // The libdpx code we use is not really 32 bit overflow safe in its
+    // allocations or offsets when reading and decoding individual scanlines.
+    // We'll never see a DPX file that big anyway, so just consider it an
+    // error rather than track down every possible problem in libdpx.
+    if (m_spec.scanline_bytes()
+        > imagesize_t(std::numeric_limits<int32_t>::max())) {
+        errorfmt("Unsupported DPX with scanlines exceeding {} bytes",
+                 std::numeric_limits<int>::max());
+        m_spec = ImageSpec();
+        return false;
+    }
+
+    // The readers hold end-of-line padding in an int, so a larger value
+    // would go negative and step rows backward through the file.
+    if (m_dpx.header.EndOfLinePadding(subimage)
+        > (unsigned int)std::numeric_limits<int>::max()) {
+        errorfmt("Invalid DPX end-of-line padding {}",
+                 m_dpx.header.EndOfLinePadding(subimage));
+        m_spec = ImageSpec();
+        return false;
+    }
+
     if ((int)m_dpx.header.xOriginalSize > 0)
         m_spec.full_width = m_dpx.header.xOriginalSize;
     if ((int)m_dpx.header.yOriginalSize > 0)
