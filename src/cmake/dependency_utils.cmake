@@ -548,14 +548,17 @@ macro (checked_find_package pkgname)
             # A prior find_package() may have left a bunch of cruft from a
             # rejected, unsuitable system install in its Find module. Clear it
             # here so it does not pollute our attempt to use the one we just
-            # built and are about to re-find.
+            # built and are about to re-find. This includes the version, or a
+            # stale one from the rejected install would be reported.
             foreach (_v IN ITEMS
                      ${pkgname}_LIBRARY ${pkgname}_LIBRARIES
                      ${pkgname}_LIBRARY_RELEASE ${pkgname}_LIBRARY_DEBUG
                      ${pkgname}_INCLUDE_DIR ${pkgname}_INCLUDE_DIRS
                      ${pkgname_upper}_LIBRARY ${pkgname_upper}_LIBRARIES
                      ${pkgname_upper}_LIBRARY_RELEASE ${pkgname_upper}_LIBRARY_DEBUG
-                     ${pkgname_upper}_INCLUDE_DIR ${pkgname_upper}_INCLUDE_DIRS)
+                     ${pkgname_upper}_INCLUDE_DIR ${pkgname_upper}_INCLUDE_DIRS
+                     ${pkgname}_VERSION ${pkgname}_VERSION_STRING
+                     ${pkgname_upper}_VERSION ${pkgname_upper}_VERSION_STRING)
                 unset (${_v})
                 unset (${_v} CACHE)
             endforeach ()
