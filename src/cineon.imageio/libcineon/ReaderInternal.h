@@ -139,12 +139,12 @@ namespace cineon
 	// 10 bit, packed data
 	// 12 bit, packed data
 	template <typename BUF, U32 MASK, int MULTIPLIER, int REMAIN, int REVERSE>
-	void UnPackPacked(U32 *readBuf, const int bitDepth, BUF *data, int count, int bufoff)
+	void UnPackPacked(U32 *readBuf, const int bitDepth, BUF *data, int64_t count, int64_t bufoff)
 	{
 		// unpack the words in the buffer
 		BUF *obuf = data + bufoff;
 
-		for (int i = count - 1; i >= 0; i--)
+		for (int64_t i = count - 1; i >= 0; i--)
 		{
 			// unpacking the buffer backwards
 			// find the byte that the data starts in, read in as a 16 bits then shift and mask
@@ -163,10 +163,12 @@ namespace cineon
 			//      the pattern repeats every 96 bits
 
 			// first determine the word that the data element completely resides in
-			U16 *d1 = reinterpret_cast<U16 *>(reinterpret_cast<U8 *>(readBuf)+((i * bitDepth) / 8 /*bits*/));
+			U8 *d1 = reinterpret_cast<U8 *>(readBuf)+((i * bitDepth) / 8 /*bits*/);
+			U16 d2;
+			memcpy(&d2, d1, sizeof(U16));  // Use memcpy to launder any misalignment
 
 			// place the component in the MSB and mask it for both 10-bit and 12-bit
-			U16 d2 = (*d1 << (REVERSE - ((i % REMAIN) * MULTIPLIER))) & MASK;
+			d2 = (d2 << (REVERSE - ((i % REMAIN) * MULTIPLIER))) & MASK;
 
 			// For the 10/12 bit cases, specialize the 16-bit conversion by
 			// repacking into the LSB and using a specialized conversion
@@ -203,27 +205,28 @@ namespace cineon
 		const int dataSize = dpxHeader.BitDepth(0);
 
 		// number of bytes
-		const int lineSize = (dpxHeader.Width() * numberOfComponents * dataSize + 31) / 32;
+		const int64_t lineSize = (int64_t(dpxHeader.Width()) * numberOfComponents * dataSize + 31) / 32;
 
 		// read in each line at a time directly into the user memory space
-		for (int line = 0; line < height; line++)
+		for (int64_t line = 0; line < height; line++)
 		{
 			// determine offset into image element
-			long offset = (line + block.y1) * (lineSize * sizeof(U32)) +
-						(block.x1 * numberOfComponents * dataSize / 32 * sizeof(U32)) + (line * eolnPad);
+			int64_t offset = (line + block.y1) * (lineSize * sizeof(U32)) +
+						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + (line * eolnPad);
 
 			// calculate read size
-			int readSize = ((block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
-			readSize += (block.x1 * numberOfComponents * dataSize % 32);			// add the bits left over from the beginning of the line
+			int64_t readSize = (int64_t(block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
+			readSize += (int64_t(block.x1) * numberOfComponents * dataSize % 32);			// add the bits left over from the beginning of the line
 			readSize = ((readSize + 31) / 32) * sizeof(U32);
 
 			// calculate buffer offset
-			int bufoff = line * dpxHeader.Width() * numberOfComponents;
+			int64_t bufoff = line * dpxHeader.Width() * numberOfComponents;
 
-			fd->Read(dpxHeader, offset, readBuf, readSize);
+			if (!fd->Read(dpxHeader, offset, readBuf, readSize))
+				return false;
 
 			// unpack the words in the buffer
-			int count = (block.x2 - block.x1 + 1) * numberOfComponents;
+			int64_t count = int64_t(block.x2 - block.x1 + 1) * numberOfComponents;
 			UnPackPacked<BUF, MASK, MULTIPLIER, REMAIN, REVERSE>(readBuf, dataSize, data, count, bufoff);
 		}
 
