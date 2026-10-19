@@ -16,7 +16,7 @@
 #   - a very larget tests set for ktx tools:
 #     https://github.com/KhronosGroup/KTX-Software-CTS/tree/6d23ae9e52cce2ebc6495c4692ec89f632ff70d4
 #
-# commit hashse:
+# commit hashes:
 #   - libktx test files: 6c474d8627999de8acf07d819c196f83d025cd44
 #   - ktx tools test files (CTS): 6d23ae9e52cce2ebc6495c4692ec89f632ff70d4
 # 
@@ -26,7 +26,7 @@
 # instead is that we test that we call libktx correctly and that parameters
 # (which are numerous) are passed correctly.
 #
-# Testing via C++ OpenImageIO is also done separately in this repo:
+# Testing via C++ OpenImageIO API is also done separately in this repo:
 #   https://github.com/walcht/ktx-oiio-examples
 #
 
@@ -117,10 +117,6 @@ command += oiiotool ("checker_original.png --attrib ktx:codec astc --attrib ktx:
 command += diff_command ("checker_original.png", "checker_astc_6x6.ktx2")
 command += info_command ("checker_astc_6x6.ktx2")
 
-# We do not test read-then-write of compressed-ktx2 files because any read-write
-# cycle worsens quality and is absolutely not the intended purpose of ktx usage
-# within OIIO (or in general).
-
 # Test that re-orientation metadata is handled correctly.
 # orient_[up|down]_metadata are essentially the same image with one flipped
 # vertically (orient_up_metadata)
@@ -128,18 +124,90 @@ command += (oiio_app("oiiotool") + (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_up_m
             + " --reorient -o orient_up_metadata.png >> out.txt ;\n")
 command += diff_command (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_down_metadata.ktx2", "orient_up_metadata.png")
 
-# roundtrip test (read then write) for a small cubemap texture
-reference_cubemap_mip_texture = OIIO_TESTSUITE_IMAGEDIR + "/" + "valid_R8G8B8A8_SRGB_CUBE_MIP.ktx2"
-command += info_command (reference_cubemap_mip_texture)
-command += oiiotool (f"{reference_cubemap_mip_texture} -o valid_R8G8B8A8_SRGB_CUBE_MIP_rewritten.ktx2")
-command += diff_command (reference_cubemap_mip_texture, "valid_R8G8B8A8_SRGB_CUBE_MIP_rewritten.ktx2")
+# Roundtrip tests for small uncompressed files (8x8) of supported formats.
+#
+# We do not test read-then-write of compressed-ktx2 files because any read-write
+# cycle worsens quality and is absolutely not the intended purpose of ktx usage
+# within OIIO (or in general).
+uncompressed_files = [
+    # 8-bit formats
+    "valid_R8_SRGB_2D.ktx2",
+    "valid_R8_UINT_2D.ktx2",
+    "valid_R8_SINT_2D.ktx2",
+    "valid_R8_UNORM_2D.ktx2",
+    "valid_R8G8_SRGB_2D.ktx2",
+    "valid_R8G8_UINT_2D.ktx2",
+    "valid_R8G8_SINT_2D.ktx2",
+    "valid_R8G8_UNORM_2D.ktx2",
+    "valid_R8G8B8_SRGB_2D.ktx2",
+    "valid_R8G8B8_UINT_2D.ktx2",
+    "valid_R8G8B8_SINT_2D.ktx2",
+    "valid_R8G8B8_UNORM_2D.ktx2",
+    "valid_R8G8B8A8_SRGB_2D.ktx2",
+    "valid_R8G8B8A8_UINT_2D.ktx2",
+    "valid_R8G8B8A8_SINT_2D.ktx2",
+    "valid_R8G8B8A8_UNORM_2D.ktx2",
+    "valid_R8G8B8A8_SRGB_CUBE.ktx2",
+    "valid_R8G8B8A8_SRGB_CUBE_MIP.ktx2",
+    # "valid_R8G8B8A8_SRGB_CUBE_ARRAY.ktx2",
+    # "valid_R8G8B8A8_SRGB_CUBE_ARRAY_MIP.ktx2",
+    "valid_R8G8B8A8_SRGB_3D.ktx2",
+    "valid_R8G8B8A8_SRGB_3D_MIP.ktx2",
 
-# TODO: for some reason, for input cubemap with no mipmaps the command fails
-#       to pass "textureformat" from input to output, I have no idea why...
-#       oiiotool build/testsuite/oiio-images/ktx2/valid_R8G8B8_SRGB_CUBE_MIP.ktx2 -o cubemap_mip.ktx2
+    # 16-bit formats
+    "valid_R16_SFLOAT_2D.ktx2",
+    "valid_R16_UINT_2D.ktx2",
+    "valid_R16_SINT_2D.ktx2",
+    "valid_R16_UNORM_2D.ktx2",
+    "valid_R16G16_SFLOAT_2D.ktx2",
+    "valid_R16G16_UINT_2D.ktx2",
+    "valid_R16G16_SINT_2D.ktx2",
+    "valid_R16G16_UNORM_2D.ktx2",
+    "valid_R16G16B16_SFLOAT_2D.ktx2",
+    "valid_R16G16B16_UINT_2D.ktx2",
+    "valid_R16G16B16_SINT_2D.ktx2",
+    "valid_R16G16B16_UNORM_2D.ktx2",
+    "valid_R16G16B16A16_SFLOAT_2D.ktx2",
+    "valid_R16G16B16A16_UINT_2D.ktx2",
+    "valid_R16G16B16A16_SINT_2D.ktx2",
+    "valid_R16G16B16A16_UNORM_2D.ktx2",
+    "valid_R16G16B16A16_SFLOAT_CUBE.ktx2",
+    "valid_R16G16B16A16_SFLOAT_CUBE_MIP.ktx2",
+    "valid_R16G16B16A16_SFLOAT_3D.ktx2",
+    "valid_R16G16B16A16_SFLOAT_3D_MIP.ktx2",
 
-# roundtrip test (read then write) for a small volume texture
-reference_volume_texture = OIIO_TESTSUITE_IMAGEDIR + "/" + "valid_R8G8B8_SRGB_3D.ktx2"
-command += info_command (reference_volume_texture)
-command += oiiotool (f"{reference_volume_texture} -o valid_R8G8B8_SRGB_3D_rewritten.ktx2")
-command += diff_command (reference_volume_texture, "valid_R8G8B8_SRGB_3D_rewritten.ktx2")
+    # 32-bit formats
+    "valid_R32_SFLOAT_2D.ktx2",
+    "valid_R32_UINT_2D.ktx2",
+    "valid_R32G32_SFLOAT_2D.ktx2",
+    "valid_R32G32_UINT_2D.ktx2",
+    "valid_R32G32B32_SFLOAT_2D.ktx2",
+    "valid_R32G32B32_UINT_2D.ktx2",
+    "valid_R32G32B32A32_SFLOAT_2D.ktx2",
+    "valid_R32G32B32A32_UINT_2D.ktx2",
+    "valid_R32G32B32A32_SFLOAT_CUBE.ktx2",
+    "valid_R32G32B32A32_SFLOAT_CUBE_MIP.ktx2",
+    "valid_R32G32B32A32_SFLOAT_3D.ktx2",
+    "valid_R32G32B32A32_SFLOAT_3D_MIP.ktx2",
+
+    # 1D textures (these are rarely used)
+    "valid_R8G8B8A8_SRGB_1D.ktx2",
+]
+
+for filename in uncompressed_files:
+    fp = OIIO_TESTSUITE_IMAGEDIR + "/" + filename
+    regenerated_filename = f"generated_{filename}";
+    command += info_command (fp)
+    # Use `--native` to prevent oiiotool from converting input types to float.
+    # Without this, the exact same bytes may not be reproduced for, for
+    # instance, UINT32 types (which in turn results in the ktxdiff command below
+    # to fail).
+    command += oiiotool (f"{fp} --native -o {regenerated_filename}")
+    command += diff_command (fp, regenerated_filename)
+
+    # For more robust testing; if `ktxdiff` is installed (part of KTX Tools)
+    # then you can compare the generated vs. original KTX2 files (headers and
+    # texture data) to verify that the VK_FORMAT is the same, primaries and tf
+    # are the same, etc. If you see any diff in out.txt then something failed.
+    # ktxdiff_path = "<path-to-ktxdiff>"
+    # command += f"{ktxdiff_path} {fp} {regenerated_filename} --tolerance 0 --skip-kvd >> out.txt;\n"

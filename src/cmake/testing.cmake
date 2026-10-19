@@ -655,8 +655,8 @@ endfunction()
 function (oiio_setup_test_data)
     # TODO: revert this to target dev branch before merging
     oiio_get_test_data (oiio-images
-                        REPO https://github.com/AcademySoftwareFoundation/OpenImageIO-images.git
-                        BRANCH main)
+                        REPO https://github.com/walcht/OpenImageIO-images.git
+                        BRANCH ktx2-add-uncompressed-vkformat-files)
                         # BRANCH dev-${OpenImageIO_VERSION_MAJOR}.${OpenImageIO_VERSION_MINOR})
     oiio_get_test_data (openexr-images
                         REPO https://github.com/AcademySoftwareFoundation/openexr-images.git
