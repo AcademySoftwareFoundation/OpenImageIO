@@ -300,10 +300,12 @@ OpenImageIO\.ImageSpec\.attribute$:
 OpenImageIO\.ImageSpec\.erase_attribute$:
     def erase_attribute(self, name: str = '', type: TypeDesc | BASETYPE | str = ..., casesensitive: bool = False) -> None: ...
 
+# ImageSpec.format is a property at runtime; render it as one instead of a
+# getter/setter method pair, so that mypy allows assignment (spec.format = ...)
 OpenImageIO\.ImageSpec\.format$:
-    @overload
+    @property
     def format(self) -> TypeDesc: ...
-    @overload
+    @format.setter
     def format(self, arg: TypeDesc | BASETYPE | str, /) -> None: ...
 
 OpenImageIO\.ImageSpec\.set_format$:
@@ -383,3 +385,8 @@ OpenImageIO\.ROI\.All$:
 
 OpenImageIO\.ImageBuf\.getchannel$:
     def getchannel(self, x: int, y: int, z: int, c: int, wrap: str = 'black') -> float: ...
+
+# --- nanobind stubgen does not emit module-level attributes; inject the ones
+# --- the old checked-in stubs carried
+OpenImageIO\.__prefix__$:
+    __version__: str
