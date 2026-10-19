@@ -12,6 +12,8 @@ from typing import ClassVar, overload
 import numpy
 
 
+__version__: str
+
 class BASETYPE(enum.Enum):
     UNKNOWN = 0
 
@@ -521,9 +523,9 @@ class ImageSpec:
     @nchannels.setter
     def nchannels(self, arg: int, /) -> None: ...
 
-    @overload
+    @property
     def format(self) -> TypeDesc: ...
-    @overload
+    @format.setter
     def format(self, arg: TypeDesc | BASETYPE | str, /) -> None: ...
 
     @property
