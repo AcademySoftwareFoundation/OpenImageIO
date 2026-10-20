@@ -241,10 +241,12 @@ public:
     ///
     void lock() noexcept
     {
-        // Back off with increasingly longer pauses. Spin a long while
-        // before yielding the timeslice: yielding early is what hurts
-        // most under contention.
-        atomic_backoff backoff(128, 64);
+        // Back off with exponentially longer pauses, up to a long cap,
+        // before yielding the timeslice. Yielding (and short pauses that
+        // keep waiters hammering the line) is what hurts most under
+        // contention, especially across sockets or core types. This
+        // spins about 0.1-0.2 ms before the first yield.
+        atomic_backoff backoff(4096, 2);
 
         // Try to get ownership of the lock. Failing is the unlikely case.
         while (OIIO_UNLIKELY(!try_lock())) {
