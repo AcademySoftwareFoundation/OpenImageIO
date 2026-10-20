@@ -130,7 +130,15 @@ parse_elements(string_view value, ParamValue& p)
 ParamValue::ParamValue(string_view name, TypeDesc type, string_view value)
     : ParamValue(name, type, 1, cspan<std::byte>())
 {
-    if (type.basetype == TypeDesc::INT) {
+    if (type == TypeRational || type == TypeURational) {
+        // Accept either "x,y" or "x/y" here
+        std::string rational_values(value);
+        std::replace(rational_values.begin(), rational_values.end(), '/', ',');
+        if (type.basetype == TypeDesc::INT)
+            parse_elements<int>(rational_values, *this);
+        else if (type.basetype == TypeDesc::UINT)
+            parse_elements<unsigned int>(rational_values, *this);
+    } else if (type.basetype == TypeDesc::INT) {
         parse_elements<int>(value, *this);
     } else if (type.basetype == TypeDesc::UINT) {
         parse_elements<unsigned int>(value, *this);
