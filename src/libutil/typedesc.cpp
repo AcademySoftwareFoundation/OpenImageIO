@@ -214,6 +214,15 @@ TypeDesc::c_str() const
             result = Strutil::fmt::format("matrix{}", basetype_code[basetype]);
             break;
         }
+    } else if (vecsemantics == RATIONAL
+               && (*this == TypeRational || *this == TypeURational)) {
+        result = (basetype == TypeDesc::INT) ? "rational" : "urational";
+    } else if (vecsemantics == BOX) {
+        result = Strutil::fmt::format("box{}{}", int(aggregate),
+                                      basetype == FLOAT
+                                          ? ""
+                                          : basetype_code[basetype]);
+        alen   = arraylen > 2 ? (arraylen / 2) : (arraylen < 0 ? -1 : 0);
     } else {
         // Special names for vector semantics
         const char* vec = "";
@@ -236,14 +245,6 @@ TypeDesc::c_str() const
         result = std::string(vec) + std::string(agg);
         if (basetype != FLOAT)
             result += basetype_code[basetype];
-    }
-    // More unusual cases
-    if (vecsemantics == BOX) {
-        result = Strutil::fmt::format("box{}{}", int(aggregate),
-                                      basetype == FLOAT
-                                          ? ""
-                                          : basetype_code[basetype]);
-        alen   = arraylen > 2 ? (arraylen / 2) : (arraylen < 0 ? -1 : 0);
     }
     if (alen > 0)
         result += Strutil::fmt::format("[{}]", alen);
@@ -323,9 +324,9 @@ TypeDesc::fromstring(string_view typestring)
         t = OIIO::TypeFloat4;
     else if (type == "timecode")
         t = OIIO::TypeTimeCode;
-    else if (type == "rational")
+    else if (type == "rational" || type == "rational2i")
         t = OIIO::TypeRational;
-    else if (type == "urational")
+    else if (type == "urational" || type == "rational2u")
         t = OIIO::TypeURational;
     else if (type == "box2i")
         t = OIIO::TypeBox2i;

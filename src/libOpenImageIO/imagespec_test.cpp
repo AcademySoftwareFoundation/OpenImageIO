@@ -47,6 +47,7 @@ const char* imagespec_xml_string = R"EOF(
 <attrib name="screenWindowCenter" type="float2">0, 0</attrib>
 <attrib name="screenWindowWidth" type="float">1</attrib>
 <attrib name="oiio:subimages" type="int">1</attrib>
+<attrib name="FramesPerSecond" type="rational">30000/1001</attrib>
 </ImageSpec>
 )EOF";
 
@@ -358,6 +359,20 @@ test_imagespec_from_xml()
     OIIO_CHECK_EQUAL(spec.format, TypeFloat);
     OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
                      "scene_linear");
+    OIIO_CHECK_EQUAL(spec.getattributetype("FramesPerSecond"), TypeRational);
+    OIIO_CHECK_EQUAL_THRESH(spec.get_float_attribute("FramesPerSecond", -1.0f),
+                            30000.0f / 1001.0f, 1.0e-5f);
+
+    std::string xml = spec.to_xml();
+    OIIO_CHECK_ASSERT(xml.find("name=\"FramesPerSecond\" type=\"rational\"")
+                      != std::string::npos);
+    ImageSpec roundtripped;
+    roundtripped.from_xml(xml.c_str());
+    OIIO_CHECK_EQUAL(roundtripped.getattributetype("FramesPerSecond"),
+                     TypeRational);
+    OIIO_CHECK_EQUAL_THRESH(roundtripped.get_float_attribute("FramesPerSecond",
+                                                             -1.0f),
+                            30000.0f / 1001.0f, 1.0e-5f);
 }
 
 
