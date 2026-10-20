@@ -186,11 +186,11 @@ WebpOutput::write_complete_data()
     // If we have ICC data, encode to memory first. This is required in order
     // to use the WebPMux assembly API below.
     WebPMemoryWriter wrt;
-    if (!m_use_animation_encoder && (has_icc_data || m_mux)) {
+    if (!m_anim_encoder && (has_icc_data || m_mux)) {
         WebPMemoryWriterInit(&wrt);
         m_webp_picture.writer     = WebPMemoryWrite;
         m_webp_picture.custom_ptr = &wrt;
-    } else if (!m_use_animation_encoder) {
+    } else if (!m_anim_encoder) {
         m_webp_picture.writer     = WebpImageWriter;
         m_webp_picture.custom_ptr = (void*)ioproxy();
     }
