@@ -70,6 +70,75 @@ static std::unordered_map<std::string, ktx_pack_astc_block_dimension_e> astc_blo
 
 
 
+// clang-format off
+static std::unordered_map<std::string, khr_df_primaries_e> primaries_str_to_enum{
+  { "none",         khr_df_primaries_e::KHR_DF_PRIMARIES_UNSPECIFIED },
+  { "bt709",        khr_df_primaries_e::KHR_DF_PRIMARIES_BT709 },
+  { "srgb",         khr_df_primaries_e::KHR_DF_PRIMARIES_SRGB },
+  { "bt601_ebu",    khr_df_primaries_e::KHR_DF_PRIMARIES_BT601_EBU },
+  { "bt601_smpte",  khr_df_primaries_e::KHR_DF_PRIMARIES_BT601_SMPTE },
+  { "bt2020",       khr_df_primaries_e::KHR_DF_PRIMARIES_BT2020 },
+  { "ciexyz",       khr_df_primaries_e::KHR_DF_PRIMARIES_CIEXYZ },
+  { "aces",         khr_df_primaries_e::KHR_DF_PRIMARIES_ACES },
+  { "acescc",       khr_df_primaries_e::KHR_DF_PRIMARIES_ACESCC },
+  { "ntsc1953",     khr_df_primaries_e::KHR_DF_PRIMARIES_NTSC1953 },
+  { "pal525",       khr_df_primaries_e::KHR_DF_PRIMARIES_PAL525 },
+  { "displayp3",    khr_df_primaries_e::KHR_DF_PRIMARIES_DISPLAYP3 },
+  { "adobergb",     khr_df_primaries_e::KHR_DF_PRIMARIES_ADOBERGB },
+};
+// clang-format on
+
+
+
+// clang-format off
+static std::unordered_map<std::string, khr_df_transfer_e> tf_str_to_enum{
+  { "none",           khr_df_transfer_e::KHR_DF_TRANSFER_UNSPECIFIED },
+  { "linear",         khr_df_transfer_e::KHR_DF_TRANSFER_LINEAR },
+  { "srgb",           khr_df_transfer_e::KHR_DF_TRANSFER_SRGB },
+  { "srgb_eotf",      khr_df_transfer_e::KHR_DF_TRANSFER_SRGB_EOTF },
+  { "scrgb",          khr_df_transfer_e::KHR_DF_TRANSFER_SCRGB },
+  { "scrgb_eotf",     khr_df_transfer_e::KHR_DF_TRANSFER_SCRGB_EOTF },
+  { "itu",            khr_df_transfer_e::KHR_DF_TRANSFER_ITU },
+  { "itu_oetf",       khr_df_transfer_e::KHR_DF_TRANSFER_ITU_OETF },
+  { "bt601",          khr_df_transfer_e::KHR_DF_TRANSFER_BT601 },
+  { "bt601_oetf",     khr_df_transfer_e::KHR_DF_TRANSFER_BT601_OETF },
+  { "bt709",          khr_df_transfer_e::KHR_DF_TRANSFER_BT709 },
+  { "bt709_oetf",     khr_df_transfer_e::KHR_DF_TRANSFER_BT709_OETF },
+  { "bt2020",         khr_df_transfer_e::KHR_DF_TRANSFER_BT2020 },
+  { "bt2020_oetf",    khr_df_transfer_e::KHR_DF_TRANSFER_BT2020_OETF },
+  { "smpte170m",      khr_df_transfer_e::KHR_DF_TRANSFER_SMTPE170M },
+  { "smpte170m_oetf", khr_df_transfer_e::KHR_DF_TRANSFER_SMTPE170M_OETF },
+  { "smpte170m_eotf", khr_df_transfer_e::KHR_DF_TRANSFER_SMTPE170M_EOTF },
+  { "ntsc",           khr_df_transfer_e::KHR_DF_TRANSFER_NTSC },
+  { "ntsc_eotf",      khr_df_transfer_e::KHR_DF_TRANSFER_NTSC_EOTF },
+  { "slog",           khr_df_transfer_e::KHR_DF_TRANSFER_SLOG },
+  { "slog_oetf",      khr_df_transfer_e::KHR_DF_TRANSFER_SLOG_OETF },
+  { "slog2",          khr_df_transfer_e::KHR_DF_TRANSFER_SLOG2 },
+  { "slog2_oetf",     khr_df_transfer_e::KHR_DF_TRANSFER_SLOG2_OETF },
+  { "bt1886",         khr_df_transfer_e::KHR_DF_TRANSFER_BT1886 },
+  { "bt1886_eotf",    khr_df_transfer_e::KHR_DF_TRANSFER_BT1886_EOTF },
+  { "hlg_oetf",       khr_df_transfer_e::KHR_DF_TRANSFER_HLG_OETF },
+  { "hlg_eotf",       khr_df_transfer_e::KHR_DF_TRANSFER_HLG_EOTF },
+  { "pq_oetf",        khr_df_transfer_e::KHR_DF_TRANSFER_PQ_OETF},
+  { "pg_eotf",        khr_df_transfer_e::KHR_DF_TRANSFER_PQ_EOTF },
+  { "dcip3",          khr_df_transfer_e::KHR_DF_TRANSFER_DCIP3 },
+  { "dcip3_eotf",     khr_df_transfer_e::KHR_DF_TRANSFER_DCIP3_EOTF },
+  { "pal_oetf",       khr_df_transfer_e::KHR_DF_TRANSFER_PAL_OETF },
+  { "pal625_eotf",    khr_df_transfer_e::KHR_DF_TRANSFER_PAL625_EOTF },
+  { "st240",          khr_df_transfer_e::KHR_DF_TRANSFER_ST240 },
+  { "st240_oetf",     khr_df_transfer_e::KHR_DF_TRANSFER_ST240_OETF },
+  { "st240_eotf",     khr_df_transfer_e::KHR_DF_TRANSFER_ST240_EOTF },
+  { "acescc",         khr_df_transfer_e::KHR_DF_TRANSFER_ACESCC },
+  { "acescc_oetf",    khr_df_transfer_e::KHR_DF_TRANSFER_ACESCC_OETF },
+  { "acescct",        khr_df_transfer_e::KHR_DF_TRANSFER_ACESCCT },
+  { "acescct_oetf",   khr_df_transfer_e::KHR_DF_TRANSFER_ACESCCT_OETF },
+  { "abobergb",       khr_df_transfer_e::KHR_DF_TRANSFER_ADOBERGB },
+  { "adobergb_eotf",  khr_df_transfer_e::KHR_DF_TRANSFER_ADOBERGB_EOTF },
+};
+// clang-format on
+
+
+
 static inline std::string
 block_compression_name(BlockCompression cmp)
 {

@@ -109,10 +109,10 @@ private:
     // Checks the magic
     bool ktx_magic_cmp(cspan<uint8_t> sig) const noexcept;
 
-    std::string get_colorspace() const noexcept;
+    const char* get_colorspace() const noexcept;
 
     // std::string& because string_view are still not supported by std::regex
-    void parse_ktx_sc_params_metadata(const std::string& ktx_sc_params) noexcept;
+    void parse_ktx_sc_params_metadata(const std::string& ktx_sc_params);
 
     bool check(int subimage, int miplevel) const noexcept;
 };
@@ -192,7 +192,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         m_tex.reset(p_tex);
         if (KTX_SUCCESS != res) {
             errorfmt("Failed to create ktx texture using "
-                     "ktxTexture2_CreateFromStdioStream");
+                     "ktxTexture2_CreateFromStdioStream. Reason: {}",
+                     ktxErrorString(res));
             return false;
         }
     } else /* (proxytype == "memreader") */ {
@@ -205,7 +206,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         m_tex.reset(p_tex);
         if (KTX_SUCCESS != res) {
             errorfmt(
-                "Failed to create ktx texture using ktxTexture2_CreateFromMemory");
+                "Failed to create ktx texture using ktxTexture2_CreateFromMemory. Reason: {}",
+                ktxErrorString(res));
             return false;
         }
     }
@@ -257,9 +259,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         m_spec.default_channel_names();
     }
 
-    std::string colorspace = get_colorspace();
-    if (Strutil::iequals(colorspace, "unknown"))
-        return false;  // errorfmt set by get_colorspace()
+    const char* colorspace = get_colorspace();
     m_spec.set_colorspace(colorspace);
 
     // Set textureformat attribute
@@ -310,6 +310,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         // This scheme is applied automatically through libktx'
         // `ktxTexture2_CompressBasisEx` function.
         m_spec.attribute("compression", "basis_lz");
+        break;
     default: break;
     }
     // is this a 1D texture? If so, save that it is because we can't figure it
@@ -354,7 +355,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
             if ((status = ktxHashListEntry_GetKey(kventry, &keylen, &key))
                 != KTX_SUCCESS) {
-                DBG std::cerr << "ktxHashListEntry_GetKey failed" << std::endl;
+                DBG std::cerr << "ktxHashListEntry_GetKey failed. Reason: "
+                              << ktxErrorString(status) << std::endl;
                 continue;
             }
 
@@ -368,8 +370,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
             if ((status = ktxHashListEntry_GetValue(kventry, &vallen, &val))
                 != KTX_SUCCESS) {
-                errorfmt("ktxHashListEntry_GetValue returned error code {}",
-                         static_cast<uint32_t>(status));
+                errorfmt("ktxHashListEntry_GetValue failed. Reason: {}",
+                         ktxErrorString(status));
                 return false;
             }
 
@@ -405,7 +407,6 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 //  Applications wanting to store incomplete cubemaps should
                 //  flatten faces into a 2D array [...]
                 //
-                OIIO_ASSERT(vallen == 1);
                 errorfmt("Incomplete cubemaps are currently not supported");
                 return false;
             } else if (attr_name == KTX_ORIENTATION_KEY) {
@@ -476,7 +477,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // We don't support vendor-specific supercompression schemes
     if (m_tex->supercompressionScheme > KTX_SS_END_RANGE) {
         errorfmt("Unsuppoted supercompression scheme: {}",
-                 static_cast<uint32_t>(m_tex->supercompressionScheme));
+                 ktxSupercompressionSchemeString(m_tex->supercompressionScheme));
         return false;
     }
 
@@ -544,8 +545,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // For the moment, let's make sure this approach is working.
     if (auto result = ktxTexture2_LoadImageData(m_tex.get(), NULL, 0);
         result != KTX_SUCCESS) {
-        errorfmt("ktxTexture2_LoadImageData returned Ktx error code: {}",
-                 static_cast<uint32_t>(result));
+        errorfmt("ktxTexture2_LoadImageData failed. Reason: {}",
+                 ktxErrorString(result));
         return false;
     }
 
@@ -575,8 +576,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                 m_tex.get(), is_hdr ? KTX_TTF_RGB_HALF : KTX_TTF_RGBA32, 0);
             status != KTX_SUCCESS) {
             errorfmt("failed to transcode KTX2 texture to raw pixels. "
-                     "ktxTexture2_TranscodeBasis returned Ktx error code: {}",
-                     static_cast<uint32_t>(status));
+                     "ktxTexture2_TranscodeBasis failed. Reason: {}",
+                     ktxErrorString(status));
             return false;
         }
         // Save Basis Universal codec in the "ktx:codec" attribute (this
@@ -644,8 +645,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             if (auto status = ktxTexture2_DecodeBCn(m_tex);
                 status != KTX_SUCCESS) {
                 errorfmt("failed to decode BCn-compressed texture. "
-                         "ktxTexture2_DecodeBCn returned Ktx error code: {}",
-                         static_cast<uint32_t>(status));
+                         "ktxTexture2_DecodeBCn failed. Reason: {}",
+                         ktxErrorString(status));
                 return false;
             }
             break;
@@ -682,8 +683,8 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             if (auto status = ktxTexture2_DecodeAstc(m_tex.get());
                 status != KTX_SUCCESS) {
                 errorfmt("Failed to decode ASTC-compressed texture. "
-                         "ktxTexture2_DecodeAstc returned Ktx error code: {}",
-                         static_cast<uint32_t>(status));
+                         "ktxTexture2_DecodeAstc failed. Reason: {}",
+                         ktxErrorString(status));
                 return false;
             }
             break;
@@ -839,9 +840,6 @@ KtxInput::seek_subimage(int subimage, int miplevel)
         && this->current_miplevel() == miplevel)
         return true;
 
-    m_subimage = subimage;
-    m_miplevel = miplevel;
-
     //
     // According to official libktx source code, this is how they compute
     // dimensions of a miplevel. See:
@@ -856,6 +854,15 @@ KtxInput::seek_subimage(int subimage, int miplevel)
         std::numeric_limits<int>::max());
     if (width > int_max || height > int_max || depth > int_max)
         return false;
+
+    if (m_tex->isCubemap) {
+        // Overflow check
+        if (height > int_max / 6)
+            return false;
+    }
+
+    m_subimage = subimage;
+    m_miplevel = miplevel;
 
     m_spec.width = m_spec.full_width = static_cast<int>(width);
     m_spec.height = m_spec.full_height = static_cast<int>(height);
@@ -876,9 +883,6 @@ KtxInput::seek_subimage(int subimage, int miplevel)
     // Pretend a 1x6 layout (libktx doesn't provide access to cubemaps as whole
     // textures but rather through a per-face index API)
     if (m_tex->isCubemap) {
-        // Overflow check
-        if (height > int_max / 6)
-            return false;
         m_spec.height = m_spec.full_height = static_cast<int>(height * 6);
         m_spec.tile_width                  = static_cast<int>(width);
         m_spec.tile_height                 = static_cast<int>(height);
@@ -934,10 +938,10 @@ bool
 KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                 int yend, span<std::byte> data)
 {
-    const int width             = std::max(m_tex->baseWidth >> miplevel, 1u);
-    const int height            = std::max(m_tex->baseHeight >> miplevel, 1u);
-    const size_t pitch_in_bytes = m_spec.pixel_bytes() * width;
-    ktx_size_t offset;
+    if (!check(subimage, miplevel)) {
+        errorfmt("KTX read_native_scanlines: invalid subimage or miplevel");
+        return false;
+    }
 
     // Use read_native_tiles() to read cubemap faces or
     // read_native_volumetric_tiles() to read 3D volume slices
@@ -945,14 +949,14 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
         return false;
     }
 
+    const int width             = std::max(m_tex->baseWidth >> miplevel, 1u);
+    const int height            = std::max(m_tex->baseHeight >> miplevel, 1u);
+    const size_t pitch_in_bytes = m_spec.pixel_bytes() * width;
+    ktx_size_t offset;
+
     if (ybegin < 0 || ybegin >= yend || yend > height) {
         errorfmt(
             "KTX read_native_scanlines: Out of valid range scanlines range");
-        return false;
-    }
-
-    if (!check(subimage, miplevel)) {
-        errorfmt("KTX read_native_scanlines: invalid subimage or miplevel");
         return false;
     }
 
@@ -987,8 +991,8 @@ KtxInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     if (auto status = ktxTexture2_GetImageOffset(m_tex.get(), miplevel,
                                                  subimage, 0, &offset);
         status != KTX_SUCCESS) {
-        errorfmt("ktxTexture2_GetImageOffset failed with exit code: {}",
-                 static_cast<uint32_t>(status));
+        errorfmt("ktxTexture2_GetImageOffset failed. Reason: {}",
+                 ktxErrorString(status));
         return false;
     }
 
@@ -1113,8 +1117,8 @@ KtxInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
                                                      subimage, face_idx,
                                                      &offset);
             status != KTX_SUCCESS) {
-            errorfmt("ktxTexture2_GetImageOffset failed with exit code: {}",
-                     static_cast<uint32_t>(status));
+            errorfmt("ktxTexture2_GetImageOffset failed. Reason: {}",
+                     ktxErrorString(status));
             return false;
         }
         size_t tile_size_in_bytes = pitch_in_bytes * height;
@@ -1196,8 +1200,8 @@ KtxInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
                                                      subimage, slice_idx,
                                                      &offset);
             status != KTX_SUCCESS) {
-            errorfmt("ktxTexture2_GetImageOffset failed with exit code: {}",
-                     static_cast<uint32_t>(status));
+            errorfmt("ktxTexture2_GetImageOffset failed. Reason: {}",
+                     ktxErrorString(status));
             return false;
         }
         size_t tile_size_in_bytes = size_t(yend - ybegin) * pitch_in_bytes;
@@ -1248,8 +1252,14 @@ KtxInput::ktx_magic_cmp(cspan<uint8_t> sig) const noexcept
 }
 
 
-
-std::string
+//
+// Returns the OIIO colorspace identification string from given KTX2 transfer
+// function and primaries.
+//
+// Since KTX2 textures are usually intended to be used within rendering context,
+// assume scene rather than display colorspaces.
+//
+const char*
 KtxInput::get_colorspace() const noexcept
 {
     //
@@ -1263,33 +1273,43 @@ KtxInput::get_colorspace() const noexcept
     const khr_df_primaries_e primaries = ktxTexture2_GetPrimaries_e(
         m_tex.get());
     DBG std::cout << "[ktxinput] tf: " << transfer_function
-                  << "; primaries: " << primaries << '\n';
+                  << "; primaries: " << primaries << std::endl;
     switch (transfer_function) {
+    case KHR_DF_TRANSFER_UNSPECIFIED: return "unknown";
     case KHR_DF_TRANSFER_SRGB:
         switch (primaries) {
         case KHR_DF_PRIMARIES_BT709: return "srgb_rec709_scene";
-        default:
-            errorfmt("Unsupported color primaries {}",
-                     static_cast<uint32_t>(primaries));
-            break;
+        case KHR_DF_PRIMARIES_ACESCC: return "srgb_ap1_scene";
+        case KHR_DF_PRIMARIES_DISPLAYP3: return "srgb_p3d65_scene";
+        default: break;
         }
         break;
     case KHR_DF_TRANSFER_LINEAR:
         switch (primaries) {
+        case KHR_DF_PRIMARIES_UNSPECIFIED: return "data";
         case KHR_DF_PRIMARIES_BT709: return "lin_rec709_scene";
-        default:
-            errorfmt("Unsupported color primaries {}",
-                     static_cast<uint32_t>(primaries));
-            break;
+        case KHR_DF_PRIMARIES_ACESCC: return "lin_ap1_scene";
+        case KHR_DF_PRIMARIES_ACES: return "lin_ap0_scene";
+        case KHR_DF_PRIMARIES_CIEXYZ: return "lin_ciexyzd65_scene";
+        case KHR_DF_PRIMARIES_ADOBERGB: return "lin_adobergb_scene";
+        case KHR_DF_PRIMARIES_DISPLAYP3: return "lin_p3d65_scene";
+        case KHR_DF_PRIMARIES_BT2020: return "lin_rec2020_scene";
+        default: break;
         }
         break;
-    default:
-        errorfmt("Unsupported color transfer function {}",
-                 static_cast<uint32_t>(transfer_function));
-        break;
+    case KHR_DF_TRANSFER_PQ_EOTF:
+        switch (primaries) {
+        case KHR_DF_PRIMARIES_BT2020: return "pq_rec2020_display";
+        default: break;
+        }
+    case KHR_DF_TRANSFER_HLG_EOTF:
+        switch (primaries) {
+        case KHR_DF_PRIMARIES_BT2020: return "hlg_rec2020_display";
+        default: break;
+        }
+
+    default: break;
     }
-    // TODO: need to generate test files before adding support for any other
-    // colorspaces
     return "unknown";
 }
 
@@ -1313,7 +1333,7 @@ KtxInput::get_colorspace() const noexcept
 ///   floating point values ...
 ///
 void
-KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params) noexcept
+KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
 {
     const auto f = std::regex_constants::icase;
 
@@ -1366,7 +1386,7 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params) noexcep
             // Least significant 4 bits are for the level (e.g., fastest, slowest, etc.)
             // These are the most important bits. The ramaining bits are for advanced codec quality options and cannot
             // be set by KTX Tools' `--uastc-quality` option. This is why we set the remaining bits to 0 (default).
-            const uint32_t uastc_quality_level = std::max<uint32_t>(Strutil::stoui(m[1].str()), KTX_PACK_UASTC_MAX_LEVEL);
+            const uint32_t uastc_quality_level = std::min<uint32_t>(Strutil::stoui(m[1].str()), KTX_PACK_UASTC_MAX_LEVEL);
             m_spec.extra_attribs.attribute("ktx:uastc_flags", uastc_quality_level);
             m_spec.extra_attribs.attribute("ktx:uastc_hdr_quality", uastc_quality_level);
         }

@@ -30,11 +30,12 @@ public:
         // 0s for x,y,z origins!
         return (
             feature == "alpha" || feature == "ioproxy" ||
+            // TODO: properly implement arbitrary_metadata
             // as per the KTX2 specs:
             // registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html#_keyvalue_data
-            feature == "arbitrary_metadata" ||
-            // KTX2 supports 2D texture arrays, cubmap arrays, and 2D texture
-            // arrays. That being said, we only support 2D texture arrays.
+            // feature == "arbitrary_metadata" ||
+            // TODO: KTX2 supports 2D texture arrays, but this plugin doesn't
+            // implement it yet.
             // feature == "multiimage" ||
             // KTX2 supports mipmaps
             feature == "mipmap" ||
@@ -93,13 +94,15 @@ private:
     // Uncompressed Vulkan format to create the initial texture with.
     VkFormat m_vkformat { VK_FORMAT_UNDEFINED };
 
-    uint32_t m_miplevel_idx { 0 };  // Current MIP level
+    int m_miplevel_idx { -1 };  // Current MIP level
 
-    uint32_t m_max_nmiplevels { 1 };  // Max number allowable MIP levels
+    int m_max_nmiplevels { 1 };  // Max number allowable MIP levels
 
     uint32_t m_basewidth { 0 };  // MIP level 0 width
 
     uint32_t m_baseheight { 0 };  // MIP level 0 height
+
+    uint32_t m_face_baseheight { 0 };  // MIP level 0 height of a mipmap face
 
     uint32_t m_basedepth { 0 };  // MIP level 0 depth
 
@@ -133,6 +136,10 @@ private:
     uint32_t m_zstd_level { 22 };  // Only for ZSTD supercompression. Defaults
                                    // to highest compression level.
 
+    khr_df_transfer_e m_tf { KHR_DF_TRANSFER_UNSPECIFIED };
+
+    khr_df_primaries_e m_primaries { KHR_DF_PRIMARIES_UNSPECIFIED };
+
     //
     // Container for raw (i.e., uncompressed) texture data structured as:
     //   mip level -> pixels (all faces/slices in same contiguous array)
@@ -150,26 +157,41 @@ private:
     //
     std::vector<std::vector<uint8_t>> m_imgs;
 
-    bool append_mipmaps_vector() noexcept;
+    bool validate_cubemap_userspec(const ImageSpec& userspec) const;
+
+    bool validate_volume_userspec(const ImageSpec& userspec) const;
+
+    bool validate_2d_texture_userspec(const ImageSpec& userspec) const;
+
+    bool append_mipmaps_vector(imagesize_t image_bytes) noexcept;
 
     void init() noexcept;
 
-    bool write_ktx2() noexcept;
+    bool write_ktx2();
 
     bool construct_basis_params(ktxBasisParams& params, std::string_view codec,
-                                uint32_t threads = 1) const noexcept;
+                                uint32_t threads = 1) const;
 
-    void construct_astc_params(ktxAstcParams& params,
-                               uint32_t threads = 1) const noexcept;
+    bool construct_astc_params(ktxAstcParams& params,
+                               uint32_t threads = 1) const;
 
     bool try_parse_astc_block_dimensions(
         string_view block_dims_str,
         ktx_pack_astc_block_dimension_e& block_dims) const noexcept;
 
+    bool try_parse_primaries(string_view primaries_str,
+                             khr_df_primaries_e& primaries) const noexcept;
+
+    bool try_parse_tf(string_view tf_str, khr_df_transfer_e& tf) const noexcept;
+
     // Copied as is from imageoutput.cpp because it is currently
     // translation-unit static and not usable from here
     bool check_span_size(TypeDesc datatype, imagesize_t npixels,
-                         const image_span<const std::byte>& data) const noexcept;
+                         const image_span<const std::byte>& data) const;
+
+    bool get_tf_and_primaries(string_view oiio_colorspace,
+                              khr_df_transfer_e& tf,
+                              khr_df_primaries_e& primaries) const;
 };
 
 
@@ -200,9 +222,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // For volumes, user MUST either set depth > 1 or set the attribute to
         // "Volume Texture"
         //
-        const auto textureformat = userspec.get_string_attribute(
-            "textureformat");
-        DBG std::cout << "[ktxoutput] got textureformat: " << textureformat
+        const auto texformat = userspec.get_string_attribute("textureformat");
+        DBG std::cout << "[ktxoutput] textureformat: " << texformat
                       << std::endl;
 
         //
@@ -217,59 +238,30 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         //  to a tiled image; exr for instance).
         //
         if (userspec.depth > 1
-            || Strutil::iequals(textureformat, "Volume Texture")) {
-            if (userspec.depth < 1 || userspec.tile_width != userspec.width
-                || userspec.tile_height != 1 || userspec.tile_depth != 1) {
-                errorfmt("For volume textures: depth must be >= 1 (provided {});"
-                         " tile width must be: {} (provided {});"
-                         " tile height must be: 1 (provided {});"
-                         " tile depth must be: 1 (provided {})",
-                         userspec.depth, userspec.width, userspec.tile_width,
-                         userspec.tile_height, userspec.tile_depth);
+            || Strutil::iequals(texformat, "Volume Texture")) {
+            if (!validate_volume_userspec(userspec)
+                || !check_open(mode, userspec,
+                               { 0, 4096, 0, 4096, 0, 4096, 0, 4 })) {
+                close();
                 return false;
             }
-            // Volume texture are limited to 4096x4096x4096
-            if (!check_open(mode, userspec, { 0, 4096, 0, 4096, 0, 4096, 0, 4 }))
-                return false;
             m_is3D = true;
-        } else if (Strutil::iequals(textureformat, "CubeFace Environment")) {
-            // In KTX2, cubemaps are 'simulated' as 1x6 layout (tiles along the
-            // height)
-            if (userspec.depth > 1 || userspec.width != userspec.tile_width
-                || userspec.height != userspec.tile_height * 6
-                || userspec.tile_depth != 1) {
-                errorfmt(
-                    "For cubemap textures: depth must be <= 1 (provided {});"
-                    " tile width must be: {} (provided {});"
-                    " tile height must be 1/6th the height: {}/6 (provided {});"
-                    " tile depth must be: 1 (provided {}) ",
-                    userspec.depth, userspec.width, userspec.tile_width,
-                    userspec.height, userspec.tile_height, userspec.tile_depth);
+        } else if (Strutil::iequals(texformat, "CubeFace Environment")) {
+            if (!validate_cubemap_userspec(userspec)
+                || !check_open(mode, userspec,
+                               { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 })) {
+                close();
                 return false;
             }
-            // Cubemap texture are limited to 16384x16384
-            if (!check_open(mode, userspec,
-                            { 0, 16384, 0, 16384 * 6, 0, 1, 0, 4 }))
-                return false;
-            m_is_cubemap = true;
+            m_is_cubemap      = true;
+            m_face_baseheight = m_spec.tile_height;
         } else /* Plain Texture (default) */ {
-            if (userspec.depth > 1) {
-                errorfmt(
-                    "Provided depth is {} > 1 but \"textureformat\" attribute "
-                    "is not set to \"Volume Texture\"",
-                    userspec.depth);
+            if (!validate_2d_texture_userspec(userspec)
+                || !check_open(mode, userspec,
+                               { 0, 32768, 0, 32768, 0, 1, 0, 4 })) {
+                close();
                 return false;
             }
-            if (userspec.tile_width != 0 || userspec.tile_height != 0
-                || userspec.tile_depth > 1 /* tile_depth is by default 1 */) {
-                errorfmt(
-                    "Provided a tiled texture but \"textureformat\" attribute "
-                    "is not set to \"CubeFace Environment\"");
-                return false;
-            }
-            // 2D texture are limited to 32768x32768
-            if (!check_open(mode, userspec, { 0, 32768, 0, 32768, 0, 1, 0, 4 }))
-                return false;
         }
 
         // Save base dimensions (useful to compute MIP-level dims)
@@ -283,13 +275,56 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // no need to check on the format (TypeDesc) here; if it is not
         // supported `get_vkformat_from_info` below will fail.
 
-        // TODO: support more (all?) KTX2 colorspaces
-        // Currently only two colorspaces are tested, linear or REC709 sRGB
         const auto colorspace = m_spec.get_string_attribute("oiio:ColorSpace",
-                                                            "srgb_rec709_scene");
+                                                            "unknown");
         m_spec.set_colorspace(colorspace);
-        bool is_srgb = ColorConfig::default_colorconfig().equivalent(
-            colorspace, "srgb_rec709_scene");
+
+        // Try to get tf + primaries from OIIO colorspace.
+        get_tf_and_primaries(colorspace, m_tf, m_primaries);
+
+        // If user wants to override (not convert!) the tf and/or primaries;
+        // give them priority over the currently set colorspace (i.e., these
+        // are similar to --assign-primaries and --assign-tf in KTX Tools CLI).
+
+        //
+        // Since ktxTexture2_Create always sets primaries to BT709 (because it
+        // just can't know what primaries the input is using), allow the user to
+        // override the primaries using "ktx:primaries". This is especially
+        // useful when targeting glTF which requires non-color KTX2's primaries
+        // to be set to UNSPECIFIED.
+        //
+        // You almost always want to set these for any non-sRGB VkFormats (since
+        // most of the time these are non-color data such as normal maps, height
+        // maps, etc.).
+        //
+        if (auto Q = m_spec.find_attribute("ktx:primaries", TypeDesc::STRING)) {
+            if (!try_parse_primaries(Q->get_string(), m_primaries)) {
+                close();
+                errorfmt("Provided unsupported primaries: {}", Q->get_string());
+                return false;
+            }
+        }
+
+        if (auto Q = m_spec.find_attribute("ktx:tf", TypeDesc::STRING)) {
+            if (!try_parse_tf(Q->get_string(), m_tf)) {
+                close();
+                errorfmt("Provided unsupported transfer function: {}",
+                         Q->get_string());
+                return false;
+            }
+        }
+
+        if (m_tf == KHR_DF_TRANSFER_UNSPECIFIED) {
+            close();
+            errorfmt(
+                "Failed to determine transfer function from set colorspace "
+                "(via \"oiio:ColorSpace\" attribute) and \"ktx:tf\" is not set "
+                "to valid KTX transfer function. Consider explicitly setting "
+                "\"ktx:tf\" alongside \"ktx:primaries\" attributes");
+            return false;
+        }
+
+        bool is_srgb = m_tf == KHR_DF_TRANSFER_SRGB;
 
         if (auto Q = m_spec.find_attribute("ktx:1d", TypeDesc::INT)) {
             auto ndims = Q->get_int();
@@ -299,6 +334,7 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // For 1D textures, we expect the height to either be 0 or 1. Code
         // handles "0" heights fine (because of std::max(height, 1))
         if (m_is1D && m_baseheight > 1) {
+            close();
             errorfmt(
                 "1D textures expect a height of 0 or 1 but supplied height is {}",
                 m_baseheight);
@@ -341,8 +377,9 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             m_use_basis_universal = m_basis_params.codec
                                     != KTX_BASIS_CODEC_NONE;
             DBG std::cout
-                << "[ktxoutput] GPU block compression or basis universal codec (from \"compression\"): "
-                << compression << '\n';
+                << "[ktxoutput] GPU block compression or basis universal codec"
+                   " (from \"compression\"): "
+                << compression << std::endl;
         }
 
         //
@@ -393,29 +430,31 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         m_vkformat = get_vkformat_from_info(m_spec, is_srgb, m_normalized);
         if (m_vkformat == VK_FORMAT_UNDEFINED) {
             close();
-            errorfmt(
-                "Failed to determine VkFormat from nchannels={} format={} colorspace={} normalize={}",
-                m_spec.nchannels, m_spec.format, colorspace, m_normalized);
+            errorfmt("Failed to determine VkFormat from nchannels={} format={} "
+                     "colorspace={} normalize={}",
+                     m_spec.nchannels, m_spec.format, colorspace, m_normalized);
             return false;
         }
 
         // max(dims) and not min because mip levels don't just stop at first
         // dimension that reaches 1 (all dimensions must reach 1).
+        // Max nbr miplevels for cubemaps MUST be computed from dimensions of
+        // individual faces not combined faces (i.e., 1x6)!
         m_max_nmiplevels = calculate_nbr_mip_levels(
             m_is3D ? std::max({ m_spec.width, m_spec.height, m_spec.depth })
-                   : std::max(m_spec.width, m_spec.height));
+            : m_is_cubemap ? std::max(m_spec.tile_width, m_spec.tile_height)
+                           : std::max(m_spec.width, m_spec.height));
 
         DBG std::cout << "[ktxoutput] max number mip levels allowed: "
                       << m_max_nmiplevels << std::endl;
 
-        // Initialize slices/faces container if not already initialized by a
-        // previous call to open(name, subimages, specs)
+        // Initialize slices/faces container
         OIIO_ASSERT(m_imgs.empty()
                     && "Expected mip levels container to be empty");
-        OIIO_ASSERT(m_miplevel_idx == 0);
+        OIIO_ASSERT(m_miplevel_idx == -1);
 
         // Reserve space for base-level mipmap (level 0)
-        if (!append_mipmaps_vector()) {
+        if (!append_mipmaps_vector(m_spec.image_bytes())) {
             // if we can't even allocate base-level mipmap => close()
             close();
             errorfmt(
@@ -426,17 +465,28 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         }
 
         ioproxy_retrieve_from_config(m_spec);
-        if (!ioproxy_use_or_open(m_filename))
+        if (!ioproxy_use_or_open(m_filename)) {
+            close();
             return false;
+        }
 
         m_initialized = true;
         return true;
     }  // mode == Create
 
     if (mode == AppendMIPLevel) {
+        // Don't call close() here (use may want to access previously appended
+        // data in case of error)
         if (!m_initialized) {
             errorfmt("Cannot append a MIP level if no file has been opened. "
                      "Make sure to call open() with mode=\"Create\" first.");
+            return false;
+        }
+
+        if (m_generate_mipmaps) {
+            errorfmt(
+                "Cannot append MIP levels if Graphics API mipmap generation is "
+                "requested (i.e., when \"ktx:generate_mipmaps\" is true).");
             return false;
         }
 
@@ -446,45 +496,56 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             return false;
         }
 
-        // clang-format off
-        uint32_t miplevel_width  = std::max(1u, m_basewidth >> (m_miplevel_idx + 1));
-        uint32_t miplevel_height = std::max(1u, m_baseheight >> (m_miplevel_idx + 1));
-        uint32_t miplevel_depth  = std::max(1u, m_basedepth >> (m_miplevel_idx + 1));
-        // clang-format on
+        const uint32_t miplevel_width
+            = std::max(1u, m_basewidth >> (m_miplevel_idx + 1));
+        const uint32_t miplevel_height
+            = m_is_cubemap
+                  ? std::max(1u, m_face_baseheight >> (m_miplevel_idx + 1)) * 6
+                  : std::max(1u, m_baseheight >> (m_miplevel_idx + 1));
+        const uint32_t miplevel_depth
+            = std::max(1u, m_basedepth >> (m_miplevel_idx + 1));
 
-        // Copy the new mip level size.  Keep everything else from the
-        // original level.
+        if (userspec.width < 1 || userspec.height < 1 || userspec.depth < 1) {
+            errorfmt("MIP level dimensions must be positive");
+            return false;
+        }
+
+        // Check if provided userspec has same nbrchannels, channelnames, etc.
+        // as spec used in Open mode.
+        if (userspec.x != m_spec.x || userspec.y != m_spec.y
+            || userspec.z != m_spec.z || userspec.nchannels != m_spec.nchannels
+            || userspec.channelformats != m_spec.channelformats
+            || userspec.format != m_spec.format
+            || userspec.alpha_channel != m_spec.alpha_channel
+            || userspec.z_channel != m_spec.z_channel
+            || userspec.deep != m_spec.deep) {
+            errorfmt(
+                "Provided userspec for MIP level {} does not match the original"
+                " spec used in Open mode",
+                m_miplevel_idx + 1);
+            return false;
+        }
+
         if ((uint32_t)userspec.width != miplevel_width
             || (uint32_t)userspec.height != miplevel_height
             || (uint32_t)userspec.depth != miplevel_depth) {
             errorfmt(
-                "Expected (widht,height,depth): ({},{},{}) but got: ({},{},{})",
+                "Expected (width,height,depth): ({},{},{}) but got: ({},{},{})",
                 miplevel_width, miplevel_height, miplevel_depth, userspec.width,
                 userspec.height, userspec.depth);
             return false;
         }
-        m_spec.width = m_spec.full_width = userspec.width;
-        m_spec.height = m_spec.full_height = userspec.height;
-        m_spec.depth = m_spec.full_depth = userspec.depth;
-        ++m_miplevel_idx;
 
-        // If this is a volume texture, also update tile_width
-        if (m_is3D) {
-            m_spec.tile_width  = m_spec.width;
-            m_spec.tile_height = 1;
-            m_spec.tile_depth  = 1;
+        // Using validate_cubemap_userspec/validate_volume_userspec checks here
+        // on the userspec fail because oiiotool doesn't update the
+        // tile_width/tile_height for mip levels > 0
+        if (!m_is_cubemap && !m_is3D) {
+            if (!validate_2d_texture_userspec(userspec))
+                return false;
         }
 
-        // If this is a cubemap texture, update tile dims
-        if (m_is_cubemap) {
-            OIIO_ASSERT(m_spec.height % 6 == 0);
-            m_spec.tile_width  = m_spec.width;
-            m_spec.tile_height = m_spec.height / 6;
-            m_spec.tile_depth  = 1;
-        }
-
-        // Reserve memory for this mip level
-        if (!append_mipmaps_vector()) {
+        // Reserve memory for this mip level and increment MIP-level index
+        if (!append_mipmaps_vector(userspec.image_bytes())) {
             // Don't close as the caller may need to access the previously
             // written data!
             // close();
@@ -492,8 +553,25 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                 "Failed to create internal buffer to hold data for the mip "
                 "level {}. This is probably due to insufficient memory and/or "
                 "large image dimensions.",
-                m_miplevel_idx);
+                m_miplevel_idx + 1);
             return false;
+        }
+
+        // Only update current spec after passing all checks
+        m_spec.width = m_spec.full_width = userspec.width;
+        m_spec.height = m_spec.full_height = userspec.height;
+        m_spec.depth = m_spec.full_depth = userspec.depth;
+
+        if (m_is3D) {
+            // If this is a volume texture, also update tile_width
+            m_spec.tile_width  = userspec.width;
+            m_spec.tile_height = 1;
+            m_spec.tile_depth  = 1;
+        } else if (m_is_cubemap) {
+            // If this is a cubemap texture, update tile dims
+            m_spec.tile_width  = userspec.width;
+            m_spec.tile_height = userspec.height / 6;
+            m_spec.tile_depth  = 1;
         }
 
         return true;
@@ -559,9 +637,14 @@ KtxOutput::write_scanlines(int ybegin, int yend, TypeDesc format,
     if (!check_span_size(format, m_spec.width * size_t(yend - ybegin), data))
         return false;
 
+    if (m_miplevel_idx < 0 || size_t(m_miplevel_idx) >= m_imgs.size()) {
+        errorfmt("write_tiles: no valid MIP level is open");
+        return false;
+    }
+
     return copy_to_image_buffer(0, m_spec.width, ybegin, yend, 0, 1, format,
-                                data.data(), AutoStride, AutoStride, AutoStride,
-                                m_imgs[m_miplevel_idx].data());
+                                data.data(), data.xstride(), data.ystride(),
+                                data.zstride(), m_imgs[m_miplevel_idx].data());
 }
 
 
@@ -610,12 +693,18 @@ KtxOutput::write_tiles(int xbegin, int xend, int ybegin, int yend, int zbegin,
                          data))
         return false;  // check_span_size sets errorfmt
 
+    if (m_miplevel_idx < 0 || size_t(m_miplevel_idx) >= m_imgs.size()) {
+        errorfmt("write_tiles: no valid MIP level is open");
+        return false;
+    }
+
     // copy_tile_to_image_buffer is a wrapper around this and does checks that
     // we already have done + it copies the whole ImageSpec so just use this
     // directly.
     return copy_to_image_buffer(xbegin, xend, ybegin, yend, zbegin, zend,
-                                format, data.data(), AutoStride, AutoStride,
-                                AutoStride, m_imgs[m_miplevel_idx].data());
+                                format, data.data(), data.xstride(),
+                                data.ystride(), data.zstride(),
+                                m_imgs[m_miplevel_idx].data());
 }
 
 
@@ -635,24 +724,86 @@ KtxOutput::close()
         init();
         return true;
     }
-    bool result = write_ktx2();
+    if (!write_ktx2()) {
+        // Do not init()
+        return false;
+    }
     init();
-    return result;
+    return true;
 }
 
 
 
-// Be absolutely certain that this is called AFTER updating the spec with
-// dimensions for current miplevel!
 bool
-KtxOutput::append_mipmaps_vector() noexcept
+KtxOutput::validate_cubemap_userspec(const ImageSpec& userspec) const
+{
+    // In KTX2, cubemaps are 'simulated' as 1x6 layout (tiles along the
+    // height). KTX2 requires that cubemap faces are squared.
+    if (userspec.depth > 1 || userspec.width != userspec.tile_width
+        || userspec.height != userspec.tile_height * 6
+        || userspec.tile_depth != 1
+        || userspec.tile_width != userspec.tile_height) {
+        errorfmt("For cubemap textures: depth must be <= 1 (provided {});"
+                 " tile width must be: {} (provided {});"
+                 " tile height must be 1/6th the height: {} (provided {});"
+                 " tile depth must be: 1 (provided {}) ",
+                 userspec.depth, userspec.width, userspec.tile_width,
+                 userspec.height, userspec.tile_height, userspec.tile_depth);
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+KtxOutput::validate_volume_userspec(const ImageSpec& userspec) const
+{
+    if (userspec.depth < 1 || userspec.tile_width != userspec.width
+        || userspec.tile_height != 1 || userspec.tile_depth != 1) {
+        errorfmt("For volume textures: depth must be >= 1 (provided {});"
+                 " tile width must be: {} (provided {});"
+                 " tile height must be: 1 (provided {});"
+                 " tile depth must be: 1 (provided {})",
+                 userspec.depth, userspec.width, userspec.tile_width,
+                 userspec.tile_height, userspec.tile_depth);
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+KtxOutput::validate_2d_texture_userspec(const ImageSpec& userspec) const
+{
+    if (userspec.depth > 1) {
+        errorfmt("Provided depth is {} > 1 but \"textureformat\" attribute "
+                 "is not set to \"Volume Texture\"",
+                 userspec.depth);
+        return false;
+    }
+    if (userspec.tile_width != 0 || userspec.tile_height != 0
+        || userspec.tile_depth > 1 /* tile_depth is by default 1 */) {
+        errorfmt("Provided a tiled texture but \"textureformat\" attribute "
+                 "is not set to \"CubeFace Environment\"");
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+KtxOutput::append_mipmaps_vector(imagesize_t image_bytes) noexcept
 {
     try {
-        m_imgs.emplace_back(1);
-        m_imgs[m_miplevel_idx].resize(m_spec.image_bytes());
+        std::vector<uint8_t> image(image_bytes);
+        m_imgs.emplace_back(image);
+        ++m_miplevel_idx;
         return true;
     } catch (...) {
-        // Probably some out-of-memory exception occured; just return false
+        // Probably some out-of-memory exception occurred; just return false
         return false;
     }
 }
@@ -665,10 +816,11 @@ KtxOutput::init() noexcept
     m_filename            = std::string();
     m_initialized         = false;
     m_vkformat            = VK_FORMAT_UNDEFINED;
-    m_miplevel_idx        = 0;
+    m_miplevel_idx        = -1;
     m_max_nmiplevels      = 1;
     m_basewidth           = 0;
     m_baseheight          = 0;
+    m_face_baseheight     = 0;
     m_basedepth           = 0;
     m_is1D                = false;
     m_is3D                = false;
@@ -682,6 +834,8 @@ KtxOutput::init() noexcept
     m_astc_params         = { 0 };
     m_zlib_level          = 9;
     m_zstd_level          = 22;
+    m_tf                  = KHR_DF_TRANSFER_UNSPECIFIED;
+    m_primaries           = KHR_DF_PRIMARIES_UNSPECIFIED;
     // clear & release the capacity even though m_imgs' capacity itself is
     // negligeable (it just holds nbr miplevels elements)
     // swap is noexcept and constructor an empty vector doesn't allocate
@@ -693,7 +847,7 @@ KtxOutput::init() noexcept
 
 
 //
-// Contruct ktxBasisParams struct from the Basis Universal attributes in
+// Construct ktxBasisParams struct from the Basis Universal attributes in
 // current ImageSpec.
 //
 // Returns false if provided `codec` does not correspond to a valid Basis
@@ -702,7 +856,7 @@ KtxOutput::init() noexcept
 bool
 KtxOutput::construct_basis_params(ktxBasisParams& params,
                                   std::string_view codec,
-                                  uint32_t threads) const noexcept
+                                  uint32_t threads) const
 {
     // Set defaults
     params             = { 0 };
@@ -731,7 +885,8 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
         params.codec = KTX_BASIS_CODEC_UASTC_HDR_6x6_INTERMEDIATE;
     } else {
         errorfmt(
-            "Provided Basis Universal codec \"{}\" is invalid. Supported values: \"uastc\" \"etc1s\" \"uastc-hdr-4x4\" \"uastc-hdr-6x6\"",
+            "Provided Basis Universal codec \"{}\" is invalid. Supported "
+            "values: \"uastc\" \"etc1s\" \"uastc-hdr-4x4\" \"uastc-hdr-6x6\"",
             codec);
         return false;
     }
@@ -782,14 +937,13 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
 
 
 //
-// Contruct ktxAstcParams struct from the ASTC GPU block compression attributes
+// Construct ktxAstcParams struct from the ASTC GPU block compression attributes
 // in current ImageSpec.
 //
 // Unlike `construct_basis_params`, this always succeeds.
 //
-void
-KtxOutput::construct_astc_params(ktxAstcParams& params,
-                                 uint32_t threads) const noexcept
+bool
+KtxOutput::construct_astc_params(ktxAstcParams& params, uint32_t threads) const
 {
     // set sensible defaults
     params             = { 0 };
@@ -809,14 +963,20 @@ KtxOutput::construct_astc_params(ktxAstcParams& params,
     if (auto Q = m_spec.find_attribute("ktx:astc_block_dimensions", TypeDesc::STRING)) {
         ktx_pack_astc_block_dimension_e block_dims;
         // we don't care if this fails; just default to 4x4
-        if (try_parse_astc_block_dimensions(Q->get_string(), block_dims))
+        if (try_parse_astc_block_dimensions(Q->get_string(), block_dims)) {
             params.blockDimension = block_dims;
+        } else {
+            errorfmt("Failed to parse ASTC block dimensions from "
+                "\"ktx:astc_block_dimensions\": {}", Q->get_string());
+            return false;
+        }
     }
     if (auto Q = m_spec.find_attribute("ktx:astc_quality_level", TypeDesc::UINT32)) params.qualityLevel = *static_cast<const uint32_t*>(Q->data());
     if (auto Q = m_spec.find_attribute("ktx:normalmap", TypeDesc::INT)) params.normalMap = static_cast<bool>(Q->get_int());
     if (auto Q = m_spec.find_attribute("ktx:perceptual", TypeDesc::INT)) params.perceptual = static_cast<bool>(Q->get_int());
     if (auto Q = m_spec.find_attribute("ktx:input_swizzle", TypeDesc(TypeDesc::CHAR, 4))) memcpy(params.inputSwizzle, Q->data(), 4);
     // clang-format on
+    return true;
 }
 
 
@@ -826,15 +986,45 @@ KtxOutput::try_parse_astc_block_dimensions(
     string_view block_dims_str,
     ktx_pack_astc_block_dimension_e& block_dims) const noexcept
 {
-    auto block_dims_str_lower = std::string(block_dims_str);
-    Strutil::to_lower(block_dims_str_lower);
-
-    if (auto it = astc_block_dims_str_to_enum.find(block_dims_str_lower);
-        it != astc_block_dims_str_to_enum.end()) {
-        block_dims = it->second;
-        return true;
+    // Small lookup tables; just loop through and avoid string allocations
+    for (const auto& [k, v] : astc_block_dims_str_to_enum) {
+        if (Strutil::iequals(k, block_dims_str)) {
+            block_dims = v;
+            return true;
+        }
     }
+    return false;
+}
 
+
+
+bool
+KtxOutput::try_parse_primaries(string_view primaries_str,
+                               khr_df_primaries_e& primaries) const noexcept
+{
+    // Small lookup tables; just loop through and avoid string allocations
+    for (const auto& [k, v] : primaries_str_to_enum) {
+        if (Strutil::iequals(k, primaries_str)) {
+            primaries = v;
+            return true;
+        }
+    }
+    return false;
+}
+
+
+
+bool
+KtxOutput::try_parse_tf(string_view tf_str,
+                        khr_df_transfer_e& tf) const noexcept
+{
+    // Small lookup tables; just loop through and avoid string allocations
+    for (const auto& [k, v] : tf_str_to_enum) {
+        if (Strutil::iequals(k, tf_str)) {
+            tf = v;
+            return true;
+        }
+    }
     return false;
 }
 
@@ -844,7 +1034,7 @@ KtxOutput::try_parse_astc_block_dimensions(
 // and not accessible from ktxoutput.cpp
 bool
 KtxOutput::check_span_size(TypeDesc datatype, imagesize_t npixels,
-                           const image_span<const std::byte>& data) const noexcept
+                           const image_span<const std::byte>& data) const
 {
     if (datatype.is_unknown()) {
         size_t sz = npixels * m_spec.pixel_bytes(true);
@@ -867,7 +1057,123 @@ KtxOutput::check_span_size(TypeDesc datatype, imagesize_t npixels,
 
 
 bool
-KtxOutput::write_ktx2() noexcept
+KtxOutput::get_tf_and_primaries(string_view oiio_colorspace,
+                                khr_df_transfer_e& tf,
+                                khr_df_primaries_e& primaries) const
+{
+    const auto& colorconfig = ColorConfig::default_colorconfig();
+
+    // sRGB (this and non-color data are the only ones supported by glTF)
+    if (colorconfig.equivalent(oiio_colorspace, "srgb_rec709_scene")
+        || colorconfig.equivalent(oiio_colorspace, "srgb_rec709_display")) {
+        tf        = KHR_DF_TRANSFER_SRGB;
+        primaries = KHR_DF_PRIMARIES_BT709;
+        return true;
+    }
+
+    // sRGB ACEScg / ACEScc primaries (AP1)
+    if (colorconfig.equivalent(oiio_colorspace, "srgb_ap1_scene")) {
+        tf        = KHR_DF_TRANSFER_SRGB;
+        primaries = KHR_DF_PRIMARIES_ACESCC;  // ACEScc same primaries as ACEScg
+        return true;
+    }
+
+    // Linear ACEScg / ACEScc primaries (AP1)
+    if (colorconfig.equivalent(oiio_colorspace, "lin_ap1_scene")) {
+        tf        = KHR_DF_TRANSFER_LINEAR;
+        primaries = KHR_DF_PRIMARIES_ACESCC;  // ACEScc same primaries as ACEScg
+        return true;
+    }
+
+    // ACES2065-1 primaries (AP0)
+    if (colorconfig.equivalent(oiio_colorspace, "lin_ap0_scene")) {
+        tf        = KHR_DF_TRANSFER_LINEAR;
+        primaries = KHR_DF_PRIMARIES_ACES;
+        return true;
+    }
+
+    // non-color data (this and sRGB are the only ones supported by glTF)
+    //
+    // Note:
+    // If colorspace is `data` then primaries MUST be set to UNSPECIFIED and
+    // TF MUST be set to LINEAR. These are part of the requirements for
+    // integrating KTX2 within glTF as can be read from here:
+    //
+    // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md#additional-requirements
+    //
+    if (colorconfig.equivalent(oiio_colorspace, "data")) {
+        tf        = KHR_DF_TRANSFER_LINEAR;
+        primaries = KHR_DF_PRIMARIES_UNSPECIFIED;
+        return true;
+    }
+
+    // Linear Rec.709
+    if (colorconfig.equivalent(oiio_colorspace, "lin_rec709_scene")
+        || colorconfig.equivalent(oiio_colorspace, "lin_rec709_display")) {
+        tf        = KHR_DF_TRANSFER_LINEAR;
+        primaries = KHR_DF_PRIMARIES_BT709;
+        return true;
+    }
+
+    // CIE XYZ-D65
+    if (colorconfig.equivalent(oiio_colorspace, "lin_ciexyzd65_scene")) {
+        tf        = KHR_DF_TRANSFER_LINEAR;
+        primaries = KHR_DF_PRIMARIES_CIEXYZ;
+        return true;
+    }
+
+    // Adobe RGB
+    if (colorconfig.equivalent(oiio_colorspace, "lin_adobergb_scene")) {
+        tf        = KHR_DF_TRANSFER_LINEAR;
+        primaries = KHR_DF_PRIMARIES_ADOBERGB;
+        return true;
+    }
+
+    // sRGB Display P3
+    if (colorconfig.equivalent(oiio_colorspace, "srgb_p3d65_scene")
+        || colorconfig.equivalent(oiio_colorspace, "srgb_p3d65_display")) {
+        tf        = KHR_DF_TRANSFER_SRGB;
+        primaries = KHR_DF_PRIMARIES_DISPLAYP3;
+        return true;
+    }
+
+    // Linear Display P3
+    if (colorconfig.equivalent(oiio_colorspace, "lin_p3d65_scene")
+        || colorconfig.equivalent(oiio_colorspace, "lin_p3d65_display")) {
+        tf        = KHR_DF_TRANSFER_LINEAR;
+        primaries = KHR_DF_PRIMARIES_DISPLAYP3;
+        return true;
+    }
+
+    // Rec. 2020
+    if (colorconfig.equivalent(oiio_colorspace, "lin_rec2020_scene")
+        || colorconfig.equivalent(oiio_colorspace, "lin_rec2020_display")) {
+        tf        = KHR_DF_TRANSFER_LINEAR;
+        primaries = KHR_DF_PRIMARIES_BT2020;
+        return true;
+    }
+
+    // Rec. 2100 PQ
+    if (colorconfig.equivalent(oiio_colorspace, "pq_rec2020_display")) {
+        tf        = KHR_DF_TRANSFER_PQ_EOTF;
+        primaries = KHR_DF_PRIMARIES_BT2020;
+        return true;
+    }
+
+    // Rec. 2100 HLG
+    if (colorconfig.equivalent(oiio_colorspace, "hlg_rec2020_display")) {
+        tf        = KHR_DF_TRANSFER_HLG_EOTF;
+        primaries = KHR_DF_PRIMARIES_BT2020;
+        return true;
+    }
+
+    return false;
+}
+
+
+
+bool
+KtxOutput::write_ktx2()
 {
     //
     // KTX2 texture RAII'fied via a unique_ptr.
@@ -892,16 +1198,16 @@ KtxOutput::write_ktx2() noexcept
     create_info.vkFormat         = m_vkformat;
     create_info.pDfd             = nullptr;
     create_info.baseWidth        = m_basewidth;
-    create_info.baseHeight    = m_is_cubemap ? m_baseheight / 6 : m_baseheight;
+    create_info.baseHeight    = m_is_cubemap ? m_face_baseheight : m_baseheight;
     create_info.baseDepth     = m_basedepth;
-    create_info.numDimensions = m_is1D ? 1 : m_basedepth > 1 ? 3u : 2u;
+    create_info.numDimensions = m_is1D ? 1u : m_is3D ? 3u : 2u;
     create_info.numLevels     = m_miplevel_idx + 1;
     create_info.numLayers     = 1;
     create_info.numFaces      = m_is_cubemap ? 6 : 1;
     create_info.isArray       = KTX_FALSE;
     create_info.generateMipmaps = m_generate_mipmaps;
 
-    DBG std::cout << "calling ktxTexture2_Create with: "
+    DBG std::cout << "[ktxoutput] calling ktxTexture2_Create with: "
                   << "vkFormat=" << create_info.vkFormat << "; "
                   << "baseWidth=" << create_info.baseWidth << "; "
                   << "baseHeight=" << create_info.baseHeight << "; "
@@ -920,16 +1226,28 @@ KtxOutput::write_ktx2() noexcept
     tex.reset(p_tex);
 
     if (result != KTX_SUCCESS) {
-        errorfmt("ktxTexture2_Create returned ktx_error_code: {}",
-                 static_cast<uint32_t>(result));
+        errorfmt("ktxTexture2_Create failed. Reason: {}",
+                 ktxErrorString(result));
         return false;
     }
 
-    DBG std::cout << "ktxTexture2_Create created texture successfully"
-                  << std::endl;
-
     if (m_is_cubemap)
         OIIO_ASSERT(p_tex->numFaces == 6);
+
+    // Set tf and primaries
+    result = ktxTexture2_SetPrimaries(tex.get(), m_primaries);
+    if (result != KTX_SUCCESS) {
+        errorfmt("ktxTexture2_SetPrimaries failed. Reason: {}",
+                 ktxErrorString(result));
+        return false;
+    }
+
+    result = ktxTexture2_SetTransferFunction(tex.get(), m_tf);
+    if (result != KTX_SUCCESS) {
+        errorfmt("ktxTexture2_SetTransferFunction failed. Reason: {}",
+                 ktxErrorString(result));
+        return false;
+    }
 
     //
     // At first, set uncompressed data for all miplevels, layers, slices, etc.
@@ -988,12 +1306,13 @@ KtxOutput::write_ktx2() noexcept
                         slice_or_face_size);
                     if (status != KTX_SUCCESS) {
                         errorfmt(
-                            "ktxTexture_SetImageFromMemory returned KTX exit error code: {}",
-                            static_cast<uint32_t>(status));
+                            "ktxTexture_SetImageFromMemory failed. Reason: {}",
+                            ktxErrorString(status));
                         return false;
                     }
                     DBG std::cout << fmt::format(
-                        "ktxTexture_SetImageFromMemory for slice_idx={} face_idx={} level_idx={} wrote {} bytes",
+                        "[ktxoutput] ktxTexture_SetImageFromMemory for "
+                        "slice_idx={} face_idx={} level_idx={} wrote {} bytes",
                         slice_idx, face_idx, level_idx, slice_or_face_size)
                                   << std::endl;
                 }  // slices
@@ -1020,27 +1339,26 @@ KtxOutput::write_ktx2() noexcept
             if (auto status = ktxTexture2_CompressAstcEx(tex.get(),
                                                          &m_astc_params);
                 status != KTX_SUCCESS) {
-                errorfmt(
-                    "ktxTexture2_CompressAstc returned KTX exit error code: {}",
-                    static_cast<uint32_t>(status));
+                errorfmt("ktxTexture2_CompressAstc failed. Reason: {}",
+                         ktxErrorString(status));
                 return false;
             }
             break;
         }
 #if 0
-       // BCn
-    case BlockCompression::BC1:
-    case BlockCompression::BC3:
-    case BlockCompression::BC4:
-    case BlockCompression::BC5:
-    case BlockCompression::BC7:
-        // TODO: expose BCn compression quality parameter as spec attribute
-        if (auto status = ktxTexture2_CompressBCn(tex, nullptr);
-            status != KTX_SUCCESS) {
-            errorfmt("ktxTexture2_CompressBCn returned KTX exit error code: {}",
-                     static_cast<uint32_t>(status));
-            return false;
-        }
+           // BCn
+        case BlockCompression::BC1:
+        case BlockCompression::BC3:
+        case BlockCompression::BC4:
+        case BlockCompression::BC5:
+        case BlockCompression::BC7:
+            // TODO: expose BCn compression quality parameter as spec attribute
+            if (auto status = ktxTexture2_CompressBCn(tex, nullptr);
+                status != KTX_SUCCESS) {
+                errorfmt("ktxTexture2_CompressBCn failed. Reason: {}",
+                         ktxErrorString(status));
+                return false;
+            }
 #endif
         default:
             errorfmt("Writing/Encoding {} compression is not supported",
@@ -1060,8 +1378,8 @@ KtxOutput::write_ktx2() noexcept
         if (auto status = ktxTexture2_CompressBasisEx(tex.get(),
                                                       &m_basis_params);
             status != KTX_SUCCESS) {
-            errorfmt("ktxTexture2_CompressBasisEx returned error code: {}",
-                     static_cast<uint32_t>(status));
+            errorfmt("ktxTexture2_CompressBasisEx failed. Reason: {}",
+                     ktxErrorString(status));
             return false;
         }
     }
@@ -1079,17 +1397,15 @@ KtxOutput::write_ktx2() noexcept
         if (m_superCmp == KTX_SS_ZLIB) {
             if (auto status = ktxTexture2_DeflateZLIB(tex.get(), m_zlib_level);
                 status != KTX_SUCCESS) {
-                errorfmt(
-                    "ktxTexture2_DeflateZLIB returned KTX exit error code: {}",
-                    static_cast<uint32_t>(status));
+                errorfmt("ktxTexture2_DeflateZLIB failed. Reason: {}",
+                         ktxErrorString(status));
                 return false;
             }
         } else if (m_superCmp == KTX_SS_ZSTD) {
             if (auto status = ktxTexture2_DeflateZstd(tex.get(), m_zstd_level);
                 status != KTX_SUCCESS) {
-                errorfmt(
-                    "ktxTexture2_DeflateZstd returned KTX exit error code: {}",
-                    static_cast<uint32_t>(status));
+                errorfmt("ktxTexture2_DeflateZstd failed. Reason: {}",
+                         ktxErrorString(status));
                 return false;
             }
         }
@@ -1112,11 +1428,11 @@ KtxOutput::write_ktx2() noexcept
             = ktxHashList_AddKVPair(&tex->kvDataHead, KTX_WRITER_KEY,
                                     (ktx_uint32_t)strlen(writer) + 1, writer);
             status != KTX_SUCCESS) {
-            errorfmt("ktxHashList_AddKVPair returned KTX exit error code: {}",
-                     static_cast<uint32_t>(status));
+            errorfmt("ktxHashList_AddKVPair failed. Reason: {}",
+                     ktxErrorString(status));
             return false;
         }
-        DBG std::cout << "KTXwrite: " << writer << '\n';
+        DBG std::cout << "[ktxoutput] KTXwrite: " << writer << '\n';
     }
 
     //
@@ -1146,11 +1462,14 @@ KtxOutput::write_ktx2() noexcept
         case 5:
         case 6:
         case 7:
-        case 8: break;
+        case 8:
+            errorfmt(
+                "Transposed orientation settings are not supported by KTX");
+            return false;
         default:  // should never occur
-            // OIIO_ASSERT(false);
-            // errorfmt("Unsupported \"Orientation\" attribute: {}", orientation);
-            break;
+            OIIO_ASSERT(false);
+            errorfmt("Unsupported \"Orientation\" attribute: {}", orientation);
+            return false;
         }
         if (tex->numDimensions == 1)
             // For 1D textures, we just need to write [rl]
@@ -1163,8 +1482,8 @@ KtxOutput::write_ktx2() noexcept
                                     (ktx_uint32_t)strlen(orientation_str) + 1,
                                     orientation_str);
             status != KTX_SUCCESS) {
-            errorfmt("ktxHashList_AddKVPair returned KTX exit error code: {}",
-                     static_cast<uint32_t>(status));
+            errorfmt("ktxHashList_AddKVPair failed. Reason: {}",
+                     ktxErrorString(status));
             return false;
         }
     }
@@ -1174,9 +1493,8 @@ KtxOutput::write_ktx2() noexcept
         auto fd = reinterpret_cast<Filesystem::IOFile*>(m_io)->handle();
         if (auto status = ktxTexture2_WriteToStdioStream(tex.get(), fd);
             status != KTX_SUCCESS) {
-            errorfmt(
-                "ktxTexture2_WriteToStdioStream returned KTX exit error code: {}",
-                static_cast<uint32_t>(status));
+            errorfmt("ktxTexture2_WriteToStdioStream failed. Reason: {}",
+                     ktxErrorString(status));
             return false;
         }
         return true;
@@ -1184,22 +1502,30 @@ KtxOutput::write_ktx2() noexcept
 
     if (!strcmp(m_io->proxytype(), "vecoutput")) {
         auto proxy = reinterpret_cast<Filesystem::IOVecOutput*>(m_io);
+        // TODO: use ktxTexture2_WriteToStream instead
         ktx_uint8_t* buff;
         ktx_size_t buff_size;
         if (auto status = ktxTexture2_WriteToMemory(tex.get(), &buff,
                                                     &buff_size);
             status != KTX_SUCCESS) {
-            errorfmt(
-                "ktxTexture2_WriteToMemory returned KTX exit error code: {}",
-                static_cast<uint32_t>(status));
+            errorfmt("ktxTexture2_WriteToMemory failed. Reason: {}",
+                     ktxErrorString(status));
             return false;
         }
         // RAII-based cleanup
         auto _ = std::unique_ptr<ktx_uint8_t, decltype(std::free)*>(buff,
                                                                     std::free);
-        proxy->write(buff, buff_size);
+        const auto nbr_written_bytes = proxy->write(buff, buff_size);
+        if (nbr_written_bytes != buff_size) {
+            errorfmt(
+                "vecoutput proxy failed to write {} bytes but just wrote instead {}",
+                buff_size, nbr_written_bytes);
+            return false;
+        }
         return true;
     }
+
+    // TODO: memreader proxy
 
     // OIIO should guarantee that this never happens
     errorfmt("unexpected IOProxy type: {}", m_io->proxytype());

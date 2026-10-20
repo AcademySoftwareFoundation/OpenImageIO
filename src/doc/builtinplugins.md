@@ -1622,7 +1622,45 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
 
    * - Output Configuration Attribute
      - Type
-     - Meaning 
+     - Meaning
+   * - ``ktx:tf``
+     - string
+     - Force the created texture to have the specified transfer function,
+       ignoring the transfer function of the currently set color space. Case
+       insensitive. Can be one of the following values:
+            ``"none"`` ``"linear"`` ``"srgb"`` ``"srgb_eotf"`` ``"scrgb"``
+            ``"scrgb_eotf"`` ``"itu"`` ``"itu_oetf"`` ``"bt601"``
+            ``"bt601_oetf"`` ``"bt709"`` ``"bt709_oetf"`` ``"bt2020"``
+            ``"bt2020_oetf"`` ``"smpte170m"`` ``"smpte170m_oetf"``
+            ``"smpte170m_eotf"`` ``"ntsc"`` ``"ntsc_eotf"`` ``"slog"``
+            ``"slog_oetf"`` ``"slog2"`` ``"slog2_oetf"`` ``"bt1886"``
+            ``"bt1886_eotf"`` ``"hlg_oetf"`` ``"hlg_eotf"`` ``"pq_oetf"``
+            ``"pg_eotf"`` ``"dcip3"`` ``"dcip3_eotf"`` ``"pal_oetf"``
+            ``"pal625_eotf"`` ``"st240"`` ``"st240_oetf"`` ``"st240_eotf"``
+            ``"acescc"`` ``"acescc_oetf"`` ``"acescct"`` ``"acescct_oetf"``
+            ``"abobergb"`` ``"adobergb_eotf"``
+       This is just an assignment and does not perform any conversions.
+   * - ``ktx:primaries``
+     - string
+     - Force the created texture to have the specified color primaries, ignoring
+       the color primaries of the currently set color space. Can be one of the
+       following values:
+            ``"none"`` ``"bt709"`` ``"srgb"`` ``"bt601_ebu"`` ``"bt601_smpte"``
+            ``"bt2020"`` ``"ciexyz"`` ``"aces"`` ``"acescc"`` ``"ntsc1953"``
+            ``"pal525"`` ``"displayp3"`` ``"adobergb"``
+       If the output KTX2 file is intended to be used within glTF then either
+       this MUST be set to ``"none"`` or ``oiio:ColorSpace`` to ``"data"``.
+       This attribute replicates the functionality of KTX Tools'
+       "--assign-primaries" CLI option (i.e., this is just an assignment and
+       does not perform any conversions).
+   * - ``textureformat``
+     - string
+     - Texture format/kind. Has to be set for cubemaps or volumes with a single
+       slice. Can be one of the following values:
+       ``"Plain Texture"``, ``"Volume Texture"``, or ``"CubeFace Environment"``.
+       This attribute by itself does not convey whether the read texture is an
+       array texture or whether it is 1D (1D, 2D and 2D array textures are all
+       ``"Plain Texture"``'s).
    * - ``ktx:codec``
      - string
      - Optional Basis Universal codec or GPU-block compression type to apply.
