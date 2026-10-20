@@ -39,14 +39,25 @@ private:
     unsigned int m_dither;
     bool m_convert_alpha;  // Do we deassociate alpha?
     std::vector<uint8_t> m_uncompressed_image;
+    // Used to write animations
+    WebPMux* m_mux       = nullptr;
+    bool m_pending_write = false;
+    // Used to make sure that we don't call WebPPictureFree on an uninitialized WebPPicture.
+    bool m_picture_initialized = false;
+    float m_default_fps        = 1.0f;
 
     void init()
     {
-        m_scanline_size = 0;
+        m_scanline_size       = 0;
+        m_pending_write       = false;
+        m_picture_initialized = false;
         ioproxy_clear();
     }
 
     bool write_complete_data();
+    bool append_subimage(const std::string& name, const ImageSpec& spec);
+    bool finish_subimage();
+    void cleanup();
 };
 
 
@@ -55,7 +66,8 @@ int
 WebpOutput::supports(string_view feature) const
 {
     return feature == "tiles" || feature == "alpha" || feature == "ioproxy"
-           || feature == "random_access" || feature == "rewrite";
+           || feature == "random_access" || feature == "rewrite"
+           || feature == "multiimage" || feature == "appendsubimage";
 }
 
 
@@ -73,6 +85,10 @@ WebpImageWriter(const uint8_t* img_data, size_t data_size,
 bool
 WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 {
+    if (mode == AppendSubimage) {
+        return append_subimage(name, spec);
+    }
+
     if (!check_open(mode, spec, { 0, 16383, 0, 16383, 0, 1, 0, 4 },
                     uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
@@ -105,15 +121,16 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     if (!WebPConfigPreset(&m_webp_config, WEBP_PRESET_DEFAULT, quality)) {
         errorfmt("Couldn't initialize WebPConfig\n");
-        close();
+        cleanup();
         return false;
     }
 
     if (!WebPPictureInit(&m_webp_picture)) {
         errorfmt("Couldn't initialize WebPPicture\n");
-        close();
+        cleanup();
         return false;
     }
+    m_picture_initialized = true;
 
     // Quality/speed trade-off (0=fast, 6=slower-better)
     const int method     = m_spec.get_int_attribute("webp:method", 6);
@@ -134,6 +151,8 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 
     m_scanline_size = m_spec.scanline_bytes();
     m_uncompressed_image.resize(m_spec.image_bytes(), 0);
+    m_default_fps   = m_spec.get_float_attribute("FramesPerSecond", 1.0f);
+    m_pending_write = true;
     return true;
 }
 
@@ -148,7 +167,7 @@ WebpOutput::write_complete_data()
     // If we have ICC data, encode to memory first. This is required in order
     // to use the WebPMux assembly API below.
     WebPMemoryWriter wrt;
-    if (has_icc_data) {
+    if (has_icc_data || m_mux) {
         WebPMemoryWriterInit(&wrt);
         m_webp_picture.writer     = WebPMemoryWrite;
         m_webp_picture.custom_ptr = &wrt;
@@ -178,11 +197,37 @@ WebpOutput::write_complete_data()
 
     if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
         errorfmt("Failed to encode {} as WebP image", m_filename);
-        if (has_icc_data) {
+        if (has_icc_data || m_mux) {
             WebPMemoryWriterClear(&wrt);
         }
-        close();
         return false;
+    }
+
+    // If m_mux is already non-null, we are busy creating an animation
+    if (m_mux) {
+        WebPMuxFrameInfo frame = {};
+        frame.bitstream        = { wrt.mem, wrt.size };
+
+        const float fps = m_spec.get_float_attribute("FramesPerSecond",
+                                                     m_default_fps);
+        // WebP stores frame durations in milliseconds
+        const float duration = fps <= 0.0f ? 0.0f : 1000.0f / fps;
+        // libwebp defines MAX_DURATION as 2^24 (see format_constant.h)
+        frame.duration = int(OIIO::clamp(duration, 0.0f, float(0xffffff)));
+
+
+
+        // For WebPMuxPushFrame, frame.id should be WEBP_CHUNK_ANMF
+        frame.id             = WEBP_CHUNK_ANMF;
+        frame.dispose_method = WEBP_MUX_DISPOSE_NONE;
+        // Replace the previous frame with this one, rather than blending them together.
+        frame.blend_method = WEBP_MUX_NO_BLEND;
+
+        bool ok = WebPMuxPushFrame(m_mux, &frame, true) == WEBP_MUX_OK;
+        WebPMemoryWriterClear(&wrt);
+        if (!ok)
+            errorfmt("Failed to add frame to WebP animation {}", m_filename);
+        return ok;
     }
 
     // If there's no ICC data to write, we are done at this point.
@@ -219,12 +264,101 @@ WebpOutput::write_complete_data()
 
 
 bool
+WebpOutput::append_subimage(const std::string& name, const ImageSpec& spec)
+{
+    if (!m_pending_write || name != m_filename) {
+        errorfmt("No WebP image open for appending to {}", name);
+        return false;
+    }
+    if (spec.width != m_spec.width || spec.height != m_spec.height
+        || spec.nchannels != m_spec.nchannels) {
+        errorfmt(
+            "WebP animation frames must have the same dimensions and channels");
+        return false;
+    }
+
+    if (!m_mux) {
+        m_mux = WebPMuxNew();
+        if (!m_mux) {
+            errorfmt("Couldn't initialize WebP animation mux");
+            cleanup();
+            return false;
+        }
+        WebPMuxAnimParams params = {};
+        params.loop_count        = OIIO::clamp(
+            m_spec.get_int_attribute("oiio:LoopCount",
+                                     m_spec.get_int_attribute("webp:LoopCount",
+                                                              0)),
+            0, 65535);
+
+        if (WebPMuxSetCanvasSize(m_mux, m_spec.width, m_spec.height)
+                != WEBP_MUX_OK
+            || WebPMuxSetAnimationParams(m_mux, &params) != WEBP_MUX_OK) {
+            errorfmt("Couldn't initialize WebP animation");
+            cleanup();
+            return false;
+        }
+
+        std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
+        if (icc_profile.size() > 0) {
+            WebPData chunk = { icc_profile.data(), icc_profile.size() };
+
+            if (WebPMuxSetChunk(m_mux, "ICCP", &chunk, true) != WEBP_MUX_OK) {
+                errorfmt("Couldn't add ICC profile to WebP animation");
+                cleanup();
+                return false;
+            }
+        }
+    }
+
+    // Finish writing the previous frame
+    if (!finish_subimage()) {
+        cleanup();
+        return false;
+    }
+
+    // Start Current frame
+    if (!check_open(AppendSubimage, spec, { 0, 16383, 0, 16383, 0, 1, 0, 4 },
+                    uint64_t(OpenChecks::Disallow1or2Channel))) {
+        cleanup();
+        return false;
+    }
+
+    m_spec.set_format(TypeDesc::UINT8);
+    m_dither        = m_spec.get_int_attribute("oiio:dither", 0);
+    m_convert_alpha = m_spec.alpha_channel != -1
+                      && !m_spec.get_int_attribute("oiio:UnassociatedAlpha", 0);
+    m_uncompressed_image.assign(m_spec.image_bytes(), 0);
+    m_pending_write = true;
+    return true;
+}
+
+
+
+bool
+WebpOutput::finish_subimage()
+{
+    if (!m_pending_write)
+        return true;
+
+    if (!m_uncompressed_image.size())
+        return false;
+
+    if (!write_complete_data())
+        return false;
+    m_pending_write = false;
+    return true;
+}
+
+
+bool
 WebpOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                            stride_t xstride)
 {
-    if (y > m_spec.height) {
-        errorfmt("Attempt to write too many scanlines to {}", m_filename);
-        close();
+    if (y < 0 || y >= m_spec.height) {
+        errorfmt("Attempt to write scanline {} (outside of range [0, {}[) to {}",
+                 y, m_spec.height, m_filename);
+        cleanup();
         return false;
     }
     std::vector<uint8_t> scratch;
@@ -251,7 +385,7 @@ WebpOutput::close()
 {
     if (!ioproxy_opened())
         return true;  // already closed
-
+    
     bool ok = true;
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
@@ -260,16 +394,39 @@ WebpOutput::close()
                               m_spec.format, &m_uncompressed_image[0]);
     }
 
-    // Write the complete image data on close, not during write_scanline.
-    // This allows scanlines to be written in any order.
-    if (ok && m_uncompressed_image.size()) {
-        ok = write_complete_data();
+    // Write the complete image (or last frame) data on close, not during
+    // write_scanline. This allows scanlines to be written in any order.
+    if (ok)
+        ok = finish_subimage();
+
+    if (ok && m_mux) {
+        WebPData assembly = {};
+        if (WebPMuxAssemble(m_mux, &assembly) != WEBP_MUX_OK) {
+            errorfmt("Failed to assemble {} as WebP animation", m_filename);
+            ok = false;
+        } else {
+            ok = ioproxy()->write(assembly.bytes, assembly.size)
+                 == assembly.size;
+        }
+        WebPDataClear(&assembly);
     }
 
-    std::vector<uint8_t>().swap(m_uncompressed_image);
-    WebPPictureFree(&m_webp_picture);
-    init();
+    cleanup();
     return ok;
+}
+
+
+void
+WebpOutput::cleanup()
+{
+    if (m_mux)
+        WebPMuxDelete(m_mux);
+    m_mux = nullptr;
+    std::vector<uint8_t>().swap(m_uncompressed_image);
+    if (m_picture_initialized) {
+        WebPPictureFree(&m_webp_picture);
+    }
+    init();
 }
 
 
