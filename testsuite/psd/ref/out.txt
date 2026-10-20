@@ -2148,3 +2148,7 @@ Full command line was:
 oiiotool ERROR: read : "src/crash-missing-chan.psd": [Layer Record] Layer is missing channel id 1
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-missing-chan.psd
+oiiotool ERROR: read : RLE row lengths (4042894331 bytes) exceed available data (1976 bytes)
+failed to open "src/crash-rlelen-psb.psb": failed load_image_data
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-rlelen-psb.psb

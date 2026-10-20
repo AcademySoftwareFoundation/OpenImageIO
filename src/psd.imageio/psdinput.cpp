@@ -284,6 +284,7 @@ private:
     bool load_layer_channels(Layer& layer);
     bool load_layer_channel(Layer& layer, ChannelInfo& channel_info);
     bool read_rle_lengths(uint32_t height, std::vector<uint32_t>& rle_lengths);
+    bool check_rle_lengths(cspan<uint32_t> rle_lengths, uint64_t available);
 
     //Global Mask Info
     bool load_global_mask_info();
@@ -1831,6 +1832,9 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         }
         channel_info.data_length = channel_info.data_length
                                    - (channel_info.data_pos - start_pos);
+        if (!check_rle_lengths(channel_info.rle_lengths,
+                               channel_info.data_length))
+            return false;
         if (height) {
             channel_info.row_pos[0] = channel_info.data_pos;
             for (uint32_t i = 1; i < height; ++i)
@@ -1901,6 +1905,23 @@ PSDInput::read_rle_lengths(uint32_t height, std::vector<uint32_t>& rle_lengths)
             ok &= read_bige<uint32_t>(rle_lengths[row]);
     }
     return ok;
+}
+
+
+
+// Sum of a channel's RLE row lengths must fit in the bytes available for it.
+bool
+PSDInput::check_rle_lengths(cspan<uint32_t> rle_lengths, uint64_t available)
+{
+    uint64_t total = 0;
+    for (uint32_t len : rle_lengths)
+        total += len;
+    if (total > available) {
+        errorfmt("RLE row lengths ({} bytes) exceed available data ({} bytes)",
+                 total, available);
+        return false;
+    }
+    return true;
 }
 
 
@@ -2098,6 +2119,14 @@ PSDInput::load_image_data()
         channel_info.data_length = row_length * m_header.height;
         if (compression == Compression_RLE) {
             if (!read_rle_lengths(m_header.height, channel_info.rle_lengths))
+                return false;
+        }
+    }
+    if (compression == Compression_RLE) {
+        int64_t file_size = ioproxy() ? ioproxy()->size() : 0;
+        int64_t remaining = std::max(file_size - iotell(), int64_t(0));
+        for (ChannelInfo& channel_info : m_image_data.channel_info) {
+            if (!check_rle_lengths(channel_info.rle_lengths, remaining))
                 return false;
         }
     }
