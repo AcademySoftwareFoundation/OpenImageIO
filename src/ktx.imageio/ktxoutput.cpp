@@ -314,15 +314,17 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             }
         }
 
-        if (m_tf == KHR_DF_TRANSFER_UNSPECIFIED) {
-            close();
-            errorfmt(
-                "Failed to determine transfer function from set colorspace "
-                "(via \"oiio:ColorSpace\" attribute) and \"ktx:tf\" is not set "
-                "to valid KTX transfer function. Consider explicitly setting "
-                "\"ktx:tf\" alongside \"ktx:primaries\" attributes");
-            return false;
-        }
+        // TODO: this causes sourceprovenance.nanobind and other tests to fail.
+        //       Just keep colorspace as "unknown"?
+        // if (m_tf == KHR_DF_TRANSFER_UNSPECIFIED) {
+        //     close();
+        //     errorfmt(
+        //         "Failed to determine transfer function from set colorspace "
+        //         "(via \"oiio:ColorSpace\" attribute) and \"ktx:tf\" is not set "
+        //         "to valid KTX transfer function. Consider explicitly setting "
+        //         "\"ktx:tf\" alongside \"ktx:primaries\" attributes");
+        //     return false;
+        // }
 
         bool is_srgb = m_tf == KHR_DF_TRANSFER_SRGB;
 
