@@ -140,6 +140,8 @@ private:
 
     khr_df_primaries_e m_primaries { KHR_DF_PRIMARIES_UNSPECIFIED };
 
+    int m_nthreads { 1 };
+
     //
     // Container for raw (i.e., uncompressed) texture data structured as:
     //   mip level -> pixels (all faces/slices in same contiguous array)
@@ -169,11 +171,10 @@ private:
 
     bool write_ktx2();
 
-    bool construct_basis_params(ktxBasisParams& params, std::string_view codec,
-                                uint32_t threads = 1) const;
+    bool construct_basis_params(ktxBasisParams& params,
+                                std::string_view codec) const;
 
-    bool construct_astc_params(ktxAstcParams& params,
-                               uint32_t threads = 1) const;
+    bool construct_astc_params(ktxAstcParams& params) const;
 
     bool try_parse_astc_block_dimensions(
         string_view block_dims_str,
@@ -271,6 +272,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 
         // Save name for later use
         m_filename = name;
+
+        m_nthreads = std::max(1, OIIO::get_int_attribute("threads", 0));
 
         // no need to check on the format (TypeDesc) here; if it is not
         // supported `get_vkformat_from_info` below will fail.
@@ -800,12 +803,12 @@ bool
 KtxOutput::append_mipmaps_vector(imagesize_t image_bytes) noexcept
 {
     try {
-        std::vector<uint8_t> image(image_bytes);
-        m_imgs.emplace_back(image);
+        m_imgs.emplace_back(image_bytes, uint8_t(0));
         ++m_miplevel_idx;
         return true;
-    } catch (...) {
-        // Probably some out-of-memory exception occurred; just return false
+    } catch (const std::bad_alloc&) {
+        return false;
+    } catch (const std::length_error&) {
         return false;
     }
 }
@@ -857,13 +860,12 @@ KtxOutput::init() noexcept
 //
 bool
 KtxOutput::construct_basis_params(ktxBasisParams& params,
-                                  std::string_view codec,
-                                  uint32_t threads) const
+                                  std::string_view codec) const
 {
     // Set defaults
     params             = { 0 };
     params.structSize  = sizeof(ktxBasisParams);
-    params.threadCount = threads;
+    params.threadCount = m_nthreads;
 
     params.etc1sCompressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
 
@@ -945,13 +947,13 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
 // Unlike `construct_basis_params`, this always succeeds.
 //
 bool
-KtxOutput::construct_astc_params(ktxAstcParams& params, uint32_t threads) const
+KtxOutput::construct_astc_params(ktxAstcParams& params) const
 {
     // set sensible defaults
     params             = { 0 };
     params.structSize  = sizeof(ktxAstcParams);
     params.verbose     = false;
-    params.threadCount = threads;
+    params.threadCount = m_nthreads;
     params.blockDimension
         = ktx_pack_astc_block_dimension_e::KTX_PACK_ASTC_BLOCK_DIMENSION_4x4;
     // KTX Tools does not expose this parameter so leave it as default
@@ -1297,7 +1299,7 @@ KtxOutput::write_ktx2()
                         return false;
                     }
 
-                    // TODO: this cast to (ktxTexture*) is actually UB (lifetime
+                    // TODO: this cast to (ktxTexture*) may be UB (lifetime
                     // of ktxTexture hasn't properly started, etc.).
                     // libktx doesn't expose: ktxTexture2_SetImageFromStdioStream
                     // so for the moment use this until this issue here gets
@@ -1337,7 +1339,8 @@ KtxOutput::write_ktx2()
         switch (m_cmp) {
             // ASTC
         case BlockCompression::ASTC: {
-            construct_astc_params(m_astc_params);
+            if (!construct_astc_params(m_astc_params))
+                return false;
             if (auto status = ktxTexture2_CompressAstcEx(tex.get(),
                                                          &m_astc_params);
                 status != KTX_SUCCESS) {
