@@ -4734,7 +4734,8 @@ OIIO_FORCEINLINE void vint4::store (unsigned short *values) const {
                     // high = xxxx00CD
     vint4 highswapped = shuffle_sse<2,3,0,1>(high);  // 00CDxxxx
     vint4 result = low | highswapped;   // ABCDxxxx
-    _mm_storel_pd ((double *)values, _mm_castsi128_pd(result));
+    // Use storel_epi64, which allows unaligned addresses.
+    _mm_storel_epi64 ((__m128i *)values, result);
     // At this point, values[] should hold A,B,C,D
 #else
     SIMD_DO (values[i] = m_val[i]);
@@ -4750,12 +4751,15 @@ OIIO_FORCEINLINE void vint4::store (unsigned char *values) const {
     vint4 clamped = m_simd & vint4(0xff);                         // A000 B000 C000 D000
     simd_t val16 = _mm_packs_epi32(clamped, _mm_setzero_si128()); // A0B0 C0D0 xxxx xxxx
     simd_t val8 = _mm_packus_epi16(val16, _mm_setzero_si128());   // ABCD xxxx xxxx xxxx
-    _mm_store_ss((float*)values, _mm_castsi128_ps(val8));
+    // values may be unaligned; memcpy compiles to a single movd/movss.
+    int32_t packed = _mm_cvtsi128_si32(val8);
+    memcpy(values, &packed, sizeof(packed));
 #elif OIIO_SIMD_NEON
     vint4 clamped = m_simd & vint4(0xff);
     int16x8_t val16 = vcombine_s16(vqmovn_s32(clamped), vdup_n_s16(0));
     uint8x16_t val8 = vcombine_u8(vqmovun_s16(val16), vdup_n_u8(0));
-    vst1q_lane_u32((uint32_t*)values, vreinterpretq_u32_u8(val8), 0);
+    uint32_t packed = vgetq_lane_u32(vreinterpretq_u32_u8(val8), 0);
+    memcpy(values, &packed, sizeof(packed));
 #else
     SIMD_DO (values[i] = m_val[i]);
 #endif
@@ -6896,8 +6900,8 @@ OIIO_FORCEINLINE void vfloat4::store (float *values, int n) const {
         _mm_store_ss (values, m_simd);
         break;
     case 2:
-        // Trickery: store two floats as a double worth of bits
-        _mm_store_sd ((double*)values, _mm_castps_pd(m_simd));
+        // Trickery: store two floats as 64 bits (unaligned-safe)
+        _mm_storel_epi64 ((__m128i*)values, _mm_castps_si128(m_simd));
         break;
     case 3:
         values[0] = m_val[0];
@@ -6944,7 +6948,7 @@ OIIO_FORCEINLINE void vfloat4::store (float *values, int n) const {
 OIIO_FORCEINLINE void vfloat4::store (half *values) const {
 #if OIIO_F16C_ENABLED && OIIO_SIMD_SSE
     __m128i h = _mm_cvtps_ph (m_simd, _MM_FROUND_TO_NEAREST_INT);
-    _mm_store_sd ((double *)values, _mm_castsi128_pd(h));
+    _mm_storel_epi64 ((__m128i *)values, h);
 #elif OIIO_SIMD_NEON
     float16x4_t f16 = vcvt_f16_f32(m_simd);
     uint16x4_t u16 = vreinterpret_u16_f16(f16);
