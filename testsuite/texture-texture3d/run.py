@@ -7,31 +7,36 @@
 
 redirect = ">> out.txt 2>&1"
 
+# Use a local copy of the source tree file. Reading it via the openvdb test's
+# build dir raced with that test creating its src link.
+shutil.copy (os.path.join (OIIO_TESTSUITE_ROOT, "openvdb", "src", "sphere.vdb"),
+             "sphere.vdb")
+
 # basic
 command += testtex_command("-res 128 128 --nowarp --offset 5 5 5 --scalest 3 3 "
-                           "../openvdb/src/sphere.vdb -o out.exr")
+                           "sphere.vdb -o out.exr")
 
 # handles, derivatives
 command += testtex_command("--handle --derivs --no-gettextureinfo "
                            "-res 128 128 --nowarp --offset 5 5 5 --scalest 3 3 "
-                           "-o out-handle.exr ../openvdb/src/sphere.vdb")
+                           "-o out-handle.exr sphere.vdb")
 
 # more channels
 command += testtex_command("-res 128 128 --nowarp --offset 5 5 5 --scalest 3 3 "
-                           "-nchannels 5 --no-gettextureinfo ../openvdb/src/sphere.vdb -o out-5chan.exr")
+                           "-nchannels 5 --no-gettextureinfo sphere.vdb -o out-5chan.exr")
 
 # subimages
 command += testtex_command("-res 128 128 --nowarp --offset 5 5 5 --scalest 3 3 "
-                           "-subimage 0 --no-gettextureinfo ../openvdb/src/sphere.vdb -o out-subimage0.exr")
+                           "-subimage 0 --no-gettextureinfo sphere.vdb -o out-subimage0.exr")
 command += testtex_command("-res 128 128 --nowarp --offset 5 5 5 --scalest 3 3 "
-                           "-subimagename density --no-gettextureinfo ../openvdb/src/sphere.vdb -o out-subimagedensity.exr")
+                           "-subimagename density --no-gettextureinfo sphere.vdb -o out-subimagedensity.exr")
 command += testtex_command("-res 2 2 --nowarp --offset 5 5 5 --scalest 3 3 "
-                           "-subimagename missing --no-gettextureinfo ../openvdb/src/sphere.vdb -o out-subimagemissing.exr")
+                           "-subimagename missing --no-gettextureinfo sphere.vdb -o out-subimagemissing.exr")
 
 # interp and mip modes
 command += testtex_command("-res 128 128 --nowarp --offset 5 5 5 --scalest 3 3 "
                            "-interpmode 0 --no-gettextureinfo "
-                           "../openvdb/src/sphere.vdb -o closest.exr")
+                           "sphere.vdb -o closest.exr")
 
 outputs = [ "out.exr",
             "out-handle.exr",
