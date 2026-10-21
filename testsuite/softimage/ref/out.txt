@@ -60,6 +60,13 @@ src/mixed-bitdepth.pic :    2 x    1, 2 channel, uint16 softimage
     Stats FiniteCount: 2 2 
     Constant: No
     Monochrome: No
+src/scanline-read-fail.pic :    1 x   16, 4 channel, uint16 softimage
+    SHA-1: Failed to read channel packet type 0 from "src/scanline-read-fail.pic"
+    channel list: R, G, B, A
+    BitsPerSample: 16
+    ImageDescription: ""
+    softimage:compression: "none"
+iinfo ERROR: "src/scanline-read-fail.pic" : Failed to read channel packet type 0 from "src/scanline-read-fail.pic"
 mixed-bitdepth.exr   :    2 x    1, 2 channel, half openexr
     Stats Min: 0.066956 0.333252 (float)
     Stats Max: 0.200317 0.399902 (float)
