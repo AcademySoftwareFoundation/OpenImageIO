@@ -54,3 +54,5 @@ command += info_command ("src/crash-dup-layerinfo.psd", failureok=True)
 # size overflows the int scanline coordinates used by the read path. Per-layer
 # specs bypass check_open(), so the reader guards the origin itself.
 command += info_command ("src/crash-layer-origin.psd", failureok=True)
+# Layer whose channel records omit a channel its color mode requires
+command += info_command ("src/crash-missing-chan.psd", failureok=True)

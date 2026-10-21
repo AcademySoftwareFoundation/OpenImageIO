@@ -30,7 +30,8 @@ Check IDs (C1-C10) are defined in SKILL.md. "OK" = already satisfied.
 - dds: C2; propagate failed `readimg_*` returns (truncated decoded to black).
 - psd: check_open + bomb guard; uint32 overflow undersized ZIP layer buffer;
   signed overflow in layer/mask rect; thumbnail/color-data/layer-channel
-  length underflows; assert on layer-info length aborted debug builds.
+  length underflows; assert on layer-info length aborted debug builds;
+  layer missing a required channel id gave a null ChannelInfo (#5594).
 - dpx: C2; 10-bit filled 1-channel swap overran a group of 3; UserData short
   read published uninitialized tail; large origin overflow in generic read
   paths (origin must be set before `check_open`). libdpx RLE unimplemented.
