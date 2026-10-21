@@ -1007,7 +1007,16 @@ macro (build_dependency_with_cmake pkgname)
         list (APPEND _pkg_CMAKE_ARGS -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY})
     endif ()
 
-    execute_process (COMMAND
+    # Keep local dependencies compatible with older MSVC runtimes, just as
+    # OIIO itself is. Scope the environment to the child configure and retain
+    # caller flags and the compiler's default CMake flags.
+    unset (_pkg_cmake_env)
+    if (MSVC)
+        set (_pkg_cmake_env ${CMAKE_COMMAND} -E env
+             "CXXFLAGS=$ENV{CXXFLAGS} -D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR")
+    endif ()
+
+    execute_process (COMMAND ${_pkg_cmake_env}
         ${CMAKE_COMMAND}
             # Put things in our special local build areas
                 -S ${${pkgname}_LOCAL_SOURCE_DIR}/${_pkg_SOURCE_SUBDIR}

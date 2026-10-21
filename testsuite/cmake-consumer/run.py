@@ -5,6 +5,7 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+command += run_app("cmake -S \"" + test_source_dir + "/dependency-flags\" -B dependency-flags >> build.txt 2>&1", silent=True)
 command += run_app("cmake " + test_source_dir + " -DCMAKE_BUILD_TYPE=Release >> build.txt 2>&1", silent=True)
 command += run_app("cmake --build . --config Release >> build.txt 2>&1", silent=True)
 if platform.system() == 'Windows' :
