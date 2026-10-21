@@ -93,7 +93,13 @@ used for allocation, indexing, or loop count.
   => OOB read), jpegxl out-buffer sanity check (also false-rejected valid >4 GB
   images), raw (offsets int), openvdb dense-window math, tiff scratch,
   r3d scanline offset, scanline chunk size > 2 GB truncating to 0 then
-  dividing by zero.
+  dividing by zero; iff (row-flip `(height-y-1)*width*bytespp` and tile
+  `(iy*w+x)` indices in `int`; the open-time guard admits 65536^2, so image
+  bytes exceed INT_MAX, the index wraps negative, and the flip memcpy does an
+  OOB read+write -- #5593).
+- Note: when a dimension or plausibility cap is raised, re-audit every
+  downstream offset/index multiply. The iff flip overflow (#5593) was exactly
+  that -- #5284 raised the caps to 65536^2 without revisiting the 32-bit math.
 
 ### B2. Signed overflow / negation UB
 - Find: `abs(`, unary `-x` on file-controlled signed fields, `right - left`
