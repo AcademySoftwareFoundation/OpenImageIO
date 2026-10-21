@@ -67,4 +67,13 @@ for base in [ "cmyk-1bit", "cmyk-4bit-planar", "cmyk-8bit", "cmyk-12bit",
 # this 32x32 image). Also at the end, to append to every ref variant.
 command += oiiotool ("-i:type=float src/rowsperstrip-huge.tif --echo \"RowsPerChunk={TOP['oiio:RowsPerChunk']} avg={TOP.AVGCOLOR}\"")
 
+# Regression test: reading the InkNames of a multi-ink (non-CMYK
+# "separated") file overflowed the stack. Also at the end, to append to every
+# ref variant.
+command += oiiotool ("--pattern constant:color=0.1,0.5,0.9 4x4 3 --chnames Gold,Silver,Copper --attrib tiff:ColorSpace \"color separated\" -d uint8 -o inks.tif")
+command += info_command ("inks.tif", safematch=True, hash=False)
+# NumberOfInks (5) exceeds SamplesPerPixel and the InkNames count (3);
+# older libtiff passes it through, which overread the InkNames string.
+command += info_command ("src/inknames-mismatch.tif", safematch=True, hash=False)
+
 outputs = [ "check1.tif", "out.txt" ]
