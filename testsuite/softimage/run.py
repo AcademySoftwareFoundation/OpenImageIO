@@ -23,6 +23,10 @@ command += info_command ("--stats src/bomb-40000.pic",
 # single bit depth was assumed for all channels.
 command += info_command ("--stats src/mixed-bitdepth.pic",
                          info_program="iinfo", failureok=True)
+# A truncated file whose scanline read fails partway: the reader closes the
+# file on error and must not touch the file handle afterward.
+command += info_command ("--stats src/scanline-read-fail.pic",
+                         info_program="iinfo", failureok=True)
 # Converting that mixed-bit-depth file to a format that stores a single/other
 # channel type (OpenEXR promotes both channels to half) must rescale each
 # channel's values, not reinterpret its raw bytes. Convert and check the
