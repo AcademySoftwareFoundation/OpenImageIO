@@ -58,7 +58,8 @@ OIIO validates geometry, checks returns, bounds its own buffers.
 - tiff: raw-strip path ignored `TIFFReadRawStrip` csize<0 (bail like the tiled
   path); scratch sizing in 64-bit; CMYK/odd bit depths in the TILED path
   overflowed (`nchannels` 3 vs `m_inputchannels` 4); bad subimage left reader
-  current. Deferred: `iptcsize *= 4` int overflow (>0.5 GB field);
+  current; InkNames read with wrong `TIFFGetField` convention (stack smash,
+  catalog C-6). Deferred: `iptcsize *= 4` int overflow (>0.5 GB field);
   `compressBound((uLong)...)` on LLP64.
 - jpeg: C2 added; checks must precede `jpeg_start_decompress` /
   `jpeg_read_coefficients` (progressive). Exif/ICC/XMP routes go to the shared

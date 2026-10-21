@@ -1688,10 +1688,12 @@ TIFFInput::readspec_photometric()
             m_spec.attribute("tiff:ColorSpace", "color separated");
             m_spec.attribute("oiio:ColorSpace", "color separated");
             m_raw_color = true;  // Conversion to RGB doesn't make sense
+            // libtiff's InkNames getter takes no count argument, and only
+            // guarantees SamplesPerPixel names, regardless of NumberOfInks.
             const char* inknames = NULL;
-            if (safe_tiffgetfield("tiff:InkNames", TIFFTAG_INKNAMES,
-                                  TypeUnknown, &inknames)
-                && inknames && inknames[0] && numberofinks) {
+            numberofinks = std::min(int(numberofinks), m_spec.nchannels);
+            if (TIFFGetField(m_tif, TIFFTAG_INKNAMES, &inknames) && inknames
+                && inknames[0] && numberofinks > 0) {
                 m_spec.channelnames.clear();
                 // Decode the ink names, which are all concatenated together.
                 for (int i = 0; i < int(numberofinks); ++i) {
