@@ -769,14 +769,14 @@ get_vkformat_from_info(ImageSpec const& spec, bool srgb_colorspace,
     bool bgr_channels        = false;
 
     // clang-format off
-    // For 1 channel, we only support R (or Y) channel names
+    // For 1 channel, we support R (or Y which is treated as R) channel names
     // The Y channel name is expected because default_channel_names sets it in case nbrchannels == 1
     if (spec.nchannels == 1 && channelnames[0] != "R" && channelnames[0] != "Y")
         return VK_FORMAT_UNDEFINED;
 
-    // For 2 channels, we only support RG channel names
-    if (spec.nchannels == 2 && !(channelnames[0] == "R"
-                              && channelnames[1] == "G"))
+    // For 2 channels, we only support RG (or YA which is treated as RG) channel names
+    if (spec.nchannels == 2 && !(channelnames[0] == "R" && channelnames[1] == "G")
+                            && !(channelnames[0] == "Y" && channelnames[1] == "A"))
         return VK_FORMAT_UNDEFINED;
 
     // For 3 channels, we support either RGB or BGR
