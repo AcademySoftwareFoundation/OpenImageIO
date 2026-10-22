@@ -41,8 +41,10 @@ cmake --build build --target oiio_fuzz_image -j$(nproc)
 ```
 
 `OIIO_BUILD_FUZZ_TARGETS=ON` is the only new flag. `SANITIZE=address,undefined`
-instruments the full OpenImageIO library for maximum bug detection — omitting
-it produces a valid binary but with much weaker coverage.
+instruments the full OpenImageIO library for maximum bug detection, and with
+clang it also adds `-fsanitize=fuzzer-no-link` coverage instrumentation to the
+libraries so libFuzzer can steer into the format readers. Omitting it produces
+a valid binary, but one that is effectively coverage-blind.
 
 By default the local fuzzing engine is `-fsanitize=fuzzer`. On OSS-Fuzz the
 `LIB_FUZZING_ENGINE` environment variable is set to the engine's `.a` path and
