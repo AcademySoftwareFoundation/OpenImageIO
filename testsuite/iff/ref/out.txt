@@ -59,3 +59,13 @@ src/overlap-full-coverage.iff :    2 x    1, 3 channel, uint8 iff
     SHA-1: 9884235A64511DBBFD499886C555C084228C203D
     channel list: R, G, B
     tile size: 2 x 1
+oiiotool ERROR: -o : Unsupported format float. Converting to UINT16.
+Cannot write IFF file with 2 color channels plus Z (only RGB, RGBA, RGBZ, RGBAZ supported)
+Full command line was:
+> oiiotool --pattern noise:type=white 64x64 3 --chnames R,G,Z -d float -o rgz.iff
+Reading rgbz.iff
+rgbz.iff             :   64 x   64, 4 channel, uint16/uint16/uint16/float iff
+    SHA-1: 442EF3463299349CFEC513A90522E91F9E6E82C8
+    channel list: R (uint16), G (uint16), B (uint16), Z (float)
+    tile size: 64 x 64
+    compression: "rle"
