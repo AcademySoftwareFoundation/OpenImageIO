@@ -24,6 +24,7 @@ using namespace OIIO;
 
 
 static std::string onlyformat = Sysutil::getenv("IMAGEINOUTTEST_ONLY_FORMAT");
+static std::string skipformat = Sysutil::getenv("IMAGEINOUTTEST_SKIP_FORMAT");
 static bool nodelete          = false;  // Don't delete the test files
 static bool enable_fpe        = false;  // Throw exceptions on FP errors.
 
@@ -47,6 +48,8 @@ getargs(int argc, char* argv[])
       .help("Enable floating point exceptions.");
     ap.arg("--onlyformat %s:FORMAT", &onlyformat)
       .help("Test only one format");
+    ap.arg("--skipformat %s:FORMAT", &skipformat)
+      .help("Skip test of one format");
     ap.arg("--iterations %d", &iterations)
       .help(Strutil::format("Number of benchmark iterations per trial (default: {})", iterations));
     ap.arg("--trials %d", &ntrials).help("Number of benchmark trials");
@@ -383,6 +386,8 @@ test_all_formats()
 
         if (onlyformat.size() && formatname != onlyformat)
             continue;
+        if (formatname == skipformat)
+            continue;
 
         auto extensions = Strutil::splitsv(fmtexts[1], ",");
         bool ok         = true;
@@ -534,7 +539,7 @@ test_jxl_close_write_error()
     bool ok = checked_write(nullptr, "fail.jxl", buf.spec(), buf.spec().format,
                             buf.localpixels_as_byte_image_span(),
                             /*do_asserts=*/false, &errmsg, &proxy);
-    print("    {}\n\n", errmsg);
+    print("    {}\n", errmsg);
     OIIO_CHECK_ASSERT(!ok && errmsg.size());
 
     // libjxl can't parse this ICC profile, which leaves the encoder with an
@@ -546,7 +551,7 @@ test_jxl_close_write_error()
     ok = checked_write(nullptr, "fail.jxl", spec, spec.format,
                        buf.localpixels_as_byte_image_span(),
                        /*do_asserts=*/false, &errmsg, &memproxy);
-    print("    {}\n\n", errmsg);
+    print("    {}\n", errmsg);
     OIIO_CHECK_ASSERT(!ok
                       && Strutil::contains(errmsg, "JxlEncoderProcessOutput"));
 
@@ -565,7 +570,7 @@ test_jxl_close_write_error()
     if (auto out = open_short(&emptyproxy)) {
         OIIO_CHECK_ASSERT(!out->close());
         errmsg = out->geterror();
-        print("    {}\n\n", errmsg);
+        print("    {}\n", errmsg);
         OIIO_CHECK_ASSERT(errmsg.size());
     }
     Filesystem::IOVecOutput abandonproxy;
@@ -580,7 +585,7 @@ test_jxl_close_write_error()
                                                as_image_span_bytes(half)));
         OIIO_CHECK_ASSERT(!out->close());
         errmsg = out->geterror();
-        print("    {}\n\n", errmsg);
+        print("    {}\n", errmsg);
         OIIO_CHECK_ASSERT(errmsg.size());
     }
 
@@ -607,7 +612,7 @@ test_jxl_close_write_error()
             }
             OIIO_CHECK_ASSERT(!out->close());
             errmsg = out->geterror();
-            print("    {}\n\n", errmsg);
+            print("    {}\n", errmsg);
             OIIO_CHECK_ASSERT(errmsg.size() && nextproxy.buffer().empty());
         }
     }
