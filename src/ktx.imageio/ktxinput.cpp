@@ -171,7 +171,6 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
 
     // check if magic to insure that this is a KTX2 file
     if (!this->valid_file(m_io)) {
-        // close_file();
         errorfmt("\"{}\" is not a KTX2 file, magic number doesn't match", name);
         return false;
     }
@@ -223,7 +222,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     const bool is_hdr = ktxTexture2_IsHDR(m_tex.get());
-    DBG std::cout << "[ktxinput] is_hdr: " << is_hdr << '\n';
+    DBG std::cout << "[ktxinput] is_hdr: " << is_hdr << std::endl;
 
     // Create a default spec and seek_subimage to set the dimensions based on
     // the texture type (format is set later based on the input VkFormat).
@@ -284,6 +283,13 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
                   << m_spec.get_string_attribute("textureformat") << '"'
                   << std::endl;
 
+    // We don't support vendor-specific supercompression schemes
+    if (m_tex->supercompressionScheme > KTX_SS_END_RANGE) {
+        errorfmt("Unsuppoted vendor-specific supercompression scheme: {}",
+                 ktxSupercompressionSchemeString(m_tex->supercompressionScheme));
+        return false;
+    }
+
     //
     // KTX can hold layered compressions (i.e., on top of the potential GPU-
     // compatible compression like ASTC, the whole data can be furthermore
@@ -297,22 +303,21 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
     // reading lossy-compressed KTX2 files and saving them as KTX2 files again.
     //
     // KtxTexture fields may change after some libktx calls that take
-    // KtxTexture* argument because they may potentially modify the texture
+    // KtxTexture2* argument because they may potentially modify the texture
     // (e.g., in ktxTexture2_DecodeAstc supercompressionScheme is overwritten to
     // none, ktxTexture2_TranscodeBasis overwrites texture format, etc.). So,
     // store these now and NOT after libktx calls (e.g.,
     // ktxTexture2_TranscodeBasis).
     //
+    // For BasisLZ, since it is always required when using ETC1S Basis Universal
+    // codec, there is no reason to save it (not needed for roundtrip).
+    //
     switch (m_tex->supercompressionScheme) {
     case KTX_SS_ZSTD: m_spec.attribute("compression", "zstd"); break;
     case KTX_SS_ZLIB: m_spec.attribute("compression", "zip" /* zlib */); break;
-    case KTX_SS_BASIS_LZ:
-        // This scheme is applied automatically through libktx'
-        // `ktxTexture2_CompressBasisEx` function.
-        m_spec.attribute("compression", "basis_lz");
-        break;
     default: break;
     }
+
     // is this a 1D texture? If so, save that it is because we can't figure it
     // just based on dimensions (a texture with height 1 can be either a 1D or
     // 2D texture).
@@ -473,13 +478,6 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
             }
 
         } while ((kventry = ktxHashList_Next(kventry)));
-
-    // We don't support vendor-specific supercompression schemes
-    if (m_tex->supercompressionScheme > KTX_SS_END_RANGE) {
-        errorfmt("Unsuppoted supercompression scheme: {}",
-                 ktxSupercompressionSchemeString(m_tex->supercompressionScheme));
-        return false;
-    }
 
     //
     // BEFORE actually loading/uncompressing the data, impose some reasonable
@@ -1386,7 +1384,7 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
             // Least significant 4 bits are for the level (e.g., fastest, slowest, etc.)
             // These are the most important bits. The ramaining bits are for advanced codec quality options and cannot
             // be set by KTX Tools' `--uastc-quality` option. This is why we set the remaining bits to 0 (default).
-            const uint32_t uastc_quality_level = std::min<uint32_t>(Strutil::stoui(m[1].str()), KTX_PACK_UASTC_MAX_LEVEL);
+            const auto uastc_quality_level = std::clamp<uint32_t>(Strutil::stoui(m[1].str()), 0, KTX_PACK_UASTC_MAX_LEVEL);
             m_spec.extra_attribs.attribute("ktx:uastc_flags", uastc_quality_level);
             m_spec.extra_attribs.attribute("ktx:uastc_hdr_quality", uastc_quality_level);
         }
@@ -1419,6 +1417,19 @@ KtxInput::parse_ktx_sc_params_metadata(const std::string& ktx_sc_params)
     }
 
     {  // Common params (see KTX-Software/tools/ktx/encode_utils_common.h)
+        std::regex zlib_level_re("--zlib\\s+(\\d+)", f);
+        std::regex zstd_level_re("--zstd\\s+(\\d+)", f);
+
+        // If the input texture's super-compression scheme and this metadata disagree then just ignore this metadata.
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, zlib_level_re) && m.size() == 2
+            && Strutil::iequals(m_spec.get_string_attribute("compression"), "zip"))
+            m_spec.attribute("compression", fmt::format("zip:{}", Strutil::stoui(m[1].str())));
+
+        // If the input texture's super-compression scheme and this metadata disagree then just ignore this metadata.
+        if (std::smatch m; std::regex_search(ktx_sc_params, m, zstd_level_re) && m.size() == 2
+            && Strutil::iequals(m_spec.get_string_attribute("compression"), "zstd"))
+            m_spec.attribute("compression", fmt::format("zstd:{}", Strutil::stoui(m[1].str())));
+
         if (Strutil::icontains(ktx_sc_params, "--normal-mode")) m_spec.extra_attribs.attribute("ktx:normalmap", true);
         if (Strutil::icontains(ktx_sc_params, "--no-sse")) m_spec.extra_attribs.attribute("ktx:no_sse", true);
     }

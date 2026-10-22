@@ -143,23 +143,23 @@ static inline std::string
 block_compression_name(BlockCompression cmp)
 {
     switch (cmp) {
-    case BlockCompression::NONE: return "NONE";
-    case BlockCompression::BC1: return "BC1";
-    case BlockCompression::BC1A: return "BC1A";
-    case BlockCompression::BC2: return "BC2";
-    case BlockCompression::BC3: return "BC3";
-    case BlockCompression::BC4: return "BC4";
-    case BlockCompression::BC5: return "BC5";
-    case BlockCompression::BC6HU: return "BC6HU";
-    case BlockCompression::BC6HS: return "BC6HS";
-    case BlockCompression::BC7: return "BC7";
-    case BlockCompression::ETC1: return "ETC1";
-    case BlockCompression::ETC2_RGB: return "ETC2_RGB";
-    case BlockCompression::ETC2_RGB_A1: return "ETC2_RGB_A1";
-    case BlockCompression::ETC2_RGBA: return "ETC2_RGBA";
-    case BlockCompression::EAC_R11: return "EAC_R11";
-    case BlockCompression::EAC_RG11: return "EAC_RG11";
-    case BlockCompression::ASTC: return "ASTC";
+    case BlockCompression::NONE: return "none";
+    case BlockCompression::BC1: return "bc1";
+    case BlockCompression::BC1A: return "bc1a";
+    case BlockCompression::BC2: return "bc2";
+    case BlockCompression::BC3: return "bc3";
+    case BlockCompression::BC4: return "bc4";
+    case BlockCompression::BC5: return "bc5";
+    case BlockCompression::BC6HU: return "bc6hu";
+    case BlockCompression::BC6HS: return "bc6hs";
+    case BlockCompression::BC7: return "bc7";
+    case BlockCompression::ETC1: return "etc1";
+    case BlockCompression::ETC2_RGB: return "etc2_rgb";
+    case BlockCompression::ETC2_RGB_A1: return "etc2_rgb_a1";
+    case BlockCompression::ETC2_RGBA: return "etc2_rgba";
+    case BlockCompression::EAC_R11: return "eac_r11";
+    case BlockCompression::EAC_RG11: return "eac_rg11";
+    case BlockCompression::ASTC: return "astc";
     default: break;
     }
     return std::to_string(static_cast<uint8_t>(cmp));
@@ -172,11 +172,11 @@ basis_universal_codec_name(khr_df_model_e color_model)
 {
     switch (color_model) {
     // UASTC codecs
-    case khr_df_model_e::KHR_DF_MODEL_UASTC_LDR_4x4: return "UASTC-LDR-4x4";
-    case khr_df_model_e::KHR_DF_MODEL_UASTC_HDR_4x4: return "UASTC-HDR-4x4";
-    case khr_df_model_e::KHR_DF_MODEL_UASTC_HDR_6x6: return "UASTC-HDR-6x6";
+    case khr_df_model_e::KHR_DF_MODEL_UASTC_LDR_4x4: return "uastc-ldr-4x4";
+    case khr_df_model_e::KHR_DF_MODEL_UASTC_HDR_4x4: return "uastc-hdr-4x4";
+    case khr_df_model_e::KHR_DF_MODEL_UASTC_HDR_6x6: return "uastc-hdr-6x6";
     // ETC1S codecs
-    case khr_df_model_e::KHR_DF_MODEL_ETC1S: return "ETC1S";
+    case khr_df_model_e::KHR_DF_MODEL_ETC1S: return "etc1s";
     default: break;
     }
     return std::to_string(static_cast<uint32_t>(color_model));

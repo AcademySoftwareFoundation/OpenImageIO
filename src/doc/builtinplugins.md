@@ -1528,8 +1528,6 @@ intended use-case of this plugin within OpenImageIO.
 
 **Attributes**
 
-After having opened a KTX2 file, the following attributes may be set:
-
 ```{eval-rst}
 .. list-table::
    :widths: 30 10 65
@@ -1554,31 +1552,56 @@ After having opened a KTX2 file, the following attributes may be set:
      - string
      - Texture format/kind. Can be one of the following values:
        ``"Plain Texture"``, ``"Volume Texture"``, or ``"CubeFace Environment"``.
-       This attribute by itself does not convey whether the read texture is an
-       array texture or whether it is 1D (1D, 2D and 2D array textures are all
-       ``"Plain Texture"``'s).
-   * - ``ktx:codec``
-     - string
-     - Basis Universal codec or GPU-block compression type of the input KTX2
-       texture, if any. Can be one of the following values:
-            ``"ASTC"`` ``"UASTC"`` ``"UASTC-LDR"`` ``"UASTC-LDR-4x4"``
-            ``"ETC1S"`` ``"UASTC-HDR"`` ``"UASTC-HDR-4x4"`` ``"UASTC-HDR-6x6"``
-       Both ``"UASTC"`` and ``"UASTC-LDR"`` are aliases for ``"UASTC-LDR-4x4"``.
-       Similarly, ``"UASTC-HDR"`` is an alias for ``"UASTC-HDR-4x4"``.
+       This attribute by itself does not convey whether the texture is an array
+       texture and/or whether it is 1D (1D, 2D and 2D array textures are all
+       ``"Plain Texture"``'s). For the writer, this has to be set for cubemaps
+       or volumes with a single slice.
    * - ``compression``
      - string
-     - Only set if the input KTX2 texture was further compressed using a
-       super-compression scheme. Can be one of the following values:
-            ``"ZSTD"`` ``"ZIP"`` ``"BASIS_LZ"``
-       ``"BASIS_LZ"`` is automatically applied when ETC1S Basis Universal codec
-       is used.
+     - Super-compression scheme (i.e., additional layer of lossless compression
+       on top of either uncompressed, GPU-block-compressed, or
+       Basis-Universal-encoded texture). This is not to be confused with
+       ``ktx:codec`` which describes the Basis Universal codec or GPU
+       block-compression scheme. For the writer, it is highly recommended to set
+       this if RDO is applied. Can be one of the following values:
+            ``"zstd"`` ``"zip"``
+       BasisLZ is ignored because it is set by default when ETC1S codec is used.
+       ``"zip"`` refers to KTX's ``zlib`` super-compression scheme.
+       For ``"zstd"`` and ``"zip"`` the compression level
+       may be optionally appended to the compression name after a colon, like
+       this: ``"zstd:10"`` or ``"zip:1"``. The compression level range for
+       ``"zstd"`` is [1,22] (``1`` being potentially the fastest but the lowest
+       compression). Defaults to ``22``. The compression level range for
+       ``"zip"`` (i.e., ``ZLIB``) is [1,9] (likewise, ``1`` being potentially
+       the fastest but the lowest compression). Defaults to ``9``. If the writer
+       receives a request for a compression type it does not recognize or is not
+       supported, it will use ``"zstd"`` by default (i.e., ``"zstd"`` with
+       highest compression level).
+   * - ``ktx:codec``
+     - string
+     - Basis Universal codec or GPU-block compression scheme. Can be one of the
+       following values:
+            ``"astc"`` ``"uastc"`` ``"uastc-ldr"`` ``"uastc-ldr-4x4"``
+            ``"etc1s"`` ``"uastc-hdr"`` ``"uastc-hdr-4x4"`` ``"uastc-hdr-6x6"``
+       Both ``"uastc"`` and ``"uastc-ldr"`` are aliases for ``"uastc-ldr-4x4"``.
+       Similarly, ``"uastc-hdr"`` is an alias for ``"uastc-hdr-4x4"``.
    * - ``ktx:1d``
      - int (bool)
      - Only set to ``true`` if the input KTX2 texture is 1D.
    * - ``ktx:generate_mipmaps``
      - int (bool)
-     - Only set if the input KTX2 texture has 3D-graphics-API-upload-time mipmap
-       generation enabled.
+     - Whether to generate mipmaps when texture is uploaded to 3D graphics GPU
+       API. This is not to be confused with runtime mipmap generation which is
+       expected to be done by the user via OpenImageIO API. For the writer, if
+       this is set to ``true`` then the ktxoutput instance cannot be opened with
+       ``AppendMIPLevel`` mode. If not set, defaults to ``false``.
+   * - ``ktx:normalized``
+     - int (bool)
+     - Whether the Vulkan Format is/should be normalized if possible (UNORM or
+       SNORM based on the ImageSpec type). For the writer, this attribute is
+       ignored if the colorspace is SRGB or the ImageSpec type does not have a
+       corresponding UNORM/SNORM VkFormat output (e.g., UINT64). Defaults to
+       ``true`` if not set.
    * - *other*
      -
      - All other arbitrary metadata read from the input KTX2 file are stored.
@@ -1653,45 +1676,6 @@ KTX2 ImageOutput, the following special configuration attributes are exposed:
        This attribute replicates the functionality of KTX Tools'
        "--assign-primaries" CLI option (i.e., this is just an assignment and
        does not perform any conversions).
-   * - ``textureformat``
-     - string
-     - Texture format/kind. Has to be set for cubemaps or volumes with a single
-       slice. Can be one of the following values:
-       ``"Plain Texture"``, ``"Volume Texture"``, or ``"CubeFace Environment"``.
-       This attribute by itself does not convey whether the read texture is an
-       array texture or whether it is 1D (1D, 2D and 2D array textures are all
-       ``"Plain Texture"``'s).
-   * - ``ktx:codec``
-     - string
-     - Optional Basis Universal codec or GPU-block compression type to apply.
-       Can be one of the following values:
-            ``"NONE"`` ``"ASTC"`` ``"UASTC"`` ``"UASTC-LDR"``
-            ``"UASTC-LDR-4x4"`` ``"ETC1S"`` ``"UASTC-HDR"`` ``"UASTC-HDR-4x4"``
-            ``"UASTC-HDR-6x6"``
-       Defaults to ``"NONE"``. Both ``"UASTC"`` and ``"UASTC-LDR"`` are aliases
-       for ``"UASTC-LDR-4x4"``. Similarly, ``"UASTC-HDR"`` is an alias for
-       ``"UASTC-HDR-4x4"``.
-   * - ``ktx:normalized``
-     - int (bool)
-     - Should the target VkFormat be normalized if possible (UNORM or SNORM
-       based on the ImageSpec type). This attribute is ignored if the colorspace
-       is SRGB or the ImageSpec type does not have a corresponding UNORM/SNORM
-       VkFormat output (e.g., UINT64). Defaults to true.
-   * - ``compression``
-     - string
-     - Super-compression scheme to apply (i.e., additional layer of lossless
-       compression). It is recommended to set this if RDO is applied. Can be one
-       of the following values:
-            ``"NONE"`` ``"ZSTD"`` ``"ZIP"``
-       Defaults to ``"NONE"``. BasisLZ does not have to be explicitly set
-       because it is set by default when ETC1S codec is used. Using ``"ZIP"``
-       sets the KTX super-compression scheme to ZLIB.
-   * - ``ktx:generate_mipmaps``
-     - int (bool)
-     - Whether to generate mipmaps when texture is uploaded to 3D graphics GPU
-       API. This is not to be confused with runtime mipmap generation which is
-       expected to be done by the user via OpenImageIO API.
-       Defaults to false.
    * - ``ktx:normalmap``
      - int (bool)
      - Only valid for linear textures with two or more components. If the input

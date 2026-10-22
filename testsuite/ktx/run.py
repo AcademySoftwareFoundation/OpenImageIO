@@ -107,13 +107,16 @@ command += oiiotool ("checker_original.png --attrib ktx:codec uastc " +
 command += diff_command ("checker_original.png", "checker_uastc.ktx2")
 command += info_command ("checker_uastc.ktx2")
 
-# ETC1S write test: check generation of an ETC1S-based KTX2 file
-command += oiiotool ("checker_original.png --attrib ktx:codec etc1s --compression zstd -o checker_etc1s.ktx2")
+# ETC1S write test: ETC1S-based + ZSTD lvl 20 KTX2 file
+command += oiiotool ("checker_original.png --attrib ktx:codec etc1s " +
+                     "--compression zstd:20 -o checker_etc1s.ktx2")
 command += diff_command ("checker_original.png", "checker_etc1s.ktx2")
 command += info_command ("checker_etc1s.ktx2")
 
-# ASTC 6x6 block write test: check generation of an ASTC-block-compressed KTX2 file
-command += oiiotool ("checker_original.png --attrib ktx:codec astc --attrib ktx:astc_block_dimensions 6x6 --compression zstd -o checker_astc_6x6.ktx2")
+# ASTC 6x6 block write test:ASTC-block-compressed + ZLIB lvl 5 KTX2 file
+command += oiiotool ("checker_original.png --attrib ktx:codec astc " +
+                     "--attrib ktx:astc_block_dimensions 6x6 " +
+                     "--compression zip:5 -o checker_astc_6x6.ktx2")
 command += diff_command ("checker_original.png", "checker_astc_6x6.ktx2")
 command += info_command ("checker_astc_6x6.ktx2")
 
@@ -124,12 +127,8 @@ command += (oiio_app("oiiotool") + (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_up_m
             + " --reorient -o orient_up_metadata.png >> out.txt ;\n")
 command += diff_command (OIIO_TESTSUITE_IMAGEDIR + "/" + "orient_down_metadata.ktx2", "orient_up_metadata.png")
 
-# Roundtrip tests for small uncompressed files (8x8) of supported formats.
-#
-# We do not test read-then-write of compressed-ktx2 files because any read-write
-# cycle worsens quality and is absolutely not the intended purpose of ktx usage
-# within OIIO (or in general).
-uncompressed_files = [
+# Roundtrip tests for small compressed/uncompressed files (8x8) of supported Vulkan formats.
+vkformat_files = [
     # 8-bit formats
     "valid_R8_SRGB_2D.ktx2",
     "valid_R8_UINT_2D.ktx2",
@@ -192,9 +191,18 @@ uncompressed_files = [
 
     # 1D textures (these are rarely used)
     "valid_R8G8B8A8_SRGB_1D.ktx2",
+
+    # UASTC + ZSTD/ZLIB levels (test super-compression level roundtrip)
+    "valid_R8G8B8_UNORM_2D_UASTC_ZLIB_1.ktx2",
+    "valid_R8G8B8_UNORM_2D_UASTC_ZLIB_9.ktx2",
+    "valid_R8G8B8_UNORM_2D_UASTC_ZSTD_1.ktx2",
+    "valid_R8G8B8_UNORM_2D_UASTC_ZSTD_9.ktx2",
+
+    # ETC1S/BasisLZ roundtrip
+    "valid_R8G8B8_UNORM_2D_BLZE.ktx2",
 ]
 
-for filename in uncompressed_files:
+for filename in vkformat_files:
     fp = OIIO_TESTSUITE_IMAGEDIR + "/" + filename
     regenerated_filename = f"generated_{filename}";
     command += info_command (fp)
@@ -210,4 +218,4 @@ for filename in uncompressed_files:
     # texture data) to verify that the VK_FORMAT is the same, primaries and tf
     # are the same, etc. If you see any diff in out.txt then something failed.
     # ktxdiff_path = "<path-to-ktxdiff>"
-    # command += f"{ktxdiff_path} {fp} {regenerated_filename} --tolerance 0 --skip-kvd >> out.txt;\n"
+    # command += f"{ktxdiff_path} {fp} {regenerated_filename} --tolerance 0 --skip-kvd >> out.txt 2>&1;\n"

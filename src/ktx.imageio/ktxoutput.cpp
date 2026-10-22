@@ -16,7 +16,7 @@ public:
     {
 #if defined(KHRONOS_STATIC)
         // This has to be set if libktx is statically built
-        DBG std::cout << "KHRONOS_STATIC set to 1" << '\n';
+        DBG std::cout << "KHRONOS_STATIC set to 1" << std::endl;
 #endif
     }
 
@@ -215,8 +215,14 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                 OpenMode mode)
 {
     if (mode == Create) {
+        if (userspec.x != 0 || userspec.y != 0 || userspec.z != 0) {
+            close();
+            errorfmt("Non-zero origins are not supported by KTX2 OIIO plugin");
+            return false;
+        }
+
         //
-        // "textureformat" attribute is used to determine unambiguously the kind
+        // "textureformat" attribute is used to unambiguously determine the kind
         // of texture to write. For cubemaps, user MUST set this to
         // "CubeFace Environment" for the output to be a cubmap texture (this is
         // done instead of just checking tile_width to avoid ambiguity).
@@ -224,8 +230,6 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // "Volume Texture"
         //
         const auto texformat = userspec.get_string_attribute("textureformat");
-        DBG std::cout << "[ktxoutput] textureformat: " << texformat
-                      << std::endl;
 
         //
         // Before anything, do some basic checks on the given dimensions
@@ -317,17 +321,9 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             }
         }
 
-        // TODO: this causes sourceprovenance.nanobind and other tests to fail.
-        //       Just keep colorspace as "unknown"?
-        // if (m_tf == KHR_DF_TRANSFER_UNSPECIFIED) {
-        //     close();
-        //     errorfmt(
-        //         "Failed to determine transfer function from set colorspace "
-        //         "(via \"oiio:ColorSpace\" attribute) and \"ktx:tf\" is not set "
-        //         "to valid KTX transfer function. Consider explicitly setting "
-        //         "\"ktx:tf\" alongside \"ktx:primaries\" attributes");
-        //     return false;
-        // }
+        // TODO: erroring on (m_tf == KHR_DF_TRANSFER_UNSPECIFIED) causes
+        //       sourceprovenance.nanobind and other tests to fail. Just keep
+        //       colorspace as "unknown"?
 
         bool is_srgb = m_tf == KHR_DF_TRANSFER_SRGB;
 
@@ -348,10 +344,10 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
 
         m_use_basis_universal = false;
         if (auto Q = m_spec.find_attribute("ktx:codec", TypeDesc::STRING)) {
-            const auto& compression = Q->get_string();
+            const auto& codec = Q->get_string();
             // Check if this is a GPU block-compressed format (e.g., ASTC, BCn)
             // otherwise check if it is a Basis Universal codec.
-            if (Strutil::iequals(compression, "astc")) {
+            if (Strutil::iequals(codec, "astc")) {
                 m_cmp = BlockCompression::ASTC;
 #if 0 /* for when BCn gets added */
             } else if (Strutil::iequals(compression, "bc1")) {
@@ -373,7 +369,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
             } else if (Strutil::iequals(compression, "bc7")) {
                 m_cmp = BlockCompression::BC7;
 #endif
-            } else if (!construct_basis_params(m_basis_params, compression)) {
+            } else if (!codec.empty()
+                       && !construct_basis_params(m_basis_params, codec)) {
                 close();
                 // construct_basis_params calls errorfmt
                 return false;
@@ -383,8 +380,8 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
                                     != KTX_BASIS_CODEC_NONE;
             DBG std::cout
                 << "[ktxoutput] GPU block compression or basis universal codec"
-                   " (from \"compression\"): "
-                << compression << std::endl;
+                   " (from \"ktx:codec\"): "
+                << codec << std::endl;
         }
 
         //
@@ -394,19 +391,24 @@ KtxOutput::open(const std::string& name, const ImageSpec& userspec,
         // both: smaller disk filesizes and on-the-fly transcoding to a
         // supported native GPU format.
         //
-        const auto& supercompression_str
-            = m_spec.get_string_attribute("compression", "none");
+        const auto cmp_lvl = m_spec.decode_compression_metadata();
         // BasisLZ is automatically applied when input is ETC1S. It makes no
         // sense to apply it manually.
-        if (Strutil::iequals(supercompression_str, "none")) {
-            m_superCmp = ktxSupercmpScheme::KTX_SS_NONE;
-        } else if (Strutil::iequals(supercompression_str, "zstd")) {
+        if (Strutil::iequals(cmp_lvl.first, "zstd")) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
-        } else if (Strutil::iequals(supercompression_str, "zip" /* zlib */)) {
+            if (cmp_lvl.second != -1)
+                m_zstd_level = std::clamp<uint32_t>(cmp_lvl.second, 1u, 22u);
+        } else if (Strutil::iequals(cmp_lvl.first, "zip")
+                   || Strutil::iequals(cmp_lvl.first, "deflate")
+                   || Strutil::iequals(cmp_lvl.first, "zlib")) {
             m_superCmp = ktxSupercmpScheme::KTX_SS_ZLIB;
+            if (cmp_lvl.second != -1)
+                m_zlib_level = std::clamp<uint32_t>(cmp_lvl.second, 1u, 9u);
+        } else if (cmp_lvl.first.empty()) {
+            m_superCmp = ktxSupercmpScheme::KTX_SS_NONE;
         } else {
-            // If anything else is specified (even BasisLZ) just default to ZSTD
-            // because it is lossless and produces the highest compression.
+            // If anything else is specified just default to ZSTD because it is
+            // lossless and usually produces the highest compression.
             m_superCmp = ktxSupercmpScheme::KTX_SS_ZSTD;
         }
 
@@ -870,12 +872,6 @@ KtxOutput::construct_basis_params(ktxBasisParams& params,
     params.etc1sCompressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
 
     params.uastcFlags = KTX_PACK_UASTC_LEVEL_DEFAULT;
-
-    if (Strutil::iequals(codec, "none")) {
-        // no need to fill remaining struct members
-        params.codec = KTX_BASIS_CODEC_NONE;
-        return true;
-    }
 
     if (Strutil::iequals(codec, "uastc") || Strutil::iequals(codec, "uastc-ldr")
         || Strutil::iequals(codec, "uastc-ldr-4x4")) {
