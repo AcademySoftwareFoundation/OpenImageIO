@@ -1102,6 +1102,12 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
                  m_spec.nchannels);
         return false;
     }
+    // Writers may use these as pixel indices, so ignore any that don't
+    // refer to an actual channel.
+    if (m_spec.alpha_channel < 0 || m_spec.alpha_channel >= m_spec.nchannels)
+        m_spec.alpha_channel = -1;
+    if (m_spec.z_channel < 0 || m_spec.z_channel >= m_spec.nchannels)
+        m_spec.z_channel = -1;
     // Nix unsupported per-channel formats
     if (m_spec.channelformats.size()) {
         if (std::all_of(m_spec.channelformats.begin(),
