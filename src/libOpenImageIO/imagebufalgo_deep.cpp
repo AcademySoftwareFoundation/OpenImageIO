@@ -157,9 +157,9 @@ ImageBufAlgo::deepen(ImageBuf& dst, const ImageBuf& src, float zvalue, ROI roi,
     force_spec.set_format(TypeDesc::FLOAT);
     force_spec.channelformats.clear();
     for (int c = 0; c < nc; ++c) {
-        if (force_spec.channelnames[c] == "Z")
+        if (force_spec.channel_name(c) == "Z")
             force_spec.z_channel = c;
-        else if (force_spec.channelnames[c] == "Zback")
+        else if (force_spec.channel_name(c) == "Zback")
             zback_channel = c;
     }
     bool add_z_channel = (force_spec.z_channel < 0);
