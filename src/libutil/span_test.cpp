@@ -407,6 +407,20 @@ test_spancpy()
         OIIO_CHECK_EQUAL(dst[4], 0);
         OIIO_CHECK_EQUAL(r, 2);
     }
+#ifdef NDEBUG
+    // Offset past the end must copy nothing, not wrap size()-offset. Only
+    // exercised when asserts are compiled out; otherwise OIIO_DASSERT
+    // (intentionally) aborts on this caller error.
+    {
+        float dst[5] = { 0, 0, 0, 0, 0 };
+        auto r       = spancpy(make_span(dst), 99, make_cspan(c_arr), 0, 2);
+        OIIO_CHECK_EQUAL(r, 0);
+        OIIO_CHECK_EQUAL(dst[0], 0);
+        r = spancpy(make_span(dst), 0, make_cspan(c_arr), 99, 2);
+        OIIO_CHECK_EQUAL(r, 0);
+        OIIO_CHECK_EQUAL(dst[0], 0);
+    }
+#endif
 }
 
 
@@ -445,6 +459,14 @@ test_spanset()
         OIIO_CHECK_EQUAL(vec[4], 42);
         OIIO_CHECK_EQUAL(r, 3);
     }
+#ifdef NDEBUG
+    {  // offset past the end must write nothing, not wrap size()-offset
+        std::vector<float> vec { 1, 2, 3, 4, 5 };
+        auto r = spanset(make_span(vec), 99, 42.0f, 2);
+        OIIO_CHECK_EQUAL(r, 0);
+        OIIO_CHECK_EQUAL(vec[0], 1);
+    }
+#endif
 }
 
 
@@ -483,6 +505,14 @@ test_spanzero()
         OIIO_CHECK_EQUAL(vec[4], 0);
         OIIO_CHECK_EQUAL(r, 3);
     }
+#ifdef NDEBUG
+    {  // offset past the end must write nothing, not wrap size()-offset
+        std::vector<float> vec { 1, 2, 3, 4, 5 };
+        auto r = spanzero(make_span(vec), 99, 2);
+        OIIO_CHECK_EQUAL(r, 0);
+        OIIO_CHECK_EQUAL(vec[0], 1);
+    }
+#endif
 }
 
 
