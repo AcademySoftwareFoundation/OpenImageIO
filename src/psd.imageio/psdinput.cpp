@@ -803,7 +803,7 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     // here safely.
     const ImageSpec& spec = m_specs[subimage];
     y -= spec.y;
-    if (y < 0 || y > spec.height) {
+    if (y < 0 || y >= spec.height) {
         errorfmt("Requested scanline {} out of range [0-{}]", y,
                  spec.height - 1);
         return false;
@@ -2209,8 +2209,14 @@ PSDInput::setup()
         std::vector<ChannelInfo*>& channels = m_channels.back();
         channels.reserve(raw_channel_count);
         for (unsigned int i = 0; i < mode_channel_count[m_header.color_mode];
-             ++i)
-            channels.push_back(layer.channel_id_map[i]);
+             ++i) {
+            auto found = layer.channel_id_map.find(int16_t(i));
+            if (found == layer.channel_id_map.end()) {
+                errorfmt("[Layer Record] Layer is missing channel id {}", i);
+                return false;
+            }
+            channels.push_back(found->second);
+        }
 
         if (transparency)
             channels.push_back(layer.channel_id_map[ChannelID_Transparency]);

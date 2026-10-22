@@ -209,6 +209,14 @@ lazy ImageCache tiles after a failed pixel read and could report a false PASS.
 Check callers that go through ImageCache (lazy reads: header opens, pixels
 fail later) and procedural readers that claim `supports("procedural")`.
 
+### D5. Lookup that inserts a default
+`std::map::operator[]` on a file-derived key silently inserts a null pointer
+(or zero) for an id the file never declared, which is later dereferenced.
+- Find: `grep -nE "std::(unordered_)?map<.*\*>"` in readers, then each
+  non-const `[...]` read on it.
+- Fix: `find()`; a missing required id is a hard error.
+- Seen: psd layer channel ids (#5594).
+
 
 ## E. Alignment and pointer formation
 
