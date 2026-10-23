@@ -178,53 +178,39 @@ RLAOutput::open(const std::string& name, const ImageSpec& userspec,
     // figure out what's going on with the channels
     int remaining = m_spec.nchannels;
     if (m_spec.channelformats.size()) {
-        int streak;
+        const auto& cf = m_spec.channelformats;
+        const int nc   = m_spec.nchannels;
         // accommodate first 3 channels of the same type as colour ones
-        for (streak = 1; streak <= 3 && remaining > 0; ++streak, --remaining)
-            if (m_spec.channelformats[streak] != m_spec.channelformats[0]
-                || m_spec.alpha_channel == streak || m_spec.z_channel == streak)
-                break;
-        m_rla.ColorChannelType = rla_type(m_spec.channelformats[0]);
+        int ncolor = 1;
+        while (ncolor < 3 && ncolor < nc && cf[ncolor] == cf[0]
+               && m_spec.alpha_channel != ncolor && m_spec.z_channel != ncolor)
+            ++ncolor;
+        m_rla.ColorChannelType = rla_type(cf[0]);
         int bits = m_spec.get_int_attribute("oiio:BitsPerSample", 0);
-        m_rla.NumOfChannelBits = bits ? bits
-                                      : m_spec.channelformats[0].size() * 8;
-        // limit to 3 in case the loop went further
-        m_rla.NumOfColorChannels = std::min(streak, 3);
-        // if we have anything left and it looks like alpha, treat it as alpha
-        if (remaining && m_spec.z_channel != m_rla.NumOfColorChannels) {
-            for (streak = 1; remaining > 0; ++streak, --remaining)
-                if (m_spec.channelformats[m_rla.NumOfColorChannels + streak]
-                    != m_spec.channelformats[m_rla.NumOfColorChannels])
-                    break;
-            m_rla.MatteChannelType = rla_type(
-                m_spec.channelformats[m_rla.NumOfColorChannels]);
-            m_rla.NumOfMatteBits
-                = bits ? bits
-                       : m_spec.channelformats[m_rla.NumOfColorChannels].size()
-                             * 8;
-            m_rla.NumOfMatteChannels = streak;
+        m_rla.NumOfChannelBits   = bits ? bits : cf[0].size() * 8;
+        m_rla.NumOfColorChannels = ncolor;
+        // if we have anything left and it looks like alpha, treat it as
+        // alpha (a streak of up to 3 channels of the same type)
+        int next = ncolor;
+        if (next < nc && m_spec.z_channel != next) {
+            int nmatte = 1;
+            while (nmatte < 3 && next + nmatte < nc
+                   && cf[next + nmatte] == cf[next])
+                ++nmatte;
+            m_rla.MatteChannelType   = rla_type(cf[next]);
+            m_rla.NumOfMatteBits     = bits ? bits : cf[next].size() * 8;
+            m_rla.NumOfMatteChannels = nmatte;
+            next += nmatte;
         } else {
             m_rla.MatteChannelType   = CT_BYTE;
             m_rla.NumOfMatteBits     = 8;
             m_rla.NumOfMatteChannels = 0;
         }
-        // and if there's something more left, put it in auxiliary
-        if (remaining) {
-            for (streak = 1; remaining > 0; ++streak, --remaining)
-                if (m_spec.channelformats[m_rla.NumOfColorChannels
-                                          + m_rla.NumOfMatteChannels + streak]
-                    != m_spec.channelformats[m_rla.NumOfColorChannels
-                                             + m_rla.NumOfMatteChannels])
-                    break;
-            m_rla.AuxChannelType = rla_type(
-                m_spec.channelformats[m_rla.NumOfColorChannels
-                                      + m_rla.NumOfMatteChannels]);
-            m_rla.NumOfAuxBits = m_spec
-                                     .channelformats[m_rla.NumOfColorChannels
-                                                     + m_rla.NumOfMatteChannels]
-                                     .size()
-                                 * 8;
-            m_rla.NumOfAuxChannels = streak;
+        // and if there's something more left, put it all in auxiliary
+        if (next < nc) {
+            m_rla.AuxChannelType   = rla_type(cf[next]);
+            m_rla.NumOfAuxBits     = cf[next].size() * 8;
+            m_rla.NumOfAuxChannels = nc - next;
         }
     } else {
         m_rla.ColorChannelType = m_rla.MatteChannelType = m_rla.AuxChannelType
@@ -392,9 +378,12 @@ RLAOutput::encode_channel(unsigned char* data, stride_t xstride,
 
     if (chantype == TypeDesc::UINT16 && bits != 16) {
         // Need to do bit scaling. Safe to overwrite data in place.
+        // Values may be unaligned with mixed per-channel formats.
         for (int x = 0; x < m_spec.width; ++x) {
-            unsigned short* s = (unsigned short*)(data + x * xstride);
-            *s                = bit_range_convert(*s, 16, bits);
+            uint16_t s;
+            memcpy(&s, data + x * xstride, sizeof(s));
+            s = bit_range_convert(s, 16, bits);
+            memcpy(data + x * xstride, &s, sizeof(s));
         }
     }
 
@@ -506,7 +495,7 @@ RLAOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
                                 ? m_spec.channelformats[c]
                                 : m_spec.format;
         int bits = (c < m_rla.NumOfColorChannels) ? m_rla.NumOfChannelBits
-                   : (c < (m_rla.NumOfColorChannels + m_rla.NumOfMatteBits))
+                   : (c < (m_rla.NumOfColorChannels + m_rla.NumOfMatteChannels))
                        ? m_rla.NumOfMatteBits
                        : m_rla.NumOfAuxBits;
         if (!encode_channel((unsigned char*)data + offset, pixelsize, chantype,

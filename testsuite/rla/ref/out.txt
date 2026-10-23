@@ -360,5 +360,7 @@ src/field-rendered.rla :    8 x    4, 1 channel, uint8 rla
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "lin_rec709_scene"
     rla:FieldRendered: 1
+mixed.rla            :    8 x    8, 5 channel, uint8/uint8/uint8/uint16/float rla
+    SHA-1: 8174389E48EA065D36EC86CA6C1A3E00868D290C
 Comparing "rlacrop.rla" and "ref/rlacrop.rla"
 PASS
