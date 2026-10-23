@@ -153,12 +153,17 @@ HeifOutput::open(const std::string& name, const ImageSpec& newspec,
 
         auto compqual  = m_spec.decode_compression_metadata("", 75);
         auto extension = Filesystem::extension(m_filename);
+        auto codec     = heif_compression_HEVC;
         if (compqual.first == "avif"
-            || (extension == ".avif" && compqual.first == "")) {
-            m_encoder = heif::Encoder(heif_compression_AV1);
-        } else {
-            m_encoder = heif::Encoder(heif_compression_HEVC);
+            || (extension == ".avif" && compqual.first == ""))
+            codec = heif_compression_AV1;
+        if (!heif_have_encoder_for_format(codec)) {
+            errorfmt("libheif does not have support for codec {}",
+                     codec == heif_compression_AV1 ? "AV1" : "HEVC");
+            m_ctx.reset();
+            return false;
         }
+        m_encoder = heif::Encoder(codec);
     } catch (const heif::Error& err) {
         std::string e = err.get_message();
         errorfmt("{}", e.empty() ? "unknown exception" : e.c_str());
