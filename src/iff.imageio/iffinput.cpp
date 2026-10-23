@@ -5,6 +5,7 @@
 
 #include <OpenImageIO/memory.h>
 
+#include <algorithm>
 #include <cmath>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
@@ -583,14 +584,14 @@ IffInput::read_native_tile(int subimage, int miplevel, int x, int y, int /*z*/,
              - y;
 
     // tile data
+    size_t pixel_bytes = m_header.pixel_bytes();
     span<uint8_t> dataspan(static_cast<uint8_t*>(data),
-                           m_header.tile_width * m_header.tile_height
-                               * m_header.pixel_bytes());
+                           size_t(m_header.tile_width) * m_header.tile_height
+                               * pixel_bytes);
     cspan<uint8_t> bufspan(m_buf);
     for (int oy = 0, iy = y; oy < th; ++oy, ++iy) {
-        spancpy(dataspan, (oy * m_header.tile_width) * m_header.pixel_bytes(),
-                bufspan, (iy * w + x) * m_header.pixel_bytes(),
-                tw * m_header.pixel_bytes());
+        spancpy(dataspan, size_t(oy) * m_header.tile_width * pixel_bytes,
+                bufspan, (size_t(iy) * w + x) * pixel_bytes, tw * pixel_bytes);
     }
     return true;
 }
@@ -655,8 +656,8 @@ IffInput::readimg()
             }
 
             // get tile width/height
-            uint32_t tw = xmax - xmin + 1;
-            uint32_t th = ymax - ymin + 1;
+            size_t tw = size_t(xmax - xmin) + 1;
+            size_t th = size_t(ymax - ymin) + 1;
 
             // get image size
             // skip coordinates, uint16_t (2) * 4 = 8
@@ -682,7 +683,7 @@ IffInput::readimg()
             // uncompressed the tile is written uncompressed
 
             // set tile size
-            uint32_t tile_size = tw * th * m_header.rgba_channels_bytes() + 8;
+            size_t tile_size = tw * th * m_header.rgba_channels_bytes() + 8;
 
             // test if compressed
             // we use the non aligned size
@@ -905,8 +906,8 @@ IffInput::readimg()
             }
 
             // get tile width/height
-            uint32_t tw = xmax - xmin + 1;
-            uint32_t th = ymax - ymin + 1;
+            size_t tw = size_t(xmax - xmin) + 1;
+            size_t th = size_t(ymax - ymin) + 1;
 
             // get image size
             // skip coordinates, uint16_t (2) * 4 = 8
@@ -932,7 +933,7 @@ IffInput::readimg()
             // uncompressed the tile is written uncompressed
 
             // set tile size
-            uint32_t tile_size = tw * th * m_header.zbuffer_bytes() + 8;
+            size_t tile_size = tw * th * m_header.zbuffer_bytes() + 8;
 
             // test if compressed
             // we use the non aligned size
@@ -1047,17 +1048,12 @@ IffInput::readimg()
     // flip buffer to make read_native_tile easier,
     // from tga.imageio:
 
-    int bytespp = m_header.pixel_bytes();
-
-    std::vector<unsigned char> flip(m_spec.width * bytespp);
-    unsigned char *src, *dst, *tmp = flip.data();
-    for (int y = 0; y < m_spec.height / 2; y++) {
-        src = &m_buf[(m_spec.height - y - 1) * m_spec.width * bytespp];
-        dst = &m_buf[y * m_spec.width * bytespp];
-
-        memcpy(tmp, src, m_spec.width * bytespp);
-        memcpy(src, dst, m_spec.width * bytespp);
-        memcpy(dst, tmp, m_spec.width * bytespp);
+    // Use size_t offsets: the image may exceed 2GB.
+    size_t scanline = m_header.scanline_bytes();
+    for (size_t y = 0, h = m_header.height; y < h / 2; y++) {
+        auto src = m_buf.begin() + y * scanline;
+        auto dst = m_buf.begin() + (h - y - 1) * scanline;
+        std::swap_ranges(src, src + scanline, dst);
     }
     return true;
 }
