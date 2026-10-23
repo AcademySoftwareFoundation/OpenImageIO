@@ -1329,7 +1329,7 @@ premult(int nchannels, int width, int height, int depth, int chbegin, int chend,
         TypeDesc datatype, void* data, stride_t xstride, stride_t ystride,
         stride_t zstride, int alpha_channel, int z_channel)
 {
-    if (alpha_channel < 0 || alpha_channel > nchannels)
+    if (alpha_channel < 0 || alpha_channel >= nchannels)
         return;  // nothing to do
     ImageSpec::auto_stride(xstride, ystride, zstride, datatype.size(),
                            nchannels, width, height);
