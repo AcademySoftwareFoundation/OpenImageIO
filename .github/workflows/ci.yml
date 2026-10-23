@@ -375,7 +375,7 @@ jobs:
                             PTEX_VERSION=v2.5.4
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-3
+                            FREETYPE_VERSION=VER-2-15-0
                             USE_OPENVDB=0
                             libuhdr_GIT_TAG=v2.0.2
                             libuhdr_GIT_COMMIT=e5f5a022fe96fc4dc2ee35c19f733a50df807abe
@@ -483,7 +483,7 @@ jobs:
                             PTEX_VERSION=v2.5.4
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-3
+                            FREETYPE_VERSION=VER-2-15-0
                             USE_OPENVDB=0
                             nanobind_GIT_TAG=v3.1.0
                             nanobind_GIT_COMMIT=68480a9e6883bb1bf65e1925423321e2a89d07f9
@@ -512,7 +512,7 @@ jobs:
                             PTEX_VERSION=v2.5.4
                             PUGIXML_VERSION=v1.16
                             WEBP_VERSION=v1.6.0
-                            FREETYPE_VERSION=VER-2-14-3
+                            FREETYPE_VERSION=VER-2-15-0
                             USE_OPENVDB=0
                             nanobind_GIT_TAG=v3.1.0
                             nanobind_GIT_COMMIT=68480a9e6883bb1bf65e1925423321e2a89d07f9
@@ -544,6 +544,7 @@ jobs:
             setenvs: export  CMAKE_VERSION=3.23.0
                              PTEX_VERSION=v2.3.2
                              WEBP_VERSION=v1.1.0
+                             FREETYPE_VERSION=VER-2-10-0
                              PUGIXML_VERSION=v1.11
                              PIP_SUFFIX=.9
                              PIP_INSTALLS=numpy
@@ -565,8 +566,8 @@ jobs:
             # Oldest clang and versions of the dependencies that we support.
             # Caveats: many optional deps (ffmpeg, TBB, OpenCV, giflib,
             # libheif, OpenJPEG, zlib, ...) are whatever Ubuntu 22.04 ships,
-            # not their minimums, libpng and libjpeg-turbo are not at their
-            # minimums.
+            # not their minimums, and libpng and libjpeg-turbo are not at
+            # their minimums.
             # Deliberately sets no `simd`, so that this job exercises the
             # default SIMD level for x86_64 (sse4.2). Please leave it unset.
             nametag: linux-oldest-clang-ubuntu
@@ -584,6 +585,7 @@ jobs:
             setenvs: export CMAKE_VERSION=3.23.0
                             PTEX_VERSION=v2.3.2
                             WEBP_VERSION=v1.1.0
+                            FREETYPE_VERSION=VER-2-10-0
                             PUGIXML_VERSION=v1.11
                             PIP_SUFFIX=.9
                             PIP_INSTALLS=numpy
