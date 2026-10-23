@@ -90,9 +90,8 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
     bool inorder = true;
     for (int c = 0; c < nchannels; ++c) {
         inorder &= (channelorder[c] == c);
-        if (std::ssize(newchannelnames) > c && newchannelnames[c].size()
-            && c < int(src.spec().channelnames.size()))
-            inorder &= (newchannelnames[c] == src.spec().channelnames[c]);
+        if (std::ssize(newchannelnames) > c && newchannelnames[c].size())
+            inorder &= (newchannelnames[c] == src.spec().channel_name(c));
     }
     if (nchannels == src.spec().nchannels && inorder) {
         return dst.copy(src);
@@ -105,33 +104,37 @@ ImageBufAlgo::channels(ImageBuf& dst, const ImageBuf& src, int nchannels,
     newspec.channelformats.clear();
     newspec.alpha_channel = -1;
     newspec.z_channel     = -1;
+    std::vector<std::string> names;
+    names.reserve(nchannels);
     for (int c = 0; c < nchannels; ++c) {
-        int csrc = channelorder[c];
+        int csrc         = channelorder[c];
+        string_view name = newspec.channel_name(c);
         // If the user gave an explicit name for this channel, use it...
         if (std::ssize(newchannelnames) > c && newchannelnames[c].size())
-            newspec.channelnames[c] = newchannelnames[c];
+            name = newchannelnames[c];
         // otherwise, if shuffle_channel_names, use the channel name of
         // the src channel we're using (otherwise stick to the default name)
         else if (shuffle_channel_names && csrc >= 0
                  && csrc < src.spec().nchannels)
-            newspec.channelnames[c] = src.spec().channelnames[csrc];
+            name = src.spec().channel_name(csrc);
         // otherwise, use the name of the source in that slot
         else if (csrc >= 0 && csrc < src.spec().nchannels) {
-            newspec.channelnames[c] = src.spec().channelnames[csrc];
+            name = src.spec().channel_name(csrc);
         }
+        names.emplace_back(name);
         TypeDesc type = src.spec().channelformat(csrc);
         newspec.channelformats.push_back(type);
         // Use the names (or designation of the src image, if
         // shuffle_channel_names is true) to deduce the alpha and z channels.
         if ((shuffle_channel_names && csrc == src.spec().alpha_channel)
-            || Strutil::iequals(newspec.channelnames[c], "A")
-            || Strutil::iequals(newspec.channelnames[c], "alpha"))
+            || Strutil::iequals(name, "A") || Strutil::iequals(name, "alpha"))
             newspec.alpha_channel = c;
         if ((shuffle_channel_names && csrc == src.spec().z_channel)
-            || Strutil::iequals(newspec.channelnames[c], "Z"))
+            || Strutil::iequals(name, "Z"))
             newspec.z_channel = c;
     }
-    newspec.format = TypeDesc::basetype_merge(newspec.channelformats);
+    newspec.channelnames = std::move(names);
+    newspec.format       = TypeDesc::basetype_merge(newspec.channelformats);
     // clear per-chan formats if they're all the same
     if (TypeDesc::all_types_equal(newspec.channelformats))
         newspec.channelformats.clear();
@@ -241,8 +244,9 @@ ImageBufAlgo::channel_append(ImageBuf& dst, const ImageBuf& A,
             TypeDesc::basetype_merge(A.spec().format, B.spec().format));
         // Append the channel descriptions
         dstspec.nchannels = A.spec().nchannels + B.spec().nchannels;
+        dstspec.channelnames.resize(A.spec().nchannels);
         for (int c = 0; c < B.spec().nchannels; ++c) {
-            std::string name = B.spec().channelnames[c];
+            std::string name(B.spec().channel_name(c));
             // It's a duplicate channel name. This will wreak havoc for
             // OpenEXR, so we need to choose a unique name.
             if (std::find(dstspec.channelnames.begin(),
