@@ -559,6 +559,23 @@ RLAInput::decode_rle_span(span<unsigned char> buf, int n, int stride,
 
 
 
+// With mixed per-channel formats, channels are packed at arbitrary byte
+// offsets, so multi-byte values in the pixel buffer may be unaligned. Apply
+// f to each of n consecutive T values starting at p, via memcpy.
+template<typename T, typename FUNC>
+static void
+modify_values(unsigned char* p, int n, FUNC f)
+{
+    for (int i = 0; i < n; ++i, p += sizeof(T)) {
+        T v;
+        memcpy(&v, p, sizeof(T));
+        v = T(f(v));
+        memcpy(p, &v, sizeof(T));
+    }
+}
+
+
+
 bool
 RLAInput::decode_channel_group(int first_channel, short num_channels,
                                short num_bits, int y)
@@ -614,8 +631,8 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
                 return false;
             }
             for (int x = 0; x < m_spec.width; ++x)
-                *((float*)&m_buf[offset + c * chsize + x * pixelsize])
-                    = ((float*)&encoded[0])[x];
+                memcpy(&m_buf[offset + c * chsize + x * pixelsize],
+                       &encoded[x * sizeof(float)], sizeof(float));
             continue;
         }
 
@@ -651,15 +668,19 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
                 swap_endian((uint16_t*)&m_buf[0], num_channels * m_spec.width);
             else
                 for (int x = 0; x < m_spec.width; ++x)
-                    swap_endian((uint16_t*)&m_buf[offset + x * pixelsize],
-                                num_channels);
+                    modify_values<uint16_t>(&m_buf[offset + x * pixelsize],
+                                            num_channels, [](uint16_t v) {
+                                                return byteswap(v);
+                                            });
         } else if (chsize == 4 && chantype != TypeDesc::FLOAT) {
             if (num_channels == m_spec.nchannels)
                 swap_endian((uint32_t*)&m_buf[0], num_channels * m_spec.width);
             else
                 for (int x = 0; x < m_spec.width; ++x)
-                    swap_endian((uint32_t*)&m_buf[offset + x * pixelsize],
-                                num_channels);
+                    modify_values<uint32_t>(&m_buf[offset + x * pixelsize],
+                                            num_channels, [](uint32_t v) {
+                                                return byteswap(v);
+                                            });
         }
     }
 
@@ -671,11 +692,11 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         // ok -- no rescaling needed
     } else if (num_bits == 10) {
         // fast, common case -- use templated hard-code
-        for (int x = 0; x < m_spec.width; ++x) {
-            uint16_t* b = (uint16_t*)(&m_buf[offset + x * pixelsize]);
-            for (int c = 0; c < num_channels; ++c)
-                b[c] = bit_range_convert<10, 16>(b[c]);
-        }
+        for (int x = 0; x < m_spec.width; ++x)
+            modify_values<uint16_t>(&m_buf[offset + x * pixelsize],
+                                    num_channels, [](uint16_t v) {
+                                        return bit_range_convert<10, 16>(v);
+                                    });
     } else if (num_bits < 8) {
         // rare case, use slow code to make this clause short and simple
         for (int x = 0; x < m_spec.width; ++x) {
@@ -685,18 +706,20 @@ RLAInput::decode_channel_group(int first_channel, short num_channels,
         }
     } else if (num_bits > 8 && num_bits < 16) {
         // rare case, use slow code to make this clause short and simple
-        for (int x = 0; x < m_spec.width; ++x) {
-            uint16_t* b = (uint16_t*)&m_buf[offset + x * pixelsize];
-            for (int c = 0; c < num_channels; ++c)
-                b[c] = bit_range_convert(b[c], num_bits, 16);
-        }
+        for (int x = 0; x < m_spec.width; ++x)
+            modify_values<uint16_t>(&m_buf[offset + x * pixelsize],
+                                    num_channels, [=](uint16_t v) {
+                                        return bit_range_convert(v, num_bits,
+                                                                 16);
+                                    });
     } else if (num_bits > 16 && num_bits < 32) {
         // rare case, use slow code to make this clause short and simple
-        for (int x = 0; x < m_spec.width; ++x) {
-            uint32_t* b = (uint32_t*)&m_buf[offset + x * pixelsize];
-            for (int c = 0; c < num_channels; ++c)
-                b[c] = bit_range_convert(b[c], num_bits, 32);
-        }
+        for (int x = 0; x < m_spec.width; ++x)
+            modify_values<uint32_t>(&m_buf[offset + x * pixelsize],
+                                    num_channels, [=](uint32_t v) {
+                                        return bit_range_convert(v, num_bits,
+                                                                 32);
+                                    });
     }
     return true;
 }
