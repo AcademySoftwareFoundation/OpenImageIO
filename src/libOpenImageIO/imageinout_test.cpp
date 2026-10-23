@@ -999,6 +999,65 @@ test_span_nonzero_origin()
 
 
 
+// Reads of a TIFF with unassociated alpha must premultiply each value
+// exactly once: for channel subsets that include alpha, and for tiled
+// images whose size is not a multiple of the tile size.
+static void
+test_tiff_unassoc_reads()
+{
+    std::cout << "Testing TIFF unassociated alpha reads\n";
+    const int W = 16, NC = 4;
+    const float pixel[NC] = { 0.5f, 0.25f, 0.75f, 0.5f };
+    for (bool tiled : { false, true }) {
+        for (int H : { 16, 4 }) {
+            std::string filename = Strutil::format("unassoc_{}_{}.tif",
+                                                   tiled ? "tiled" : "scan", H);
+            ImageSpec spec(W, H, NC, TypeFloat);
+            spec.attribute("oiio:UnassociatedAlpha", 1);
+            if (tiled) {
+                spec.tile_width  = 16;
+                spec.tile_height = 16;
+            }
+            std::vector<float> pixels(size_t(W) * H * NC);
+            for (size_t i = 0; i < pixels.size(); ++i)
+                pixels[i] = pixel[i % NC];
+            {
+                auto out = ImageOutput::create(filename);
+                OIIO_CHECK_ASSERT(out && out->open(filename, spec));
+                OIIO_CHECK_ASSERT(out->write_image(TypeFloat, pixels.data()));
+                OIIO_CHECK_ASSERT(out->close());
+            }
+            auto in = ImageInput::open(filename);
+            OIIO_CHECK_ASSERT(in);
+            if (!in)
+                continue;
+            // Read all channels, and just B and A
+            for (int chbegin : { 0, 2 }) {
+                int nch = NC - chbegin;
+                std::vector<float> buf(size_t(W) * H * nch, -1.0f);
+                bool ok = tiled
+                              ? in->read_tiles(0, 0, 0, W, 0, H, 0, 1, chbegin,
+                                               NC, TypeFloat, buf.data())
+                              : in->read_scanlines(0, 0, 0, H, 0, chbegin, NC,
+                                                   TypeFloat, buf.data());
+                OIIO_CHECK_ASSERT(ok);
+                bool match = true;
+                for (size_t i = 0; i < buf.size(); ++i) {
+                    int c = chbegin + int(i % nch);
+                    match &= buf[i]
+                             == (c == 3 ? pixel[3] : pixel[c] * pixel[3]);
+                }
+                OIIO_CHECK_ASSERT(match);
+            }
+            in->close();
+            if (!nodelete)
+                Filesystem::remove(filename);
+        }
+    }
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -1033,6 +1092,7 @@ main(int argc, char* argv[])
     test_jxl_close_write_error();
     test_read_tricky_sizes();
     test_span_nonzero_origin();
+    test_tiff_unassoc_reads();
     test_read_near_int_limit();
     benchmark_tile_sizes("exr", TypeHalf, 4);
     benchmark_tile_sizes("tif", TypeUInt16, 16);
