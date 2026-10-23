@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -21,6 +22,7 @@
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 
+#include "color_derive.h"
 #include "imageio_pvt.h"
 #include "interop_config.h"
 
@@ -218,11 +220,19 @@ public:
     OCIO::ConfigRcPtr config_;
     OCIO::ConfigRcPtr builtinconfig_;
 
-    // A color space's chromaticities (in the ColorInteropID table, or null)
-    // and transfer function gamma.
+    // A color space's chromaticities (in the ColorInteropID table, or derived
+    // and held below, or null) and transfer function gamma.
     struct Properties {
         const float* xy = nullptr;
         float gamma     = 0.0f;
+    };
+
+    // What a color space's transforms establish about it, each worked out
+    // the first time it is needed: -1 until then.
+    struct Derived {
+        std::array<float, 8> xy;
+        int8_t has_xy = -1;
+        int8_t linear = -1;
     };
 
 private:
@@ -240,6 +250,8 @@ private:
     ColorProcessorMap colorprocmap;  // cache of ColorProcessors
     atomic_int colorprocs_requested;
     atomic_int colorprocs_created;
+    // Node-based, so the chromaticities stay where they are as it grows.
+    mutable std::map<std::string, Derived, std::less<>> m_derived;
     std::string m_configname;
     ColorConfig* m_self       = nullptr;
     bool m_config_is_built_in = false;
@@ -346,6 +358,12 @@ public:
     // The properties get_chromaticities() and get_transfer_function_gamma()
     // report.
     Properties properties(string_view colorspace) const;
+
+    // What the transforms of a color space of this config establish about
+    // it: its chromaticities, or else whether it is linear, each worked out
+    // once per color space.
+    const Derived& derived(const OCIO::ColorSpace& cs,
+                           bool chromaticities) const;
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
@@ -2659,6 +2677,45 @@ constexpr float xy_ap1[]      = { .713f, .293f, .165f,   .83f,
 // CIE XYZ taken as RGB, so R = G = B is illuminant E.
 constexpr float xy_xyz[] = { 1.0f, 0.0f, 0.0f,     1.0f,
                              0.0f, 0.0f, 1.0f / 3, 1.0f / 3 };
+// Camera gamuts, as their makers publish them.
+constexpr float xy_awg3[]    = { .684f,  .313f,  .221f,  .848f,
+                                 .0861f, -.102f, .3127f, .329f };
+constexpr float xy_awg4[]    = { .7347f, .2653f,  .1424f, .8576f,
+                                 .0991f, -.0308f, .3127f, .329f };
+constexpr float xy_bmdwg5[]  = { .7177215f, .3171181f,  .228041f, .861569f,
+                                 .1005841f, -.0820452f, .312717f, .3290312f };
+constexpr float xy_cgamut[]  = { .74f, .27f, .17f,   1.14f,
+                                 .08f, -.1f, .3127f, .329f };
+constexpr float xy_dgamut[]  = { .71f, .31f,  .21f,   .88f,
+                                 .09f, -.08f, .3127f, .329f };
+constexpr float xy_dwg[]     = { .8f,   .313f,   .1682f, .9877f,
+                                 .079f, -.1155f, .3127f, .329f };
+constexpr float xy_rwg[]     = { .780308f, .304253f,  .121595f, 1.493994f,
+                                 .095612f, -.084589f, .3127f,   .329f };
+constexpr float xy_sgamut3[] = { .73f, .28f,  .14f,   .855f,
+                                 .1f,  -.05f, .3127f, .329f };
+constexpr float xy_sgamut3cine[]       = { .766f, .275f,  .225f,  .8f,
+                                           .089f, -.087f, .3127f, .329f };
+constexpr float xy_sgamut3venice[]     = { .74046426f, .27936437f, .08924115f,
+                                           .89380953f, .11048824f, -.05257933f,
+                                           .3127f,     .329f };
+constexpr float xy_sgamut3cinevenice[] = { .77590187f, .27450239f, .1886829f,
+                                           .82868494f, .10133738f, -.08918752f,
+                                           .3127f,     .329f };
+constexpr float xy_vgamut[]            = { .73f, .28f,  .165f,  .84f,
+                                           .1f,  -.03f, .3127f, .329f };
+constexpr float xy_applewg[]           = { .725f, .301f,  .221f,  .814f,
+                                           .068f, -.076f, .3127f, .329f };
+// Published gamuts that no Color Interop ID OpenImageIO knows uses yet, which
+// derivation still recognizes.
+constexpr float xy_p3d60[] = { .68f, .32f, .265f,   .69f,
+                               .15f, .06f, .32168f, .33767f };
+constexpr float xy_p3dci[]
+    = { .68f, .32f, .265f, .69f, .15f, .06f, .314f, .351f };
+constexpr float xy_rec601[]    = { .63f,  .34f, .31f,   .595f,
+                                   .155f, .07f, .3127f, .329f };
+constexpr float xy_rec601pal[] = { .64f, .33f, .29f,   .60f,
+                                   .15f, .06f, .3127f, .329f };
 
 // A color interop ID with what OIIO knows about it: a legacy alias for older
 // configs, its CICP code if it has one, and its chromaticities (Rx, Ry, Gx, Gy,
@@ -2766,19 +2823,69 @@ constexpr ColorInteropID color_interop_ids[] = {
     { "g22_adobergb_display", nullptr, xy_adobergb, 563.0f / 256.0f },
     { "g26_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
       CICPTransfer::Gamma26, CICPMatrix::BT709, xy_p3d65, 2.6f },
-    // The DCDM XYZ encodings have no properties: neither curve is a pure
-    // power (DCI headroom scaling precedes the 2.6 power), and no RGB
-    // primaries are reported for display XYZ encodings.
+    // The DCDM XYZ encodings have no gamma: neither curve is a pure power
+    // (DCI headroom scaling precedes the 2.6 power).
     { "g26_xyzd65_display", nullptr, CICPPrimaries::XYZD65,
-      CICPTransfer::Gamma26, CICPMatrix::Unspecified },
+      CICPTransfer::Gamma26, CICPMatrix::Unspecified, xy_xyz, 0.0f },
     { "pq_xyzd65_display", nullptr, CICPPrimaries::XYZD65, CICPTransfer::PQ,
-      CICPMatrix::Unspecified },
+      CICPMatrix::Unspecified, xy_xyz, 0.0f },
 
     // OpenColorIO interop IDs, last so that the official ones above take
     // priority when converting a CICP to an interop ID.
     { "ocio:lin_ciexyzd65_display", "cie_xyz_d65", CICPPrimaries::XYZD65,
-      CICPTransfer::Linear, CICPMatrix::Unspecified },
+      CICPTransfer::Linear, CICPMatrix::Unspecified, xy_xyz, 1.0f },
+    { "ocio:acescc_ap1_scene", nullptr, xy_ap1, 0.0f },
+    { "ocio:acescct_ap1_scene", nullptr, xy_ap1, 0.0f },
+    { "ocio:itu709_rec709_scene", nullptr, xy_rec709, 0.0f },
+    { "ocio:arrilogc3_awg3_scene", nullptr, xy_awg3, 0.0f },
+    { "ocio:lin_awg3_scene", nullptr, xy_awg3, 1.0f },
+    { "ocio:arrilogc4_awg4_scene", nullptr, xy_awg4, 0.0f },
+    { "ocio:lin_awg4_scene", nullptr, xy_awg4, 1.0f },
+    { "ocio:bmdfilm5_wg5_scene", nullptr, xy_bmdwg5, 0.0f },
+    { "ocio:lin_bmdwg5_scene", nullptr, xy_bmdwg5, 1.0f },
+    { "ocio:davinci_dwg_scene", nullptr, xy_dwg, 0.0f },
+    { "ocio:lin_dwg_scene", nullptr, xy_dwg, 1.0f },
+    { "ocio:canonlog2_cgamutd55_scene", nullptr, xy_cgamut, 0.0f },
+    { "ocio:canonlog3_cgamutd55_scene", nullptr, xy_cgamut, 0.0f },
+    { "ocio:lin_cgamutd55_scene", nullptr, xy_cgamut, 1.0f },
+    { "ocio:djilog_dgamut_scene", nullptr, xy_dgamut, 0.0f },
+    { "ocio:lin_dgamut_scene", nullptr, xy_dgamut, 1.0f },
+    { "ocio:vlog_vgamut_scene", nullptr, xy_vgamut, 0.0f },
+    { "ocio:lin_vgamut_scene", nullptr, xy_vgamut, 1.0f },
+    { "ocio:redlog3g10_rwg_scene", nullptr, xy_rwg, 0.0f },
+    { "ocio:lin_rwg_scene", nullptr, xy_rwg, 1.0f },
+    { "ocio:slog3_sgamut3_scene", nullptr, xy_sgamut3, 0.0f },
+    { "ocio:lin_sgamut3_scene", nullptr, xy_sgamut3, 1.0f },
+    { "ocio:slog3_sgamut3cine_scene", nullptr, xy_sgamut3cine, 0.0f },
+    { "ocio:lin_sgamut3cine_scene", nullptr, xy_sgamut3cine, 1.0f },
+    { "ocio:slog3_sgamut3venice_scene", nullptr, xy_sgamut3venice, 0.0f },
+    { "ocio:lin_sgamut3venice_scene", nullptr, xy_sgamut3venice, 1.0f },
+    { "ocio:slog3_sgamut3cinevenice_scene", nullptr, xy_sgamut3cinevenice,
+      0.0f },
+    { "ocio:lin_sgamut3cinevenice_scene", nullptr, xy_sgamut3cinevenice, 1.0f },
+    { "ocio:lin_applewg_scene", nullptr, xy_applewg, 1.0f },
 };
+
+// The gamuts derivation names a color space's primaries as: the table's, then
+// those no ID uses yet.
+const std::vector<const float*>&
+known_gamuts()
+{
+    static const std::vector<const float*> gamuts = [] {
+        std::vector<const float*> unique;
+        for (const ColorInteropID& interop : color_interop_ids)
+            if (interop.chromaticities
+                && std::find(unique.begin(), unique.end(),
+                             interop.chromaticities)
+                       == unique.end())
+                unique.push_back(interop.chromaticities);
+        for (const float* extra :
+             { xy_p3d60, xy_p3dci, xy_rec601, xy_rec601pal })
+            unique.push_back(extra);
+        return unique;
+    }();
+    return gamuts;
+}
 }  // namespace
 
 const std::vector<std::array<std::string, 2>>&
@@ -2864,6 +2971,84 @@ ColorConfig::get_cicp(string_view colorspace) const
 
 
 
+const ColorConfig::Impl::Derived&
+ColorConfig::Impl::derived(const OCIO::ColorSpace& cs,
+                           bool chromaticities) const
+{
+    const string_view name(cs.getName());
+    {
+        spin_rw_read_lock lock(m_mutex);
+        auto found = m_derived.find(name);
+        if (found != m_derived.end()
+            && (chromaticities ? found->second.has_xy : found->second.linear)
+                   >= 0)
+            return found->second;
+    }
+    // Worked out without the lock; the first answer stored is kept.
+    Derived result;
+    if (chromaticities) {
+        result.has_xy = OIIO::pvt::derive_chromaticities(*config_, cs,
+                                                         known_gamuts(),
+                                                         result.xy);
+    } else {
+        result.linear = 0;
+        try {
+            result.linear
+                = config_->isColorSpaceLinear(cs.getName(),
+                                              cs.getReferenceSpaceType());
+        } catch (const std::exception& e) {
+            DBG("OCIO exception checking linearity of {}: {}\n", name,
+                e.what());
+        }
+    }
+    spin_rw_write_lock lock(m_mutex);
+    Derived& stored = m_derived.try_emplace(std::string(name)).first->second;
+    if (stored.has_xy < 0 && result.has_xy >= 0) {
+        stored.xy     = result.xy;
+        stored.has_xy = result.has_xy;
+    }
+    if (stored.linear < 0 && result.linear >= 0)
+        stored.linear = result.linear;
+    return stored;
+}
+
+
+
+// The chromaticities that OpenImageIO's built-in definition of a Color
+// Interop ID establishes, worked out once per process, or null if it has
+// none or doesn't define the ID.
+static const float*
+builtin_id_chromaticities(string_view interop_id)
+{
+    // Node-based, so the chromaticities stay where they are as it grows.
+    using Found = std::pair<bool, std::array<float, 8>>;
+    static spin_rw_mutex mutex;
+    static std::map<std::string, Found, std::less<>> found;
+    {
+        spin_rw_read_lock lock(mutex);
+        auto f = found.find(interop_id);
+        if (f != found.end())
+            return f->second.first ? f->second.second.data() : nullptr;
+    }
+    // Worked out without the lock; the first answer stored is kept.
+    Found result { false, {} };
+    try {
+        auto identities = interop_identities_config();
+        auto cs = identities->getColorSpace(std::string(interop_id).c_str());
+        result.first = cs && Strutil::iequals(interop_id, cs->getName())
+                       && OIIO::pvt::derive_chromaticities(*identities, *cs,
+                                                           known_gamuts(),
+                                                           result.second);
+    } catch (const std::exception& e) {
+        DBG("OCIO exception deriving {}: {}\n", interop_id, e.what());
+    }
+    spin_rw_write_lock lock(mutex);
+    const Found& stored = found.emplace(interop_id, result).first->second;
+    return stored.first ? stored.second.data() : nullptr;
+}
+
+
+
 ColorConfig::Impl::Properties
 ColorConfig::Impl::properties(string_view colorspace) const
 {
@@ -2880,20 +3065,48 @@ ColorConfig::Impl::properties(string_view colorspace) const
     }
     if (cs && cs->isData())
         return {};
-    const string_view encoding(cs ? cs->getEncoding() : "");
-    const bool linear = encoding == "scene-linear"
-                        || encoding == "display-linear";
-    Properties result;
+    const bool analyze        = cs && OIIO::pvt::colorconfig_analyze_transforms;
+    const ColorInteropID* row = nullptr;
     for (const ColorInteropID& interop : color_interop_ids) {
-        if (interop.chromaticities && interop_id == interop.interop_id) {
-            // An ID contradicting a declared linear encoding is ignored.
-            if (!(linear && interop.gamma != 1.0f))
-                result = { interop.chromaticities, interop.gamma };
+        if (interop_id == interop.interop_id) {
+            row = &interop;
             break;
         }
     }
-    if (linear)
+
+    // The primaries are the ID's: the table's (a row without them says the
+    // ID has none), or those of OpenImageIO's own definition of an ID the
+    // table lacks. A space with neither has them derived from its transforms.
+    Properties result;
+    if (row) {
+        result.xy = row->chromaticities;
+    } else if (analyze) {
+        if (!interop_id.empty() && !disable_builtin_configs)
+            result.xy = builtin_id_chromaticities(interop_id);
+        if (!result.xy) {
+            const Derived& own = derived(*cs, true);
+            if (own.has_xy > 0)
+                result.xy = own.xy.data();
+        }
+    }
+
+    // The transfer function is the space's own, never its ID's. A declared
+    // encoding decides, linear only when it names the space's own reference
+    // type; without one, a space no row describes is linear if its
+    // transforms are. Until transfer functions are matched against known
+    // curves, a row still gives its gamma.
+    result.gamma               = row ? row->gamma : 0.0f;
+    const std::string encoding = Strutil::lower(cs ? cs->getEncoding() : "");
+    if (!encoding.empty()) {
+        const bool display = cs->getReferenceSpaceType()
+                             == OCIO::REFERENCE_SPACE_DISPLAY;
+        if (encoding == (display ? "display-linear" : "scene-linear"))
+            result.gamma = 1.0f;
+        else if (result.gamma == 1.0f)
+            result.gamma = 0.0f;
+    } else if (analyze && !row && derived(*cs, false).linear > 0) {
         result.gamma = 1.0f;
+    }
     return result;
 }
 

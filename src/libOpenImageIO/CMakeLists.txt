@@ -58,7 +58,7 @@ set (libOpenImageIO_srcs
                           imageinput.cpp imageio.cpp imageioplugin.cpp
                           imageoutput.cpp
                           iptc.cpp xmp.cpp
-                          color_ocio.cpp
+                          color_ocio.cpp color_derive.cpp
                           maketexture.cpp
                           bluenoise.cpp
                           printinfo.cpp
@@ -209,7 +209,8 @@ if (CMAKE_UNITY_BUILD)
         # ${libOpenImageIO_srcs}
             deepdata.cpp exif.cpp exif-canon.cpp formatspec.cpp imagebuf.cpp
             imageinput.cpp imageio.cpp imageioplugin.cpp imageoutput.cpp
-            iptc.cpp xmp.cpp color_ocio.cpp maketexture.cpp bluenoise.cpp
+            iptc.cpp xmp.cpp color_ocio.cpp color_derive.cpp maketexture.cpp
+            bluenoise.cpp
         PROPERTIES
             UNITY_GROUP oiiolib)
     foreach (plugin_dir ${all_format_plugin_dirs} ../libtexture)
