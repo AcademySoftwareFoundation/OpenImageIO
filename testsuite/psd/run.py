@@ -56,3 +56,5 @@ command += info_command ("src/crash-dup-layerinfo.psd", failureok=True)
 command += info_command ("src/crash-layer-origin.psd", failureok=True)
 # Layer whose channel records omit a channel its color mode requires
 command += info_command ("src/crash-missing-chan.psd", failureok=True)
+# PSB merged image whose 32-bit RLE row lengths far exceed the file size
+command += info_command ("src/crash-rlelen-psb.psb", failureok=True)
