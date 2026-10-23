@@ -159,6 +159,9 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
 
 ImageViewer::~ImageViewer()
 {
+    // Wait for a still-running FLIP diff; it only touches local copies.
+    if (m_flip_thread.joinable())
+        m_flip_thread.join();
     for (auto i : m_images)
         delete i;
 }
@@ -413,6 +416,32 @@ ImageViewer::createActions()
     comparisonAct->setShortcut(tr("W"));
     connect(comparisonAct, &QAction::toggled, this,
             &ImageViewer::toggleComparison);
+
+    // Comparison mode submenu (issue #4711).
+    comparisonModeMenu = new QMenu(tr("Comparison &mode"), this);
+    auto* modeGroup    = new QActionGroup(this);
+    comparisonWipeAct  = new QAction(tr("&Wipe"), this);
+    comparisonWipeAct->setCheckable(true);
+    comparisonWipeAct->setChecked(true);
+    comparisonAbsDiffAct = new QAction(tr("&Absolute difference"), this);
+    comparisonAbsDiffAct->setCheckable(true);
+    comparisonFlipDiffAct = new QAction(tr("&FLIP perceptual difference"),
+                                        this);
+    comparisonFlipDiffAct->setCheckable(true);
+    modeGroup->addAction(comparisonWipeAct);
+    modeGroup->addAction(comparisonAbsDiffAct);
+    modeGroup->addAction(comparisonFlipDiffAct);
+    connect(comparisonWipeAct, &QAction::toggled, this,
+            &ImageViewer::comparisonModeChanged);
+    connect(comparisonAbsDiffAct, &QAction::toggled, this,
+            &ImageViewer::comparisonModeChanged);
+    connect(comparisonFlipDiffAct, &QAction::toggled, this,
+            &ImageViewer::comparisonModeChanged);
+    flipColormapAct = new QAction(tr("Color&map FLIP error map"), this);
+    flipColormapAct->setCheckable(true);
+    flipColormapAct->setChecked(true);
+    connect(flipColormapAct, &QAction::toggled, this,
+            &ImageViewer::flipColormapToggled);
 
     toggleWindowGuidesAct
         = new QAction(tr("Show display and data window borders"), this);
@@ -767,6 +796,12 @@ ImageViewer::createMenus()
     viewMenu->addAction(nextImageAct);
     viewMenu->addAction(toggleImageAct);
     viewMenu->addAction(comparisonAct);
+    comparisonModeMenu->addAction(comparisonWipeAct);
+    comparisonModeMenu->addAction(comparisonAbsDiffAct);
+    comparisonModeMenu->addAction(comparisonFlipDiffAct);
+    comparisonModeMenu->addSeparator();
+    comparisonModeMenu->addAction(flipColormapAct);
+    viewMenu->addMenu(comparisonModeMenu);
     viewMenu->addAction(toggleWindowGuidesAct);
     viewMenu->addSeparator();
     viewMenu->addAction(zoomInAct);
@@ -1436,6 +1471,10 @@ ImageViewer::displayCurrentImage(bool update)
     if (infoWindow)
         infoWindow->update(img);
 
+    // Recompute the FLIP error map if the displayed pair changed.
+    if (m_comparison_image && m_compare_mode == CompareMode::FlipDiff)
+        computeFlipDiff();
+
     //    printAct->setEnabled(true);
     //    fitImageToWindowAct->setEnabled(true);
     //    fullScreenAct->setEnabled(true);
@@ -1537,6 +1576,7 @@ ImageViewer::toggleComparison(bool enabled)
 {
     if (enabled) {
         if (!glwin->is_glsl_capable() || m_images.size() < 2 || !cur()) {
+            std::cerr << "iv: comparison needs GLSL and at least two images\n";
             QSignalBlocker blocker(comparisonAct);
             comparisonAct->setChecked(false);
             return;
@@ -1547,16 +1587,155 @@ ImageViewer::toggleComparison(bool enabled)
             index = (m_current_image + (int)m_images.size() - 1)
                     % (int)m_images.size();
         m_comparison_image = m_images[index];
-        glwin->reset_wipe();
+        glwin->set_compare_mode(m_compare_mode);
+        glwin->clear_flipdiff_map();
+        if (m_compare_mode == CompareMode::Wipe)
+            glwin->reset_wipe();
         displayCurrentImage();
     } else {
         m_comparison_image = nullptr;
+        m_flip_key.clear();
+        glwin->clear_flipdiff_map();
         if (comparisonAct && comparisonAct->isChecked()) {
             QSignalBlocker blocker(comparisonAct);
             comparisonAct->setChecked(false);
         }
         displayCurrentImage();
     }
+}
+
+
+
+void
+ImageViewer::startComparison(CompareMode mode)
+{
+    if (m_images.size() < 2) {
+        std::cerr << "iv: --compare needs at least two images\n";
+        return;
+    }
+    if (!glwin->is_glsl_capable()) {
+        std::cerr << "iv: comparison modes require GLSL, ignoring --compare\n";
+        return;
+    }
+    setCompareMode(mode);
+    comparisonAct->setChecked(true);  // triggers toggleComparison(true)
+}
+
+
+
+void
+ImageViewer::setCompareMode(CompareMode mode)
+{
+    m_compare_mode = mode;
+    if (comparisonWipeAct) {
+        QSignalBlocker b1(comparisonWipeAct);
+        QSignalBlocker b2(comparisonAbsDiffAct);
+        QSignalBlocker b3(comparisonFlipDiffAct);
+        comparisonWipeAct->setChecked(mode == CompareMode::Wipe);
+        comparisonAbsDiffAct->setChecked(mode == CompareMode::AbsDiff);
+        comparisonFlipDiffAct->setChecked(mode == CompareMode::FlipDiff);
+    }
+    if (m_comparison_image) {
+        glwin->set_compare_mode(mode);
+        glwin->clear_flipdiff_map();
+        if (mode == CompareMode::Wipe)
+            glwin->reset_wipe();
+        if (mode == CompareMode::FlipDiff)
+            computeFlipDiff();
+        glwin->QWidget::update();
+    }
+}
+
+
+
+void
+ImageViewer::comparisonModeChanged()
+{
+    // Derive the new mode from whichever action is now checked.
+    CompareMode mode = CompareMode::Wipe;
+    if (comparisonAbsDiffAct->isChecked())
+        mode = CompareMode::AbsDiff;
+    else if (comparisonFlipDiffAct->isChecked())
+        mode = CompareMode::FlipDiff;
+    if (mode != m_compare_mode)
+        setCompareMode(mode);
+}
+
+
+
+void
+ImageViewer::flipColormapToggled(bool checked)
+{
+    m_flip_colormap = checked;
+    if (m_comparison_image && m_compare_mode == CompareMode::FlipDiff) {
+        glwin->clear_flipdiff_map();
+        glwin->QWidget::update();
+        computeFlipDiff();
+    }
+}
+
+
+
+void
+ImageViewer::computeFlipDiff()
+{
+    if (!m_comparison_image || m_compare_mode != CompareMode::FlipDiff)
+        return;
+    IvImage* img = cur();
+    if (!img || !img->image_valid() || !m_comparison_image->image_valid())
+        return;
+
+    // Signature of the inputs, to skip redundant recomputes.
+    std::string key = std::string(img->name()) + "|"
+                      + std::string(m_comparison_image->name()) + "|"
+                      + std::to_string(img->subimage()) + "|"
+                      + std::to_string(img->miplevel()) + "|"
+                      + std::to_string(m_flip_colormap);
+    if (m_flip_computing.load()) {
+        m_flip_pending = true;  // worker running; it will be re-kicked
+        return;
+    }
+    if (key == m_flip_key)
+        return;
+    m_flip_key = key;
+
+    // ImageBuf copies are cheap (they share the underlying buffer), so
+    // it's safe to hand these to the worker thread.
+    ImageBuf a(*img);
+    ImageBuf b(*m_comparison_image);
+    bool colormap = m_flip_colormap;
+    // Re-assigning a joinable std::thread would terminate(), so join the
+    // finished worker first (m_flip_computing == false implies it has
+    // delivered its result and is on its way out).
+    if (m_flip_thread.joinable())
+        m_flip_thread.join();
+    m_flip_computing.store(true);
+    m_flip_thread = std::thread([this, a, b, colormap]() {
+        ImageBuf err;
+        if (a.spec().width == b.spec().width
+            && a.spec().height == b.spec().height)
+            err = ImageBufAlgo::FLIP_diff(a, b);
+        if (colormap && err.initialized())
+            err = ImageBufAlgo::color_map(err, 0, "inferno");
+        // Deliver on the GUI thread.
+        QMetaObject::invokeMethod(
+            this, [this, err]() { flipDiffDone(err); }, Qt::QueuedConnection);
+    });
+}
+
+
+
+void
+ImageViewer::flipDiffDone(ImageBuf errmap)
+{
+    m_flip_computing.store(false);
+    if (errmap.initialized() && m_compare_mode == CompareMode::FlipDiff
+        && m_comparison_image)
+        glwin->set_flipdiff_map(errmap);
+    // IvGL::update only refreshes textures, not a repaint.
+    glwin->QWidget::update();
+    if (m_flip_pending.exchange(false))
+        computeFlipDiff();
 }
 
 
@@ -2463,6 +2642,8 @@ ImageViewer::updateActions()
         QSignalBlocker blocker(comparisonAct);
         comparisonAct->setChecked(can_compare && m_comparison_image);
     }
+    if (comparisonModeMenu)
+        comparisonModeMenu->setEnabled(can_compare);
     if (!can_compare && m_comparison_image) {
         m_comparison_image = nullptr;
         glwin->reset_wipe();

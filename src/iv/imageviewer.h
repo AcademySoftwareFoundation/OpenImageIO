@@ -18,6 +18,9 @@
 // included to remove std::min/std::max errors
 #include <OpenImageIO/platform.h>
 
+#include <atomic>
+#include <string>
+#include <thread>
 #include <vector>
 
 #include <QAction>
@@ -42,6 +45,7 @@
 #include <OpenImageIO/imageio.h>
 
 #include "ivgl_ocio.h"
+#include "ivutils.h"
 
 using namespace OIIO;
 
@@ -295,6 +299,18 @@ public:
 
     bool areaSampleMode() const;
 
+    /// Which comparison mode is selected (see CompareMode in ivutils.h).
+    CompareMode compareMode() const { return m_compare_mode; }
+
+    /// Select the comparison mode (wipe split, absdiff, or FLIP diff).
+    /// Does not by itself enable comparison mode.
+    void setCompareMode(CompareMode mode);
+
+    /// Enable comparison mode directly with the given mode (used by the
+    /// --compare command line option). If comparison is not possible
+    /// (not enough images, no GLSL), print a diagnostic and do nothing.
+    void startComparison(CompareMode mode);
+
     bool useOCIO() { return m_useOCIO; }
     const std::string& ocioColorSpace() { return m_ocioColourSpace; }
     const std::string& ocioDisplay() { return m_ocioDisplay; }
@@ -327,7 +343,9 @@ private slots:
     void nextImage();         ///< View next image in sequence
     void toggleImage();       ///< View most recently viewed image
     void toggleComparison(bool enabled);
-    void toggleWindowGuides();  ///< Toggle data and display window overlay
+    void comparisonModeChanged();    ///< One of the mode actions was clicked
+    void flipColormapToggled(bool);  ///< Toggle colormap for FLIP diff
+    void toggleWindowGuides();       ///< Toggle data and display window overlay
     void exposureMinusOneTenthStop();  ///< Decrease exposure 1/10 stop
     void exposureMinusOneHalfStop();   ///< Decrease exposure 1/2 stop
     void exposurePlusOneTenthStop();   ///< Increase exposure 1/10 stop
@@ -387,6 +405,8 @@ private:
     bool loadCurrentImage(int subimage = 0, int miplevel = 0);
     bool loadImage(IvImage* image, int subimage = 0, int miplevel = 0);
     void displayCurrentImage(bool update = true);
+    void computeFlipDiff();              ///< Kick off background FLIP diff
+    void flipDiffDone(ImageBuf errmap);  ///< Receive FLIP result (GUI thread)
     void updateTitle();
     void updateStatusBar();
     void keyPressEvent(QKeyEvent* event) override;
@@ -432,7 +452,12 @@ private:
     QAction* fullScreenAct;
     QAction* aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
-    QAction* comparisonAct = nullptr;
+    QAction* comparisonAct         = nullptr;
+    QMenu* comparisonModeMenu      = nullptr;
+    QAction* comparisonWipeAct     = nullptr;
+    QAction* comparisonAbsDiffAct  = nullptr;
+    QAction* comparisonFlipDiffAct = nullptr;
+    QAction* flipColormapAct       = nullptr;
     QAction *sortByNameAct, *sortByPathAct, *sortReverseAct;
     QAction *sortByImageDateAct, *sortByFileDateAct;
     QAction *slideShowAct, *slideLoopAct, *slideNoLoopAct;
@@ -471,12 +496,14 @@ private:
 
     std::vector<IvImage*> m_images;  // List of images
     IvImage* m_comparison_image = nullptr;
-    int m_current_image;      // Index of current image, -1 if none
-    int m_current_channel;    // Channel we're viewing.
-    COLOR_MODE m_color_mode;  // How to show the current channel(s).
-    int m_last_image;         // Last image we viewed
-    float m_zoom;             // Zoom amount (positive maxifies)
-    bool m_fullscreen;        // Full screen mode
+    CompareMode m_compare_mode  = CompareMode::Wipe;  // Comparison mode (#4711)
+    bool m_flip_colormap = true;  // Colormap the FLIP error map (inferno)
+    int m_current_image;          // Index of current image, -1 if none
+    int m_current_channel;        // Channel we're viewing.
+    COLOR_MODE m_color_mode;      // How to show the current channel(s).
+    int m_last_image;             // Last image we viewed
+    float m_zoom;                 // Zoom amount (positive maxifies)
+    bool m_fullscreen;            // Full screen mode
     std::vector<std::string> m_recent_files;  // Recently opened files
     float m_default_gamma;                    // Default gamma of the display
     QPalette m_palette;                       // Custom palette
@@ -485,6 +512,14 @@ private:
     bool m_areaSampleMode          = false;   // Use area sample mode
     bool m_tolerate_missing_pixels = true;    // Fill missing pixels (see
                                               // --missing-pixels)
+
+    // FLIP diff background computation state: worker running / recompute
+    // needed / signature of the inputs last computed (skips redundant
+    // recomputes).
+    std::atomic<bool> m_flip_computing { false };
+    std::atomic<bool> m_flip_pending { false };
+    std::thread m_flip_thread;  // Joined by the destructor
+    std::string m_flip_key;
 
     // The default width and height of the window:
     static const int m_default_width  = 640;
