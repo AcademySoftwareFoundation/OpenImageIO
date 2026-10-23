@@ -38,7 +38,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.11)
+     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.12)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 3.9 (tested through 3.14).
@@ -49,7 +49,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * [pybind11](https://github.com/pybind/pybind11) >= 2.7 (tested through
        3.1 and master), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
        either `pybind11` or `both`.
-     * NumPy (tested through 2.5.3)
+     * NumPy (tested through 2.5.4)
  * If you want support for PNG files:
      * libPNG >= 1.6.0 (tested though 1.6.59 and master)
  * If you want support for camera "RAW" formats:
@@ -70,7 +70,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 5.0 (tested through 6.1.3)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support and
-       1.17 required for monochrome HEIC support; tested through 1.23.5)
+       1.17 required for monochrome HEIC support; tested through 1.23.6)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.2 (tested through 3.7.0)
@@ -79,7 +79,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.5 and main)
  * If you want to be able to do font rendering into images:
-     * Freetype >= 2.10.0 (tested through 2.14 and master)
+     * Freetype >= 2.10.0 (tested through 2.15 and master)
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
      * libultrahdr >= 1.3 (tested through 2.0.2 and main)
  * If you want support for JPEG XL images:
