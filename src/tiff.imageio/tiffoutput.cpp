@@ -137,15 +137,15 @@ private:
     }
 
     // Convert planar contiguous to planar separate data format
-    void contig_to_separate(int n, int nchans, const char* contig,
+    void contig_to_separate(size_t n, int nchans, const char* contig,
                             char* separate);
 
     // Convert RGB to CMYK.
-    void* convert_to_cmyk(int npixels, const void* data,
+    void* convert_to_cmyk(size_t npixels, const void* data,
                           std::vector<unsigned char>& cmyk);
 
     // Fix unusual bit depths
-    void fix_bitdepth(void* data, int nvals);
+    void fix_bitdepth(void* data, size_t nvals);
 
     // Add a parameter to the output
     bool put_parameter(const ParamValue& metadata);
@@ -1312,13 +1312,13 @@ TIFFOutput::close()
 /// Helper: Convert n pixels from contiguous (RGBRGBRGB) to separate
 /// (RRRGGGBBB) planarconfig.
 void
-TIFFOutput::contig_to_separate(int n, int nchans, const char* contig,
+TIFFOutput::contig_to_separate(size_t n, int nchans, const char* contig,
                                char* separate)
 {
-    int channelbytes = m_spec.channel_bytes();
-    for (int p = 0; p < n; ++p)                     // loop over pixels
-        for (int c = 0; c < nchans; ++c)            // loop over channels
-            for (int i = 0; i < channelbytes; ++i)  // loop over data bytes
+    size_t channelbytes = m_spec.channel_bytes();
+    for (size_t p = 0; p < n; ++p)                     // loop over pixels
+        for (size_t c = 0; c < size_t(nchans); ++c)    // loop over channels
+            for (size_t i = 0; i < channelbytes; ++i)  // loop over data bytes
                 separate[(c * n + p) * channelbytes + i]
                     = contig[(p * nchans + c) * channelbytes + i];
 }
@@ -1327,7 +1327,8 @@ TIFFOutput::contig_to_separate(int n, int nchans, const char* contig,
 
 template<typename T>
 static void
-rgb_to_cmyk(int n, const T* rgb, size_t rgb_stride, T* cmyk, size_t cmyk_stride)
+rgb_to_cmyk(size_t n, const T* rgb, size_t rgb_stride, T* cmyk,
+            size_t cmyk_stride)
 {
     for (; n; --n, cmyk += cmyk_stride, rgb += rgb_stride) {
         float R               = convert_type<T, float>(rgb[0]);
@@ -1351,7 +1352,7 @@ rgb_to_cmyk(int n, const T* rgb, size_t rgb_stride, T* cmyk, size_t cmyk_stride)
 
 
 void*
-TIFFOutput::convert_to_cmyk(int npixels, const void* data,
+TIFFOutput::convert_to_cmyk(size_t npixels, const void* data,
                             std::vector<unsigned char>& cmyk)
 {
     cmyk.resize(m_outputchans * spec().format.size() * npixels);
@@ -1391,10 +1392,11 @@ TIFFOutput::write_scanline(int y, int z, TypeDesc format, const void* data,
     y -= m_spec.y;
     if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
         // Convert from contiguous (RGBRGBRGB) to separate (RRRGGGBBB)
-        int plane_bytes = m_spec.width * m_spec.format.size();
+        size_t plane_bytes = size_t(m_spec.width) * m_spec.format.size();
 
         char* separate;
-        OIIO_ALLOCATE_STACK_OR_HEAP(separate, char, plane_bytes* m_outputchans);
+        OIIO_ALLOCATE_STACK_OR_HEAP(separate, char,
+                                    plane_bytes* size_t(m_outputchans));
 
         contig_to_separate(m_spec.width, m_outputchans, (const char*)data,
                            separate);
@@ -1634,7 +1636,7 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
     // Handle weird bit depths
     if (spec().format.size() * 8 != m_bitspersample) {
         data = move_to_scratch(data, tile_vals * spec().format.size());
-        fix_bitdepth(m_scratch.data(), int(tile_vals));
+        fix_bitdepth(m_scratch.data(), tile_vals);
     }
 
     if (m_planarconfig == PLANARCONFIG_SEPARATE && m_spec.nchannels > 1) {
@@ -1644,7 +1646,8 @@ TIFFOutput::write_tile(int x, int y, int z, TypeDesc format, const void* data,
         OIIO_DASSERT(plane_bytes * m_spec.nchannels == m_spec.tile_bytes());
 
         char* separate;
-        OIIO_ALLOCATE_STACK_OR_HEAP(separate, char, plane_bytes* m_outputchans);
+        OIIO_ALLOCATE_STACK_OR_HEAP(separate, char,
+                                    plane_bytes* size_t(m_outputchans));
         contig_to_separate(tile_pixels, m_outputchans, (const char*)data,
                            separate);
         for (int c = 0; c < m_outputchans; ++c) {
@@ -1895,48 +1898,48 @@ TIFFOutput::source_is_rgb(const ImageSpec& spec)
 
 
 void
-TIFFOutput::fix_bitdepth(void* data, int nvals)
+TIFFOutput::fix_bitdepth(void* data, size_t nvals)
 {
     OIIO_DASSERT(spec().format.size() * 8 != m_bitspersample);
 
     if (spec().format == TypeDesc::UINT16 && m_bitspersample == 10) {
         unsigned short* v = (unsigned short*)data;
-        for (int i = 0; i < nvals; ++i)
+        for (size_t i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<16, 10>(v[i]);
         bit_pack(cspan<unsigned short>(v, v + nvals), v, 10);
     } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 12) {
         unsigned short* v = (unsigned short*)data;
-        for (int i = 0; i < nvals; ++i)
+        for (size_t i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<16, 12>(v[i]);
         bit_pack(cspan<unsigned short>(v, v + nvals), v, 12);
     } else if (spec().format == TypeDesc::UINT16 && m_bitspersample == 14) {
         unsigned short* v = (unsigned short*)data;
-        for (int i = 0; i < nvals; ++i)
+        for (size_t i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<16, 14>(v[i]);
         bit_pack(cspan<unsigned short>(v, v + nvals), v, 14);
     } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 4) {
         unsigned char* v = (unsigned char*)data;
-        for (int i = 0; i < nvals; ++i)
+        for (size_t i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<8, 4>(v[i]);
         bit_pack(cspan<unsigned char>(v, v + nvals), v, 4);
     } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 2) {
         unsigned char* v = (unsigned char*)data;
-        for (int i = 0; i < nvals; ++i)
+        for (size_t i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<8, 2>(v[i]);
         bit_pack(cspan<unsigned char>(v, v + nvals), v, 2);
     } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 6) {
         unsigned char* v = (unsigned char*)data;
-        for (int i = 0; i < nvals; ++i)
+        for (size_t i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<8, 6>(v[i]);
         bit_pack(cspan<unsigned char>(v, v + nvals), v, 6);
     } else if (spec().format == TypeDesc::UINT8 && m_bitspersample == 1) {
         unsigned char* v = (unsigned char*)data;
-        for (int i = 0; i < nvals; ++i)
+        for (size_t i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<8, 1>(v[i]);
         bit_pack(cspan<unsigned char>(v, v + nvals), v, 1);
     } else if (spec().format == TypeDesc::UINT32 && m_bitspersample == 24) {
         unsigned int* v = (unsigned int*)data;
-        for (int i = 0; i < nvals; ++i)
+        for (size_t i = 0; i < nvals; ++i)
             v[i] = bit_range_convert<32, 24>(v[i]);
         bit_pack(cspan<unsigned int>(v, v + nvals), v, 24);
     } else {
