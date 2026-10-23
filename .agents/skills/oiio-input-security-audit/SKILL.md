@@ -1,6 +1,6 @@
 ---
 name: oiio-input-security-audit
-description: Audit OpenImageIO file readers (ImageInput plugins and shared metadata decoders like exif/xmp/icc) for crash, memory-safety, hang, and decompression-bomb flaws on malformed input, then fix them in small reviewable commits. Use when asked to harden, audit, or fuzz-fix a format reader, triage a fuzzer crash or security report against a reader, or "do another audit like 002-format-security-audit".
+description: Audit OpenImageIO file readers (ImageInput plugins and shared metadata decoders like exif/xmp/icc) against malformed or hostile input, fixing findings in small reviewable commits; covers crashes, out-of-bounds and other memory-unsafety, integer overflow, OOM and decompression bombs, and hangs. Use whenever someone asks to audit, harden, or fuzz-fix a format reader (whether or not the original 002-format-security-audit effort is named), or to investigate, triage, or fix any reader bug of those kinds, however reported: a fuzzer crash, security advisory, GitHub issue, or a prompt describing one.
 ---
 
 # OIIO input security audit
@@ -216,8 +216,16 @@ Fixture gotchas:
 
 ## Feeding new lessons back
 
-When an audit, fuzz crash, or security report reveals a flaw class not in
-`references/bug-catalog.md`, or a mistake in this procedure:
+When an audit, fuzz crash, security report, GitHub issue, or ad-hoc
+investigation reveals a reader flaw -- a flaw class not in
+`references/bug-catalog.md`, a new format or instance of an existing class, or
+a mistake in this procedure -- run these steps even if you only fixed the one
+bug and never ran a full audit:
+
+Steps 1-5 update reference files, not this SKILL.md, so they go in the same
+PR as the fix that taught the lesson -- the lesson and its evidence stay
+together, and the catalog never drifts behind the code. Do not split them
+into a separate branch.
 
 1. Add a catalog entry: the pattern, a grep recipe if one exists, the fix
    shape, one real example (commit/PR). Keep entries short.
@@ -229,3 +237,8 @@ When an audit, fuzz crash, or security report reveals a flaw class not in
    pattern before closing the task. Cross-format sweeps found real bugs
    repeatedly (e.g. subimage-rejection state leak found in 8 readers after the
    TIFF fix).
+
+6. If the investigation also suggests a change to this SKILL.md itself (a new
+   or reworded trigger, a procedure fix), that is a different kind of edit:
+   propose the SKILL.md change to the user and ask whether to include it in
+   the bug-fix PR or keep it on a separate branch. Do not bundle it silently.
