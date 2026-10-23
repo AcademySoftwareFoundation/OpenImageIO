@@ -66,9 +66,14 @@ oiio_exr_error_handler(exr_const_context_t ctxt, exr_result_t code,
 static int64_t
 oiio_exr_query_size_func(exr_const_context_t ctxt, void* userdata)
 {
+    // OpenEXR uses the file size to validate header attribute and chunk
+    // table sizes; -1 means unknown and disables those checks.
     oiioexr_filebuf_struct* fb = static_cast<oiioexr_filebuf_struct*>(userdata);
-    if (fb)
-        return static_cast<int64_t>(fb->m_io->tell());
+    if (fb && fb->m_io) {
+        size_t size = fb->m_io->size();
+        if (size > 0)
+            return static_cast<int64_t>(size);
+    }
     return -1;
 }
 
