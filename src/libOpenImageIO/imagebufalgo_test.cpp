@@ -402,6 +402,28 @@ test_channel_append()
         OIIO_CHECK_EQUAL(r[0], Acolor);
         OIIO_CHECK_EQUAL(r[1], Bcolor);
     }
+
+    // Results with more channels than limits:channels must still get
+    // one channel name per channel.
+    int oldlimit = OIIO::get_int_attribute("limits:channels");
+    OIIO::attribute("limits:channels", 4);
+    ImageSpec spec3(2, 2, 3, TypeDesc::FLOAT);
+    spec3.channelnames = { "a_rather_long_channel_name_0",
+                           "a_rather_long_channel_name_1",
+                           "a_rather_long_channel_name_2" };
+    ImageBuf C(spec3);
+    ImageBuf R6 = ImageBufAlgo::channel_append(C, C);
+    OIIO_CHECK_EQUAL(R6.nchannels(), 6);
+    ImageBuf F = ImageBufAlgo::flip(R6);
+    ImageBuf M = ImageBufAlgo::mul(R6, 2.0f);
+    ImageBuf S = ImageBufAlgo::channels(R6, 6, {});
+    for (const ImageBuf* X : { &F, &M, &S }) {
+        OIIO_CHECK_EQUAL(X->spec().channelnames.size(), 6);
+        for (int c = 0; c < 6; ++c)
+            OIIO_CHECK_EQUAL(X->spec().channel_name(c),
+                             R6.spec().channel_name(c));
+    }
+    OIIO::attribute("limits:channels", oldlimit);
 }
 
 

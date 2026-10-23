@@ -353,7 +353,10 @@ public:
     /// Sets the `channelnames` to reasonable defaults for the number of
     /// channels.  Specifically, channel names are set to "R", "G", "B,"
     /// and "A" (up to and including 4 channels, beyond that they are named
-    /// "channel*n*").
+    /// "channel*n*"). If `nchannels` is less than 1, `channelnames` is left
+    /// empty. If it exceeds the `limits:channels` attribute, only that many
+    /// channels are named, and the rest have no entry in `channelnames`
+    /// (`channel_name()` returns an empty string for them).
     void default_channel_names () noexcept;
 
     /// Returns the number of bytes comprising each channel of each pixel
