@@ -644,6 +644,9 @@ Full command line was:
 oiiotool ERROR: read : "src/bomb-32000x32000.dng": raw header claims a 1953 MB image from a 208 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool -iconfig raw:Demosaic none --stats src/bomb-32000x32000.dng
+oiiotool ERROR: read : "src/bomb-16000x16000.dng": raw header claims a 1464 MB image from a 208 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --oiioattrib try_all_readers 0 --info src/bomb-16000x16000.dng
 ________________
 ROTATION 0 info:
   24 x   22, 1 channel, float raw
