@@ -23,6 +23,7 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdelete-incomplete")
 OIIO_PRAGMA_WARNING_POP
 #    include <openjph/ojph_message.h>
 #    include <openjph/ojph_params.h>
+#    include <openjph/ojph_version.h>
 #endif
 
 #ifndef OIIO_OPJ_VERSION
@@ -330,6 +331,87 @@ convert_si32_to_si16(const ojph::si32 si32_value,
 
 
 
+// Bounds, from the SIZ/COD/COC markers, on the memory OpenJPH's
+// codestream::create() allocates for a tile and block layout, none of which
+// depends on the file size.
+//
+// `min_bytes` is the least a valid file with this layout can hold: every tile
+// needs at least a 14-byte SOT+SOD, and every precinct of each component and
+// resolution at least a 1-byte packet. The precincts are counted over the
+// whole image with plain dyadic decomposition, so this never errs high.
+//
+// `cb_bytes` estimates the sample buffer OpenJPH allocates for each codeblock
+// column of every subband (rows padded to 16 samples of up to 64 bits),
+// whatever the band's height, so even a valid file can make it huge, e.g.
+// with a single long row and tall, narrow codeblocks. It uses the full tile
+// size for every band, so it errs high, even with DFS.
+//
+// Needs the per-component (COC) getters from OpenJPH 0.31; older versions
+// skip the check.
+static void
+ojph_layout_bounds(ojph::codestream& codestream, uint64_t& min_bytes,
+                   uint64_t& cb_bytes)
+{
+    min_bytes = cb_bytes = 0;
+#    if OPENJPH_VERSION_MAJOR > 0 || OPENJPH_VERSION_MINOR >= 31
+    ojph::param_siz siz = codestream.access_siz();
+    ojph::param_cod cod = codestream.access_cod();
+    ojph::point extent  = siz.get_image_extent();
+    ojph::point offset  = siz.get_image_offset();
+    ojph::point toffset = siz.get_tile_offset();
+    ojph::size tsize    = siz.get_tile_size();
+    if (!tsize.w || !tsize.h || extent.x <= offset.x || extent.y <= offset.y
+        || extent.x <= toffset.x || extent.y <= toffset.y)
+        return;
+    auto ceil_div = [](uint64_t n, uint64_t d) { return (n + d - 1) / d; };
+    // Most blocks of size 2^lg that n > 0 samples can straddle
+    auto straddle = [](uint64_t n, int lg) {
+        return ((n + (uint64_t(1) << lg) - 2) >> lg) + 1;
+    };
+    auto add = [](uint64_t& total, uint64_t bytes) {
+        total += std::min(bytes, UINT64_MAX - total);
+    };
+    uint64_t ntiles   = clamped_mult64(ceil_div(extent.x - toffset.x, tsize.w),
+                                       ceil_div(extent.y - toffset.y, tsize.h));
+    uint64_t tw       = std::min(tsize.w, extent.x - offset.x);
+    min_bytes         = clamped_mult64(ntiles, 14);
+    uint64_t per_tile = 0;
+    for (uint32_t c = 0, n = siz.get_num_components(); c < n; ++c) {
+        ojph::point ds   = siz.get_downsampling(c);
+        uint64_t dsx     = std::max(ds.x, 1u);
+        uint64_t dsy     = std::max(ds.y, 1u);
+        int levels       = int(cod.get_num_decompositions(c));
+        ojph::size logcb = cod.get_log_block_dims(c);
+        for (int r = 0; r <= levels; ++r) {
+            ojph::size logpp = cod.get_log_precinct_size(c, r);
+            // Resolution r of the image spans [ceil(offset / s),
+            // ceil(extent / s)), where s = downsampling * 2^(levels - r).
+            uint64_t sx = dsx << (levels - r);
+            uint64_t sy = dsy << (levels - r);
+            uint64_t rw = ceil_div(extent.x, sx) - ceil_div(offset.x, sx);
+            uint64_t rh = ceil_div(extent.y, sy) - ceil_div(offset.y, sy);
+            add(min_bytes,
+                clamped_mult64(ceil_div(rw, uint64_t(1) << logpp.w),
+                               ceil_div(rh, uint64_t(1) << logpp.h)));
+            // Codeblocks of bands of r > 0 are capped at half a precinct.
+            uint32_t off = r > 0;
+            int xcb      = int(logpp.w >= off ? std::min(logcb.w, logpp.w - off)
+                                              : logcb.w);
+            int ycb      = int(logpp.h >= off ? std::min(logcb.h, logpp.h - off)
+                                              : logcb.h);
+            uint64_t stride = ((uint64_t(1) << xcb) + 15) & ~uint64_t(15);
+            uint64_t cols   = straddle(ceil_div(tw, dsx), xcb);
+            add(per_tile,
+                clamped_mult64(r ? 3 : 1,
+                               clamped_mult64(cols, (stride * 8) << ycb)));
+        }
+    }
+    cb_bytes = clamped_mult64(ntiles, per_tile);
+#    endif
+}
+
+
+
 bool
 Jpeg2000Input::ojph_read_header()
 {
@@ -382,9 +464,24 @@ Jpeg2000Input::ojph_read_header()
     // The dimensions come straight from the SIZ marker, and ojph_read_image()
     // allocates the whole image up front, so the size has to be vetted here --
     // the guards on the OpenJPEG path below do not run for HTJ2K files.
+    // OpenJPH's own working memory can also dwarf the pixels, so vet that.
+    const uint64_t filesize = ioproxy() ? ioproxy()->size() : 0;
     if (!check_open(m_spec, { 0, std::numeric_limits<int>::max(), 0,
                               std::numeric_limits<int>::max(), 0, 1, 0, 4 })
-        || !check_compression_ratio(m_spec, ioproxy() ? ioproxy()->size() : 0)) {
+        || !check_compression_ratio(m_spec, filesize)) {
+        close();
+        return false;
+    }
+    uint64_t min_bytes, cb_bytes;
+    ojph_layout_bounds(codestream, min_bytes, cb_bytes);
+    if (filesize && min_bytes > filesize) {
+        errorfmt(
+            "{} header's tile and precinct layout needs at least {} bytes, but the file is only {} bytes; probably a corrupt or malicious header",
+            format_name(), min_bytes, filesize);
+        close();
+        return false;
+    }
+    if (!check_compression_ratio(cb_bytes, filesize)) {
         close();
         return false;
     }

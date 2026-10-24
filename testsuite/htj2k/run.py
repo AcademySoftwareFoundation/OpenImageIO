@@ -32,6 +32,34 @@ command += diff_command(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg", "testcompress.
 # oversized claim has to be rejected at open time rather than at allocation.
 command += oiiotool("--info -v src/bomb-resolution.j2c", failureok = True)
 command += oiiotool("--info -v src/bomb-ratio.j2c", failureok = True)
+# Small images, but thousands of tiny tiles, tiny codeblocks or precincts, or
+# resolutions a DFS marker keeps full size, that bloat OpenJPH's allocations.
+# The reader only checks for this when built with OpenJPH >= 0.31.
+def get_openjph_ver():
+    deps = (subprocess.check_output([oiio_app('oiiotool').strip(),
+                                    '--echo', '{getattribute(build:dependencies)}'])
+            .strip().decode('utf-8'))
+    for elem in deps.split(";"):
+        if elem.startswith("openjph "):
+            try:
+                major, minor, patch = (int(x) for x in elem.split()[-1].split("."))
+                return (major * 10000) + (minor * 100) + patch
+            except Exception:
+                pass
+    return -1
+
+if get_openjph_ver() >= 3100:
+    redirect_push("out-tiles.txt")
+    redirect += "2>&1 "
+    command += oiiotool("--info -v src/bomb-tiles.j2c", failureok = True)
+    command += oiiotool("--info -v src/bomb-tiny-tiles.j2c", failureok = True)
+    command += oiiotool("--info -v src/bomb-narrow-blocks.j2c", failureok = True)
+    command += oiiotool("--info -v src/bomb-tiny-precincts.j2c", failureok = True)
+    command += oiiotool("--info -v src/bomb-wide-row.j2c", failureok = True)
+    command += oiiotool("--info -v src/bomb-dfs.j2c", failureok = True)
+    command += oiiotool("--info -v src/bomb-tall-blocks.j2c", failureok = True)
+    redirect_pop()
+
 # ... while a small valid codestream still reads.
 command += oiiotool("--info -v --hash src/valid-16x16.j2c", failureok = True)
 
