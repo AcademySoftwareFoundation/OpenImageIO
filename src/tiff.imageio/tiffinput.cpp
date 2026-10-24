@@ -961,6 +961,14 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         TIFFOpenOptionsSetErrorHandlerExtR(openopts, my_error_handler, this);
         TIFFOpenOptionsSetWarningHandlerExtR(openopts, my_warning_handler,
                                              this);
+        // Bound libtiff's own allocations by limits:imagesize_MB (0 = none).
+        tmsize_t memlimit = tmsize_t(
+            std::min(int64_t(std::max(pvt::limit_imagesize_MB, 0)) << 20,
+                     int64_t(std::numeric_limits<tmsize_t>::max())));
+        TIFFOpenOptionsSetMaxSingleMemAlloc(openopts, memlimit);
+#    if OIIO_TIFFLIB_VERSION >= 40601
+        TIFFOpenOptionsSetMaxCumulatedMemAlloc(openopts, memlimit);
+#    endif
 #endif
         if (ioproxy_opened()) {
             static_assert(sizeof(thandle_t) == sizeof(void*),
@@ -968,11 +976,11 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
             // Strutil::print("\n\nOpening client \"{}\"\n", m_filename);
             ioseek(0);
 #if OIIO_TIFFLIB_VERSION >= 40500
-            m_tif = TIFFClientOpen(m_filename.c_str(), "rm", ioproxy(),
-                                   reader_readproc, reader_writeproc,
-                                   reader_seekproc, reader_closeproc,
-                                   reader_sizeproc, reader_mapproc,
-                                   reader_unmapproc);
+            m_tif = TIFFClientOpenExt(m_filename.c_str(), "rm", ioproxy(),
+                                      reader_readproc, reader_writeproc,
+                                      reader_seekproc, reader_closeproc,
+                                      reader_sizeproc, reader_mapproc,
+                                      reader_unmapproc, openopts);
 #else
             m_tif = TIFFClientOpen(m_filename.c_str(), "rm", ioproxy(),
                                    reader_readproc, reader_writeproc,
