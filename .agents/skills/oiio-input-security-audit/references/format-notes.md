@@ -87,7 +87,9 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   guard; undebayered flip table covered 4 of 8 codes (returned true without
   writing: heap disclosure); 64-bit index bounded by the real allocation
   (`raw_width*raw_height`, not header geometry: Fuji rotated sensors).
-  Open: Fuji unrotation, FilterPattern vs flip, LibRaw internals.
+  The pre-unpack guard sizes sensor data, not the output image, so C2 also
+  runs on `m_spec` after `check_open` (A8). Open: Fuji unrotation,
+  FilterPattern vs flip, LibRaw internals.
 - dicom: null `getInterData()`/`getOutputData()` (DASSERT only); C2 N/A; no
   local samples or writer, so verified by inspection.
 - ptex: header validator (#5265) good; null `getData`/`getTile` after lazy-read

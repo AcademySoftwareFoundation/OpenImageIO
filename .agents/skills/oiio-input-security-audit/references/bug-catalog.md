@@ -75,6 +75,22 @@ re-join. Fix with per-call budgets (xmp: 4096 attributes / 1 MB payload, depth
 64). If a cap risks dropping legitimate metadata, it is a policy call: log as
 P2 deferral and ask the maintainer.
 
+### A8. Ratio guard run only on a proxy, never on the declared spec
+A reader that sizes its ratio check from something other than the output
+spec (sensor samples, compressed-stream geometry) can stay under the 1 GB
+floor while the spec it then publishes is well over it.
+- Find: `check_compression_ratio(` calls whose first argument is not
+  `m_spec`/`spec`.
+- Fix: keep the early proxy check if it guards an earlier allocation, and also
+  call `check_compression_ratio(m_spec, filesize)` next to `check_open`.
+- Seen: raw (pre-`unpack()` guard used `raw_width*raw_height*raw_bps/8`; RGB
+  uint16 output was 4-6x that).
+- Not this: a fuzz OOM where the spec passes `check_open` and is under the
+  ratio floor, but the reader legitimately needs a multiple of the spec size
+  (e.g. tiff RGBA fallback, 4 bytes/pixel). Valid files of that size need the
+  same memory; it is a harness-limit issue (`docs/dev/fuzzing.md`), not a
+  reader bug.
+
 
 ## B. Integer arithmetic
 

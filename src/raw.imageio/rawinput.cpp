@@ -548,7 +548,8 @@ RawInput::open_raw(bool unpack, bool process, const std::string& name,
     // Enforce OIIO's global decode-bomb limits (limits:resolution,
     // limits:imagesize_MB) and LibRaw's own 65535-per-dimension cap.
     // idata.colors maxes out at 4 (some 4-color CFA patterns).
-    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 }))
+    if (!check_open(m_spec, { 0, 1 << 16, 0, 1 << 16, 0, 1, 0, 4 })
+        || !check_compression_ratio(m_spec, Filesystem::file_size(name)))
         return false;
 
     // Output 16 bit images
