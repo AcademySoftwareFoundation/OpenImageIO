@@ -179,20 +179,28 @@ synthetic seeds that have no testsuite fixture; everything else is sourced from
 
 ## Memory limits and false-positive OOMs
 
-libFuzzer enforces an `rss_limit_mb` (set in
-`src/fuzz/oiio_fuzz_image.options`, currently 4096 MB) and reports a crash if
-the process exceeds it. OIIO's own decode-bomb guards default to much larger
+libFuzzer enforces an `rss_limit_mb` (currently 4096 MB) and reports a crash
+if the process exceeds it; CI also passes `-malloc_limit_mb=2048`
+(`src/build-scripts/ci-fuzztest.bash`), which reports any single allocation
+over 2 GB. OIIO's own decode-bomb guards default to much larger
 values (`limits:imagesize_MB` = 32768, `limits:resolution` = 1048576), so a
 corrupt header claiming a multi-GB image would trip libFuzzer's OOM kill before
 OIIO's guard rejects it — a false positive.
 
 To keep the two budgets commensurate, `OIIO_FUZZ_INIT` (in
 `src/fuzz/fuzz_image.cpp`) lowers OIIO's limits well under the RSS budget:
-`limits:imagesize_MB` to 2048 (half the budget, leaving headroom for decode
-scratch and process overhead) and `limits:resolution` to 65536. With these in
-place OIIO rejects oversized headers through its normal error path instead of
-allocating into an OOM kill. If you change `rss_limit_mb`, update these limits
-to match.
+`limits:imagesize_MB` to 512 and `limits:resolution` to 65536. The image
+size limit is a quarter of the malloc limit because some readers legitimately
+allocate a few times the declared image size in one buffer (TIFF's RGBA
+fallback, LibRaw's working image). With these in place OIIO rejects oversized
+headers through its normal error path instead of allocating into an OOM kill.
+If you change `rss_limit_mb` or `malloc_limit_mb`, update these limits to
+match.
+
+When triaging an OOM, first check whether the declared spec passed
+`check_open()` and was under the 1 GB `check_compression_ratio()` floor. If
+so, and a valid file of the same size would need the same memory, the reader
+is fine and the harness limits are too loose; it is not a reader bug.
 
 
 ## CI overview
