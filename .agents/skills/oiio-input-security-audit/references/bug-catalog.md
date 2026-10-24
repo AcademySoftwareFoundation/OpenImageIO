@@ -174,6 +174,20 @@ open() returns true with a member still null (jpegxl basic-info without an
 image-out buffer => null deref in read_native_scanline). After the decode
 loop, assert every member later dereferenced.
 
+### C-6. Varargs getter called with the wrong argument convention
+`TIFFGetField` is unchecked varargs. Field metadata (`TIFFFieldPassCount`,
+`TIFFFieldReadCount`) describes custom/Exif tags, but standard tags use the
+hand-written `_TIFFVGetField` cases, which can differ. Extra or wrong-width
+pointers get written through: stack smash on any file carrying the tag.
+- Find: generic helpers that pick `TIFFGetField(tif, tag, &count, &ptr)` from
+  field metadata; check each standard tag routed there against libtiff's
+  `tif_dir.c` getter case.
+- Seen: tiff `TIFFTAG_INKNAMES` (passcount=1 in the field table, getter takes
+  only `const char**`) via `safe_tiffgetfield`: 8-byte pointer into a 4-byte
+  count on every multi-ink file (#5595). Fix: call the getter directly with
+  libtiff's documented arguments. Ink walk also trusted `NumberOfInks`, which
+  older libtiff (4.3.0) does not reconcile with the string: clamp to `nchannels`.
+
 
 ## D. Structure walking: loops, recursion, state
 
