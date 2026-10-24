@@ -101,3 +101,16 @@ command += oiiotool("--testread src/truncated-pixels.dpx", failureok=True)
 # (flagged by UBSan). The read fails because the pixel data is too short
 # for the 16-bit words an unknown packing falls back to.
 command += oiiotool("--testread src/bad-packing.dpx", failureok=True)
+
+# Regression test: DPX image elements share one resolution, so subimages
+# that differ must be rejected rather than written with the first
+# subimage's size (which over-read the pixel buffer). Elements may have
+# different channel counts, and each must get its own descriptor.
+command += oiiotool("--create 64x64 3 --create 4x4 3 --siappend -o mixed-res.dpx",
+                    failureok=True)
+command += oiiotool("--pattern constant:color=0.25,0.5,0.75 64x64 3 "
+                    "--pattern constant:color=1 64x64 1 --chnames A "
+                    "--siappend -o mixed-chans.dpx")
+command += info_command("mixed-chans.dpx", safematch=True, hash=True)
+# Channel counts with no supported descriptor must fail cleanly.
+command += oiiotool("--create 8x8 2 -o twochan.dpx", failureok=True)
