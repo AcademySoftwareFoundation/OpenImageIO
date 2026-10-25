@@ -57,7 +57,7 @@ jobs:
 
   sdist:
     name: Build SDist
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: |
       github.event_name != 'schedule' || github.event.repository.fork == false
 
@@ -83,7 +83,7 @@ jobs:
 
   linux:
     name: Build wheels on Linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: |
       ${{ github.event_name != 'schedule' || github.event.repository.fork == false }}
     strategy:
@@ -515,7 +515,7 @@ jobs:
 
   upload_pypi:
     needs: [sdist, linux, linux-arm, macos, macos-arm, windows]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write
     if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v3.0.') || startsWith(github.event.ref, 'refs/tags/v3.1.')) && github.event.repository.fork == false
