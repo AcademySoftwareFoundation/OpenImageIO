@@ -254,3 +254,44 @@ Full command line was:
 oiiotool ERROR: testread : "src/bad-packing.dpx": Failed to read scanlines 0-3
 Full command line was:
 > oiiotool --testread src/bad-packing.dpx
+oiiotool ERROR: -o : dpx subimages must all have the same resolution (subimage 0 was 64x64, versus subimage 1 with 4x4)
+Full command line was:
+> oiiotool --create 64x64 3 --create 4x4 3 --siappend -o mixed-res.dpx
+Reading mixed-chans.dpx
+mixed-chans.dpx      :   64 x   64, 3 channel, float dpx
+    2 subimages: 64x64 [f,f,f], 64x64 [f]
+ subimage  0:   64 x   64, 3 channel, float dpx
+    SHA-1: 1DF4D4074E9D95CF123D7514E4793292C2D8A326
+    channel list: R, G, B
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    dpx:Colorimetric: "User defined"
+    dpx:DittoKey: 1
+    dpx:EndOfImagePadding: 0
+    dpx:EndOfLinePadding: 0
+    dpx:ImageDescriptor: "RGB"
+    dpx:Packing: "Filled, method A"
+    dpx:Signal: "Undefined"
+    dpx:Transfer: "Undefined"
+    dpx:Version: "V2.0"
+    oiio:BitsPerSample: 32
+    oiio:subimages: 2
+ subimage  1:   64 x   64, 1 channel, float dpx
+    SHA-1: C88FD13248FC936F22E7286D9A43F19E92347FBD
+    channel list: A
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    dpx:Colorimetric: "User defined"
+    dpx:DittoKey: 1
+    dpx:EndOfImagePadding: 0
+    dpx:EndOfLinePadding: 0
+    dpx:ImageDescriptor: "Alpha"
+    dpx:Packing: "Filled, method A"
+    dpx:Signal: "Undefined"
+    dpx:Transfer: "Undefined"
+    dpx:Version: "V2.0"
+    oiio:BitsPerSample: 32
+    oiio:subimages: 2
+oiiotool ERROR: -o : DPX writer does not support 2 channels
+Full command line was:
+> oiiotool --create 8x8 2 -o twochan.dpx
