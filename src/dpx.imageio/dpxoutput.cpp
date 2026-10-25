@@ -152,7 +152,10 @@ DPXOutput::open(const std::string& name, int subimages, const ImageSpec* specs)
     for (int s = 1; s < subimages; ++s) {
         if (specs[s].width != specs[0].width
             || specs[s].height != specs[0].height) {
-            errorfmt("DPX subimages must all have the same resolution");
+            errorfmt(
+                "{} subimages must all have the same resolution (subimage 0 was {}x{}, versus subimage {} with {}x{})",
+                format_name(), specs[0].width, specs[0].height, s,
+                specs[s].width, specs[s].height);
             return false;
         }
     }

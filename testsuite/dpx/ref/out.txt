@@ -254,7 +254,7 @@ Full command line was:
 oiiotool ERROR: testread : "src/bad-packing.dpx": Failed to read scanlines 0-3
 Full command line was:
 > oiiotool --testread src/bad-packing.dpx
-oiiotool ERROR: -o : DPX subimages must all have the same resolution
+oiiotool ERROR: -o : dpx subimages must all have the same resolution (subimage 0 was 64x64, versus subimage 1 with 4x4)
 Full command line was:
 > oiiotool --create 64x64 3 --create 4x4 3 --siappend -o mixed-res.dpx
 Reading mixed-chans.dpx
