@@ -4736,7 +4736,8 @@ void debugfmt (const char* fmt, Args&&... args)
 }
 
 namespace pvt {
-// For internal use - use errorfmt() for a nicer interface.
+// Only kept for ABI compatibility; will be removed in 4.0.
+[[deprecated("use errorfmt() instead (3.3)")]]
 OIIO_API void append_error(string_view message);
 }
 
