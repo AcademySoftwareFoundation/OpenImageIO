@@ -81,12 +81,12 @@ jobs:
             nametag: docslinux
             runner: ubuntu-latest
             cxx_std: 17
-            python_ver: "3.11"
+            python_ver: "3.12"
             build_docs: 1
             skip_build: 1
             skip_tests: 1
             setenvs: export EXTRA_DEP_PACKAGES="doxygen sphinx-doc"
-                            PIP_INSTALLS="sphinx breathe==4.34.0 sphinx-tabs furo==2022.6.21 myst-parser"
+                            PIP_INSTALLS="sphinx>=9.1 breathe>=5.1 sphinx-tabs>=3.5 furo>=2025.12.19 myst-parser>=5.1"
                             SKIP_SYSTEM_DEPS_INSTALL=1
                             USE_OPENCV=0 USE_FFMPEG=0 USE_FREETYPE=0
                             USE_LIBHEIF=0 QT_VERSION=0 PYBIND11_VERSION=0
