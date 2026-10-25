@@ -21,6 +21,18 @@ set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
 
+# Build a single ENVIRONMENT list entry "PYTHONPATH=..." for CTest, putting
+# prefix_dir ahead of any inherited PYTHONPATH.
+function (oiio_tests_pythonpath_env_entry out_var prefix_dir)
+    if (DEFINED ENV{PYTHONPATH} AND NOT "$ENV{PYTHONPATH}" STREQUAL "")
+        string (CONCAT _pythonpath "${prefix_dir}" ":" "$ENV{PYTHONPATH}")
+    else ()
+        set (_pythonpath "${prefix_dir}")
+    endif ()
+    set (${out_var} "PYTHONPATH=${_pythonpath}" PARENT_SCOPE)
+endfunction ()
+
+
 
 # oiio_add_tests() - add a set of test cases.
 #
@@ -72,6 +84,11 @@ macro (oiio_add_tests)
             set (_test_disabled TRUE)
         endif ()
     endforeach ()
+    # Default PYTHONPATH (see oiio_add_all_tests), placed first so that a
+    # PYTHONPATH in the caller's ENVIRONMENT overrides it.
+    if (NOT "${_pybind_tests_pythonpath}" STREQUAL "")
+        list (PREPEND _ats_ENVIRONMENT "${_pybind_tests_pythonpath}")
+    endif ()
     # For OCIO 2.2+, have the testsuite use the default built-in config
     list (APPEND _ats_ENVIRONMENT "OCIO=ocio://default"
                                   "OIIO_TESTSUITE_OCIOCONFIG=ocio://default")
@@ -133,6 +150,18 @@ endmacro ()
 # directories with plugins are included.
 #
 macro (oiio_add_all_tests)
+
+    # PYTHONPATH entry pointing at this build's Python bindings.
+    # oiio_add_tests gives every test this by default, so any test that runs
+    # Python uses this build rather than whatever is in the ambient
+    # environment. Empty where the Python tests can't run (see below for why
+    # sanitizer builds are excluded), and on Windows, where the tests rely on
+    # the ambient environment.
+    set (_pybind_tests_pythonpath "")
+    if (USE_PYTHON AND NOT BUILD_OIIOUTIL_ONLY AND NOT SANITIZE AND NOT WIN32)
+        oiio_tests_pythonpath_env_entry (_pybind_tests_pythonpath
+            "${CMAKE_BINARY_DIR}/lib/python/site-packages")
+    endif ()
 
     # Freestanding tests:
     oiio_add_tests (
