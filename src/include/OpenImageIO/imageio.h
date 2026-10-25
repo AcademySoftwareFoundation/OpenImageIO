@@ -4736,15 +4736,8 @@ void debugfmt (const char* fmt, Args&&... args)
 }
 
 namespace pvt {
-// For internal use - use errorfmt() below for a nicer interface.
+// For internal use - use errorfmt() for a nicer interface.
 OIIO_API void append_error(string_view message);
-}
-
-/// error logging (mostly for OIIO internals) with `std::format` conventions.
-template<typename... Args>
-inline void errorfmt(const char* fmt, Args&&... args)
-{
-    pvt::append_error(string_view(Strutil::fmt::format(fmt, args...)));
 }
 
 /// Internal function to log time recorded by an OIIO::timer(). It will only
@@ -4825,7 +4818,6 @@ using v3_1::debug;
 using v3_1::debugfmt;
 using v3_1::declare_imageio_format;
 using v3_1::equivalent_colorspace;
-using v3_1::errorfmt;
 using v3_1::get_colorspace_cicp;
 using v3_1::get_colorspace_icc_profile;
 using v3_1::get_extension_map;
