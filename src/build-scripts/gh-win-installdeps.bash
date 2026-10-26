@@ -14,6 +14,9 @@ export CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH:=.}
 export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$DEP_DIR"
 export CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release"
 export PATH="$PATH:$DEP_DIR/bin:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/bin:/bin:$PWD/ext/dist/bin:$PWD/ext/dist/lib"
+# DLLs of deps built during the OIIO configure. Only installed alongside OIIO
+# when built in that run, not when restored from the CI cache.
+export PATH="$PATH:$PWD/build/deps/dist/bin"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/bin:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/bin"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$DEP_DIR/lib:$VCPKG_INSTALLATION_ROOT/installed/x64-windows-release/lib"
 
