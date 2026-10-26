@@ -1706,6 +1706,21 @@ class ImageBufAlgo:
     @staticmethod
     def bluenoise_image() -> ImageBuf: ...
 
+    @staticmethod
+    def render_point(dst: ImageBuf, x: int, y: int, color: float | typing.Iterable[float] = ...) -> bool: ...
+
+    @staticmethod
+    def render_line(dst: ImageBuf, x1: int, y1: int, x2: int, y2: int, color: float | typing.Iterable[float] = ..., skip_first_point: bool = False) -> bool: ...
+
+    @staticmethod
+    def render_box(dst: ImageBuf, x1: int, y1: int, x2: int, y2: int, color: float | typing.Iterable[float] = ..., fill: bool = False) -> bool: ...
+
+    @staticmethod
+    def render_text(dst: ImageBuf, x: int, y: int, text: str, fontsize: int = 16, fontname: str = '', textcolor: object = (), alignx: str = 'left', aligny: str = 'baseline', shadow: int = 0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @staticmethod
+    def text_size(text: str, fontsize: int = 16, fontname: str = '') -> ROI: ...
+
     @overload
     @staticmethod
     def channels(dst: ImageBuf, src: ImageBuf, channelorder: tuple, newchannelnames: tuple = (), shuffle_channel_names: bool = False, nthreads: int = 0) -> bool: ...
@@ -1721,38 +1736,6 @@ class ImageBufAlgo:
     @overload
     @staticmethod
     def channel_append(A: ImageBuf, B: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def deepen(dst: ImageBuf, src: ImageBuf, zvalue: float = 1.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def deepen(src: ImageBuf, zvalue: float = 1.0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def flatten(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def flatten(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def deep_merge(dst: ImageBuf, A: ImageBuf, B: ImageBuf, occlusion_cull: bool = True, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def deep_merge(A: ImageBuf, B: ImageBuf, occlusion_cull: bool = True, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def deep_holdout(dst: ImageBuf, src: ImageBuf, holdout: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def deep_holdout(src: ImageBuf, holdout: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
     @overload
     @staticmethod
@@ -1843,6 +1826,69 @@ class ImageBufAlgo:
     @overload
     @staticmethod
     def circular_shift(src: ImageBuf, xshift: int, yshift: int, zshift: int = 0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def warp(dst: ImageBuf, src: ImageBuf, M: object, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, wrap: str = 'default', roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def warp(src: ImageBuf, M: object, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, wrap: str = 'default', roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def rotate(dst: ImageBuf, src: ImageBuf, angle: float, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def rotate(dst: ImageBuf, src: ImageBuf, angle: float, center_x: float, center_y: float, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def rotate(src: ImageBuf, angle: float, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def rotate(src: ImageBuf, angle: float, center_x: float, center_y: float, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def resize(dst: ImageBuf, src: ImageBuf, filtername: str = '', filterwidth: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def resize(src: ImageBuf, filtername: str = '', filterwidth: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def resample(dst: ImageBuf, src: ImageBuf, interpolate: bool = True, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def resample(src: ImageBuf, interpolate: bool = True, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def st_warp(dst: ImageBuf, src: ImageBuf, stbuf: ImageBuf, filtername: str = '', filterwidth: float = 0.0, chan_s: int = 0, chan_t: int = 1, flip_s: bool = False, flip_t: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def st_warp(src: ImageBuf, stbuf: ImageBuf, filtername: str = '', filterwidth: float = 0.0, chan_s: int = 0, chan_t: int = 1, flip_s: bool = False, flip_t: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def fit(dst: ImageBuf, src: ImageBuf, filtername: str = '', filterwidth: float = 0.0, fillmode: str = 'letterbox', exact: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def fit(src: ImageBuf, filtername: str = '', filterwidth: float = 0.0, fillmode: str = 'letterbox', exact: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def demosaic(dst: ImageBuf, src: ImageBuf, pattern: str = '', algorithm: str = '', layout: str = '', white_balance_mode: str = '', white_balance: float | typing.Iterable[float] = ..., roi: ROI = ..., nthreads: int = 0) -> bool: ...
+    @overload
+    @staticmethod
+    def demosaic(src: ImageBuf, pattern: str = '', algorithm: str = '', layout: str = '', white_balance_mode: str = '', white_balance: float | typing.Iterable[float] = ..., roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
     @overload
     @staticmethod
@@ -2006,6 +2052,30 @@ class ImageBufAlgo:
 
     @overload
     @staticmethod
+    def normalize(dst: ImageBuf, src: ImageBuf, inCenter: float = 0.0, outCenter: float = 0.0, scale: float = 1.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def normalize(src: ImageBuf, inCenter: float = 0.0, outCenter: float = 0.0, scale: float = 1.0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def over(dst: ImageBuf, A: ImageBuf, B: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def over(A: ImageBuf, B: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def zover(dst: ImageBuf, A: ImageBuf, B: ImageBuf, z_zeroisinf: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def zover(A: ImageBuf, B: ImageBuf, z_zeroisinf: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
     def color_map(dst: ImageBuf, src: ImageBuf, srcchannel: int, mapname: str, roi: ROI = ..., nthreads: int = 0) -> bool: ...
 
     @overload
@@ -2035,30 +2105,6 @@ class ImageBufAlgo:
     @overload
     @staticmethod
     def rangeexpand(src: ImageBuf, useluma: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def premult(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def premult(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def unpremult(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def unpremult(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def repremult(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def repremult(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
     @overload
     @staticmethod
@@ -2137,6 +2183,189 @@ class ImageBufAlgo:
     @overload
     @staticmethod
     def decorr_stretch(src: ImageBuf, firstchannel: int = 0, nchannels: int = 0, scale: float = 1.0, sigma: float = 0.0, mean: object | None = None, percentile: float = 0.0, mode: str = '', roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def computePixelStats(src: ImageBuf, stats: PixelStats, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def computePixelStats(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> PixelStats: ...
+
+    @overload
+    @staticmethod
+    def compare(A: ImageBuf, B: ImageBuf, failthresh: float, warnthresh: float, result: CompareResults, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def compare(A: ImageBuf, B: ImageBuf, failthresh: float, warnthresh: float, failrelative: float = 0.0, warnrelative: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> CompareResults: ...
+
+    @overload
+    @staticmethod
+    def compare(A: ImageBuf, B: ImageBuf, failthresh: float, warnthresh: float, roi: ROI = ..., nthreads: int = 0) -> CompareResults: ...
+
+    @staticmethod
+    def compare_Yee(A: ImageBuf, B: ImageBuf, result: CompareResults, luminance: float = 100, fov: float = 45, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def FLIP_diff(ref: ImageBuf, test: ImageBuf, hdr: int = 1, maxluminance: float = 2.0, medianluminance: float = 0.18000000715255737, ppd: float = 0.0, tonemapper: str = 'aces', roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def FLIP_diff(dst: ImageBuf, ref: ImageBuf, test: ImageBuf, hdr: int = 1, maxluminance: float = 2.0, medianluminance: float = 0.18000000715255737, ppd: float = 0.0, tonemapper: str = 'aces', roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @staticmethod
+    def FLIP_ppd(monitor_distance_m: float = 0.699999988079071, screen_width_px: float = 3840.0, screen_width_m: float = 0.699999988079071) -> float: ...
+
+    @staticmethod
+    def isConstantColor(src: ImageBuf, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> tuple[float, ...] | None: ...
+
+    @staticmethod
+    def isConstantChannel(src: ImageBuf, channel: int, val: float, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @staticmethod
+    def isMonochrome(src: ImageBuf, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @staticmethod
+    def color_range_check(src: ImageBuf, low: object, high: object, roi: ROI = ..., nthreads: int = 0) -> tuple[int, ...] | None: ...
+
+    @staticmethod
+    def nonzero_region(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ROI: ...
+
+    @staticmethod
+    def computePixelHashSHA1(src: ImageBuf, extrainfo: str = '', roi: ROI = ..., blocksize: int = 0, nthreads: int = 0) -> str: ...
+
+    @staticmethod
+    def histogram(src: ImageBuf, channel: int = 0, bins: int = 256, min: float = 0.0, max: float = 1.0, ignore_empty: bool = False, roi: ROI = ..., nthreads: int = 0) -> tuple[int, ...]: ...
+
+    @overload
+    @staticmethod
+    def make_kernel(dst: ImageBuf, name: str, width: float, height: float, depth: float = 1.0, normalize: bool = True) -> bool: ...
+
+    @overload
+    @staticmethod
+    def make_kernel(name: str, width: float, height: float, depth: float = 1.0, normalize: bool = True) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def convolve(dst: ImageBuf, src: ImageBuf, kernel: ImageBuf, normalze: bool = True, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def convolve(src: ImageBuf, kernel: ImageBuf, normalze: bool = True, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def laplacian(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def laplacian(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def fft(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def fft(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def ifft(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def ifft(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def polar_to_complex(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def polar_to_complex(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def complex_to_polar(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def complex_to_polar(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def unsharp_mask(dst: ImageBuf, src: ImageBuf, kernel: str = 'gaussian', width: float = 3.0, contrast: float = 1.0, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def unsharp_mask(src: ImageBuf, kernel: str = 'gaussian', width: float = 3.0, contrast: float = 1.0, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def median_filter(dst: ImageBuf, src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def median_filter(src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def fixNonFinite(dst: ImageBuf, src: ImageBuf, mode: NonFiniteFixMode = NonFiniteFixMode.NONFINITE_BOX3, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def fixNonFinite(src: ImageBuf, mode: NonFiniteFixMode = NonFiniteFixMode.NONFINITE_BOX3, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def fillholes_pushpull(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def fillholes_pushpull(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def dilate(dst: ImageBuf, src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def dilate(src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def erode(dst: ImageBuf, src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def erode(src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def premult(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def premult(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def unpremult(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def unpremult(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+
+    @overload
+    @staticmethod
+    def repremult(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+
+    @overload
+    @staticmethod
+    def repremult(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
     @overload
     @staticmethod
@@ -2244,257 +2473,35 @@ class ImageBufAlgo:
 
     @overload
     @staticmethod
-    def computePixelStats(src: ImageBuf, stats: PixelStats, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+    def deepen(dst: ImageBuf, src: ImageBuf, zvalue: float = 1.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
 
     @overload
     @staticmethod
-    def computePixelStats(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> PixelStats: ...
+    def deepen(src: ImageBuf, zvalue: float = 1.0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
     @overload
     @staticmethod
-    def compare(A: ImageBuf, B: ImageBuf, failthresh: float, warnthresh: float, result: CompareResults, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+    def flatten(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
 
     @overload
     @staticmethod
-    def compare(A: ImageBuf, B: ImageBuf, failthresh: float, warnthresh: float, failrelative: float = 0.0, warnrelative: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> CompareResults: ...
+    def flatten(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
     @overload
     @staticmethod
-    def compare(A: ImageBuf, B: ImageBuf, failthresh: float, warnthresh: float, roi: ROI = ..., nthreads: int = 0) -> CompareResults: ...
-
-    @staticmethod
-    def compare_Yee(A: ImageBuf, B: ImageBuf, result: CompareResults, luminance: float = 100, fov: float = 45, roi: ROI = ..., nthreads: int = 0) -> bool: ...
+    def deep_merge(dst: ImageBuf, A: ImageBuf, B: ImageBuf, occlusion_cull: bool = True, roi: ROI = ..., nthreads: int = 0) -> bool: ...
 
     @overload
     @staticmethod
-    def FLIP_diff(ref: ImageBuf, test: ImageBuf, hdr: int = 1, maxluminance: float = 2.0, medianluminance: float = 0.18000000715255737, ppd: float = 0.0, tonemapper: str = 'aces', roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
+    def deep_merge(A: ImageBuf, B: ImageBuf, occlusion_cull: bool = True, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
     @overload
     @staticmethod
-    def FLIP_diff(dst: ImageBuf, ref: ImageBuf, test: ImageBuf, hdr: int = 1, maxluminance: float = 2.0, medianluminance: float = 0.18000000715255737, ppd: float = 0.0, tonemapper: str = 'aces', roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @staticmethod
-    def FLIP_ppd(monitor_distance_m: float = 0.699999988079071, screen_width_px: float = 3840.0, screen_width_m: float = 0.699999988079071) -> float: ...
-
-    @staticmethod
-    def isConstantColor(src: ImageBuf, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> tuple[float, ...] | None: ...
-
-    @staticmethod
-    def isConstantChannel(src: ImageBuf, channel: int, val: float, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @staticmethod
-    def isMonochrome(src: ImageBuf, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @staticmethod
-    def color_range_check(src: ImageBuf, low: object, high: object, roi: ROI = ..., nthreads: int = 0) -> tuple[int, ...] | None: ...
-
-    @staticmethod
-    def nonzero_region(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ROI: ...
-
-    @staticmethod
-    def computePixelHashSHA1(src: ImageBuf, extrainfo: str = '', roi: ROI = ..., blocksize: int = 0, nthreads: int = 0) -> str: ...
+    def deep_holdout(dst: ImageBuf, src: ImageBuf, holdout: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
 
     @overload
     @staticmethod
-    def warp(dst: ImageBuf, src: ImageBuf, M: object, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, wrap: str = 'default', roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def warp(src: ImageBuf, M: object, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, wrap: str = 'default', roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def rotate(dst: ImageBuf, src: ImageBuf, angle: float, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def rotate(dst: ImageBuf, src: ImageBuf, angle: float, center_x: float, center_y: float, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def rotate(src: ImageBuf, angle: float, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def rotate(src: ImageBuf, angle: float, center_x: float, center_y: float, filtername: str = '', filterwidth: float = 0.0, recompute_roi: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def resize(dst: ImageBuf, src: ImageBuf, filtername: str = '', filterwidth: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def resize(src: ImageBuf, filtername: str = '', filterwidth: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def resample(dst: ImageBuf, src: ImageBuf, interpolate: bool = True, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def resample(src: ImageBuf, interpolate: bool = True, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def st_warp(dst: ImageBuf, src: ImageBuf, stbuf: ImageBuf, filtername: str = '', filterwidth: float = 0.0, chan_s: int = 0, chan_t: int = 1, flip_s: bool = False, flip_t: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def st_warp(src: ImageBuf, stbuf: ImageBuf, filtername: str = '', filterwidth: float = 0.0, chan_s: int = 0, chan_t: int = 1, flip_s: bool = False, flip_t: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def fit(dst: ImageBuf, src: ImageBuf, filtername: str = '', filterwidth: float = 0.0, fillmode: str = 'letterbox', exact: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def fit(src: ImageBuf, filtername: str = '', filterwidth: float = 0.0, fillmode: str = 'letterbox', exact: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def make_kernel(dst: ImageBuf, name: str, width: float, height: float, depth: float = 1.0, normalize: bool = True) -> bool: ...
-
-    @overload
-    @staticmethod
-    def make_kernel(name: str, width: float, height: float, depth: float = 1.0, normalize: bool = True) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def convolve(dst: ImageBuf, src: ImageBuf, kernel: ImageBuf, normalze: bool = True, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def convolve(src: ImageBuf, kernel: ImageBuf, normalze: bool = True, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def unsharp_mask(dst: ImageBuf, src: ImageBuf, kernel: str = 'gaussian', width: float = 3.0, contrast: float = 1.0, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def unsharp_mask(src: ImageBuf, kernel: str = 'gaussian', width: float = 3.0, contrast: float = 1.0, threshold: float = 0.0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def median_filter(dst: ImageBuf, src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def median_filter(src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def dilate(dst: ImageBuf, src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def dilate(src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def erode(dst: ImageBuf, src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def erode(src: ImageBuf, width: int = 3, height: int = -1, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def laplacian(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def laplacian(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def fft(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def fft(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def ifft(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def ifft(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def polar_to_complex(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def polar_to_complex(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def complex_to_polar(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def complex_to_polar(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def fixNonFinite(dst: ImageBuf, src: ImageBuf, mode: NonFiniteFixMode = NonFiniteFixMode.NONFINITE_BOX3, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def fixNonFinite(src: ImageBuf, mode: NonFiniteFixMode = NonFiniteFixMode.NONFINITE_BOX3, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def normalize(dst: ImageBuf, src: ImageBuf, inCenter: float = 0.0, outCenter: float = 0.0, scale: float = 1.0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def normalize(src: ImageBuf, inCenter: float = 0.0, outCenter: float = 0.0, scale: float = 1.0, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def fillholes_pushpull(dst: ImageBuf, src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def fillholes_pushpull(src: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def over(dst: ImageBuf, A: ImageBuf, B: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def over(A: ImageBuf, B: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @overload
-    @staticmethod
-    def zover(dst: ImageBuf, A: ImageBuf, B: ImageBuf, z_zeroisinf: bool = False, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @overload
-    @staticmethod
-    def zover(A: ImageBuf, B: ImageBuf, z_zeroisinf: bool = False, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
-
-    @staticmethod
-    def render_point(dst: ImageBuf, x: int, y: int, color: float | typing.Iterable[float] = ...) -> bool: ...
-
-    @staticmethod
-    def render_line(dst: ImageBuf, x1: int, y1: int, x2: int, y2: int, color: float | typing.Iterable[float] = ..., skip_first_point: bool = False) -> bool: ...
-
-    @staticmethod
-    def render_box(dst: ImageBuf, x1: int, y1: int, x2: int, y2: int, color: float | typing.Iterable[float] = ..., fill: bool = False) -> bool: ...
-
-    @staticmethod
-    def render_text(dst: ImageBuf, x: int, y: int, text: str, fontsize: int = 16, fontname: str = '', textcolor: object = (), alignx: str = 'left', aligny: str = 'baseline', shadow: int = 0, roi: ROI = ..., nthreads: int = 0) -> bool: ...
-
-    @staticmethod
-    def text_size(text: str, fontsize: int = 16, fontname: str = '') -> ROI: ...
-
-    @staticmethod
-    def histogram(src: ImageBuf, channel: int = 0, bins: int = 256, min: float = 0.0, max: float = 1.0, ignore_empty: bool = False, roi: ROI = ..., nthreads: int = 0) -> tuple[int, ...]: ...
+    def deep_holdout(src: ImageBuf, holdout: ImageBuf, roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
     @overload
     @staticmethod
@@ -2503,13 +2510,6 @@ class ImageBufAlgo:
     @overload
     @staticmethod
     def make_texture(mode: MakeTextureMode, buf: ImageBuf, outputfilename: str, config: ImageSpec = ...) -> bool: ...
-
-    @overload
-    @staticmethod
-    def demosaic(dst: ImageBuf, src: ImageBuf, pattern: str = '', algorithm: str = '', layout: str = '', white_balance_mode: str = '', white_balance: float | typing.Iterable[float] = ..., roi: ROI = ..., nthreads: int = 0) -> bool: ...
-    @overload
-    @staticmethod
-    def demosaic(src: ImageBuf, pattern: str = '', algorithm: str = '', layout: str = '', white_balance_mode: str = '', white_balance: float | typing.Iterable[float] = ..., roi: ROI = ..., nthreads: int = 0) -> ImageBuf: ...
 
 @overload
 def attribute(arg0: str, arg1: object, /) -> None: ...
