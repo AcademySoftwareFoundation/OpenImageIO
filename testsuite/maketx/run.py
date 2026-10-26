@@ -172,11 +172,20 @@ command += oiiotool (" --pattern constant:color=.25,.25,.25,.5 64x64 4 "
 command += maketx_command ("gray64srgb.tif", "gray64linsrgb.tx",
                            "--colorconvert srgb lin_srgb --unpremult")
 
+# Test --ignore-unassoc: the input is tagged unassociated alpha, so by
+# default color is premultiplied (128 -> 64), but not with the flag.
+command += oiiotool (" --pattern constant:color=.5,.5,.5,.5 1x1 4 "
+                    + " --attrib oiio:UnassociatedAlpha 1"
+                    + " -d uint8 -o " + make_relpath("unassoc.tif"))
+command += maketx_command ("unassoc.tif", "unassoc.tx", "--nomipmap")
+command += maketx_command ("unassoc.tif", "unassoc-ignore.tx",
+                           "--ignore-unassoc --nomipmap")
+command += oiiotool ("--dumpdata unassoc.tx unassoc-ignore.tx")
+
 outputs += [ "out.txt" ]
 
 
 
 # To do:  --fullpixels
-#         --ignore-unassoc
-#         --mipimage 
+#         --mipimage
 #         --fovcot
