@@ -401,6 +401,19 @@
 #    define OIIO_FORCEINLINE inline
 #endif
 
+// OIIO_NOINLINE is a function attribute that asks the compiler never to
+// inline the function. Put this attribute before the function return type,
+// just like you would use 'inline'.
+#if defined(__CUDACC__)
+#    define OIIO_NOINLINE __noinline__
+#elif defined(__GNUC__) || defined(__clang__) || __has_attribute(noinline)
+#    define OIIO_NOINLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+#    define OIIO_NOINLINE __declspec(noinline)
+#else
+#    define OIIO_NOINLINE
+#endif
+
 // OIIO_PURE_FUNC is a function attribute that assures the compiler that the
 // function does not write to any non-local memory other than its return
 // value and has no side effects. This can enable additional compiler
