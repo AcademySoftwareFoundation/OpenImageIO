@@ -128,11 +128,23 @@ public:
     // designated type.
     template<typename T,
              typename std::enable_if<!pvt::is_string<T>::value, int>::type = 0>
-    inline T get(const T& defaultval = T()) const
+    inline T get(const T& defaultval) const
     {
         T result;
         if (!m_obj->getattribute(m_name, TypeDescFromC<T>::value(), &result))
             result = defaultval;
+        return result;
+    }
+
+    // No-default version returns T{} directly rather than copying a T()
+    // default argument, which for types like Imath vectors is uninitialized.
+    template<typename T,
+             typename std::enable_if<!pvt::is_string<T>::value, int>::type = 0>
+    inline T get() const
+    {
+        T result {};
+        if (!m_obj->getattribute(m_name, TypeDescFromC<T>::value(), &result))
+            return T {};
         return result;
     }
 
