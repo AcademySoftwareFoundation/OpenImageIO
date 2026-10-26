@@ -17,17 +17,45 @@ claim, and against the local build. The skill has three phases:
 
 This is a LIVING DOCUMENT. When we discover a new thing worth checking, a
 better way to do a step, or the right fix for a problem the audit finds,
-update this file (and the scripts next to it) as part of that work.
+update this skill as part of that work (see "Project-specific files").
 
 Arguments: `$ARGUMENTS`
 - First argument (optional): a GitHub Actions run URL or numeric run id for
   the `ci.yml` workflow. If omitted, use the latest SUCCESSFUL `ci.yml` run
   on the current git branch (see step 1).
 
+## Project-specific files
+
+This skill is shared by OpenImageIO (OIIO) and Open Shading Language (OSL),
+whose build, test, and CI scripts are intentionally very similar.
+`SKILL.md` and `scripts/` must stay IDENTICAL in both projects. Everything
+that differs between them lives in `assets/`, whose contents are expected
+to differ:
+
+- `assets/project.md`: facts about this project. Read it before step 1.
+  The buildinfo tool, the CI job naming conventions, dependency-specific
+  quirks of the buildinfo data, the key dependencies to check in job
+  descriptions, and where to find each dependency's latest upstream
+  release (step 4).
+- `assets/known-issues.md`: problems found by past audits of this project,
+  their status, and the right fixes once known. Read it before step 5 and
+  update it at the end (step 8).
+- `assets/lessons-learned.md`: project-specific tips for running the audit.
+  Read it before step 1, and add to it when something is learned.
+
+When updating the skill, decide where the change belongs. A better method
+or a new check that would apply to both projects goes in `SKILL.md` or
+`scripts/`, and should be copied to the other project too (tell the user,
+who will propagate it). A fact about a particular dependency, job, or past
+audit of this project goes in `assets/`. Never put project names, tool
+names, or dependency-specific details in `SKILL.md` or `scripts/` except as
+clearly marked examples.
+
 ## Ground truth
 
-- Each `ci.yml` job runs `src/build-scripts/ci-test.bash`, which runs
-  `oiiotool --buildinfo` and appends it to the job's step summary
+- Each `ci.yml` job runs `src/build-scripts/ci-test.bash`, which runs the
+  project's buildinfo tool (`<tool> --buildinfo`; the tool is named in
+  `assets/project.md`) and appends its output to the job's step summary
   (`$GITHUB_STEP_SUMMARY`). That output (compiler, C++ standard, and a
   `Dependencies:` list) is the ground truth for what a job used. The same
   text is in the job log. The step summary itself is not available through
@@ -41,6 +69,9 @@ Arguments: `$ARGUMENTS`
 
 - `gh` needs the sandbox disabled here (TLS error otherwise); run every `gh`
   and `curl` call with `dangerouslyDisableSandbox: true`.
+- The sandbox blocks Bash writes (chmod, heredocs) under `.agents/skills`;
+  edit skill files with the Edit/Write tools and run scripts via
+  `bash`/`python3` (no exec bit needed).
 - Work in the session scratchpad dir, not the repo. Put the report in the
   repo root as `./dependency-report-YYYY-MM-DD.md` (untracked; do not
   commit it).
@@ -60,7 +91,8 @@ Arguments: `$ARGUMENTS`
 
 ## Step 2: fetch job logs and parse buildinfo
 
-`gh run view <run> --log` fails ("too many API requests"); fetch per job.
+`gh run view <run> --log` fails ("too many API requests"); fetch per job
+(`--job <id>`), which the script below does.
 
 1. `bash scripts/fetch_logs.sh <run-id-or-url> <outdir> [--repo owner/name]`
    downloads every job's log in parallel to `<outdir>/logs/<jobid>.log`
@@ -76,37 +108,39 @@ Notes on the data:
 - Log lines are interleaved with shell trace (`+ echo ...`), and long
   `Dependencies:` lines can wrap onto indented continuation lines. The
   parser handles this; if the format of `--buildinfo` changes, fix the
-  parser first.
+  parser first. The parser finds the buildinfo block by its first line,
+  `<PROJ> <version> | <platform>`, so it needs no project-specific setting.
 - Jobs with no buildinfo (ABI checks, clang-format, anything with
   `skip_tests`) are excluded; say so in the report.
-- Duplicate entries in `Dependencies:` (libdeflate, zstd, ZLIB, Ptex) are
-  normal; the first wins.
+- Duplicate entries in `Dependencies:` are normal; the first wins.
 - `NONE` means looked for and not found; a dependency that is absent from
-  the list was not requested or disabled. `Ptex present` means the version
-  was not detected. `JPEG 80` is the libjpeg API version, not a release
-  (so it says nothing about jpeg 9 or turbo version).
+  the list was not requested or disabled. A dependency with no version
+  (`present` in the parsed data) was found but its version was not
+  detected.
 - buildinfo does not report CMake; the parser takes it from the
   `-- CMake X.Y.Z` (or `-- Using CMake version X`) status line early in the
-  build step of the log and
-  adds it to deps as `CMake`.
-- buildinfo does not report NumPy. It labels `__cplusplus` 202400 as C++23
-  even for C++26 builds (cosmetic).
+  build step of the log and adds it to deps as `CMake`.
+- Further quirks of particular dependencies (versions that are API levels
+  rather than releases, dependencies buildinfo does not report, and so on)
+  are listed in `assets/project.md`.
 - A version reported for a main/master build is that tree's own version
-  string (e.g., libtiff master may still say the last release), so
-  "master" cannot be confirmed from the summary alone. Check the job log
-  for `git checkout master`/`main` lines when it matters.
+  string (e.g., a dependency's master may still say the last release), so
+  "master" cannot be confirmed from the summary alone. When it matters,
+  grep the job log (strip the log prefix first) with
+  `grep -o -E "git clone [^ ]+ [^ ]+( -b;[a-z]+)?|git checkout [a-zA-Z0-9._-]+ --force"`
+  and compare against the upstream master's version header.
 
 ## Step 2b: the local build
 
 Also gather what the current local tree builds with, since the developer's
 machine may have compilers or dependencies newer than CI can get.
 
-- Find built tools:
-  `find dist build -maxdepth 4 -name oiiotool -type f 2>/dev/null`. If
+- Find the built buildinfo tool (named in `assets/project.md`):
+  `find dist build -maxdepth 4 -name <tool> -type f 2>/dev/null`. If
   several, or none, ask which to use (or whether to build first).
-- Run `<oiiotool> --version` and `<oiiotool> --buildinfo`; parse the same
-  way as CI (compiler line and `Dependencies:`). Record the binary's path
-  and modification time, and compare its version to HEAD; warn if it
+- Run `<tool> --buildinfo` (and `--version` if the tool has it); parse the
+  same way as CI (compiler line and `Dependencies:`). Record the binary's
+  path and modification time, and compare its version to HEAD; warn if it
   looks stale.
 - `<build>/CMakeCache.txt` gives compiler paths, `CMAKE_CXX_STANDARD`, and
   `*_ROOT`/`*_DIR` hints if a version is ambiguous; `cmake --version` gives
@@ -121,9 +155,9 @@ machine may have compilers or dependencies newer than CI can get.
 - `INSTALL.md` "Dependencies" section: min, and "tested through" (and
   main/master) per dependency and per compiler/CMake.
 - `.github/workflows/ci.yml`: every matrix entry's `desc`, comments, and the
-  version-pinning env vars in `setenvs` (e.g. `LIBPNG_VERSION`,
-  `LIBTIFF_VERSION`, `PTEX_VERSION`, `*_GIT_TAG`, `*_BUILD_VERSION`,
-  `*_ver:` inputs, `container:`, `runner:`).
+  version-pinning env vars in `setenvs` (e.g. `<DEP>_VERSION`,
+  `*_GIT_TAG`, `*_BUILD_VERSION`, `*_ver:` inputs, `container:`,
+  `runner:`).
 - Defaults for locally built deps live in `src/cmake/build_*.cmake`
   (`*_BUILD_VERSION`) and `src/build-scripts/build_*.bash`. Check that each
   pin in `ci.yml` uses the variable name the script actually reads.
@@ -133,39 +167,17 @@ machine may have compilers or dependencies newer than CI can get.
 Query real upstream state; do not trust memory. Use tags (many projects
 have no GitHub "releases"), filter out rc/beta/dev, `sort -V | tail`.
 Also confirm with `gh api repos/<r>/releases --jq` where releases exist.
+Check the tag lists by eye: many projects have tags that are not releases
+or that do not sort well, so a naive `sort -V | tail` can be wrong.
 
-| Dependency | Where to look |
-|---|---|
-| fmt | fmtlib/fmt |
-| Imath, OpenEXR, OCIO, OpenVDB | AcademySoftwareFoundation/{Imath,openexr,OpenColorIO,openvdb} |
-| libtiff | GitLab: `https://gitlab.com/api/v4/projects/libtiff%2Flibtiff/repository/tags` |
-| libjpeg-turbo | libjpeg-turbo/libjpeg-turbo (tags also include jpeg-9x/10; ignore) |
-| zlib | madler/zlib |
-| robin-map | Tessil/robin-map |
-| pugixml | zeux/pugixml |
-| nanobind | wjakob/nanobind (drop `-dev` tags) |
-| pybind11 | pybind/pybind11 |
-| libpng | pnggroup/libpng (tags only, `^v1\.6\.[0-9]+$`) |
-| LibRaw | LibRaw/LibRaw |
-| OpenJPEG | uclouvain/openjpeg (tags `^v[0-9]`) |
-| libjxl | libjxl/libjxl |
-| libheif | strukturag/libheif |
-| DCMTK | DCMTK/dcmtk (`DCMTK-x.y.z`) |
-| WebP | webmproject/libwebp |
-| Ptex | wdas/ptex |
-| Freetype | freetype/freetype (`^VER-2-[0-9]+-[0-9]+$`) |
-| libultrahdr | google/libultrahdr |
-| OpenJPH | aous72/OpenJPH |
-| TBB | uxlfoundation/oneTBB |
-| OpenCV | opencv/opencv (numeric tags) |
-| ffmpeg | FFmpeg/FFmpeg (`^n[0-9.]+$` tags) |
-| giflib | `https://sourceforge.net/projects/giflib/best_release.json` |
-| Qt | qt/qtbase (`^v6\.[0-9]+\.[0-9]+$`; Qt5 is EOL, use INSTALL) |
-| pystring | imageworks/pystring |
-| NumPy | numpy/numpy |
-| Python | python.org; CI uses runner/container Pythons |
+Where to look for each dependency, with any tag filter it needs, is the
+table in `assets/project.md`. If a dependency is missing from it, find its
+upstream and add it there.
 
 ## Step 5: analyses to perform
+
+Use `assets/known-issues.md` as context: say whether each known issue is
+still present, fixed, or changed.
 
 A. Per-dependency table, with exactly these columns:
 
@@ -195,10 +207,11 @@ A. Per-dependency table, with exactly these columns:
    - "Latest": the highest tagged release upstream (step 4), if it can be
      detected. Bold it if it is newer than anything CI tests.
 
-B. "oldest" jobs (`desc` starts with `oldest`, and `hobbled`): is every
-   dependency at the INSTALL minimum? List each that is not, and why
-   (system package, pin ignored, pin commented out, dependency not
-   installed, different pins between the gcc and clang variants).
+B. "oldest" jobs (see `assets/project.md` for which jobs claim to be
+   oldest/minimum): is every dependency at the INSTALL minimum? List each
+   that is not, and why (system package, pin ignored, pin commented out,
+   dependency not installed, different pins between the gcc and clang
+   variants).
 
 C. "latest releases" jobs: is every dependency at the newest tagged
    release from step 4? List each that is not. Mark ones that are apt or
@@ -210,8 +223,9 @@ D. "bleeding edge" job: which dependencies are on main/master, which fall
 
 E. Description check: for every matrix entry, compare the `desc` and the
    comments against the summary (compiler and version, C++ std, Python,
-   OpenEXR, OCIO, Qt, simd, and any "main"/"oldest"/"latest" claim).
-   Runner-image compilers drift (Apple clang, gcc from apt), so the
+   the key dependencies listed in `assets/project.md`, simd, and any
+   "main"/"oldest"/"latest" claim). Runner-image compilers drift (Apple
+   clang, gcc from apt), and so do default dependency versions, so the
    summary, not the name, is right. Also check `nametag`s for stale
    version strings.
 
@@ -236,10 +250,10 @@ Add to this list when we think of new checks.
 ## Step 6: report (phase 1 ends here)
 
 Write `./dependency-report-YYYY-MM-DD.md` (today's date) with: run URL and
-SHA; local build info (step 2b); table A; sections B-I; a "Not verified"
-list (things buildinfo cannot show). Show a concise version to the user.
-Be concrete: name job, variable, version. Do not publish externally unless
-asked. Do not commit the report.
+SHA; local build info (step 2b); table A; sections B-I; status of each
+known issue; a "Not verified" list (things buildinfo cannot show). Show a
+concise version to the user. Be concrete: name job, variable, version. Do
+not publish externally unless asked. Do not commit the report.
 
 ## Step 7: simple fixes, done unconditionally (phase 2)
 
@@ -263,8 +277,8 @@ before committing, so make them without asking. Do not commit them.
      Edit INSTALL.md only for the confirmed ones. (Do the CI-based edits
      without waiting for this answer.)
    - Do NOT lower claims that CI merely fails to support (a documented max
-     newer than any tested build, e.g. ffmpeg) unless the user asks; list
-     them in the summary instead.
+     newer than any tested build) unless the user asks; list them in the
+     summary instead.
 
 ## Step 8: fixes that change code or workflows (phase 3)
 
@@ -276,69 +290,16 @@ them without a decision.
    pin, job not at its stated minimum or latest, system package instead of
    a pinned version, disable flag that has no effect). For each: what is
    wrong, evidence (job, variable, log line), proposed change, risk.
+   Check `assets/known-issues.md` first: a fix tried before and reverted
+   must not be proposed again unless something has changed.
 2. Present the list and let the user pick items ONE AT A TIME (use
    AskUserQuestion, or ask in prose). Apply only the chosen item, then
    show the diff before moving to the next.
 3. Ask before committing anything. Follow the repo and user commit rules
    (only an `Assisted-by:` trailer, terse messages). One commit per fix,
    separate from the phase 2 doc edits unless the user says otherwise.
-4. Record any newly understood "right way to fix it" in the "Known issues"
-   section of this file.
-
-## Known issues from past audits (update this list)
-
-From the 2026-09-29 audit (all still to be resolved unless noted):
-- `oldest` jobs used to set `BUILD_PNG_VERSION=1.6.0`, which nothing reads,
-  so system libpng is used. Renaming it to `LIBPNG_VERSION=v1.6.0` made
-  CI fail (building libpng 1.6.0 broke other dependencies on those
-  machines), so the useless line was just deleted (2026-10). libpng in
-  oldest/hobbled stays the system version (1.6.37); do not try to pin it.
-- `hobbled` sets `USE_JPEGTURBO=0` yet libjpeg-turbo still appears in the
-  summary.
-- ASWF container jobs use libtiff 4.0.9, below INSTALL's minimum of 4.1.
-- Latest-release jobs use Ubuntu apt Imath 3.1.9 with OpenEXR 3.5.x, and
-  apt ffmpeg/giflib/libheif/TBB/OpenCV/zlib/Python that are far older
-  than the newest releases.
-- `bleeding edge` briefly pinned OpenEXR to a tag (lj2k bug); restored to
-  `main` on 2026-09-30. Verify on the next audit that the summary shows a
-  main-built OpenEXR, and whether Imath really follows main (the 09-29 run
-  found system Imath 3.1.9 even with OpenEXR built from a tag, since
-  `build_openexr.bash` may use a system Imath if found).
-- Imath: `build_openexr.bash` (used when a job sets `openexr_ver`) now
-  builds the Imath that OpenEXR prefers (`OPENEXR_FORCE_INTERNAL_IMATH=ON`,
-  installed next to OpenEXR) and exports `Imath_ROOT` so OIIO uses it.
-  What "prefers" means varies: v3.1.0 -> Imath v3.1.1, v3.4.x -> v3.2.2,
-  v3.5.x and main -> Imath `main` (override with
-  `-DOPENEXR_IMATH_TAG=...` in `OPENEXR_CMAKE_FLAGS`). Imath main reports
-  its version as 3.2.0. Jobs with no `openexr_ver` (ASWF containers) still
-  use the container's Imath. Added 2026-09-30; confirm on the next audit
-  that summaries show the expected Imath. A separate `IMATH_VERSION`
-  selector was tried and dropped as unnecessary for now.
-- OIIO's own OpenEXR auto-build (`build_OpenEXR.cmake`) passes
-  `-D Imath_DIR=...` so OpenEXR uses the same Imath as OIIO.
-- OpenJPH is always the `build_openjph.cmake` default; no job tests an
-  older OpenJPH.
-- Minimums not tested by any job: libjpeg 9, libjpeg-turbo 2.1, zlib
-  1.2.7 to 1.2.10, OpenJPEG below 2.4, OpenVDB 9, TBB 2018 to 2019,
-  giflib 5.0, libheif below 1.19, libjxl below 0.11.1, DCMTK below 3.7,
-  Qt5 below 5.15, ffmpeg below 4.4, clang 10, MSVS 2017/2019.
-
-## Lessons learned (update this list)
-
-- The sandbox blocks Bash writes (chmod, heredocs) under `.agents/skills`;
-  edit skill files with the Edit/Write tools and run scripts via
-  `bash`/`python3` (no exec bit needed).
-
-- To confirm "bleeding edge" really builds main/master: grep the job log
-  with `grep -o -E "git clone [^ ]+ [^ ]+( -b;[a-z]+)?|git checkout [a-zA-Z0-9._-]+ --force"`
-  (strip the log prefix first). A reported version equal to the last
-  release is normal (the 2026-10-03 check: LibRaw master still says
-  0.22.0 because 0.22.x patch releases come from a branch; pugixml,
-  libtiff, Freetype, OpenJPEG, pybind11 master headers also match their
-  latest tag). Compare against the upstream master's version header.
-  Never pinned to main there: libjxl, robin-map, OpenJPH (tags/defaults).
-- `gh run view --log` for a whole run fails; use `--job <id>` per job.
-- Grep the tag lists carefully: naive `sort -V | tail` on libjpeg-turbo,
-  freetype, openjpeg, ffmpeg, nanobind returns non-release tags.
-- Version strings in job names (`desc`) and the `nametag` drift whenever a
-  runner image or default dependency version changes.
+4. Update `assets/known-issues.md` with this audit's date: add new issues,
+   mark resolved ones, and record any newly understood "right way to fix
+   it". Add anything learned about running the audit itself to
+   `assets/lessons-learned.md`, or to this file if it applies to both
+   projects (see "Project-specific files").
