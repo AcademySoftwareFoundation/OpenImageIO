@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <cmath>
 #include <cstdio>
 
 #include <webp/encode.h>
@@ -39,9 +40,18 @@ private:
     unsigned int m_dither;
     bool m_convert_alpha;  // Do we deassociate alpha?
     std::vector<uint8_t> m_uncompressed_image;
-    // Used to write animations
+
+    // If true, will use WebPAnimEncoder to create an animation, otherwise will use WebPMux.
+    // Set through the "webp:use_animation_encoder" attribute.
+    bool m_use_animation_encoder = false;
+
     WebPMux* m_mux       = nullptr;
     bool m_pending_write = false;
+
+    WebPAnimEncoder* m_anim_encoder = nullptr;
+    // Current running time of the animation (i.e sum of all frame durations)
+    double m_animation_time_ms = 0.0;
+
     // Used to make sure that we don't call WebPPictureFree on an uninitialized WebPPicture.
     bool m_picture_initialized = false;
     float m_default_fps        = 1.0f;
@@ -51,12 +61,15 @@ private:
         m_scanline_size       = 0;
         m_pending_write       = false;
         m_picture_initialized = false;
+        m_animation_time_ms   = 0.0;
         ioproxy_clear();
     }
 
     bool write_complete_data();
     bool append_subimage(const std::string& name, const ImageSpec& spec);
     bool finish_subimage();
+    bool finish_encoding_animation();
+    int get_frame_duration_ms() const;
     void cleanup();
 };
 
@@ -136,6 +149,10 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     const int method     = m_spec.get_int_attribute("webp:method", 6);
     m_webp_config.method = OIIO::clamp(method, 0, 6);
 
+    // Enable multi-threading in libwebp (which must be built with WEBP_USE_THREAD enabled)
+    m_webp_config.thread_level
+        = m_spec.get_int_attribute("webp:use_multithread", 0) != 0;
+
     // Lossless encoding (0=lossy(default), 1=lossless).
     m_webp_config.lossless = int(is_lossless);
 
@@ -153,6 +170,8 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
     m_uncompressed_image.resize(m_spec.image_bytes(), 0);
     m_default_fps   = m_spec.get_float_attribute("FramesPerSecond", 1.0f);
     m_pending_write = true;
+    m_use_animation_encoder
+        = m_spec.get_int_attribute("webp:use_animation_encoder", 0) != 0;
     return true;
 }
 
@@ -167,15 +186,17 @@ WebpOutput::write_complete_data()
     // If we have ICC data, encode to memory first. This is required in order
     // to use the WebPMux assembly API below.
     WebPMemoryWriter wrt;
-    if (has_icc_data || m_mux) {
+    if (!m_use_animation_encoder && (has_icc_data || m_mux)) {
         WebPMemoryWriterInit(&wrt);
         m_webp_picture.writer     = WebPMemoryWrite;
         m_webp_picture.custom_ptr = &wrt;
-    } else {
+    } else if (!m_use_animation_encoder) {
         m_webp_picture.writer     = WebpImageWriter;
         m_webp_picture.custom_ptr = (void*)ioproxy();
     }
 
+    // WebPAnimEncoder uses (A)RGB, so no need to convert to YUV if we're going to use it.
+    m_webp_picture.use_argb = m_use_animation_encoder || m_webp_config.lossless;
     if (m_spec.nchannels == 4) {
         if (m_convert_alpha) {
             // WebP requires unassociated alpha, and it's sRGB.
@@ -195,6 +216,18 @@ WebpOutput::write_complete_data()
                              m_scanline_size);
     }
 
+    if (m_use_animation_encoder && m_anim_encoder) {
+        if (!WebPAnimEncoderAdd(m_anim_encoder, &m_webp_picture,
+                                int(std::round(m_animation_time_ms)),
+                                &m_webp_config)) {
+            errorfmt("Failed to encode WebP animation frame: {}",
+                     WebPAnimEncoderGetError(m_anim_encoder));
+            return false;
+        }
+        m_animation_time_ms += get_frame_duration_ms();
+        return true;
+    }
+
     if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
         errorfmt("Failed to encode {} as WebP image", m_filename);
         if (has_icc_data || m_mux) {
@@ -208,14 +241,8 @@ WebpOutput::write_complete_data()
         WebPMuxFrameInfo frame = {};
         frame.bitstream        = { wrt.mem, wrt.size };
 
-        const float fps = m_spec.get_float_attribute("FramesPerSecond",
-                                                     m_default_fps);
         // WebP stores frame durations in milliseconds
-        const float duration = fps <= 0.0f ? 0.0f : 1000.0f / fps;
-        // libwebp defines MAX_DURATION as 2^24 (see format_constant.h)
-        frame.duration = int(OIIO::clamp(duration, 0.0f, float(0xffffff)));
-
-
+        frame.duration = get_frame_duration_ms();
 
         // For WebPMuxPushFrame, frame.id should be WEBP_CHUNK_ANMF
         frame.id             = WEBP_CHUNK_ANMF;
@@ -299,11 +326,33 @@ WebpOutput::append_subimage(const std::string& name, const ImageSpec& spec)
             return false;
         }
 
+        if (m_use_animation_encoder) {
+            WebPAnimEncoderOptions options;
+            if (!WebPAnimEncoderOptionsInit(&options)) {
+                errorfmt("Couldn't initialize WebP animation encoder options");
+                cleanup();
+                return false;
+            }
+            options.anim_params = params;
+            m_anim_encoder = WebPAnimEncoderNew(m_spec.width, m_spec.height,
+                                                &options);
+            if (!m_anim_encoder) {
+                errorfmt("Couldn't initialize WebP animation encoder");
+                cleanup();
+                return false;
+            }
+        }
+
+
         std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
         if (icc_profile.size() > 0) {
             WebPData chunk = { icc_profile.data(), icc_profile.size() };
-
-            if (WebPMuxSetChunk(m_mux, "ICCP", &chunk, true) != WEBP_MUX_OK) {
+            // Ideally, in the case where WebPAnimEncoder is used, we would add
+            // the ICC chunk using WebPAnimEncoderSetChunk. But that is only
+            // avaialble from libwebp 1.4.0, while the minimal supported
+            // version is 1.1 as of writing this. So we add the ICC chunk to
+            // the mux and handle the rest in finish_encoding_animation().
+            if (WebPMuxSetChunk(m_mux, "ICCP", &chunk, 1) != WEBP_MUX_OK) {
                 errorfmt("Couldn't add ICC profile to WebP animation");
                 cleanup();
                 return false;
@@ -385,7 +434,7 @@ WebpOutput::close()
 {
     if (!ioproxy_opened())
         return true;  // already closed
-    
+
     bool ok = true;
     if (m_spec.tile_width) {
         // We've been emulating tiles; now dump as scanlines.
@@ -399,7 +448,9 @@ WebpOutput::close()
     if (ok)
         ok = finish_subimage();
 
-    if (ok && m_mux) {
+    if (ok && m_anim_encoder) {
+        ok = finish_encoding_animation();
+    } else if (ok && m_mux) {
         WebPData assembly = {};
         if (WebPMuxAssemble(m_mux, &assembly) != WEBP_MUX_OK) {
             errorfmt("Failed to assemble {} as WebP animation", m_filename);
@@ -416,16 +467,87 @@ WebpOutput::close()
 }
 
 
+
+bool
+WebpOutput::finish_encoding_animation()
+{
+    // WebPAnimEncoderAssemble should be preceded by a
+    // call to WebPAnimEncoderAdd with frame = nullptr.
+    if (!WebPAnimEncoderAdd(m_anim_encoder, nullptr,
+                            int(std::round(m_animation_time_ms)), nullptr)) {
+        errorfmt("Failed to finalize WebP animation: {}",
+                 WebPAnimEncoderGetError(m_anim_encoder));
+        return false;
+    }
+
+    WebPData encoded = {};
+    if (!WebPAnimEncoderAssemble(m_anim_encoder, &encoded)) {
+        errorfmt("Failed to assemble WebP animation: {}",
+                 WebPAnimEncoderGetError(m_anim_encoder));
+        WebPDataClear(&encoded);
+        return false;
+    }
+
+    // In append_subimage, the ICC chunk was added to the mux, so we need to
+    // extract it and add it to the encoded animation data.
+    WebPData icc_chunk        = {};
+    const WebPMuxError status = WebPMuxGetChunk(m_mux, "ICCP", &icc_chunk);
+    if (status != WEBP_MUX_NOT_FOUND) {
+        WebPMux* mux      = status == WEBP_MUX_OK ? WebPMuxCreate(&encoded, 0)
+                                                  : nullptr;
+        WebPData assembly = {};
+        const bool ok     = mux
+                            && WebPMuxSetChunk(mux, "ICCP", &icc_chunk, 0)
+                                   == WEBP_MUX_OK
+                            && WebPMuxAssemble(mux, &assembly) == WEBP_MUX_OK;
+        WebPMuxDelete(mux);
+        WebPDataClear(&encoded);
+        if (!ok) {
+            errorfmt("Couldn't add ICC profile to WebP animation");
+            WebPDataClear(&assembly);
+            return false;
+        }
+        encoded = assembly;
+    }
+
+    const bool ok = ioproxy()->write(encoded.bytes, encoded.size)
+                    == encoded.size;
+    WebPDataClear(&encoded);
+    return ok;
+}
+
+
+
+int
+WebpOutput::get_frame_duration_ms() const
+{
+    const float fps = m_spec.get_float_attribute("FramesPerSecond",
+                                                 m_default_fps);
+
+    const float duration = fps <= 0.0f ? 0.0f : 1000.0f / fps;
+    // libwebp defines MAX_DURATION as 2^24 (see format_constant.h)
+    return std::round(OIIO::clamp(duration, 0.0f, float(0xffffff)));
+}
+
+
+
 void
 WebpOutput::cleanup()
 {
+    if (m_anim_encoder)
+        WebPAnimEncoderDelete(m_anim_encoder);
+    m_anim_encoder = nullptr;
+
     if (m_mux)
         WebPMuxDelete(m_mux);
     m_mux = nullptr;
+
     std::vector<uint8_t>().swap(m_uncompressed_image);
+
     if (m_picture_initialized) {
         WebPPictureFree(&m_webp_picture);
     }
+
     init();
 }
 
