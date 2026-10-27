@@ -93,12 +93,12 @@ equal_approx(const X& x, const Y& y)
 // expression and the callers become very big functions that are slow to
 // compile.
 
-enum class ReportDiff { None, Diff, AbsDiff };
-
-template<ReportDiff diff, typename X, typename Y>
+// Pass a D other than std::nullptr_t to also report "diff was <diff>".
+template<typename X, typename Y, typename D = std::nullptr_t>
 OIIO_NOINLINE void
 report_compare_failure(const char* file, int line, const char* xstr,
-                       const char* op, const char* ystr, const X& x, const Y& y)
+                       const char* op, const char* ystr, const X& x, const Y& y,
+                       const D& diff = nullptr)
 {
     using ::operator<<;  // for the std::vector printer above
     std::cout << Sysutil::Term(std::cout).ansi("red,bold") << file << ":"
@@ -106,12 +106,17 @@ report_compare_failure(const char* file, int line, const char* xstr,
               << "FAILED: " << Sysutil::Term(std::cout).ansi("normal") << xstr
               << " " << op << " " << ystr << "\n"
               << "\tvalues were '" << x << "' and '" << y << "'";
-    if constexpr (diff == ReportDiff::Diff)
-        std::cout << ", diff was " << (x - y);
-    else if constexpr (diff == ReportDiff::AbsDiff)
-        std::cout << ", diff was " << std::abs(x - y);
+    if constexpr (!std::is_same_v<D, std::nullptr_t>)
+        std::cout << ", diff was " << diff;
     std::cout << "\n";
 }
+
+// The THRESH macros pass in `absf`, a lambda that calls std::abs, rather
+// than calling std::abs here. A qualified call inside a template only sees
+// the std::abs overloads declared before this header, but the macros used
+// to expand std::abs at the call site, where callers may have declared
+// std::abs overloads for their own types (such as Imath vectors). Calling it
+// from a lambda written in the macro preserves that behavior.
 
 // Cmp is a std comparison functor such as std::equal_to<>.
 template<typename Cmp, typename X, typename Y>
@@ -121,7 +126,7 @@ check_compare_impl(const X& x, const Y& y, const char* xstr, const char* op,
 {
     if (Cmp()(x, y))
         return true;
-    report_compare_failure<ReportDiff::None>(file, line, xstr, op, ystr, x, y);
+    report_compare_failure(file, line, xstr, op, ystr, x, y);
     return false;
 }
 
@@ -146,29 +151,29 @@ check_compare(const X& x, const Y& y, const char* xstr, const char* op,
     return check_compare_impl<Cmp>(x, y, xstr, op, ystr, file, line);
 }
 
-template<typename X, typename Y, typename E>
+template<typename X, typename Y, typename E, typename Abs>
 inline bool
-check_equal_thresh(const X& x, const Y& y, const E& eps, const char* xstr,
-                   const char* ystr, const char* file, int line)
+check_equal_thresh(const X& x, const Y& y, const E& eps, Abs absf,
+                   const char* xstr, const char* ystr, const char* file,
+                   int line)
 {
-    if (std::abs(x - y) <= eps)
+    auto diff = absf(x - y);
+    if (diff <= eps)
         return true;
-    report_compare_failure<ReportDiff::AbsDiff>(file, line, xstr, "==", ystr, x,
-                                                y);
+    report_compare_failure(file, line, xstr, "==", ystr, x, y, diff);
     return false;
 }
 
-template<typename X, typename Y, typename EA, typename ER>
+template<typename X, typename Y, typename EA, typename ER, typename Abs>
 inline bool
 check_equal_thresh_rel(const X& x, const Y& y, const EA& epsabs,
-                       const ER& epsrel, const char* xstr, const char* ystr,
-                       const char* file, int line)
+                       const ER& epsrel, Abs absf, const char* xstr,
+                       const char* ystr, const char* file, int line)
 {
-    using std::abs;
-    if (std::abs(x - y) <= (epsabs + epsrel * std::max(abs(x), abs(y))))
+    auto diff = absf(x - y);
+    if (diff <= (epsabs + epsrel * std::max(absf(x), absf(y))))
         return true;
-    report_compare_failure<ReportDiff::AbsDiff>(file, line, xstr, "==", ystr, x,
-                                                y);
+    report_compare_failure(file, line, xstr, "==", ystr, x, y, diff);
     return false;
 }
 
@@ -179,8 +184,7 @@ check_equal_approx(const X& x, const Y& y, const char* xstr, const char* ystr,
 {
     if (equal_approx(x, y))
         return true;
-    report_compare_failure<ReportDiff::Diff>(file, line, xstr, "==", ystr, x,
-                                             y);
+    report_compare_failure(file, line, xstr, "==", ystr, x, y, x - y);
     return false;
 }
 
@@ -192,8 +196,7 @@ check_simd_equal(const X& x, const Y& y, const char* xstr, const char* ystr,
     using namespace simd;
     if (all(x == y))
         return true;
-    report_compare_failure<ReportDiff::None>(file, line, xstr, "==", ystr, x,
-                                             y);
+    report_compare_failure(file, line, xstr, "==", ystr, x, y);
     return false;
 }
 
@@ -252,14 +255,19 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
 
 #define OIIO_CHECK_FALSE(x) OIIO_CHECK_EQUAL(x, false)
 
-#define OIIO_CHECK_EQUAL_THRESH(x, y, eps)                                      \
-    (OIIO::pvt::check_equal_thresh((x), (y), (eps), #x, #y, __FILE__, __LINE__) \
-         ? ((void)0)                                                            \
+// std::abs as a lambda, so the THRESH macros look it up at the call site.
+#define OIIO_UNITTEST_ABS_ [](const auto& v_) { return std::abs(v_); }
+
+#define OIIO_CHECK_EQUAL_THRESH(x, y, eps)                                  \
+    (OIIO::pvt::check_equal_thresh((x), (y), (eps), OIIO_UNITTEST_ABS_, #x, \
+                                   #y, __FILE__, __LINE__)                  \
+         ? ((void)0)                                                        \
          : (void)++unit_test_failures)
 
 #define OIIO_CHECK_EQUAL_THRESH_REL(x, y, epsabs, epsrel)                    \
-    (OIIO::pvt::check_equal_thresh_rel((x), (y), (epsabs), (epsrel), #x, #y, \
-                                       __FILE__, __LINE__)                   \
+    (OIIO::pvt::check_equal_thresh_rel((x), (y), (epsabs), (epsrel),         \
+                                       OIIO_UNITTEST_ABS_, #x, #y, __FILE__, \
+                                       __LINE__)                             \
          ? ((void)0)                                                         \
          : (void)++unit_test_failures)
 
