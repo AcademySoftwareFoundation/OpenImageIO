@@ -92,5 +92,33 @@ PASS
 Computing diff of "src/rgb-24bit-tiled.tif" vs "src/rgb-24bit-strip.tif"
 PASS
 RowsPerChunk=32 avg=0.499519
+Reading inks.tif
+inks.tif             :    4 x    4, 3 channel, uint8 tiff
+    channel list: Gold, Silver, Copper
+    compression: "zip"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "color separated"
+    oiio:RowsPerChunk: 4
+    tiff:ColorSpace: "color separated"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 5
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
+Reading src/inknames-mismatch.tif
+src/inknames-mismatch.tif :    4 x    4, 3 channel, uint8 tiff
+    channel list: Gold, Silver, Copper
+    compression: "zip"
+    Orientation: 1 (normal)
+    planarconfig: "contig"
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "color separated"
+    oiio:RowsPerChunk: 4
+    tiff:ColorSpace: "color separated"
+    tiff:Compression: 8
+    tiff:PhotometricInterpretation: 5
+    tiff:PlanarConfiguration: 1
+    tiff:RowsPerStrip: 32
 Comparing "check1.tif" and "ref/check1.tif"
 PASS
