@@ -168,8 +168,8 @@ PNMInput::ascii_to_raw(T* write, imagesize_t nvals, T max, bool invert)
             int tmp;
             if (!nextVal(tmp))
                 return false;
-            write[i] = std::min((int)max, tmp) * std::numeric_limits<T>::max()
-                       / max;
+            uint32_t v = uint32_t(OIIO::clamp(tmp, 0, int(max)));
+            write[i]   = T(v * std::numeric_limits<T>::max() / max);
         }
         if (invert)
             for (imagesize_t i = 0; i < nvals; i++)
@@ -189,9 +189,8 @@ raw_to_raw(const T* read, T* write, imagesize_t nvals, T max)
 {
     if (max)
         for (imagesize_t i = 0; i < nvals; i++) {
-            int tmp  = read[i];
-            write[i] = std::min((int)max, tmp) * std::numeric_limits<T>::max()
-                       / max;
+            uint32_t v = std::min(read[i], max);
+            write[i]   = T(v * std::numeric_limits<T>::max() / max);
         }
     else
         for (imagesize_t i = 0; i < nvals; i++)
@@ -370,6 +369,10 @@ PNMInput::read_file_header()
         if (m_pnm_type != P1 && m_pnm_type != P4) {
             if (!nextVal(m_max_val))
                 return false;
+            if (m_max_val < 0 || m_max_val > 65535) {
+                errorfmt("Invalid PNM max value {}", m_max_val);
+                return false;
+            }
         } else
             m_max_val = 1;
 
