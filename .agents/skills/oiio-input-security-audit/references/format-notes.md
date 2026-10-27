@@ -42,6 +42,9 @@ Check IDs (C1-C10) are defined in SKILL.md. "OK" = already satisfied.
 - rla: corrupt RLE; `NextOffset` must advance; offset table indexed unchecked
   (field-rendered images halve height but not table).
 - iff: C2 open-time guard ahead of bespoke readimg check; heavily hardened.
+  readimg offset/index math was still 32-bit after the dim caps rose to
+  65536^2; promoted the flip-pass and tile indices to size_t (#5593). Raising
+  a cap means re-auditing downstream offset math.
 - pnm: two int-overflow OOB (nsamples write, scanline numbytes read) +
   C2. Bomb fixture must stay <= 65535/dim.
 - hdr: C2 only (RGBE RLE decode bounds-checked). `.hdr` extension conflict
