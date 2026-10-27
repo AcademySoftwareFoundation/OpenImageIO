@@ -24,15 +24,16 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * CMake >= 3.18.2 (tested through 4.4)
  * Imath >= 3.1 (tested through 3.2 and main)
  * OpenEXR >= 3.1 (tested through 3.4 and main)
- * libTIFF >= 4.0 (tested through 4.7 and master)
+ * libTIFF >= 4.0 (tested through 4.7 and master). If libTIFF was built with
+   libdeflate support, libdeflate >= 1.18 is also needed.
  * *OpenColorIO >= 2.3* (tested through 2.6 and main)
  * libjpeg >= 8 (tested through jpeg9e), or libjpeg-turbo >= 2.1 (tested
    through 3.2)
  * zlib >= 1.2.7 (tested through 1.3.2)
  * [fmtlib](https://github.com/fmtlib/fmt) >= 7.0 (tested through 12.2 and master).
    If not found at build time, this will be automatically downloaded and built.
- * [Robin-map](https://github.com/Tessil/robin-map) (unknown minimum, tested
-   through 1.4, which is the recommended version). If not found at build time,
+ * [Robin-map](https://github.com/Tessil/robin-map) >= 1.2 (tested through
+   1.4, which is the recommended version). If not found at build time,
    this will be automatically downloaded and built.
 
 ### Optional dependencies -- features may be disabled if not found
@@ -56,7 +57,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for OpenVDB files:
      * OpenVDB >= 9.0 (tested through 13.0).
  * If you want to use TBB as the thread pool:
-     * TBB >= 2018 (tested through 2021 and OneTBB 2023.1)
+     * TBB >= 2017 (tested through 2021 and OneTBB 2023.1)
  * If you want support for converting to and from OpenCV data structures,
    or for capturing images from a camera:
      * OpenCV 4.x or 5.x (tested through 5.0)

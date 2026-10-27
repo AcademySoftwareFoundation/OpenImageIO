@@ -1,3 +1,24 @@
+Release 3.1.19.0 (Oct 27, 2026) -- compared to 3.1.18.1
+---------------------------------------------------------
+  - *platform.h*: Add `OIIO_NOINLINE` macro (complement to `OIIO_FORCEINLINE`). [#5626](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5626) (by @lgritz / Larry Gritz)
+  - *ImageInput*: `check_open()` now applies `limits:resolution` to the display window and tile sizes, and `limits:imagesize_MB` to a single tile, so tiny corrupt files can no longer trigger enormous allocations. Failed ImageBuf allocations are now handled gracefully by ImageBuf, IBA, and maketx. [#5519](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5519) (by @lgritz / Larry Gritz)
+  - *ImageInput*: Prevent integer overflow in the generic read paths for files with very large data window origins, and copy only the in-range part of partial edge tiles. [#5494](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5494) (by @lgritz / Larry Gritz)
+  - *IBA*: Don't index `channelnames` past its size for images with more channels than `limits:channels` (e.g., from `channel_append`). [#5607](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5607) (by @lgritz / Larry Gritz)
+  - *oiiotool*: Don't read past an empty `--info` result when `--metamatch` matches nothing. [#5537](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5537) (by @zachlewis / Zach Lewis)
+  - *iconvert*: Use a private ImageCache to gather subimage specs, fixing an abort at exit when converting to multi-subimage formats such as OpenEXR. [#5508](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5508) (by @zachlewis / Zach Lewis)
+  - *dpx*: Reader fixes: detect truncated pixel data instead of returning uninitialized buffer contents, and avoid integer overflow in scanline buffer offsets. [#5554](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5554) [#5568](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5568)
+  - *dpx*: Writer mishandled subimages that differ from the first, which could read past the end of a buffer and copy heap memory into the output file. Subimages of differing resolution are now rejected, and each element's descriptor comes from its own subimage. [#5608](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5608)
+  - *iff*: Zero-fill the tile staging buffer before decode, so corrupt files missing tiles don't reveal stale heap data. [#5466](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5466)
+  - *jpegxl*: Propagate encoder and write failures that occur at `close()`, reject incomplete pixel buffers, and don't leak buffered scanlines into a reused output. [#5509](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5509) (by @zachlewis / Zach Lewis)
+  - *pnm*: Reject out-of-range maxval; avoid int overflow when scaling 16-bit samples. [#5592](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5592)
+  - *sgi*: Bounds check the RLE run value byte for 8 bit data. [#5513](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5513)
+  - *tiff*: Int overflow safety in the TIFF writer for very large scanlines or tiles. [#5613](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5613)
+  - *build*: Accept commas as well as semicolons in the `OpenImageIO_{REQUIRED,OPTIONAL,BUILD_MISSING,BUILD_LOCAL}_DEPS` list options. [#5499](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5499)
+  - *test*: Every test now gets this build's Python bindings on `PYTHONPATH`, so plain `ctest` works without the Makefile wrapper. [#5553](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5553)
+  - *test*: Add `redirect_push()` and `redirect_pop()` to runtest.py, fixing heif test failures on a second run. [#5476](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5476)
+  - *ci*: Adjust for GitHub runner changes: remove MacOS 14 tests [#5532](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5532), pin Linux wheel job to ubuntu-24.04 [#5621](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5621), bump docs workflow dependency versions for ubuntu-26.04.
+
+
 Release 3.1.18.1 (Oct 2, 2026) -- compared to 3.1.18.0
 ---------------------------------------------------------
   - *fix(ImageInput/Output)*: Honor the data window origin in the `image_span` read/write methods. [#5531](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5531)
