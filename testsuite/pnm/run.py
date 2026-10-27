@@ -24,6 +24,14 @@ files = [ "src/bad-4552.pgm", "src/bad-4553.pgm" ]
 for f in files:
     command += info_command (f, extraargs="--oiioattrib try_all_readers 0 --printstats", failureok=True)
 
+# Maxval beyond the netpbm limit of 65535 is rejected
+command += info_command ("src/bad-maxval.pgm", failureok=True)
+
+# 16-bit samples >= 32768 used to overflow int when rescaled; out-of-range
+# ASCII samples are clamped to [0, maxval]
+command += info_command ("src/high-binary16.pgm", extraargs="--printstats")
+command += info_command ("src/clamp-ascii16.pgm", extraargs="--printstats")
+
 # Decompression bomb: a 19-byte header declaring a ~4 GB image (65000x65000).
 # The compression-ratio guard must reject it before the caller allocates the
 # full pixel buffer.

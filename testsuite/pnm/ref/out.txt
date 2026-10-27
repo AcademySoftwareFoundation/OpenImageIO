@@ -83,6 +83,47 @@ Full command line was:
 oiiotool ERROR: read : "src/bad-4553.pgm": pnm image resolution may not exceed 65535x65535, but the file appears to be 2147483647x255. Possible corrupt input?
 Full command line was:
 > oiiotool --info -v -a --hash --oiioattrib try_all_readers 0 --printstats src/bad-4553.pgm
+oiiotool ERROR: read : "src/bad-maxval.pgm": Invalid PNM max value 2147483647
+Full command line was:
+> oiiotool --info -v -a --hash src/bad-maxval.pgm
+Reading src/high-binary16.pgm
+src/high-binary16.pgm :    2 x    1, 1 channel, uint16 pnm
+    SHA-1: DA4CDAE8E683C652A5B057E6A4C5255A81FC4078
+    channel list: Y
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 1
+   2 x    1, 1 channel, float pnm
+    channel list: Y
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 1
+    Stats Min: 59184 (of 65535)
+    Stats Max: 65535 (of 65535)
+    Stats Avg: 62359.50 (of 65535)
+    Stats StdDev: 3175.50 (of 65535)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 2 
+    Constant: No
+    Monochrome: Yes
+Reading src/clamp-ascii16.pgm
+src/clamp-ascii16.pgm :    3 x    1, 1 channel, uint16 pnm
+    SHA-1: E2B6E46D1E18C158EA6CBC03CE2DE0E04B3139E2
+    channel list: Y
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 0
+   3 x    1, 1 channel, float pnm
+    channel list: Y
+    oiio:ColorSpace: "Rec709"
+    pnm:binary: 0
+    Stats Min: 0 (of 65535)
+    Stats Max: 65535 (of 65535)
+    Stats Avg: 32767.33 (of 65535)
+    Stats StdDev: 26754.55 (of 65535)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 3 
+    Constant: No
+    Monochrome: Yes
 oiiotool ERROR: read : "src/bomb-65000.pgm": pnm header claims a 4029 MB image from a 19 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/bomb-65000.pgm
