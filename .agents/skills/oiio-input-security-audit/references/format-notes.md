@@ -64,9 +64,10 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   overflowed (`nchannels` 3 vs `m_inputchannels` 4); bad subimage left reader
   current. libtiff's own allocations are capped at `limits:imagesize_MB` via
   TIFFOpenOptions (single 4.5+, cumulative 4.6.1+); the IOProxy path must use
-  `TIFFClientOpenExt` or the options are silently skipped. Deferred:
-  `iptcsize *= 4` int overflow (>0.5 GB field);
-  `compressBound((uLong)...)` on LLP64.
+  `TIFFClientOpenExt` or the options are silently skipped; InkNames read with
+  wrong `TIFFGetField` convention (stack smash, catalog C-6). Deferred:
+  `iptcsize *= 4` int overflow (>0.5 GB field); `compressBound((uLong)...)` on
+  LLP64.
 - jpeg: C2 added; checks must precede `jpeg_start_decompress` /
   `jpeg_read_coefficients` (progressive). Exif/ICC/XMP routes go to the shared
   decoders.
