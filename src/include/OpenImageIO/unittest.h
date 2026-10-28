@@ -7,11 +7,24 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <functional>
 #include <iostream>
+#include <type_traits>
 
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
+
+
+// Helper: print entire vectors. This makes the OIIO_CHECK_EQUAL macro
+// work for std::vector.
+template<typename T>
+inline std::ostream&
+operator<<(std::ostream& out, const std::vector<T>& v)
+{
+    out << '{' << OIIO::Strutil::join(v, ",") << '}';
+    return out;
+}
 
 
 OIIO_NAMESPACE_BEGIN
@@ -73,19 +86,149 @@ equal_approx(const X& x, const Y& y)
 }
 
 
+// Helpers for the OIIO_CHECK_* comparison macros. Taking the values as
+// function arguments evaluates each macro argument only once, and keeping the
+// failure reports out of line keeps them from bloating the caller. Both
+// matter for SIMD tests, where each argument may be a large expanded
+// expression and the callers become very big functions that are slow to
+// compile.
+
+// Pass a D other than std::nullptr_t to also report "diff was <diff>".
+template<typename X, typename Y, typename D = std::nullptr_t>
+OIIO_NOINLINE void
+report_compare_failure(const char* file, int line, const char* xstr,
+                       const char* op, const char* ystr, const X& x, const Y& y,
+                       const D& diff = nullptr)
+{
+    using ::operator<<;  // for the std::vector printer above
+    std::cout << Sysutil::Term(std::cout).ansi("red,bold") << file << ":"
+              << line << ":\n"
+              << "FAILED: " << Sysutil::Term(std::cout).ansi("normal") << xstr
+              << " " << op << " " << ystr << "\n"
+              << "\tvalues were '" << x << "' and '" << y << "'";
+    if constexpr (!std::is_same_v<D, std::nullptr_t>)
+        std::cout << ", diff was " << diff;
+    std::cout << "\n";
+}
+
+// The THRESH macros pass in `absf`, a lambda that calls std::abs, rather
+// than calling std::abs here. A qualified call inside a template only sees
+// the std::abs overloads declared before this header, but the macros used
+// to expand std::abs at the call site, where callers may have declared
+// std::abs overloads for their own types (such as Imath vectors). Calling it
+// from a lambda written in the macro preserves that behavior.
+
+// Cmp is a std comparison functor such as std::equal_to<>.
+template<typename Cmp, typename X, typename Y>
+inline bool
+check_compare_impl(const X& x, const Y& y, const char* xstr, const char* op,
+                   const char* ystr, const char* file, int line)
+{
+    if (Cmp()(x, y))
+        return true;
+    report_compare_failure(file, line, xstr, op, ystr, x, y);
+    return false;
+}
+
+// Scalars are taken by value so that passing a static const data member that
+// has no out-of-line definition does not odr-use it (link error).
+template<typename Cmp, typename X, typename Y,
+         OIIO_ENABLE_IF(std::is_scalar_v<X>&& std::is_scalar_v<Y>)>
+inline bool
+check_compare(X x, Y y, const char* xstr, const char* op, const char* ystr,
+              const char* file, int line)
+{
+    return check_compare_impl<Cmp>(x, y, xstr, op, ystr, file, line);
+}
+
+template<typename Cmp, typename X, typename Y,
+         OIIO_ENABLE_IF(!(std::is_scalar_v<std::decay_t<X>>
+                          && std::is_scalar_v<std::decay_t<Y>>))>
+inline bool
+check_compare(const X& x, const Y& y, const char* xstr, const char* op,
+              const char* ystr, const char* file, int line)
+{
+    return check_compare_impl<Cmp>(x, y, xstr, op, ystr, file, line);
+}
+
+template<typename X, typename Y, typename E, typename Abs>
+inline bool
+check_equal_thresh(const X& x, const Y& y, const E& eps, Abs absf,
+                   const char* xstr, const char* ystr, const char* file,
+                   int line)
+{
+    auto diff = absf(x - y);
+    if (diff <= eps)
+        return true;
+    report_compare_failure(file, line, xstr, "==", ystr, x, y, diff);
+    return false;
+}
+
+template<typename X, typename Y, typename EA, typename ER, typename Abs>
+inline bool
+check_equal_thresh_rel(const X& x, const Y& y, const EA& epsabs,
+                       const ER& epsrel, Abs absf, const char* xstr,
+                       const char* ystr, const char* file, int line)
+{
+    auto diff = absf(x - y);
+    if (diff <= (epsabs + epsrel * std::max(absf(x), absf(y))))
+        return true;
+    report_compare_failure(file, line, xstr, "==", ystr, x, y, diff);
+    return false;
+}
+
+template<typename X, typename Y>
+inline bool
+check_equal_approx(const X& x, const Y& y, const char* xstr, const char* ystr,
+                   const char* file, int line)
+{
+    if (equal_approx(x, y))
+        return true;
+    report_compare_failure(file, line, xstr, "==", ystr, x, y, x - y);
+    return false;
+}
+
+template<typename X, typename Y>
+inline bool
+check_simd_equal(const X& x, const Y& y, const char* xstr, const char* ystr,
+                 const char* file, int line)
+{
+    using namespace simd;
+    if (all(x == y))
+        return true;
+    report_compare_failure(file, line, xstr, "==", ystr, x, y);
+    return false;
+}
+
+template<typename X, typename Y>
+OIIO_NOINLINE void
+report_simd_thresh_failure(const char* file, int line, const char* xstr,
+                           const char* ystr, const X& x, const Y& y)
+{
+    using namespace simd;
+    Strutil::print("{}{}:{}:\nFAILED: {}{} == {}\n",
+                   Sysutil::Term(std::cout).ansi("red,bold"), file, line,
+                   Sysutil::Term(std::cout).ansi("normal"), xstr, ystr);
+    Strutil::print("\tvalues were '{:.8g}' and '{:.8g}', diff was {:.8g}\n", x,
+                   y, abs(x - y));
+}
+
+template<typename X, typename Y, typename E>
+inline bool
+check_simd_equal_thresh(const X& x, const Y& y, const E& eps, const char* xstr,
+                        const char* ystr, const char* file, int line)
+{
+    using namespace simd;
+    if (all(abs(x - y) <= eps))
+        return true;
+    report_simd_thresh_failure(file, line, xstr, ystr, x, y);
+    return false;
+}
+
+
 }  // end namespace pvt
 
 OIIO_NAMESPACE_END
-
-// Helper: print entire vectors. This makes the OIIO_CHECK_EQUAL macro
-// work for std::vector!
-template<typename T>
-inline std::ostream&
-operator<<(std::ostream& out, const std::vector<T>& v)
-{
-    out << '{' << OIIO::Strutil::join(v, ",") << '}';
-    return out;
-}
 
 static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
 
@@ -104,142 +247,77 @@ static OIIO::pvt::UnitTestFailureCounter unit_test_failures;
                        << "\n"),                                              \
             (void)++unit_test_failures))
 
-#define OIIO_CHECK_EQUAL(x, y)                                                \
-    (((x) == (y))                                                             \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " == " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y)        \
-                       << "'\n"),                                             \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_EQUAL(x, y)                                         \
+    (OIIO::pvt::check_compare<std::equal_to<>>((x), (y), #x, "==", #y, \
+                                               __FILE__, __LINE__)     \
+         ? ((void)0)                                                   \
+         : (void)++unit_test_failures)
 
 #define OIIO_CHECK_FALSE(x) OIIO_CHECK_EQUAL(x, false)
 
-#define OIIO_CHECK_EQUAL_THRESH(x, y, eps)                                    \
-    ((std::abs((x) - (y)) <= eps)                                             \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " == " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y) << "'" \
-                       << ", diff was " << std::abs((x) - (y)) << "\n"),      \
-            (void)++unit_test_failures))
+// std::abs as a lambda, so the THRESH macros look it up at the call site.
+#define OIIO_UNITTEST_ABS_ [](const auto& v_) { return std::abs(v_); }
 
-#define OIIO_CHECK_EQUAL_THRESH_REL(x, y, epsabs, epsrel)                     \
-    ((std::abs((x) - (y)) <= (epsabs + epsrel * std::max(abs(x), abs(y))))    \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " == " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y) << "'" \
-                       << ", diff was " << std::abs((x) - (y)) << "\n"),      \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_EQUAL_THRESH(x, y, eps)                                  \
+    (OIIO::pvt::check_equal_thresh((x), (y), (eps), OIIO_UNITTEST_ABS_, #x, \
+                                   #y, __FILE__, __LINE__)                  \
+         ? ((void)0)                                                        \
+         : (void)++unit_test_failures)
 
-#define OIIO_CHECK_EQUAL_APPROX(x, y)                                         \
-    (OIIO::pvt::equal_approx(x, y)                                            \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " == " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y) << "'" \
-                       << ", diff was " << ((x) - (y)) << "\n"),              \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_EQUAL_THRESH_REL(x, y, epsabs, epsrel)                    \
+    (OIIO::pvt::check_equal_thresh_rel((x), (y), (epsabs), (epsrel),         \
+                                       OIIO_UNITTEST_ABS_, #x, #y, __FILE__, \
+                                       __LINE__)                             \
+         ? ((void)0)                                                         \
+         : (void)++unit_test_failures)
 
-#define OIIO_CHECK_NE(x, y)                                                   \
-    (((x) != (y))                                                             \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " != " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y)        \
-                       << "'\n"),                                             \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_EQUAL_APPROX(x, y)                                    \
+    (OIIO::pvt::check_equal_approx((x), (y), #x, #y, __FILE__, __LINE__) \
+         ? ((void)0)                                                     \
+         : (void)++unit_test_failures)
 
-#define OIIO_CHECK_LT(x, y)                                                   \
-    (((x) < (y))                                                              \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " < " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y)        \
-                       << "'\n"),                                             \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_NE(x, y)                                                \
+    (OIIO::pvt::check_compare<std::not_equal_to<>>((x), (y), #x, "!=", #y, \
+                                                   __FILE__, __LINE__)     \
+         ? ((void)0)                                                       \
+         : (void)++unit_test_failures)
 
-#define OIIO_CHECK_GT(x, y)                                                   \
-    (((x) > (y))                                                              \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " > " << #y << "\n"                                 \
-                       << "\tvalues were '" << (x) << "' and '" << (y)        \
-                       << "'\n"),                                             \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_LT(x, y)                                                 \
+    (OIIO::pvt::check_compare<std::less<>>((x), (y), #x, "<", #y, __FILE__, \
+                                           __LINE__)                        \
+         ? ((void)0)                                                        \
+         : (void)++unit_test_failures)
 
-#define OIIO_CHECK_LE(x, y)                                                   \
-    (((x) <= (y))                                                             \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " <= " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y)        \
-                       << "'\n"),                                             \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_GT(x, y)                                                    \
+    (OIIO::pvt::check_compare<std::greater<>>((x), (y), #x, ">", #y, __FILE__, \
+                                              __LINE__)                        \
+         ? ((void)0)                                                           \
+         : (void)++unit_test_failures)
 
-#define OIIO_CHECK_GE(x, y)                                                   \
-    (((x) >= (y))                                                             \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " >= " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y)        \
-                       << "'\n"),                                             \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_LE(x, y)                                              \
+    (OIIO::pvt::check_compare<std::less_equal<>>((x), (y), #x, "<=", #y, \
+                                                 __FILE__, __LINE__)     \
+         ? ((void)0)                                                     \
+         : (void)++unit_test_failures)
+
+#define OIIO_CHECK_GE(x, y)                                                 \
+    (OIIO::pvt::check_compare<std::greater_equal<>>((x), (y), #x, ">=", #y, \
+                                                    __FILE__, __LINE__)     \
+         ? ((void)0)                                                        \
+         : (void)++unit_test_failures)
 
 
 // Special SIMD related equality checks that use all()
-#define OIIO_CHECK_SIMD_EQUAL(x, y)                                           \
-    (all((x) == (y))                                                          \
-         ? ((void)0)                                                          \
-         : ((std::cout << OIIO::Sysutil::Term(std::cout).ansi("red,bold")     \
-                       << __FILE__ << ":" << __LINE__ << ":\n"                \
-                       << "FAILED: "                                          \
-                       << OIIO::Sysutil::Term(std::cout).ansi("normal") << #x \
-                       << " == " << #y << "\n"                                \
-                       << "\tvalues were '" << (x) << "' and '" << (y)        \
-                       << "'\n"),                                             \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_SIMD_EQUAL(x, y)                                    \
+    (OIIO::pvt::check_simd_equal((x), (y), #x, #y, __FILE__, __LINE__) \
+         ? ((void)0)                                                   \
+         : (void)++unit_test_failures)
 
-#define OIIO_CHECK_SIMD_EQUAL_THRESH(x, y, eps)                                \
-    ((all(abs((x) - (y)) <= eps))                                              \
-         ? ((void)0)                                                           \
-         : (Strutil::print("{}{}:{}:\nFAILED: {}{} == {}\n",                   \
-                           OIIO::Sysutil::Term(std::cout).ansi("red,bold"),    \
-                           __FILE__, __LINE__,                                 \
-                           OIIO::Sysutil::Term(std::cout).ansi("normal"), #x,  \
-                           #y),                                                \
-            Strutil::print(                                                    \
-                "\tvalues were '{:.8g}' and '{:.8g}', diff was {:.8g}\n", (x), \
-                (y), abs((x) - (y))),                                          \
-            (void)++unit_test_failures))
+#define OIIO_CHECK_SIMD_EQUAL_THRESH(x, y, eps)                            \
+    (OIIO::pvt::check_simd_equal_thresh((x), (y), (eps), #x, #y, __FILE__, \
+                                        __LINE__)                          \
+         ? ((void)0)                                                       \
+         : (void)++unit_test_failures)
 
 
 // Test if ImageBuf operation got an error. It's a lot like simply testing
