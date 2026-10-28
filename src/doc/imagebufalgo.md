@@ -1819,6 +1819,50 @@ pre-allocated `dst` nor a non-default ROI.
 > >       oiiotool a.exr --powc 0.4545,0.4545,0.4545,1.0 -o a.exr
 > > ```
 
+:::{doxygenfunction} normalize(const ImageBuf &A, float inCenter = 0.0f, float outCenter = 0.0, float scale = 1.0f, ROI roi = {}, int nthreads = 0)
+:::
+
+%
+
+> Result-as-parameter version:
+>
+> > ```{eval-rst}
+> > .. doxygenfunction:: normalize(ImageBuf &dst, const ImageBuf &A, float inCenter = 0.0f, float outCenter = 0.0f, float scale = 1.0f, ROI roi = {}, int nthreads = 0)
+> > ```
+>
+> Examples:
+>
+> > ```{eval-rst}
+> > .. tabs::
+> >
+> >    .. code-tab:: c++
+> >
+> >       // Normalize the vectors of a float image whose values are in [-1,1]
+> >       ImageBuf A ("xyzvectors.exr");
+> >       ImageBuf N = ImageBufAlgo::normalize (A);
+> >
+> >       // Normalize a tangent-space normal map, whose values (in [0,1])
+> >       // are centered on 0.5, keeping that encoding for the result
+> >       ImageBuf B ("normalmap.tif");
+> >       ImageBuf NB = ImageBufAlgo::normalize (B, 0.5f, 0.5f, 0.5f);
+> >
+> >    .. code-tab:: py
+> >
+> >       # Normalize the vectors of a float image whose values are in [-1,1]
+> >       A = ImageBuf("xyzvectors.exr")
+> >       N = ImageBufAlgo.normalize (A)
+> >
+> >       # Normalize a tangent-space normal map, whose values (in [0,1])
+> >       # are centered on 0.5, keeping that encoding for the result
+> >       B = ImageBuf("normalmap.tif")
+> >       NB = ImageBufAlgo.normalize (B, inCenter=0.5, outCenter=0.5, scale=0.5)
+> >
+> >    .. code-tab:: bash oiiotool
+> >
+> >       oiiotool xyzvectors.exr --normalize -o normalized.exr
+> >       oiiotool normalmap.tif --normalize:incenter=0.5:outcenter=0.5:scale=0.5 -o normalized.tif
+> > ```
+
 :::{doxygenfunction} channel_sum(const ImageBuf &src, cspan<float> weights = 1.0f, ROI roi = {}, int nthreads = 0)
 :::
 

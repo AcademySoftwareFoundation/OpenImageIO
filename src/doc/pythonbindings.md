@@ -2940,6 +2940,23 @@ ImageBufAlgo.paste (Big, 100, 100, 0, 0, Small)
 ```
 
 ```{eval-rst}
+.. py:method:: ImageBuf ImageBufAlgo.normalize (src, inCenter=0.0, outCenter=0.0, scale=1.0, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.normalize (dst, src, inCenter=0.0, outCenter=0.0, scale=1.0, roi=ROI.All, nthreads=0)
+
+    Normalize a 3-vector image (with optional alpha) by dividing each pixel
+    by its length: `out = outCenter + scale * (in - inCenter) / length(in - inCenter)`.
+
+    Example:
+
+    .. code-block:: python
+
+        # Normalize a normal map whose values in [0,1] are centered on 0.5
+        buf = ImageBufAlgo.normalize (ImageBuf("normalmap.tif"), 0.5, 0.5, 0.5)
+
+
+```
+
+```{eval-rst}
 .. py:method:: ImageBuf ImageBufAlgo.channel_sum (src, weights=(), roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.channel_sum (dst, src, weights=(), roi=ROI.All, nthreads=0)
 
