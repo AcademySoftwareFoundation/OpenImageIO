@@ -1461,7 +1461,7 @@ OpenEXRInput::read_native_scanlines_impl(int subimage, int miplevel, int ybegin,
 
             Imf::Array2D<Imf::Rgba> pixels(chunk_height, dw_width);
             m_input_rgba->setFrameBuffer(&pixels[0][0] - dw.min.x
-                                             - ybegin * dw_width,
+                                             - int64_t(ybegin) * dw_width,
                                          1, dw_width);
             m_input_rgba->readPixels(ybegin, yend - 1);
 
@@ -1617,7 +1617,8 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     if (whole_width != (xend - xbegin) || whole_height != (yend - ybegin)) {
         // Deal with the case of reading not a whole number of tiles --
         // OpenEXR will happily overwrite user memory in this case.
-        tmpbuf.resize(nxtiles * nytiles * m_spec.tile_bytes(true));
+        tmpbuf.resize(size_t(nxtiles) * size_t(nytiles)
+                      * m_spec.tile_bytes(true));
         data = tmpbuf.data();
     }
     char* buf = (char*)data - ptrdiff_t(xbegin * pixelbytes)
@@ -1792,7 +1793,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
     }
 
     try {
-        size_t npixels = (yend - ybegin) * m_spec.width;
+        size_t npixels = size_t(yend - ybegin) * size_t(m_spec.width);
         chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
         size_t nchans  = chend - chbegin;
 
@@ -1807,7 +1808,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice(Imf::UINT,
                               (char*)(&all_samples[0] - m_spec.x
-                                      - ybegin * m_spec.width),
+                                      - int64_t(ybegin) * m_spec.width),
                               sizeof(unsigned int),
                               sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice(countslice);

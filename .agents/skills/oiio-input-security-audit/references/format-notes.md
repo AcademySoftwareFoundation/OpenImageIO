@@ -77,6 +77,9 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   tracked separately from index.
 - openexr: C2 on BOTH the C++ and C-API readers; tile/display-window limits
   were missing from `check_open`; library bounds its own framebuffer (C6 left).
+  Deep paths: pixel-count math must be 64-bit in BOTH readers (classic
+  deep scanline + partial-tile tmpbuf, core `realloc_deepdata`); dims go to
+  2^30, so `int` products wrap within the imagesize limit.
 - jpeg2000: two codepaths (OpenJPEG, OpenJPH/HTJ2K) - guard both before
   decode; HTJ2K error handling continued after failure; zero components read
   past an array; OpenJPH global error handler needs static lifetime.

@@ -1870,12 +1870,12 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
     int chans        = ud->nchans;
     size_t fullwidth = ud->fullwidth;
     size_t xoff      = ud->xoff;
-    ud->linepointers.resize(w * h * chans);
+    ud->linepointers.resize(size_t(w) * size_t(h) * size_t(chans));
     if (ud->firstisfullread) {
         ud->deepdata->set_all_samples(
             cspan<unsigned int>((const uint32_t*)decode->sample_count_table,
                                 (const uint32_t*)decode->sample_count_table
-                                    + w * h));
+                                    + size_t(w) * size_t(h)));
         ud->deepdata->get_pointers(ud->linepointers);
     } else {
         // this is super slow, read the sample counts up front and set the counts once
@@ -1885,12 +1885,12 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
                 for (int x = 0; x < w; ++x)
                     ud->deepdata->set_samples(
                         (y + ud->cury) * fullwidth + xoff + x,
-                        decode->sample_count_table[y * w + x]);
+                        decode->sample_count_table[size_t(y) * w + x]);
         }
         for (int y = 0; y < h; ++y)
             for (int x = 0; x < w; ++x)
                 for (int c = 0; c < chans; ++c)
-                    ud->linepointers[(y * w + x) * chans + c]
+                    ud->linepointers[(size_t(y) * w + x) * chans + c]
                         = ud->deepdata->data_ptr((y + ud->cury) * fullwidth
                                                      + xoff + x,
                                                  c, 0);
