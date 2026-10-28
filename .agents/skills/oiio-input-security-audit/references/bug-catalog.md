@@ -296,3 +296,9 @@ branches in `simd.h`.
 - Writers that echo read metadata into XML/headers (xmp `encode_xmp` did not
   escape values from a hostile file: markup injection into every output file).
   Thumbnail metadata leaking to formats that can't hold a thumbnail.
+- Writers that remap channel count for the library (jpeg 2ch -> 3 RGB):
+  every buffer handed to the library, including close()-time padding of
+  unwritten rows, must be sized from the library's row width, not
+  `spec().scanline_bytes()`. Overread got compressed into the output (heap
+  disclosure). Grep: `scanline_bytes()` near library write calls in
+  `close()`. Example: GHSA-r845-rvjx-cm2w.
