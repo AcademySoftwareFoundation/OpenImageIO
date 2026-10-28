@@ -97,6 +97,7 @@ None known
 
 Most recent fixes listed first, more or less:
 
+- CVE-2026-108386: TIFF failed-seek state confusion causes ImageCache heap-buffer overflow [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-h4p2-w2vv-76h5) / [Fix: PR #5468](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5468) (fixed in 3.2.0.4, 3.1.18.0)
 - CVE-2026-67549: TIFF 1-bit CMYK bit conversion heap out-of-bounds write [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-3wxw-rqhw-j2w4) / [Fix: PR #5296](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5296) (fixed in 3.2.0.3, 3.1.16.0)
 - CVE-2026-65970: TIFF multithreaded scanline read use-after-scope in `TIFFInput::read_native_scanlines`  [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-v278-gpwr-r836) / [Fix: PR #5294](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5294) (fixed in 3.2.0.3, 3.1.16.0)
 - CVE-2026-65969: TGA-to-GIF palette split signed overflow causes SIGSEGV [advisory](https://github.com/AcademySoftwareFoundation/OpenImageIO/security/advisories/GHSA-9mwc-fjgj-8wmq) / Fix: [PR #5292](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5292) [PR #5293](https://github.com/AcademySoftwareFoundation/OpenImageIO/pull/5293) (fixed in 3.2.0.3, 3.1.16.0, 3.0.21.0)

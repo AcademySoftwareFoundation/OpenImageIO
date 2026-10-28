@@ -37,6 +37,7 @@ the project.
 * Arkady Shapkin
 * Asish Kumar
 * Aurele Boquet
+* Ayush Singh
 * Basile Fraboni
 * Basileios Anastasatos
 * Bastien Montagne
@@ -124,6 +125,7 @@ the project.
 * Jackson Sun
 * Jan Hettenkofer
 * Jan Honsbrok
+* Jeevan Mohan Pawar
 * Jens Lindgren
 * Jep Hill
 * Jeph Alapat
