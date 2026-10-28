@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Extract `oiiotool --buildinfo` from downloaded CI job logs.
+"""Extract `--buildinfo` output from downloaded CI job logs.
+
+Works for any tool whose buildinfo starts with a `<PROJ> <version> | <platform>`
+line (`oiiotool` for OIIO, `testshade` for OSL; see assets/project.md).
+The block ends at a `Running on:` line, a `Recovered from` line, or the next
+`Results of ...` echo from ci-test.bash, whichever comes first.
 
 Usage: parse_buildinfo.py <outdir> [dep ...]
 
@@ -25,10 +30,10 @@ for f in sorted(glob.glob(os.path.join(out, 'logs', '*.log'))):
         if mc and not cmake:
             cmake = mc.group(1)
         t = re.sub(r'^\S*Z ', '', p[2])      # strip timestamp
-        if re.match(r'OIIO \d', t):
+        if not on and re.match(r'[A-Za-z]+ \d+\.\d+\S* \| ', t):
             on = True
         if on:
-            if 'Results of oiiotool brief help' in t and not t.startswith('+'):
+            if re.match(r'\s*(Running on:|Recovered from |Results of )', t):
                 break
             if t.startswith('+') or not t.strip():
                 continue                      # shell trace interleaved by tee
@@ -57,7 +62,10 @@ for j, v in res.items():
     print(f"{j}  {v['name'][:70]:70}  {v['compiler']} {v['std']}  deps={len(v['deps'])}")
 
 def vkey(s):
-    return [int(x) if x.isdigit() else x for x in re.split(r'[.\-_ ]', s)]
+    # Tag each part so numbers and words (NONE, present, dev) compare
+    # without TypeError; numbers sort before words.
+    return [(0, int(x), '') if x.isdigit() else (1, 0, x)
+            for x in re.split(r'[.\-_ ]', s)]
 
 # Compact table-A input: all distinct versions per dependency, ascending
 # (plus compilers).
