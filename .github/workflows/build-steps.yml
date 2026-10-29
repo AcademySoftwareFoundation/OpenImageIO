@@ -224,6 +224,17 @@ jobs:
             elif [[ "$RUNNER_OS" == "Windows" ]]; then
                 src/build-scripts/gh-win-installdeps.bash
             fi
+      - name: Windows deps cache restore
+        # Windows CI builds most dependencies locally during the cmake
+        # configure, which is slow, and ccache doesn't work with the Visual
+        # Studio generator. So cache the installed deps. When present, the
+        # configure finds them and skips building them.
+        if: runner.os == 'Windows'
+        id: windeps-restore
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/deps/dist
+          key: windeps-${{inputs.nametag}}-c++${{inputs.cxx_std}}-${{inputs.build_type}}-py${{inputs.python_ver}}-${{ hashFiles('src/cmake/build_*.cmake', 'src/cmake/dependency_utils.cmake') }}
       - name:  Install sonar-scanner and build-wrapper
         if: inputs.sonar == '1'
         uses: sonarsource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
@@ -231,6 +242,12 @@ jobs:
         if: inputs.skip_build != '1'
         shell: bash
         run: src/build-scripts/ci-build.bash
+      - name: Windows deps cache save
+        if: runner.os == 'Windows' && steps.windeps-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/deps/dist
+          key: ${{ steps.windeps-restore.outputs.cache-primary-key }}
       - name: Check out ABI standard
         if: inputs.abi_check != ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
