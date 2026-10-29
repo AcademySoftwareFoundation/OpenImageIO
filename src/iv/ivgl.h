@@ -50,11 +50,11 @@ public:
     }
     bool wipe_horizontal() const { return m_wipe.horizontal; }
 
-    /// Select the kind of comparison to perform (wipe split, per-pixel
-    /// absdiff, or FLIP perceptual difference). See CompareMode in
-    /// ivutils.h.
-    void set_compare_mode(CompareMode mode) { m_compare_mode = mode; }
-    CompareMode compare_mode() const { return m_compare_mode; }
+    /// Select the difference view to display in place of the image (Off =
+    /// plain or wipe split, absdiff, or FLIP perceptual difference). See
+    /// DiffMode in ivutils.h.
+    void set_diff_mode(DiffMode mode) { m_diff_mode = mode; }
+    DiffMode diff_mode() const { return m_diff_mode; }
 
     /// Display the given FLIP error map (already colormapped if desired)
     /// instead of the primary image while in FlipDiff mode. Pass an
@@ -184,7 +184,7 @@ protected:
     };
     std::array<ImageSlot, 2> m_slots;
     Wipe m_wipe;
-    CompareMode m_compare_mode = CompareMode::Wipe;
+    DiffMode m_diff_mode = DiffMode::Off;
     // FLIP error map texture (FlipDiff mode), shown when valid.
     GLuint m_flipdiff_tex = 0;
     bool m_flipdiff_valid = false;

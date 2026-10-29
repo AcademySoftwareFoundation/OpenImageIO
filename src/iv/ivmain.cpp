@@ -65,10 +65,10 @@ getargs(int argc, char* argv[])
       .metavar("tolerate|strict")
       .defaultval("tolerate");
     ap.arg("--compare")
-      .help("Start in image comparison mode (see issue #4711): \"wipe\" "
-            "(split-screen wipe, default), \"absdiff\" (per-pixel absolute "
-            "difference), or \"flipdiff\" (FLIP perceptual difference error "
-            "map). Requires at least two images.")
+      .help("Start out comparing the last two images: \"wipe\" "
+            "(split-screen wipe), \"absdiff\" (per-pixel absolute "
+            "difference view), or \"flipdiff\" (FLIP perceptual difference "
+            "view). Requires at least two images.")
       .metavar("wipe|absdiff|flipdiff")
       .defaultval("");
 
@@ -229,14 +229,12 @@ main(int argc, char* argv[])
     // Deferred until the event loop is running and GL is initialized.
     std::string compare_mode = ap["compare"].as_string("");
     if (!compare_mode.empty()) {
-        CompareMode mode = CompareMode::Wipe;
-        if (compare_mode == "wipe")
-            mode = CompareMode::Wipe;
-        else if (compare_mode == "absdiff")
-            mode = CompareMode::AbsDiff;
+        DiffMode mode = DiffMode::Off;  // "wipe": the wipe comparison
+        if (compare_mode == "absdiff")
+            mode = DiffMode::AbsDiff;
         else if (compare_mode == "flipdiff")
-            mode = CompareMode::FlipDiff;
-        else {
+            mode = DiffMode::FlipDiff;
+        else if (compare_mode != "wipe") {
             print(stderr, "Error: --compare must be \"wipe\", \"absdiff\", or "
                           "\"flipdiff\"\n");
             return EXIT_FAILURE;

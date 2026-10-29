@@ -299,17 +299,22 @@ public:
 
     bool areaSampleMode() const;
 
-    /// Which comparison mode is selected (see CompareMode in ivutils.h).
-    CompareMode compareMode() const { return m_compare_mode; }
+    /// Which difference view is selected (see DiffMode in ivutils.h).
+    DiffMode diffMode() const { return m_diff_mode; }
 
-    /// Select the comparison mode (wipe split, absdiff, or FLIP diff).
-    /// Does not by itself enable comparison mode.
-    void setCompareMode(CompareMode mode);
+    /// Select the difference view: Off, absdiff, or FLIP diff. Entering a
+    /// difference view immediately pairs the current image with the last
+    /// one displayed and shows the difference; it also turns the wipe
+    /// comparison off (and enabling the wipe in turn turns the difference
+    /// view off). If that is not possible (not enough images, no GLSL),
+    /// print a diagnostic and change nothing.
+    void setDiffMode(DiffMode mode);
 
-    /// Enable comparison mode directly with the given mode (used by the
-    /// --compare command line option). If comparison is not possible
-    /// (not enough images, no GLSL), print a diagnostic and do nothing.
-    void startComparison(CompareMode mode);
+    /// Enter the wipe comparison (mode == Off) or the given difference
+    /// view directly (used by the --compare command line option). If that
+    /// is not possible (not enough images, no GLSL), print a diagnostic
+    /// and do nothing.
+    void startComparison(DiffMode mode);
 
     bool useOCIO() { return m_useOCIO; }
     const std::string& ocioColorSpace() { return m_ocioColourSpace; }
@@ -343,7 +348,8 @@ private slots:
     void nextImage();         ///< View next image in sequence
     void toggleImage();       ///< View most recently viewed image
     void toggleComparison(bool enabled);
-    void comparisonModeChanged();    ///< One of the mode actions was clicked
+    void differenceModeChanged();  ///< One of the difference actions was clicked
+    void cycleDifference();        ///< D: cycle Off -> absdiff -> FLIP -> Off
     void flipColormapToggled(bool);  ///< Toggle colormap for FLIP diff
     void toggleWindowGuides();       ///< Toggle data and display window overlay
     void exposureMinusOneTenthStop();  ///< Decrease exposure 1/10 stop
@@ -405,7 +411,9 @@ private:
     bool loadCurrentImage(int subimage = 0, int miplevel = 0);
     bool loadImage(IvImage* image, int subimage = 0, int miplevel = 0);
     void displayCurrentImage(bool update = true);
-    void computeFlipDiff();              ///< Kick off background FLIP diff
+    IvImage* pickComparisonImage() const;  ///< Last displayed image (the pair)
+    void syncDifferenceActions();  ///< Check the radio matching m_diff_mode
+    void computeFlipDiff();        ///< Kick off background FLIP diff
     void flipDiffDone(ImageBuf errmap);  ///< Receive FLIP result (GUI thread)
     void updateTitle();
     void updateStatusBar();
@@ -453,10 +461,11 @@ private:
     QAction* aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
     QAction* comparisonAct         = nullptr;
-    QMenu* comparisonModeMenu      = nullptr;
-    QAction* comparisonWipeAct     = nullptr;
-    QAction* comparisonAbsDiffAct  = nullptr;
-    QAction* comparisonFlipDiffAct = nullptr;
+    QMenu* differenceMenu          = nullptr;
+    QAction* differenceOffAct      = nullptr;
+    QAction* differenceAbsDiffAct  = nullptr;
+    QAction* differenceFlipDiffAct = nullptr;
+    QAction* differenceCycleAct    = nullptr;
     QAction* flipColormapAct       = nullptr;
     QAction *sortByNameAct, *sortByPathAct, *sortReverseAct;
     QAction *sortByImageDateAct, *sortByFileDateAct;
@@ -496,7 +505,7 @@ private:
 
     std::vector<IvImage*> m_images;  // List of images
     IvImage* m_comparison_image = nullptr;
-    CompareMode m_compare_mode  = CompareMode::Wipe;  // Comparison mode (#4711)
+    DiffMode m_diff_mode = DiffMode::Off;  // Difference view (issue #4711)
     bool m_flip_colormap = true;  // Colormap the FLIP error map (inferno)
     int m_current_image;          // Index of current image, -1 if none
     int m_current_channel;        // Channel we're viewing.

@@ -356,7 +356,9 @@ IvGL::create_shaders(void)
         {
             vec2 st = vTexCoord;
             vec2 screen = gl_FragCoord.xy - viewport_origin;
-            bool second = comparison != 0 &&
+            // Only the wipe (compare_mode 0) splits the view; a difference
+            // view shows the current image until its result is ready.
+            bool second = comparison != 0 && compare_mode == 0 &&
                 (wipe_horizontal != 0 ? screen.y < wipe_split
                                       : screen.x >= wipe_split);
             float black = 0.0;
@@ -1668,7 +1670,7 @@ IvGL::update_uniforms(int tex_width, int tex_height, bool pixelview)
     glUniform1i(loc, 2);
 
     loc = glGetUniformLocation(m_shader_program, "compare_mode");
-    glUniform1i(loc, (int)m_compare_mode);
+    glUniform1i(loc, (int)m_diff_mode);
     loc = glGetUniformLocation(m_shader_program, "fliptex_valid");
     glUniform1i(loc, m_flipdiff_valid ? 1 : 0);
 
@@ -2063,7 +2065,7 @@ IvGL::mouseMoveEvent(QMouseEvent* event)
 {
     QPoint pos = event->pos();
 
-    if (m_compare_mode == CompareMode::Wipe && m_viewer.m_comparison_image
+    if (m_diff_mode == DiffMode::Off && m_viewer.m_comparison_image
         && !m_viewer.areaSampleMode()) {
         if (!m_wipe.anchored) {
             m_wipe.anchor   = pos;
@@ -2551,7 +2553,7 @@ IvGL::load_texture(ImageSlot& slot, GLenum texture_unit, int x, int y,
 void
 IvGL::update_cursor()
 {
-    if (m_compare_mode == CompareMode::Wipe && m_viewer.m_comparison_image
+    if (m_diff_mode == DiffMode::Off && m_viewer.m_comparison_image
         && !m_viewer.areaSampleMode())
         setCursor(m_wipe.horizontal ? Qt::SplitVCursor : Qt::SplitHCursor);
     else
