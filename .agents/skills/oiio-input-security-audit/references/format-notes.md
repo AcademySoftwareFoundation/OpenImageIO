@@ -79,7 +79,9 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   were missing from `check_open`; library bounds its own framebuffer (C6 left).
 - jpeg2000: two codepaths (OpenJPEG, OpenJPH/HTJ2K) - guard both before
   decode; HTJ2K error handling continued after failure; zero components read
-  past an array; OpenJPH global error handler needs static lifetime.
+  past an array; OpenJPH global error handler needs static lifetime;
+  sYCC conversion ran on 1-channel images (OpenJPEG sets SYCC from the
+  `colr` box alone).
   Open: >4 components out of step; truncated codestream decodes silently
   (no completeness signal from OpenJPH).
 - webp: check_open + C2 moved before the decoded-image allocation; no real

@@ -188,6 +188,12 @@ Streams and rotated images can change geometry after the header.
   values into 3-channel buffer). Fix: compare decoder-reported dims, channel
   count, and stride against the spec before every copy-out; size scratch
   buffers from the decoder-reported values, not the header.
+- Colorspace tag selecting a fixed-width conversion: a file-supplied tag
+  picks a converter that touches N samples per pixel with no check that
+  nchannels >= N. Find: per-pixel `p[i+1]`/`p[i+2]` in `*_to_rgb` helpers;
+  trace what gates the call. Seen: jpeg2000 sYCC (`colr` EnumCS 18) on a
+  1-channel image, 2 samples OOB read+write past every scanline.
+  Fix: gate on channel count too (`nc >= 3`).
 - Uninitialized packet structs: `av_packet_alloc()`, not stack AVPacket,
   because `av_read_frame` does not init on failure.
 
