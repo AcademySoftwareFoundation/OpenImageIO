@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
@@ -955,6 +956,14 @@ OIIO_NAMESPACE_END
 OIIO_NAMESPACE_3_1_BEGIN
 
 
+static inline bool
+is_aligned_for(const void* p, TypeDesc type)
+{
+    return (uintptr_t(p) % std::max(size_t(type.basesize()), size_t(1))) == 0;
+}
+
+
+
 bool
 convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
                      void* dst, int n)
@@ -962,6 +971,25 @@ convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
     // If no conversion is necessary, just memcpy
     if ((src_type == dst_type || dst_type.basetype == TypeDesc::UNKNOWN)) {
         memcpy(dst, src, n * src_type.size());
+        return true;
+    }
+
+    // Per-channel formats pack channels of differing sizes, so values in a
+    // native pixel need not be aligned for their type. Convert those via
+    // aligned temporaries.
+    if (!is_aligned_for(src, src_type) || !is_aligned_for(dst, dst_type)) {
+        size_t srcbytes = size_t(n) * src_type.size();
+        size_t dstbytes = size_t(n) * dst_type.size();
+        size_t srcpad   = round_to_multiple(srcbytes, sizeof(std::max_align_t));
+        size_t nblocks  = (srcpad + dstbytes + sizeof(std::max_align_t) - 1)
+                          / sizeof(std::max_align_t);
+        std::max_align_t* tmp;
+        OIIO_ALLOCATE_STACK_OR_HEAP(tmp, std::max_align_t, nblocks);
+        char* tmpdst = (char*)tmp + srcpad;
+        memcpy(tmp, src, srcbytes);
+        if (!convert_pixel_values(src_type, tmp, dst_type, tmpdst, n))
+            return false;
+        memcpy(dst, tmpdst, dstbytes);
         return true;
     }
 
