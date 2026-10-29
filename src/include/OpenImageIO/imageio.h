@@ -3577,6 +3577,8 @@ protected:
     ///   be adjusted to 0.
     /// * Whether the `extra_attribs` contains a request to use an IOProxy,
     ///   but the format writer does not report `supports("ioproxy")`.
+    /// * If alpha_channel and z_channel are not within the actual channel
+    ///   count, they will be set to -1.
     bool check_open(OpenMode mode, const ImageSpec &spec,
                     ROI range = {0, 65535, 0, 65535, 0, 1, 0, 4},
                     uint64_t flags = 0);

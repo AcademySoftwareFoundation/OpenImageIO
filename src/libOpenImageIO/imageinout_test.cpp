@@ -366,6 +366,30 @@ test_write_unwritable(string_view extension, const ImageBuf& buf)
 
 
 
+// Writers must tolerate alpha_channel and z_channel values that don't
+// refer to an actual channel, and not use them as pixel indices.
+static void
+test_write_bad_channel_indices(string_view formatname, string_view extension,
+                               const ImageBuf& buf)
+{
+    std::string filename = Strutil::format("imageinout_test-badchan-{}.{}",
+                                           formatname, extension);
+    for (int bad : { -2, buf.spec().nchannels, buf.spec().nchannels + 100 }) {
+        std::cout << "    Writing with alpha/z channel " << bad << " ... ";
+        ImageSpec spec     = buf.spec();
+        spec.alpha_channel = bad;
+        spec.z_channel     = bad;
+        bool ok = checked_write(nullptr, filename, spec, spec.format,
+                                buf.localpixels_as_byte_image_span());
+        if (ok)
+            std::cout << Sysutil::Term(stdout).ansi("green", "OK\n");
+    }
+    if (!nodelete)
+        Filesystem::remove(filename);
+}
+
+
+
 static void
 test_all_formats()
 {
@@ -456,6 +480,8 @@ test_all_formats()
         // error.
         //
         test_write_unwritable(extensions[0], buf);
+
+        test_write_bad_channel_indices(formatname, extensions[0], buf);
 
         if (!nodelete)
             Filesystem::remove(filename);
