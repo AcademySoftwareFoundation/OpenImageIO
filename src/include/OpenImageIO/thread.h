@@ -154,9 +154,10 @@ pause(int delay) noexcept
 #elif defined(_MSC_VER)
 // A reimplementation of winnt.h YieldProcessor,
 // to avoid including windows headers.
-#    if defined(_M_AMD64)
+#    if defined(_M_AMD64) && !defined(_M_ARM64EC)
         _mm_pause();
-#    elif defined(_M_ARM64) || defined(_M_HYBRID_X86_ARM64)
+#    elif defined(_M_ARM64) || defined(_M_ARM64EC) \
+        || defined(_M_HYBRID_X86_ARM64)
         __dmb(_ARM64_BARRIER_ISHST);
         __yield();
 #    elif defined(_M_ARM)
