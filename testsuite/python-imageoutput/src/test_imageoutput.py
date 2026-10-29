@@ -154,6 +154,20 @@ try:
         print ("  bad mode: ValueError")
     print ("")
 
+    print ("Testing open() with 0 channels:")
+    zero_out = oiio.ImageOutput.create ("zero_chan.tif")
+    print ("  8x8 0-channel tiff fails:",
+           not zero_out.open ("zero_chan.tif", oiio.ImageSpec (8, 8, 0, oiio.UINT8)))
+    zero_out.geterror ()
+    zero_out = oiio.ImageOutput.create ("zero_chan.fits")
+    print ("  8x8 0-channel fits fails:",
+           not zero_out.open ("zero_chan.fits", oiio.ImageSpec (8, 8, 0, oiio.UINT8)))
+    zero_out.geterror ()
+    print ("  0x0 0-channel fits (noimage) ok:",
+           zero_out.open ("zero_chan.fits", oiio.ImageSpec (0, 0, 0, oiio.UINT8)))
+    zero_out.close ()
+    print ("")
+
     print ("Testing write path errors:")
     scan_out = oiio.ImageOutput.create ("scan_mismatch.tif")
     scan_out.open ("scan_mismatch.tif", spec8)
