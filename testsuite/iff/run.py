@@ -44,3 +44,10 @@ command += info_command("src/valid-multitile.iff", hash=True)
 command += info_command("src/valid-out-of-order.iff", hash=True)
 command += info_command("src/valid-edge-tile.iff", hash=True)
 command += info_command("src/overlap-full-coverage.iff", hash=True)
+
+# Regression test: writing 2 color channels + Z (rgba_count 2) overflowed
+# the 16-bit RLE buffer. Must be rejected.
+command += oiiotool ("--pattern noise:type=white 64x64 3 --chnames R,G,Z -d float -o rgz.iff", failureok=True)
+# RGB + Z is still fine
+command += oiiotool ("--pattern noise:type=white 64x64 4 --chnames R,G,B,Z -d float -o rgbz.iff")
+command += info_command("rgbz.iff", hash=True)
