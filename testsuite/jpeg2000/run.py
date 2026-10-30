@@ -16,6 +16,9 @@ files = [ "issue_3427.jp2" ]
 for f in files:
     command += rw_command (imagedir, f, printinfo=False)
 
+# sYCC colr box on a 1-channel image must not run the 3-channel conversion
+command += oiiotool("src/sycc-1chan.jp2 --printstats")
+
 # Try to parse library_list to find the OpenJPEG version. If found, return it as
 # a single number, e.g. 2.5.3 -> 20503. Return -1 if not found.
 def get_openjp_ver():

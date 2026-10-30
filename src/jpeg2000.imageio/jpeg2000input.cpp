@@ -1004,7 +1004,7 @@ Jpeg2000Input::copy_scanline(int y, int /*z*/, void* data)
             }
         }
     }
-    if (m_image->color_space == OPJ_CLRSPC_SYCC)
+    if (m_image->color_space == OPJ_CLRSPC_SYCC && nc >= 3)
         yuv_to_rgb(scanline);
 }
 
