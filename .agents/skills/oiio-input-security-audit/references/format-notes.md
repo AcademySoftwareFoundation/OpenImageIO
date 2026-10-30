@@ -70,7 +70,9 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   LLP64.
 - jpeg: C2 added; checks must precede `jpeg_start_decompress` /
   `jpeg_read_coefficients` (progressive). Exif/ICC/XMP routes go to the shared
-  decoders.
+  decoders. Writer (C10): 2-channel non-Y is written as 3 components; any
+  buffer handed to `jpeg_write_scanlines` must be `input_components` wide
+  (close() padding got this wrong, GHSA-r845-rvjx-cm2w).
 - png: C2 added; rest OK. Chunk-borne eXIf/zTXt/iTXt are the routes into
   shared decoders (and unbounded size: PNG chunks have no small cap).
 - gif: C2; short graphics-control extension OOB read; subimage stream position
