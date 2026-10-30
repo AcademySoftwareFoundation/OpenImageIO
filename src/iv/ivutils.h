@@ -88,6 +88,17 @@ image_data_readable(string_view filename, int subimage, int miplevel)
     return ok;
 }
 
+/// Which kind of difference view (issue #4711) is displayed in place of
+/// the plain image. Off means no difference view at all: the plain image,
+/// or a wipe split between the current image and the comparison image
+/// (#5480).
+enum class DiffMode {
+    Off,      ///< No difference view: plain image or wipe split (#5480)
+    AbsDiff,  ///< Per-pixel absolute difference of the two images
+    FlipDiff  ///< FLIP perceptual difference error map (CPU computed)
+};
+
+
 OIIO_NAMESPACE_END
 
 #endif  // OPENIMAGEIO_IV_UTILS_H
