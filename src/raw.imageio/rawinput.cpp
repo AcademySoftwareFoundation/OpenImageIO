@@ -6,6 +6,7 @@
 #include <ctime> /* time_t, struct tm, gmtime */
 #include <iostream>
 #include <memory>
+#include <system_error>
 
 #include <OpenImageIO/half.h>
 
@@ -293,7 +294,8 @@ libraw_xtrans_filter_to_str(char (&filters)[6][6])
 
 // Sometimes LibRaw returns error codes that are its own -- they are all
 // negative values and use libraw_strerror to turn into strings. But they also
-// mix in positive error codes like EINVAL, for which we use C stderror.
+// mix in positive error codes like EINVAL, for which we use
+// std::generic_category(), a portable alternative to strerror_r().
 std::string
 libraw_errmsg(int ret)
 {
@@ -303,11 +305,7 @@ libraw_errmsg(int ret)
         if (const char* m = libraw_strerror(ret))
             msg = m;
     } else if (ret > 0) {
-        // C style error code, use safe version of strerror
-        const size_t maxbuf = 100;
-        char buf[maxbuf]    = { 0 };
-        if (strerror_r(ret, buf, maxbuf) == 0)
-            msg = std::string(buf);
+        msg = std::generic_category().message(ret);
     } else if (ret == 0) {
         msg = "ok";  // 0 means "no error"
     }
