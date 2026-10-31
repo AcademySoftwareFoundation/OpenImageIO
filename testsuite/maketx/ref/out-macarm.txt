@@ -822,5 +822,9 @@ checker-attribs.tx   :  128 x  128, 4 channel, uint8 tiff
     tiff:Compression: 8
     tiff:PhotometricInterpretation: 2
     tiff:PlanarConfiguration: 1
+unassoc.tx           :    1 x    1, 4 channel, uint8 tiff
+    Pixel (0, 0): 64 64 64 128 (0.2509804 0.2509804 0.2509804 0.5019608)
+unassoc-ignore.tx    :    1 x    1, 4 channel, uint8 tiff
+    Pixel (0, 0): 128 128 128 128 (0.5019608 0.5019608 0.5019608 0.5019608)
 Comparing "uffizi_latlong_env-128.exr" and "ref/uffizi_latlong_env-128.exr"
 PASS
