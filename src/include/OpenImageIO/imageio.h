@@ -4069,6 +4069,14 @@ OIIO_API std::string geterror(bool clear = true);
 ///   enable globally in an environment where security is a higher priority
 ///   than being tolerant of partially broken image files.
 ///
+/// - `colorconfig:analyze_transforms` (int: 1)
+///
+///   If nonzero (the default), `ColorConfig::get_chromaticities()` and
+///   `get_transfer_function_gamma()` may analyze the transforms of a color
+///   space with no known Color Interop ID to derive its primaries and
+///   whether it is linear. If zero, they answer only from what the config
+///   declares and the names OpenImageIO knows.
+///
 /// - `ustring:cleanup` (int: 0)
 ///
 ///    If nonzero, upon exit, do a thorough (and possibly expensive) teardown
