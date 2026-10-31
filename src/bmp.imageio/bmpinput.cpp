@@ -457,6 +457,34 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         return false;  // Read failed
     }
 
+    if (m_dib_header.bpp == 32 && m_dib_header.compression == 3
+        && (m_dib_header.size == WINDOWS_V4
+            || m_dib_header.size == WINDOWS_V5)) {
+        for (unsigned int i = 0, j = 0; j < scanline_bytes; i += 4, j += 4) {
+            uint32_t pixel = *(uint32_t*)&fscanline[i];
+            mscanline[j + 0]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.red_mask)
+                                                 >> m_right_shifts[0],
+                                             m_bit_counts[0], 8);
+            mscanline[j + 1]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.green_mask)
+                                                 >> m_right_shifts[1],
+                                             m_bit_counts[1], 8);
+            mscanline[j + 2]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.blue_mask)
+                                                 >> m_right_shifts[2],
+                                             m_bit_counts[2], 8);
+            if (m_dib_header.alpha_mask == 0) {
+                mscanline[j + 3] = 255;
+            } else {
+                mscanline[j + 3] = (uint8_t)bit_range_convert(
+                    (pixel & m_dib_header.alpha_mask) >> m_right_shifts[3],
+                    m_bit_counts[3], 8);
+            }
+        }
+        return true;
+    }
+
     // in each case we process only first m_spec.scanline_bytes () bytes
     // as only they contain information about pixels. The rest are just
     // because scanline size have to be 32-bit boundary
