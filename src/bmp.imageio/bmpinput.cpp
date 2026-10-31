@@ -41,8 +41,8 @@ private:
     std::vector<bmp_pvt::color_table> m_colortable;
     std::vector<unsigned char> fscanline;       // temp space: read from file
     std::vector<unsigned char> m_uncompressed;  // uncompressed palette image
-    uint32_t m_right_shifts[3];
-    uint32_t m_bit_counts[3];
+    uint32_t m_right_shifts[4];
+    uint32_t m_bit_counts[4];
     bool m_allgray;
 
     void init(void)
@@ -211,6 +211,7 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     calc_shifts(m_dib_header.red_mask, m_bit_counts[0], m_right_shifts[0]);
     calc_shifts(m_dib_header.green_mask, m_bit_counts[1], m_right_shifts[1]);
     calc_shifts(m_dib_header.blue_mask, m_bit_counts[2], m_right_shifts[2]);
+    calc_shifts(m_dib_header.alpha_mask, m_bit_counts[3], m_right_shifts[3]);
 
     // computing size of one scanline - this is the size of one scanline that
     // is stored in the file, not in the memory
