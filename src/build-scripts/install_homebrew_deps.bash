@@ -74,5 +74,13 @@ export PATH=${HOMEBREW_PREFIX}/opt/qt5/bin:$PATH
 export PATH=${HOMEBREW_PREFIX}/opt/python/libexec/bin:$PATH
 export PYTHONPATH=${HOMEBREW_PREFIX}/lib/python${PYTHON_VERSION}/site-packages:$PYTHONPATH
 
+# Homebrew's numpy only serves Homebrew's current default python. If the
+# requested python version isn't that one, pip install numpy for it.
+if [[ "${PYTHON_VERSION:-}" != "" ]] && command -v python${PYTHON_VERSION} > /dev/null \
+   && ! python${PYTHON_VERSION} -c "import numpy" 2> /dev/null ; then
+    echo "Installing numpy via pip for python${PYTHON_VERSION}"
+    python${PYTHON_VERSION} -m pip install --user numpy || true
+fi
+
 # Save the env for use by other stages
 src/build-scripts/save-env.bash
