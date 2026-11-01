@@ -159,6 +159,9 @@ ImageViewer::ImageViewer(bool use_ocio, const std::string& image_color_space,
 
 ImageViewer::~ImageViewer()
 {
+    // Wait for a still-running FLIP diff; it only touches local copies.
+    if (m_flip_thread.joinable())
+        m_flip_thread.join();
     for (auto i : m_images)
         delete i;
 }
@@ -413,6 +416,37 @@ ImageViewer::createActions()
     comparisonAct->setShortcut(tr("W"));
     connect(comparisonAct, &QAction::toggled, this,
             &ImageViewer::toggleComparison);
+
+    // Difference view submenu (issue #4711): a plain difference view of the
+    // two images, kept separate from the wipe comparison (#5480).
+    differenceMenu   = new QMenu(tr("&Difference"), this);
+    auto* diffGroup  = new QActionGroup(this);
+    differenceOffAct = new QAction(tr("&Off"), this);
+    differenceOffAct->setCheckable(true);
+    differenceOffAct->setChecked(true);
+    differenceAbsDiffAct = new QAction(tr("&Absolute difference"), this);
+    differenceAbsDiffAct->setCheckable(true);
+    differenceFlipDiffAct = new QAction(tr("&FLIP perceptual difference"),
+                                        this);
+    differenceFlipDiffAct->setCheckable(true);
+    diffGroup->addAction(differenceOffAct);
+    diffGroup->addAction(differenceAbsDiffAct);
+    diffGroup->addAction(differenceFlipDiffAct);
+    connect(differenceOffAct, &QAction::toggled, this,
+            &ImageViewer::differenceModeChanged);
+    connect(differenceAbsDiffAct, &QAction::toggled, this,
+            &ImageViewer::differenceModeChanged);
+    connect(differenceFlipDiffAct, &QAction::toggled, this,
+            &ImageViewer::differenceModeChanged);
+    differenceCycleAct = new QAction(tr("Cycle difference view"), this);
+    differenceCycleAct->setShortcut(tr("D"));
+    connect(differenceCycleAct, &QAction::triggered, this,
+            &ImageViewer::cycleDifference);
+    flipColormapAct = new QAction(tr("Color&map FLIP error map"), this);
+    flipColormapAct->setCheckable(true);
+    flipColormapAct->setChecked(true);
+    connect(flipColormapAct, &QAction::toggled, this,
+            &ImageViewer::flipColormapToggled);
 
     toggleWindowGuidesAct
         = new QAction(tr("Show display and data window borders"), this);
@@ -767,6 +801,14 @@ ImageViewer::createMenus()
     viewMenu->addAction(nextImageAct);
     viewMenu->addAction(toggleImageAct);
     viewMenu->addAction(comparisonAct);
+    differenceMenu->addAction(differenceOffAct);
+    differenceMenu->addAction(differenceAbsDiffAct);
+    differenceMenu->addAction(differenceFlipDiffAct);
+    differenceMenu->addSeparator();
+    differenceMenu->addAction(flipColormapAct);
+    differenceMenu->addSeparator();
+    differenceMenu->addAction(differenceCycleAct);
+    viewMenu->addMenu(differenceMenu);
     viewMenu->addAction(toggleWindowGuidesAct);
     viewMenu->addSeparator();
     viewMenu->addAction(zoomInAct);
@@ -1217,11 +1259,22 @@ ImageViewer::updateStatusBar()
             first_name  = cur()->name();
             second_name = m_comparison_image->name();
         }
-        const char* first_side  = glwin->wipe_horizontal() ? "top" : "left";
-        const char* second_side = glwin->wipe_horizontal() ? "bottom" : "right";
-        message += Strutil::format("  |  {}: {}  {}: {}  (inspecting {})",
-                                   first_side, first_name, second_side,
-                                   second_name, first_side);
+        if (m_diff_mode == DiffMode::AbsDiff)
+            message += Strutil::format("  |  absdiff: {} vs {}", first_name,
+                                       second_name);
+        else if (m_diff_mode == DiffMode::FlipDiff)
+            message += Strutil::format("  |  FLIP diff: {} vs {}", first_name,
+                                       second_name);
+        else {
+            const char* first_side  = glwin->wipe_horizontal() ? "top" : "left";
+            const char* second_side = glwin->wipe_horizontal() ? "bottom"
+                                                               : "right";
+            message += Strutil::format("  |  {}: {}  {}: {}  (inspecting {})",
+                                       first_side, first_name, second_side,
+                                       second_name, first_side);
+        }
+        if (m_flip_computing.load())
+            message += "  |  Computing FLIP difference...";
         statusImgInfo->setText(message.c_str());
     }
 
@@ -1409,8 +1462,13 @@ ImageViewer::displayCurrentImage(bool update)
                            std::max(0, m_comparison_image->subimage()),
                            std::max(0, m_comparison_image->miplevel()))) {
                 m_comparison_image = nullptr;
+                m_diff_mode        = DiffMode::Off;
+                m_flip_key.clear();
                 QSignalBlocker blocker(comparisonAct);
                 comparisonAct->setChecked(false);
+                syncDifferenceActions();
+                glwin->set_diff_mode(DiffMode::Off);
+                glwin->clear_flipdiff_map();
                 glwin->reset_wipe();
                 glwin->update();
                 updateActions();
@@ -1435,6 +1493,10 @@ ImageViewer::displayCurrentImage(bool update)
     updateStatusBar();
     if (infoWindow)
         infoWindow->update(img);
+
+    // Recompute the FLIP error map if the displayed pair changed.
+    if (m_comparison_image && m_diff_mode == DiffMode::FlipDiff)
+        computeFlipDiff();
 
     //    printAct->setEnabled(true);
     //    fitImageToWindowAct->setEnabled(true);
@@ -1537,26 +1599,232 @@ ImageViewer::toggleComparison(bool enabled)
 {
     if (enabled) {
         if (!glwin->is_glsl_capable() || m_images.size() < 2 || !cur()) {
+            std::cerr << "iv: wipe comparison needs GLSL and at least two "
+                         "images\n";
             QSignalBlocker blocker(comparisonAct);
             comparisonAct->setChecked(false);
             return;
         }
-        int index = m_last_image;
-        if (index < 0 || index >= (int)m_images.size()
-            || index == m_current_image)
-            index = (m_current_image + (int)m_images.size() - 1)
-                    % (int)m_images.size();
-        m_comparison_image = m_images[index];
+        // The wipe and the difference view are mutually exclusive; enabling
+        // the wipe turns the difference view off.
+        m_diff_mode = DiffMode::Off;
+        syncDifferenceActions();
+        m_comparison_image = pickComparisonImage();
+        glwin->set_diff_mode(DiffMode::Off);
+        glwin->clear_flipdiff_map();
         glwin->reset_wipe();
         displayCurrentImage();
     } else {
         m_comparison_image = nullptr;
+        m_flip_key.clear();
+        glwin->clear_flipdiff_map();
         if (comparisonAct && comparisonAct->isChecked()) {
             QSignalBlocker blocker(comparisonAct);
             comparisonAct->setChecked(false);
         }
         displayCurrentImage();
     }
+}
+
+
+
+void
+ImageViewer::startComparison(DiffMode mode)
+{
+    if (m_images.size() < 2) {
+        std::cerr << "iv: --compare needs at least two images\n";
+        return;
+    }
+    if (!glwin->is_glsl_capable()) {
+        std::cerr << "iv: comparison modes require GLSL, ignoring --compare\n";
+        return;
+    }
+    if (mode == DiffMode::Off)
+        comparisonAct->setChecked(true);  // triggers toggleComparison(true)
+    else
+        setDiffMode(mode);
+}
+
+
+
+void
+ImageViewer::setDiffMode(DiffMode mode)
+{
+    if (mode == m_diff_mode && (mode == DiffMode::Off || m_comparison_image))
+        return;
+    if (mode != DiffMode::Off) {
+        if (!glwin->is_glsl_capable() || m_images.size() < 2 || !cur()) {
+            std::cerr << "iv: difference view needs GLSL and at least two "
+                         "images\n";
+            syncDifferenceActions();  // snap the radio back to the real state
+            return;
+        }
+        // The wipe and the difference view are mutually exclusive; enabling
+        // the difference view turns the wipe off.
+        if (comparisonAct && comparisonAct->isChecked()) {
+            QSignalBlocker blocker(comparisonAct);
+            comparisonAct->setChecked(false);
+        }
+    }
+    m_diff_mode = mode;
+    syncDifferenceActions();
+    glwin->set_diff_mode(mode);
+    if (mode == DiffMode::Off) {
+        // Leaving the difference view: no wipe is active (mutual exclusion),
+        // so the pair goes away and the plain image returns.
+        m_comparison_image = nullptr;
+        m_flip_key.clear();
+        glwin->clear_flipdiff_map();
+    } else {
+        m_comparison_image = pickComparisonImage();
+        glwin->clear_flipdiff_map();
+    }
+    displayCurrentImage();
+}
+
+
+
+void
+ImageViewer::syncDifferenceActions()
+{
+    if (!differenceOffAct)
+        return;
+    QSignalBlocker b1(differenceOffAct);
+    QSignalBlocker b2(differenceAbsDiffAct);
+    QSignalBlocker b3(differenceFlipDiffAct);
+    differenceOffAct->setChecked(m_diff_mode == DiffMode::Off);
+    differenceAbsDiffAct->setChecked(m_diff_mode == DiffMode::AbsDiff);
+    differenceFlipDiffAct->setChecked(m_diff_mode == DiffMode::FlipDiff);
+}
+
+
+
+IvImage*
+ImageViewer::pickComparisonImage() const
+{
+    // Compare against the image viewed most recently before this one (the
+    // same pairing the wipe uses); fall back to the previous image in the
+    // list. Callers guarantee at least two images and a current image.
+    int index = m_last_image;
+    if (index < 0 || index >= (int)m_images.size() || index == m_current_image)
+        index = (m_current_image + (int)m_images.size() - 1)
+                % (int)m_images.size();
+    return m_images[index];
+}
+
+
+
+void
+ImageViewer::differenceModeChanged()
+{
+    // Derive the new mode from whichever action is now checked.
+    DiffMode mode = DiffMode::Off;
+    if (differenceAbsDiffAct->isChecked())
+        mode = DiffMode::AbsDiff;
+    else if (differenceFlipDiffAct->isChecked())
+        mode = DiffMode::FlipDiff;
+    if (mode != m_diff_mode)
+        setDiffMode(mode);
+}
+
+
+
+void
+ImageViewer::cycleDifference()
+{
+    DiffMode mode = DiffMode::Off;
+    if (m_diff_mode == DiffMode::Off)
+        mode = DiffMode::AbsDiff;
+    else if (m_diff_mode == DiffMode::AbsDiff)
+        mode = DiffMode::FlipDiff;
+    setDiffMode(mode);
+}
+
+
+
+void
+ImageViewer::flipColormapToggled(bool checked)
+{
+    m_flip_colormap = checked;
+    if (m_comparison_image && m_diff_mode == DiffMode::FlipDiff) {
+        glwin->clear_flipdiff_map();
+        glwin->QWidget::update();
+        computeFlipDiff();
+    }
+}
+
+
+
+void
+ImageViewer::computeFlipDiff()
+{
+    if (!m_comparison_image || m_diff_mode != DiffMode::FlipDiff)
+        return;
+    IvImage* img = cur();
+    if (!img || !img->image_valid() || !m_comparison_image->image_valid())
+        return;
+
+    // Signature of the inputs, to skip redundant recomputes.
+    std::string key = std::string(img->name()) + "|"
+                      + std::string(m_comparison_image->name()) + "|"
+                      + std::to_string(img->subimage()) + "|"
+                      + std::to_string(img->miplevel()) + "|"
+                      + std::to_string(m_flip_colormap);
+    if (m_flip_computing.load()) {
+        m_flip_pending = true;  // worker running; it will be re-kicked
+        return;
+    }
+    if (key == m_flip_key)
+        return;
+    m_flip_key = key;
+
+    // ImageBuf copies are cheap (they share the underlying buffer), so
+    // it's safe to hand these to the worker thread.
+    ImageBuf a(*img);
+    ImageBuf b(*m_comparison_image);
+    bool colormap = m_flip_colormap;
+    // Re-assigning a joinable std::thread would terminate(), so join the
+    // finished worker first (m_flip_computing == false implies it has
+    // delivered its result and is on its way out).
+    if (m_flip_thread.joinable())
+        m_flip_thread.join();
+    m_flip_computing.store(true);
+    // FLIP can take a while on large images; make it obvious that
+    // something is happening. The indicator goes through
+    // updateStatusBar() rather than QStatusBar::showMessage(), whose
+    // temporary label overprints the permanent status labels.
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+    updateStatusBar();
+    m_flip_thread = std::thread([this, a, b, colormap]() {
+        ImageBuf err;
+        if (a.spec().width == b.spec().width
+            && a.spec().height == b.spec().height)
+            err = ImageBufAlgo::FLIP_diff(a, b);
+        if (colormap && err.initialized())
+            err = ImageBufAlgo::color_map(err, 0, "inferno");
+        // Deliver on the GUI thread.
+        QMetaObject::invokeMethod(
+            this, [this, err]() { flipDiffDone(err); }, Qt::QueuedConnection);
+    });
+}
+
+
+
+void
+ImageViewer::flipDiffDone(ImageBuf errmap)
+{
+    m_flip_computing.store(false);
+    if (QApplication::overrideCursor())
+        QApplication::restoreOverrideCursor();
+    if (errmap.initialized() && m_diff_mode == DiffMode::FlipDiff
+        && m_comparison_image)
+        glwin->set_flipdiff_map(errmap);
+    // IvGL::update only refreshes textures, not a repaint.
+    glwin->QWidget::update();
+    if (m_flip_pending.exchange(false))
+        computeFlipDiff();
+    else
+        updateStatusBar();
 }
 
 
@@ -2461,10 +2729,18 @@ ImageViewer::updateActions()
     if (comparisonAct) {
         comparisonAct->setEnabled(can_compare);
         QSignalBlocker blocker(comparisonAct);
-        comparisonAct->setChecked(can_compare && m_comparison_image);
+        comparisonAct->setChecked(can_compare && m_comparison_image
+                                  && m_diff_mode == DiffMode::Off);
     }
+    if (differenceMenu)
+        differenceMenu->setEnabled(can_compare);
     if (!can_compare && m_comparison_image) {
         m_comparison_image = nullptr;
+        m_diff_mode        = DiffMode::Off;
+        m_flip_key.clear();
+        glwin->set_diff_mode(DiffMode::Off);
+        glwin->clear_flipdiff_map();
+        syncDifferenceActions();
         glwin->reset_wipe();
         glwin->update();
     }
