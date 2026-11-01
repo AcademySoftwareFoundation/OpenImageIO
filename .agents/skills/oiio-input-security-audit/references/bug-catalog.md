@@ -47,6 +47,12 @@ window, z/depth, subimage count, mip levels, frame counts, and the
   data_length cast to int64 wraps negative and slips past a `<` guard).
 - Seen: psd thumbnail (`length - 28` underflow), psd color data, psd layer
   channel data, dpx UserSize (compared to total file size, not remaining).
+- Inside a dependency that opens the file by path (no IOProxy, no hook): if
+  the layout it reads first is simple, pre-walk it in OIIO and bound every
+  length/count by bytes remaining before calling the library. Remember
+  `valid_file()` runs during format probing of ANY input, so a fuzzer on one
+  format reaches every probing reader. Seen: openvdb `MetaMap::readMeta`
+  via `valid_file` (found by the raw fuzz job).
 
 ### A5. Default-initialized buffer published after short read
 A failed or short read leaves the tail of a buffer uninitialized, then the

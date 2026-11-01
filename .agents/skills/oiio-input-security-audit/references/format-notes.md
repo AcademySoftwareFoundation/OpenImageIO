@@ -123,9 +123,12 @@ Glue-check only; log library internals as deferrals.
   (SDK proprietary). Open: ioproxy ignored, dead scaffolding.
 - openvdb: check_open from grid bbox; C2 deliberately NOT added (sparse
   format: extent vs file size unrelated); unguarded `gridPtrCast`, tree walk,
-  readGrid; exception text clamped; state not reset on re-open. Open:
-  OpenVDB reads declared string lengths unbounded (12 GB RSS on a truncated
-  file) and `TypedMetadata::readValue` leaves value uninitialized.
+  readGrid; exception text clamped; state not reset on re-open; header,
+  file metadata and grid descriptors pre-walked in `open_vdb_file()` with every
+  declared length/count bounded by file size (fuzz OOM in `MetaMap::readMeta`
+  via `valid_file`). Open: OpenVDB `readGrid` still reads declared string
+  lengths unbounded and `TypedMetadata::readValue` leaves value
+  uninitialized.
 
 ## Class D. Container of other readers, or no file input
 

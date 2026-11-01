@@ -21,6 +21,12 @@ for f in [ "bad-bbox-huge.vdb",     # extent past the per-dimension ceiling
            "bad-bbox-empty.vdb" ]:  # no active voxels at all
     command += oiiotool("--info -v -oiioattrib limits:imagesize_MB 16384 src/" + f, failureok=True)
 
+# Header metadata whose declared string length or item count exceeds the
+# file size, or whose value size disagrees with its registered type.
+for f in [ "bad-meta-length.vdb", "bad-meta-count.vdb",
+           "bad-meta-typesize.vdb" ]:
+    command += oiiotool("--info -v src/" + f, failureok=True)
+
 # Also rejected, but the message is OpenVDB's own and its wording varies by
 # version, so keep it out of the compared output and just check that the read
 # fails.

@@ -18,4 +18,13 @@ Full command line was:
 oiiotool ERROR: read : 'src/bad-bbox-empty.vdb' contains no readable grids
 Full command line was:
 > oiiotool --info -v -oiioattrib limits:imagesize_MB 16384 src/bad-bbox-empty.vdb
+oiiotool ERROR: read : Could not open 'src/bad-meta-length.vdb': corrupt or truncated header
+Full command line was:
+> oiiotool --info -v src/bad-meta-length.vdb
+oiiotool ERROR: read : Could not open 'src/bad-meta-count.vdb': corrupt or truncated header
+Full command line was:
+> oiiotool --info -v src/bad-meta-count.vdb
+oiiotool ERROR: read : Could not open 'src/bad-meta-typesize.vdb': corrupt or truncated header
+Full command line was:
+> oiiotool --info -v src/bad-meta-typesize.vdb
 truncated.vdb rejected
