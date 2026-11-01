@@ -290,8 +290,9 @@ Jpeg2000Output::write_scanline(int y, int z, TypeDesc format, const void* data,
                                stride_t xstride)
 {
     y -= m_spec.y;
-    if (y > m_spec.height) {
-        errorfmt("Attempt to write too many scanlines to {}", m_filename);
+    if (y < 0 || y >= m_spec.height) {
+        errorfmt("Attempt to write scanline {} outside the image to {}",
+                 y + m_spec.y, m_filename);
         return false;
     }
 
@@ -350,9 +351,14 @@ Jpeg2000Output::write_tile(int x, int y, int z, TypeDesc format,
 bool
 Jpeg2000Output::close()
 {
-    if (!m_stream) {  // Already closed
+    // m_stream only exists after save_image(), which tiled output has not
+    // yet reached, so test for the images instead.
+    bool is_open = m_image != nullptr;
+#ifdef USE_OPENJPH
+    is_open |= m_jph_image != nullptr;
+#endif
+    if (!is_open)  // Already closed
         return true;
-    }
 
     bool ok = true;
     if (m_spec.tile_width) {
@@ -541,7 +547,7 @@ Jpeg2000Output::copy_scanline(int y, int /*z*/, const void* data)
 {
     int bits                  = sizeof(T) * 8;
     const T* scanline         = static_cast<const T*>(data);
-    const size_t scanline_pos = (y - m_spec.y) * m_spec.width;
+    const size_t scanline_pos = size_t(y) * m_spec.width;
     for (int i = 0, j = 0; i < m_spec.width; i++) {
         for (int c = 0; c < m_spec.nchannels; ++c) {
             unsigned int val = scanline[j++];

@@ -21,6 +21,11 @@ command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/dpx/dpx_nuke_10bits_rgb.dpx"
 
 command += diff_command(OIIO_TESTSUITE_IMAGEDIR+"/dpx/dpx_nuke_10bits_rgb.dpx", "testdpx.j2c")
 
+# Tiled output is emulated by buffering, and must still be written on close.
+command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg"
+                    " --tile 64 64 -o testtiled.j2c")
+command += diff_command(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg", "testtiled.j2c")
+
 
 command += oiiotool(OIIO_TESTSUITE_IMAGEDIR+"/tahoe-gps.jpg"
                     " --attrib qstep 0.03 -o testcompress.j2c")

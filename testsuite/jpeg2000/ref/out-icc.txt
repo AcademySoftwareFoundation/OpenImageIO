@@ -6,6 +6,8 @@ idiff ERROR: Could not read ../oiio-images/jpeg2000/broken/issue_3427.jp2:
 Failed to decode the codestream in the JP2 file
 Invalid image file "../oiio-images/jpeg2000/broken/issue_3427.jp2": Tile part length size inconsistent with stream length
 Failed to decode the codestream in the JP2 file
+Comparing "../common/tahoe-tiny.tif" and "tiled.jp2"
+PASS
 ICCProfile of tahoe-icc.jp2
     ICCProfile: 0, 0, 2, 48, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [560 x uint8]
     ICCProfile:attributes: "Reflective, Glossy, Positive, Color"

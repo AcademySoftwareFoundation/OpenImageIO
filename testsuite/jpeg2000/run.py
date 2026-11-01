@@ -16,6 +16,10 @@ files = [ "issue_3427.jp2" ]
 for f in files:
     command += rw_command (imagedir, f, printinfo=False)
 
+# Tiled output is emulated by buffering, and must still be written on close.
+command += oiiotool("../common/tahoe-tiny.tif --tile 16 16 -o tiled.jp2")
+command += diff_command("../common/tahoe-tiny.tif", "tiled.jp2")
+
 # Try to parse library_list to find the OpenJPEG version. If found, return it as
 # a single number, e.g. 2.5.3 -> 20503. Return -1 if not found.
 def get_openjp_ver():

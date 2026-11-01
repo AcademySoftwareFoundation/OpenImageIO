@@ -2,6 +2,8 @@ Comparing "../oiio-images/tahoe-gps.jpg" and "test.j2c"
 PASS
 Comparing "../oiio-images/dpx/dpx_nuke_10bits_rgb.dpx" and "testdpx.j2c"
 PASS
+Comparing "../oiio-images/tahoe-gps.jpg" and "testtiled.j2c"
+PASS
 Comparing "../oiio-images/tahoe-gps.jpg" and "testcompress.j2c"
 PASS
 oiiotool ERROR: read : "src/bomb-resolution.j2c": jpeg2000 image dimension 2000000000x2000000000 exceeds "limits:resolution" = 1048576 for a single dimension. Possible corrupt input?
