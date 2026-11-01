@@ -38,4 +38,9 @@ command += oiiotool("--info -a -v --hash src/subimage-loop.rla", failureok = Tru
 # more entries than there are scanlines. Reading must stay in bounds.
 command += oiiotool("--info -v --hash src/field-rendered.rla", failureok = True)
 
+# Mixed per-channel formats: the writer's grouping of channels into color,
+# matte, and aux used to index past the end of channelformats.
+command += oiiotool("--pattern noise:type=uniform 8x8 5 -d R=uint8,G=uint8,B=uint8,A=uint16,Z=float -o mixed.rla")
+command += info_command("mixed.rla", hash=True, verbose=False)
+
 outputs = [ "rlacrop.rla", 'out.txt' ]
