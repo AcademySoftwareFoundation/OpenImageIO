@@ -226,6 +226,19 @@ try:
     err_out.close ()
     print ("")
 
+    print ("Testing jpeg close() of partially written image:")
+    # 2 channels not named Y are written as 3-channel RGB
+    rg_spec = oiio.ImageSpec (4000, 4, 2, oiio.UINT8)
+    rg_spec.channelnames = ("R", "G")
+    rg_out = oiio.ImageOutput.create ("partial_rg.jpg")
+    rg_out.open ("partial_rg.jpg", rg_spec)
+    rg_out.write_scanline (0, 0, np.zeros ((4000, 2), dtype=np.uint8))
+    rg_out.close ()
+    rg_buf = oiio.ImageBuf ("partial_rg.jpg")
+    print ("  padded rows are black:",
+           oiio.ImageBufAlgo.computePixelStats (rg_buf).max == [0.0, 0.0, 0.0])
+    print ("")
+
     print ("Done.")
 except Exception as detail:
     print ("Unknown exception:", detail)
