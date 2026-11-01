@@ -3093,7 +3093,7 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                         r.rerange(roi.xbegin, roi.xend, j, j + 1, k, k + 1);
                         for (; !r.done(); ++r, ++a)
                             for (int c = channelsToCopy; c < roi.chend; ++c)
-                                r[c] = 0.5 + 10 * a[c];
+                                r[c] = a[c];
                     }
                 }
             }

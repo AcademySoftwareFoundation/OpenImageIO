@@ -127,6 +127,14 @@ for c in ("nope", "raw", "acescg", "srgb_tx") :
                          + f"-autocc -o out_{c}.exr")
     command += oiiotool (f"out_{c}.exr -echo \"{c}: {{TOP.AVGCOLOR}} {{TOP.nativeformat}}\"")
 
+# Channels beyond the first four should pass through a color conversion
+# unaltered (issue #5638): channels 4 and 5 must stay 0.25 and 0.75. Only
+# those channels are printed, since the converted RGB values vary in the
+# last digit across platforms.
+command += oiiotool ("--pattern constant:color=.5,.5,.5,1,.25,.75 1x1 6 "
+                     + "--colorconvert lin_srgb sRGB --ch 4,5 "
+                     + "-echo \"6chan: {TOP.AVGCOLOR}\"")
+
 
 
 # To add more tests, just append more lines like the above and also add
