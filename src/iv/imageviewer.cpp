@@ -1599,6 +1599,7 @@ ImageViewer::toggleComparison(bool enabled)
 {
     if (enabled) {
         if (!glwin->is_glsl_capable() || m_images.size() < 2 || !cur()) {
+            // FIXME: Output to stderr is not ideal. This should be a dialog box.
             std::cerr << "iv: wipe comparison needs GLSL and at least two "
                          "images\n";
             QSignalBlocker blocker(comparisonAct);
@@ -1632,10 +1633,12 @@ void
 ImageViewer::startComparison(DiffMode mode)
 {
     if (m_images.size() < 2) {
+        // FIXME: Output to stderr is not ideal. This should be a dialog box.
         std::cerr << "iv: --compare needs at least two images\n";
         return;
     }
     if (!glwin->is_glsl_capable()) {
+        // FIXME: Output to stderr is not ideal. This should be a dialog box.
         std::cerr << "iv: comparison modes require GLSL, ignoring --compare\n";
         return;
     }
@@ -1654,6 +1657,7 @@ ImageViewer::setDiffMode(DiffMode mode)
         return;
     if (mode != DiffMode::Off) {
         if (!glwin->is_glsl_capable() || m_images.size() < 2 || !cur()) {
+            // FIXME: Output to stderr is not ideal. This should be a dialog box.
             std::cerr << "iv: difference view needs GLSL and at least two "
                          "images\n";
             syncDifferenceActions();  // snap the radio back to the real state
