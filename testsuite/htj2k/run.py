@@ -68,6 +68,15 @@ if get_openjph_ver() >= 3100:
 # ... while a small valid codestream still reads.
 command += oiiotool("--info -v --hash src/valid-16x16.j2c", failureok = True)
 
+# Subsampled (4:2:0) components, including odd image sizes. A corrupt
+# subsampled file used to hang the decoder; it must just finish (OpenJPH
+# gives no signal for truncated data, so its pixels aren't compared).
+command += oiiotool("--info -v --hash src/valid-420.j2c", failureok = True)
+command += oiiotool("--info -v --hash src/valid-420-odd.j2c", failureok = True)
+command += oiiotool("src/subsampled-hang.j2c -o subsampled-hang.exr"
+                    " > hang.txt 2>&1", failureok = True, silent = True)
+command += oiiotool("-echo \"subsampled-hang.j2c done\"")
+
 # Reading a valid HTJ2K file and then a malformed one in the same process
 # used to crash: OpenJPH's error handler is global, and the old code left it
 # pointing at a stack object from the first open(). The second open's error

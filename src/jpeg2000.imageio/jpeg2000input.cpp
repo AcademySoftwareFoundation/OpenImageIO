@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <algorithm>
 #include <cstdio>
 #include <vector>
 
@@ -417,9 +418,9 @@ Jpeg2000Input::ojph_read_header()
 {
     ojph::param_siz siz = codestream.access_siz();
     int ch              = siz.get_num_components();
-    const int w         = siz.get_recon_width(0);
-    const int h         = siz.get_recon_height(0);
-    TypeDesc dtype      = TypeDesc::UINT8;
+    const int w    = int(siz.get_image_extent().x - siz.get_image_offset().x);
+    const int h    = int(siz.get_image_extent().y - siz.get_image_offset().y);
+    TypeDesc dtype = TypeDesc::UINT8;
 
     if (ch < 1) {
         errorfmt("No components in HTJ2K codestream");
@@ -520,8 +521,23 @@ Jpeg2000Input::ojph_read_image()
     // We are going to read the whole image into the buffer, since with openjph
     // its hard to easily grab part of the image.
     if (codestream.is_planar()) {
-        for (int c = 0; c < ch; ++c)
-            for (int i = 0; i < h; ++i) {
+        // Each component is pulled at its own (possibly subsampled) size and
+        // replicated to cover the full-resolution pixels it spans.
+        const int64_t x0 = siz.get_image_offset().x;
+        const int64_t y0 = siz.get_image_offset().y;
+        std::vector<int> colmap(w);
+        for (int c = 0; c < ch; ++c) {
+            ojph::point ds    = siz.get_downsampling(c);
+            const int64_t dx  = std::max(ds.x, 1u);
+            const int64_t dy  = std::max(ds.y, 1u);
+            const int cw      = int(siz.get_recon_width(c));
+            const int chh     = int(siz.get_recon_height(c));
+            const int64_t cx0 = (x0 + dx - 1) / dx;
+            const int64_t cy0 = (y0 + dy - 1) / dy;
+            for (int x = 0; x < w; ++x)
+                colmap[x] = int(std::clamp<int64_t>((x0 + x) / dx - cx0, 0,
+                                                    std::max(cw - 1, 0)));
+            for (int r = 0; r < chh; ++r) {
                 ojph::ui32 comp_num;
                 ojph::line_buf* line = nullptr;
                 try {
@@ -529,31 +545,34 @@ Jpeg2000Input::ojph_read_image()
                 } catch (const std::exception& e) {
                     errorfmt("openjph exception {}", e.what());
                 }
-                if (!line) {
+                if (!line || !line->i32 || line->size < size_t(cw)) {
                     if (!has_error())
                         errorfmt("Could not pull HTJ2K scanline");
                     return false;
                 }
-
-                const ojph::si32* sp = line->i32;
                 OIIO_DASSERT(int(comp_num) == c);
-                if (m_spec.format == TypeDesc::UINT8) {
-                    unsigned char* dout = &m_buf[i * w * ch];
-                    dout += c;
-                    for (int j = w; j > 0; j--, dout += ch) {
-                        *dout = *sp++;
-                    }
-                }
-                if (m_spec.format == TypeDesc::UINT16) {
-                    unsigned short* dout
-                        = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
-                    dout += c;
-                    for (int j = w; j > 0; j--, dout += ch) {
-                        *dout = bit_range_convert(*sp++, file_bit_depth,
-                                                  buffer_bpp * 8);
+                const ojph::si32* sp = line->i32;
+                // Image rows covered by component row r
+                int64_t ybegin = r == 0 ? 0 : (cy0 + r) * dy - y0;
+                int64_t yend   = r == chh - 1 ? h : (cy0 + r + 1) * dy - y0;
+                ybegin         = std::clamp<int64_t>(ybegin, 0, h);
+                yend           = std::clamp<int64_t>(yend, ybegin, h);
+                for (int64_t i = ybegin; i < yend; ++i) {
+                    const size_t pix = size_t(i) * w * ch + c;
+                    if (m_spec.format == TypeDesc::UINT8) {
+                        unsigned char* dout = &m_buf[pix];
+                        for (int j = 0; j < w; ++j, dout += ch)
+                            *dout = sp[colmap[j]];
+                    } else if (m_spec.format == TypeDesc::UINT16) {
+                        unsigned short* dout = (unsigned short*)&m_buf[0] + pix;
+                        for (int j = 0; j < w; ++j, dout += ch)
+                            *dout = bit_range_convert(sp[colmap[j]],
+                                                      file_bit_depth,
+                                                      buffer_bpp * 8);
                     }
                 }
             }
+        }
     } else {
         for (int i = 0; i < h; ++i) {
             for (int c = 0; c < ch; ++c) {
@@ -650,6 +669,16 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
 
     try {
         codestream.read_headers(m_jphinfile.get());
+        // Subsampled components have fewer, shorter lines, which only the
+        // planar pull order can deliver in step.
+        ojph::param_siz siz = codestream.access_siz();
+        for (uint32_t c = 0, n = siz.get_num_components(); c < n; ++c) {
+            ojph::point ds = siz.get_downsampling(c);
+            if (ds.x != 1 || ds.y != 1) {
+                codestream.set_planar(true);
+                break;
+            }
+        }
         return ojph_read_header();
     } catch (const std::runtime_error& e) {
         ojph_reader = false;

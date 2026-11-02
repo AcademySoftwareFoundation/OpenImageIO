@@ -19,6 +19,19 @@ src/valid-16x16.j2c  :   16 x   16, 3 channel, uint8 jpeg2000
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420.j2c
+src/valid-420.j2c    :   16 x   16, 3 channel, uint8 jpeg2000
+    SHA-1: A8C497C0B577F34192AFA09CD53589C452A4EB35
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420-odd.j2c
+src/valid-420-odd.j2c :   15 x   13, 3 channel, uint8 jpeg2000
+    SHA-1: 8716D35055114ECC6CB1774E289BAB35E0D1412F
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+subsampled-hang.j2c done
 Reading src/valid-16x16.j2c
 src/valid-16x16.j2c  :   16 x   16, 3 channel, uint8 jpeg2000
 Full command line was:

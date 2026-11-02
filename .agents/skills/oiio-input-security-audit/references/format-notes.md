@@ -86,7 +86,10 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   decode; HTJ2K error handling continued after failure; zero components read
   past an array; OpenJPH global error handler needs static lifetime;
   sYCC conversion ran on 1-channel images (OpenJPEG sets SYCC from the
-  `colr` box alone).
+  `colr` box alone); subsampled components (OpenJPH path assumed
+  full-res; hung in `pull`) now decoded planar at per-component size.
+  Don't fall back to OpenJPEG for HTJ2K: < 2.5 can't decode HT at all,
+  and 2.5.4 mis-decodes odd-size subsampled HT.
   Open: >4 components out of step; truncated codestream decodes silently
   (no completeness signal from OpenJPH).
 - webp: check_open + C2 moved before the decoded-image allocation; no real
