@@ -2582,12 +2582,17 @@ IvGL::set_flipdiff_map(const ImageBuf& errmap)
 {
     if (!errmap.initialized())
         return;
-    // Prepare a display-ready RGB8 copy of the error map: expand a single
-    // channel to RGB if needed, then convert to 8 bits. The result of the
-    // ImageBufAlgo calls is a local contiguous buffer.
-    ImageBuf rgb = ImageBufAlgo::channels(errmap, 3, { 0, 1, 2 });
-    rgb          = ImageBufAlgo::clamp(rgb, 0.0f, 1.0f);
-    rgb          = ImageBufAlgo::copy(rgb, TypeDesc::UINT8);
+    // Prepare a display-ready RGB8 copy of the error map, then convert to
+    // 8 bits. FLIP without the colormap is a single-channel error map, so
+    // replicate that channel to show it as greyscale; a colormapped error
+    // map is already RGB.
+    ImageBuf rgb;
+    if (errmap.nchannels() == 1)
+        rgb = ImageBufAlgo::channels(errmap, 3, { 0, 0, 0 });
+    else
+        rgb = ImageBufAlgo::channels(errmap, 3, { 0, 1, 2 });
+    rgb = ImageBufAlgo::clamp(rgb, 0.0f, 1.0f);
+    rgb = ImageBufAlgo::copy(rgb, TypeDesc::UINT8);
     if (!rgb.localpixels())
         return;
     upload_flipdiff_texture((const unsigned char*)rgb.localpixels(),
