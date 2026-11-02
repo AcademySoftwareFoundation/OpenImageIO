@@ -167,7 +167,7 @@ ImageBufAlgo::max(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_, ROI roi,
         if (!IBAprep(roi, &dst, &A, &B))
             return false;
         ROI origroi = roi;
-        roi.chend = std::max(roi.chend, std::max(A.nchannels(), B.nchannels()));
+        roi.chend = std::min(roi.chend, std::min(A.nchannels(), B.nchannels()));
         bool ok;
         OIIO_DISPATCH_COMMON_TYPES3(ok, "max", max_impl, dst.spec().format,
                                     A.spec().format, B.spec().format, dst, A, B,
