@@ -364,5 +364,15 @@ mixed.rla            :    8 x    8, 5 channel, uint8/uint8/uint8/uint16/float rl
     SHA-1: 8174389E48EA065D36EC86CA6C1A3E00868D290C
 mixedaux.rla         :    8 x    8, 6 channel, uint8/uint8/uint8/uint16/float/float rla
     SHA-1: CC964F3361DE5E090D3708706D4FA017616A8BDD
+   8 x    8, 5 channel, float rla
+    Stats Min: 0.501961 0.501961 0.501961 0.505882 0.501811 (float)
+    Stats Max: 0.984314 1.000000 1.000000 0.992157 0.999458 (float)
+    Stats Avg: 0.759620 0.765074 0.753309 0.741115 0.775442 (float)
+    Stats StdDev: 0.142379 0.157101 0.131103 0.136789 0.154819 (float)
+    Stats NanCount: 0 0 0 0 0 
+    Stats InfCount: 0 0 0 0 0 
+    Stats FiniteCount: 64 64 64 64 64 
+    Constant: No
+    Monochrome: No
 Comparing "rlacrop.rla" and "ref/rlacrop.rla"
 PASS
