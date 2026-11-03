@@ -23,6 +23,12 @@ for f in files :
 # Test BMR version 5
 command += rw_command ("src", "g01bg2-v5.bmp")
 
+# Regression test for 32-bit BI_BITFIELDS with channel masks in non-default
+# order, and one with no alpha mask (should read as opaque)
+# See https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/1901
+command += rw_command ("src", "g32bf-rgba-v5.bmp")
+command += rw_command ("src", "g32bf-noalpha-v5.bmp")
+
 # Regression test for old OS2 flavor of BMP.
 # See https://github.com/AcademySoftwareFoundation/OpenImageIO/issues/2898
 command += rw_command ("src", "PRINTER.BMP")

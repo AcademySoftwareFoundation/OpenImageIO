@@ -272,6 +272,28 @@ src/g01bg2-v5.bmp    :  127 x   64, 3 channel, uint8 bmp
     oiio:ColorSpace: "srgb_rec709_scene"
 Comparing "src/g01bg2-v5.bmp" and "g01bg2-v5.bmp"
 PASS
+Reading src/g32bf-rgba-v5.bmp
+src/g32bf-rgba-v5.bmp :    2 x    2, 4 channel, uint8 bmp
+    SHA-1: 0526FF92F87571F77E24409C5F3AEC27FF2BB9C6
+    channel list: R, G, B, A
+    ResolutionUnit: "m"
+    XResolution: 2835
+    YResolution: 2835
+    bmp:version: 5
+    oiio:ColorSpace: "srgb_rec709_scene"
+Comparing "src/g32bf-rgba-v5.bmp" and "g32bf-rgba-v5.bmp"
+PASS
+Reading src/g32bf-noalpha-v5.bmp
+src/g32bf-noalpha-v5.bmp :    2 x    2, 4 channel, uint8 bmp
+    SHA-1: D5F9E3B12ED692C6855C4B3117FC841D6DF3816A
+    channel list: R, G, B, A
+    ResolutionUnit: "m"
+    XResolution: 2835
+    YResolution: 2835
+    bmp:version: 5
+    oiio:ColorSpace: "srgb_rec709_scene"
+Comparing "src/g32bf-noalpha-v5.bmp" and "g32bf-noalpha-v5.bmp"
+PASS
 Reading src/PRINTER.BMP
 src/PRINTER.BMP      :  160 x  120, 3 channel, uint8 bmp
     SHA-1: 7CF33F097E59CADAC7C5E1EE268B08150274ECE7
