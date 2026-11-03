@@ -113,6 +113,11 @@ used for allocation, indexing, or loop count.
   `(iy*w+x)` indices in `int`; the open-time guard admits 65536^2, so image
   bytes exceed INT_MAX, the index wraps negative, and the flip memcpy does an
   OOB read+write -- #5593).
+  openexr deep (classic `npixels = (yend-ybegin)*width` and core-reader
+  per-chunk `w*h*chans` in `int`; a deep window of >= 2^32 pixels sizes the
+  sample-count/pointer arrays from the wrapped value, then OpenEXR writes the
+  real count past the end). Same function's tiled
+  sibling was already widened; diff sibling paths for the same expression.
 - Note: when a dimension or plausibility cap is raised, re-audit every
   downstream offset/index multiply. The iff flip overflow (#5593) was exactly
   that -- #5284 raised the caps to 65536^2 without revisiting the 32-bit math.
