@@ -38,4 +38,15 @@ command += oiiotool("--info -a -v --hash src/subimage-loop.rla", failureok = Tru
 # more entries than there are scanlines. Reading must stay in bounds.
 command += oiiotool("--info -v --hash src/field-rendered.rla", failureok = True)
 
+# Mixed per-channel formats: the writer's grouping of channels into color,
+# matte, and aux used to index past the end of channelformats.
+command += oiiotool("--pattern noise:type=uniform 8x8 5 -d R=uint8,G=uint8,B=uint8,A=uint16,Z=float -o mixed.rla")
+command += info_command("mixed.rla", hash=True, verbose=False)
+# Aux channels of differing types get promoted to one common type.
+command += oiiotool("--pattern noise:type=uniform 8x8 6 -d R=uint8,G=uint8,B=uint8,A=uint16,Z=float,X=uint8 --chnames R,G,B,A,Z,X -o mixedaux.rla")
+command += info_command("mixedaux.rla", hash=True, verbose=False)
+# uint16 aux with uint8 color/matte: aux must keep its 16 bits.
+command += oiiotool("--pattern noise:type=uniform 8x8 5 -d R=uint8,G=uint8,B=uint8,A=uint8,Z=uint16 --chnames R,G,B,A,Z -o mixed16.rla")
+command += oiiotool("mixed16.rla --printstats")
+
 outputs = [ "rlacrop.rla", 'out.txt' ]
