@@ -6,6 +6,7 @@ the project.
 
 * Aamir Raza
 * Aaron Colwell
+* Abhirup Bhattacharyya
 * Adam Mains
 * Akihiro Yamasaki
 * Alan Jones
@@ -35,6 +36,8 @@ the project.
 * Aras Pranckevičius
 * Arkady Shapkin
 * Asish Kumar
+* Aurele Boquet
+* Ayush Singh
 * Basile Fraboni
 * Basileios Anastasatos
 * Bastien Montagne
@@ -95,6 +98,7 @@ the project.
 * Eloi Du Bois
 * Elvic Liang
 * Emil Dohne
+* Ethan Lin
 * Fabien Castan
 * Fabien Servant
 * Faisal
@@ -121,6 +125,7 @@ the project.
 * Jackson Sun
 * Jan Hettenkofer
 * Jan Honsbrok
+* Jeevan Mohan Pawar
 * Jens Lindgren
 * Jep Hill
 * Jeph Alapat
@@ -151,6 +156,7 @@ the project.
 * Konrad Kleine
 * Krzysztof Blicharski
 * Larry Gritz (project leader)
+* Lauren Zhang
 * LazyDodo
 * Leonid Onokhov
 * Leszek Godlewski
@@ -190,12 +196,14 @@ the project.
 * Mikael Sundell
 * Mike Root
 * Morteza Ramezanali
+* Nafisa Baker
 * Nandan Dubey
 * Nathan Gray
 * Nathan Rusch
 * Nicholas Yue
 * Nick Black
 * Nick D'Ademo
+* Nick Shelton
 * Nicolas Burtnyk
 * Nixon Kwok
 * Noah Rahm (designer of our logo!)
@@ -261,7 +269,7 @@ the project.
 * Tim Grant
 * Todica Ionut
 * Tom Knowles
-* TomRoyls
+* Tom Royls
 * Troy James Sobotka
 * Valery Angelique
 * Vanessa Valderrama
