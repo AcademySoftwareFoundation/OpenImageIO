@@ -120,5 +120,9 @@ src/inknames-mismatch.tif :    4 x    4, 3 channel, uint8 tiff
     tiff:PhotometricInterpretation: 5
     tiff:PlanarConfiguration: 1
     tiff:RowsPerStrip: 32
+oiiotool ERROR: read : "src/shadow-many-channels.tif": 1100 channels exceeds "limits:channels" = 1024. Possible corrupt input?
+If you're sure this is a valid file, raise the OIIO global attribute "limits:channels".
+Full command line was:
+> oiiotool --info --hash src/shadow-many-channels.tif
 Comparing "check1.tif" and "ref/check1.tif"
 PASS

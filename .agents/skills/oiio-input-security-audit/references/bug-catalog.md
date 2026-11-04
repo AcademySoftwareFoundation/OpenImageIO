@@ -293,6 +293,11 @@ branches in `simd.h`.
   confirm length before reading its fields.
 - Metadata thumbnails, userdata, makernotes: length fields are attacker input.
 - Headers whose count fields feed `resize` (FITS NAXIS: valid range 0-999).
+- Channel naming before `check_open`: `default_channel_names()` names only
+  up to `limits:channels`, so `channelnames[c]` for `c < nchannels` can write
+  past the list. Grep `channelnames\[` in readers; loop over
+  `channelnames.size()` or check it first. Seen: fits STOKES/BANDn, tiff
+  shadow maps.
 - Zero-valued denominators from headers: bit depth 0 (raw_bps) collapsed
   declared_bytes to 0 and disabled the bomb guard; floor it. Check every
   divisor and every "declared size" that can legitimately evaluate to 0.

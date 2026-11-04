@@ -494,7 +494,9 @@ void
 FitsInput::assign_channel_names()
 {
     m_spec.default_channel_names();
-    if (m_spec.nchannels <= 1)
+    // Over limits:channels, default_channel_names() names only some channels.
+    if (m_spec.nchannels <= 1
+        || m_spec.channelnames.size() != size_t(m_spec.nchannels))
         return;
 
     // Which physical FITS axis (1-based) is the channel axis, so we know
