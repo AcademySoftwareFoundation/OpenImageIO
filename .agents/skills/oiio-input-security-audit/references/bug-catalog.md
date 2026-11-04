@@ -258,6 +258,19 @@ fail later) and procedural readers that claim `supports("procedural")`.
 - Fix: `find()`; a missing required id is a hard error.
 - Seen: psd layer channel ids (#5594).
 
+### D6. Explicit-subimage read using the current `m_spec`
+`read_*(subimage, miplevel, ...)` must lock and `seek_subimage()` before
+reading any geometry from `m_spec`/`spec()`. Otherwise another thread (or an
+earlier seek) leaves `m_spec` on a different, wider level and the row stride
+overruns a buffer sized for the requested one.
+- Find: in each `read_native_*`/`read_*` overload taking `subimage`, any
+  `m_spec.`/`spec().` before `lock_guard` + `seek_subimage`, or with no seek.
+  Single-thread repro: `seek_subimage(0,0)` then read a smaller mip.
+- Fix: lock, seek, then use `m_spec`; or use `spec_dimensions()`.
+- Seen: base `ImageInput::read_native_scanlines` loop (every reader without
+  its own override: dds, ico, ...); classic openexr all-channel wrapper
+  (`m_spec.nchannels`).
+
 
 ## E. Alignment and pointer formation
 

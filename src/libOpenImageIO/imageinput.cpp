@@ -535,8 +535,10 @@ ImageInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     // Only the hardcore ones will overload read_native_scanlines with
     // their own implementation.
     lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
     size_t ystride = m_spec.scanline_bytes(true);
-    yend           = std::min(yend, spec().y + spec().height);
+    yend           = std::min(yend, m_spec.y + m_spec.height);
     for (int y = ybegin; y < yend; ++y) {
         bool ok = read_native_scanline(subimage, miplevel, y, z, data);
         if (!ok)
