@@ -3,6 +3,7 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -916,6 +917,20 @@ convert_type(TypeDesc srctype, const void* src, TypeDesc dsttype, void* dst,
             return true;
     }
     return false;
+}
+
+
+
+bool
+convert_type(TypeDesc srctype, cspan<std::byte> src, TypeDesc dsttype,
+             span<std::byte> dst, int n)
+{
+    int count = std::max(1, n);
+    if (src.size_bytes() < srctype.size() * count
+        || dst.size_bytes() < dsttype.size() * count)
+        return false;
+    // call the pointer version for now
+    return convert_type(srctype, src.data(), dsttype, dst.data(), n);
 }
 
 OIIO_NAMESPACE_3_1_END

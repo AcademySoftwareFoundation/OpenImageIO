@@ -614,6 +614,15 @@ OIIO_UTIL_API bool
 convert_type(TypeDesc srctype, const void* src,
              TypeDesc dsttype, void* dst, int n = 1);
 
+/// A version of `convert_type()` taking spans of bytes for the source and
+/// destination. The conversion rules are the same as for the pointer-based
+/// version above. It returns false, without writing to `dst`, if `src` is
+/// smaller than `n` values of `srctype` or `dst` is smaller than `n` values
+/// of `dsttype`.
+OIIO_UTIL_API bool
+convert_type(TypeDesc srctype, cspan<std::byte> src,
+             TypeDesc dsttype, span<std::byte> dst, int n = 1);
+
 
 OIIO_NAMESPACE_3_1_END
 

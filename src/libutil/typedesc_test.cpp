@@ -134,6 +134,66 @@ test_templates()
 
 
 
+static void
+test_convert_type_span()
+{
+    print("Testing convert_type with byte spans\n");
+
+    // Same type: straight copy
+    {
+        int src = 42, dst = 0;
+        OIIO_CHECK_ASSERT(convert_type(TypeInt, as_bytes_ref(src), TypeInt,
+                                       as_writable_bytes(&dst, 1)));
+        OIIO_CHECK_EQUAL(dst, 42);
+    }
+    // int -> float
+    {
+        int src   = 3;
+        float dst = 0.0f;
+        OIIO_CHECK_ASSERT(convert_type(TypeInt, as_bytes_ref(src), TypeFloat,
+                                       as_writable_bytes(&dst, 1)));
+        OIIO_CHECK_EQUAL(dst, 3.0f);
+    }
+    // float -> string
+    {
+        float src = 1.5f;
+        ustring dst;
+        OIIO_CHECK_ASSERT(convert_type(TypeFloat, as_bytes_ref(src), TypeString,
+                                       as_writable_bytes(&dst, 1)));
+        OIIO_CHECK_EQUAL(dst, "1.5");
+    }
+    // Multiple values with n > 1
+    {
+        int src[3]   = { 1, 2, 3 };
+        float dst[3] = { 0.0f, 0.0f, 0.0f };
+        OIIO_CHECK_ASSERT(convert_type(TypeInt, as_bytes(src, 3), TypeFloat,
+                                       as_writable_bytes(dst, 3), 3));
+        OIIO_CHECK_EQUAL(dst[0], 1.0f);
+        OIIO_CHECK_EQUAL(dst[2], 3.0f);
+    }
+    // Source span too small: fail without touching dst
+    {
+        float src[2] = { 1.0f, 2.0f };
+        float dst[3] = { -1.0f, -1.0f, -1.0f };
+        OIIO_CHECK_FALSE(convert_type(TypeFloat, as_bytes(src, 2), TypeFloat,
+                                      as_writable_bytes(dst, 3), 3));
+        OIIO_CHECK_EQUAL(dst[0], -1.0f);
+        OIIO_CHECK_EQUAL(dst[1], -1.0f);
+        OIIO_CHECK_EQUAL(dst[2], -1.0f);
+    }
+    // Destination span too small: fail without touching dst
+    {
+        float src[2] = { 1.0f, 2.0f };
+        float dst[2] = { -1.0f, -1.0f };
+        OIIO_CHECK_FALSE(convert_type(TypeFloat, as_bytes(src, 2), TypeFloat,
+                                      as_writable_bytes(dst, 1), 2));
+        OIIO_CHECK_EQUAL(dst[0], -1.0f);
+        OIIO_CHECK_EQUAL(dst[1], -1.0f);
+    }
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -142,6 +202,7 @@ main(int /*argc*/, char* /*argv*/[])
     OIIO_CHECK_EQUAL(sizeof(TypeDesc), sizeof(uint64_t));
 
     test_templates();
+    test_convert_type_span();
 
     test_type<float>("float", TypeDesc(TypeDesc::FLOAT), TypeFloat, 1.5f,
                      "1.5");
