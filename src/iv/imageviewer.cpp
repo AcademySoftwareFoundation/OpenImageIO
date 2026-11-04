@@ -1769,11 +1769,9 @@ ImageViewer::computeFlipDiff()
         return;
 
     // Signature of the inputs, to skip redundant recomputes.
-    std::string key = std::string(img->name()) + "|"
-                      + std::string(m_comparison_image->name()) + "|"
-                      + std::to_string(img->subimage()) + "|"
-                      + std::to_string(img->miplevel()) + "|"
-                      + std::to_string(m_flip_colormap);
+    auto key = Strutil::format("{}|{}|{}|{}|{}", img->name(),
+                               m_comparison_image->name(), img->subimage(),
+                               img->miplevel(), m_flip_colormap);
     if (m_flip_computing.load()) {
         m_flip_pending = true;  // worker running; it will be re-kicked
         return;
