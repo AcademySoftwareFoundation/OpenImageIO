@@ -103,6 +103,11 @@ By default, builds into `./build` and installs into `./dist`.
   precompute outside hot paths
 - For kernel-style image work, use existing `ImageBufAlgo` and
   `parallel_image` patterns before inventing a new execution model
+- Before reusing an existing macro, helper, or idiom, read the comment at its
+  definition, not just how it is used elsewhere. Some are marked legacy there,
+  and older code may still use them widely (e.g. use `[[deprecated(msg)]]`,
+  `[[maybe_unused]]`, `[[fallthrough]]`, `alignas()` rather than the
+  `OIIO_*` macros in `platform.h`).
 
 ## OIIO utility types (prefer over raw C++ equivalents)
 
