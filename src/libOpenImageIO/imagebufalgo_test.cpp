@@ -269,6 +269,31 @@ test_copy()
         }
     }
 
+    // Copy/circular_shift from a 1-channel src into an existing 5-channel
+    // dst with default ROI: channels absent from src must be left alone,
+    // not read past the end of each src pixel (issue #5661).
+    {
+        ImageBuf src(ImageSpec(4, 4, 1, TypeDesc::FLOAT));
+        for (int y = 0; y < 4; ++y)
+            for (int x = 0; x < 4; ++x) {
+                float v = float(y * 4 + x);
+                src.setpixel(x, y, &v, 1);
+            }
+        for (int shift = 0; shift < 2; ++shift) {
+            ImageBuf dst(ImageSpec(4, 4, 5, TypeDesc::FLOAT));
+            float fill[5] = { -1, -1, -1, -1, -1 };
+            ImageBufAlgo::fill(dst, fill);
+            bool ok = shift ? ImageBufAlgo::circular_shift(dst, src, 0, 0)
+                            : ImageBufAlgo::copy(dst, src);
+            OIIO_CHECK_ASSERT(ok);
+            for (ImageBuf::ConstIterator<float> r(dst); !r.done(); ++r) {
+                OIIO_CHECK_EQUAL(r[0], float(r.y() * 4 + r.x()));
+                for (int c = 1; c < 5; ++c)
+                    OIIO_CHECK_EQUAL(r[c], -1.0f);
+            }
+        }
+    }
+
     // Timing
     Benchmarker bench;
     bench.trials(ntrials);

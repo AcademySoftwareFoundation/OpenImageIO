@@ -204,7 +204,10 @@ ImageBufAlgo::copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert,
             newspec.set_format(convert);
         dst.reset(newspec);
     }
-    IBAprep(roi, &dst, &src, IBAprep_SUPPORT_DEEP);
+    if (!IBAprep(roi, &dst, &src, IBAprep_SUPPORT_DEEP))
+        return false;
+    // IBAprep may have widened roi to all of dst's channels
+    roi.chend = std::min(roi.chend, src.nchannels());
     if (dst.deep()) {
         // If it's deep, figure out the sample allocations first, because
         // it's not thread-safe to do that simultaneously with copying the
@@ -372,6 +375,7 @@ ImageBufAlgo::circular_shift(ImageBuf& dst, const ImageBuf& src, int xshift,
     OIIO::pvt::LoggedTimer logtime("IBA::circular_shift");
     if (!IBAprep(roi, &dst, &src))
         return false;
+    roi.chend = std::min(roi.chend, src.nchannels());
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2(ok, "circular_shift", circular_shift_,
                                 dst.spec().format, src.spec().format, dst, src,
