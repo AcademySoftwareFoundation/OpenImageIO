@@ -19,6 +19,7 @@
 #include <iterator>
 
 #include <QApplication>
+#include <QTimer>
 
 #include "imageviewer.h"
 #include <OpenImageIO/argparse.h>
@@ -63,6 +64,13 @@ getargs(int argc, char* argv[])
             "it in the status bar, \"strict\" fails to display the image")
       .metavar("tolerate|strict")
       .defaultval("tolerate");
+    ap.arg("--compare")
+      .help("Start out comparing the last two images: \"wipe\" "
+            "(split-screen wipe), \"absdiff\" (per-pixel absolute "
+            "difference view), or \"flipdiff\" (FLIP perceptual difference "
+            "view). Requires at least two images.")
+      .metavar("wipe|absdiff|flipdiff")
+      .defaultval("");
 
     ap.arg("--display")
       .help("OCIO display")
@@ -217,6 +225,24 @@ main(int argc, char* argv[])
     }
 
     mainWin->current_image(0);
+
+    // Deferred until the event loop is running and GL is initialized.
+    std::string compare_mode = ap["compare"].as_string("");
+    if (!compare_mode.empty()) {
+        DiffMode mode = DiffMode::Off;  // "wipe": the wipe comparison
+        if (compare_mode == "absdiff")
+            mode = DiffMode::AbsDiff;
+        else if (compare_mode == "flipdiff")
+            mode = DiffMode::FlipDiff;
+        else if (compare_mode != "wipe") {
+            print(stderr, "Error: --compare must be \"wipe\", \"absdiff\", or "
+                          "\"flipdiff\"\n");
+            return EXIT_FAILURE;
+        }
+        QTimer::singleShot(500, mainWin, [mainWin, mode]() {
+            mainWin->startComparison(mode);
+        });
+    }
 
     int r = app.exec();
     // OK to clean up here
