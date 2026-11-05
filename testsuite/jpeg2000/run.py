@@ -16,3 +16,5 @@ files = [ "issue_3427.jp2" ]
 for f in files:
     command += rw_command (imagedir, f, printinfo=False)
 
+# sYCC colr box on a 1-channel image must not run the 3-channel conversion
+command += oiiotool("src/sycc-1chan.jp2 --printstats")
