@@ -39,6 +39,9 @@ Testing has_error/geterror on instance:
   geterror clear returns message: True
   has_error after clear: False
 
+Testing jpeg close() of partially written image:
+  padded rows are black: True
+
 Done.
 Comparing "grid-image.tif" and "../common/grid.tif"
 PASS
