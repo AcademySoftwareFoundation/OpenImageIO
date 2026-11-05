@@ -6,6 +6,9 @@ Copied tiled.tif to grid-tile.tif as tile (memformat float outformat unknown )
 Copied tiled.tif to grid-tiles.tif as tiles (memformat float outformat unknown )
 Copied scanline.tif to grid-image.tif as image (memformat uint8 outformat uint16 )
 Copied scanline.tif to grid-half.exr as image (memformat half outformat half )
+Testing jpeg close() of partially written image:
+  padded rows are black: True
+
 Done.
 Comparing "grid-image.tif" and "../common/grid.tif"
 PASS
