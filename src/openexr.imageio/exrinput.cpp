@@ -1309,6 +1309,9 @@ bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                     int yend, int z, void* data)
 {
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
     return read_native_scanlines(subimage, miplevel, ybegin, yend, z, 0,
                                  m_spec.nchannels, data);
 }
