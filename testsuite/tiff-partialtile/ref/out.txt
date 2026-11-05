@@ -1,0 +1,8 @@
+serial span: rect 127x129 smashed=0 baddiffs=0 -> PASS
+serial span: rect 63x64 smashed=0 baddiffs=0 -> PASS
+serial ptr: rect 127x129 smashed=0 baddiffs=0 -> PASS
+serial ptr: rect 63x64 smashed=0 baddiffs=0 -> PASS
+parallel span: rect 127x129 smashed=0 baddiffs=0 -> PASS
+parallel span: rect 63x64 smashed=0 baddiffs=0 -> PASS
+parallel ptr: rect 127x129 smashed=0 baddiffs=0 -> PASS
+parallel ptr: rect 63x64 smashed=0 baddiffs=0 -> PASS
