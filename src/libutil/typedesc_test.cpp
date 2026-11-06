@@ -190,6 +190,24 @@ test_convert_type_span()
         OIIO_CHECK_EQUAL(dst[0], -1.0f);
         OIIO_CHECK_EQUAL(dst[1], -1.0f);
     }
+    // Typed spans
+    {
+        int src[3]   = { 1, 2, 3 };
+        float dst[3] = { 0.0f, 0.0f, 0.0f };
+        OIIO_CHECK_ASSERT(convert_type(TypeInt, cspan<int>(src), TypeFloat,
+                                       span<float>(dst), 3));
+        OIIO_CHECK_EQUAL(dst[0], 1.0f);
+        OIIO_CHECK_EQUAL(dst[2], 3.0f);
+    }
+    // Typed destination span too small: fail without touching dst
+    {
+        int src[2]   = { 1, 2 };
+        float dst[2] = { -1.0f, -1.0f };
+        OIIO_CHECK_FALSE(convert_type(TypeInt, cspan<int>(src), TypeFloat,
+                                      span<float>(dst, 1), 2));
+        OIIO_CHECK_EQUAL(dst[0], -1.0f);
+        OIIO_CHECK_EQUAL(dst[1], -1.0f);
+    }
 }
 
 

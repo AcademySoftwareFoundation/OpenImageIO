@@ -623,6 +623,17 @@ OIIO_UTIL_API bool
 convert_type(TypeDesc srctype, cspan<std::byte> src,
              TypeDesc dsttype, span<std::byte> dst, int n = 1);
 
+/// A convenience version of `convert_type()` taking typed spans for the
+/// source and destination. It just calls the byte-span version above.
+template<typename S, typename D>
+inline bool
+convert_type(TypeDesc srctype, cspan<S> src,
+             TypeDesc dsttype, span<D> dst, int n = 1)
+{
+    return convert_type(srctype, as_bytes(src), dsttype,
+                        as_writable_bytes(dst), n);
+}
+
 
 OIIO_NAMESPACE_3_1_END
 
