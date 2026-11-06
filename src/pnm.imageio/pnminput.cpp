@@ -512,7 +512,7 @@ PNMInput::open(const std::string& name, ImageSpec& newspec)
     // Read the whole file's contents into m_file_contents
     Filesystem::IOProxy* m_io = ioproxy();
     m_remaining               = read_header_to_buffer(m_file_contents, m_io);
-    m_pfm_flip                = false;
+    m_pfm_flip                = true;
 
     if (!read_file_header()) {
         close();
