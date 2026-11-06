@@ -347,7 +347,8 @@ WebpInput::read_current_subimage()
         return false;  // fail -- last read is not merely one frame behind
 
     uint8_t* okptr = nullptr;
-    if (m_subimage == 0 || !m_iter.has_alpha) {
+    if (m_subimage == 0 || !m_iter.has_alpha
+        || m_iter.blend_method == WEBP_MUX_NO_BLEND) {
         // No alpha supplied (or first image) -- full overwrite
         size_t offset = (m_iter.y_offset * m_spec.width + m_iter.x_offset)
                         * m_spec.pixel_bytes();

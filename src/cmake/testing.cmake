@@ -604,6 +604,10 @@ macro (oiio_add_all_tests)
                     IMAGEDIR oiio-images/webp)
     oiio_add_tests (zfile ENABLEVAR ENABLE_ZFILE
                     IMAGEDIR oiio-images)
+    if (USE_PYTHON AND NOT SANITIZE)
+        oiio_add_tests (webp-animation
+                        FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP)
+    endif ()
 
     if (SPI_TESTS)
         oiio_add_tests (oiiotool-spi

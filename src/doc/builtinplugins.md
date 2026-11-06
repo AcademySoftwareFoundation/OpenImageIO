@@ -3248,6 +3248,17 @@ aware of:
 WebP is an image file format developed by Google that is intended to be an
 open standard for lossy-compressed images for use on the web.
 
+OpenImageIO supports reading and writing both still and animated WebP files.
+To write an animation, open the first frame with `ImageOutput::Create`, write
+its pixels, then open each subsequent frame with
+`ImageOutput::AppendSubimage` using the same filename and write its pixels.
+Call `close()` after the last frame to finalize the file.
+
+All frames must have the same width, height, and number of channels. Frame
+timing is controlled by `FramesPerSecond`. Animation-wide settings, including
+the loop count and encoder selection, are taken from the first frame's
+`ImageSpec`.
+
 **Attributes**
 
 ```{eval-rst}
@@ -3340,6 +3351,26 @@ control aspects of the writing itself:
      - int
      - A general quality/speed trade-off (0=fast, 6=slower-better) for both
        lossy and lossless image encoding. The default is 6.
+   * - ``FramesPerSecond``
+     - float
+     - Frame rate used to determine animation frame duration, rounded to
+       the nearest millisecond. The first frame defaults to 1 FPS.
+       Subsequent frames inherit the first frame's rate unless they supply
+       their own value.
+   * - ``oiio:LoopCount``
+     - int
+     - Number of times to play the animation. Values are clamped to
+       0-65535, with 0 meaning infinite playback (the default).
+       Taken from the first frame.
+   * - ``webp:use_animation_encoder``
+     - int
+     - If nonzero, use libwebp's ``WebPAnimEncoder`` to encode animations.
+       Otherwise, encode frames individually and assemble them using
+       ``WebPMux``. The default is 0. Taken from the first frame.
+   * - ``webp:use_multithread``
+     - int
+     - If nonzero, enable multithreading in libwebp. Requires libwebp to
+       have been built with threading support. The default is 0.
 ```
 
 **Custom I/O Overrides**
