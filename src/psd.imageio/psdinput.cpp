@@ -1775,6 +1775,12 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     if (layer.empty() && channel_info.channel_id != ChannelID_LayerMask)
         return ioseek(start_pos + channel_info.data_length);
 
+    // The real user mask (-3) has its own rectangle (the "real" fields of the
+    // layer mask data), which we don't parse. Its pixels are never exposed as
+    // image channels, so skip it using the length declared in the layer record.
+    if (channel_info.channel_id == ChannelID_UserMask)
+        return ioseek(start_pos + channel_info.data_length);
+
     // Use mask_data size when channel_id is -2
     uint32_t width, height;
     if (channel_info.channel_id == ChannelID_LayerMask) {
