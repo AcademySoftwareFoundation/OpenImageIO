@@ -545,8 +545,7 @@ ParamValueList::getattribute(string_view name, TypeDesc type,
     }
     auto p = find(name, TypeUnknown, casesensitive);
     if (p != cend()) {
-        return convert_type(p->type(), p->data(), type, value.data());
-        // FIXME: some day, change this to a span-based call
+        return convert_type(p->type(), p->as_bytes(), type, value);
     } else {
         return false;
     }
@@ -600,13 +599,13 @@ ParamValueList::getattribute_indexed(string_view name, int index, TypeDesc type,
     }
     auto p = find(name, TypeUnknown, casesensitive);
     if (p != cend()) {
-        if (index >= int(p->type().basevalues()))
+        if (index < 0 || index >= int(p->type().basevalues()))
             return false;
         TypeDesc basetype = p->type().scalartype();
         return convert_type(basetype,
-                            (const char*)p->data() + index * basetype.size(),
-                            type, value.data());
-        // FIXME: some day, change this to a span-based call
+                            p->as_bytes().subspan(index * basetype.size(),
+                                                  basetype.size()),
+                            type, value);
     } else {
         return false;
     }
@@ -850,7 +849,7 @@ ParamValueSpan::getattribute(string_view name, TypeDesc type,
     }
     auto p = find(name, TypeUnknown, casesensitive);
     if (p != cend()) {
-        return convert_type(p->type(), p->data(), type, value.data());
+        return convert_type(p->type(), p->as_bytes(), type, value);
     } else {
         return false;
     }
@@ -904,12 +903,13 @@ ParamValueSpan::getattribute_indexed(string_view name, int index, TypeDesc type,
     }
     auto p = find(name, TypeUnknown, casesensitive);
     if (p != cend()) {
-        if (index >= int(p->type().basevalues()))
+        if (index < 0 || index >= int(p->type().basevalues()))
             return false;
         TypeDesc basetype = p->type().scalartype();
         return convert_type(basetype,
-                            (const char*)p->data() + index * basetype.size(),
-                            type, value.data());
+                            p->as_bytes().subspan(index * basetype.size(),
+                                                  basetype.size()),
+                            type, value);
     } else {
         return false;
     }

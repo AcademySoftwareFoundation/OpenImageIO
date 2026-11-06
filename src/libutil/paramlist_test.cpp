@@ -473,6 +473,66 @@ test_paramlistspan()
 
 
 
+// Exercise the span<std::byte> getattribute and getattribute_indexed calls
+// of either ParamValueList or ParamValueSpan.
+template<typename PL>
+static void
+test_getattribute_span(const PL& pl)
+{
+    int i = 0;
+    OIIO_CHECK_ASSERT(
+        pl.getattribute("foo", TypeInt, as_writable_bytes(&i, 1)));
+    OIIO_CHECK_EQUAL(i, 42);
+
+    float f = 0.0f;
+    OIIO_CHECK_ASSERT(
+        pl.getattribute("foo", TypeFloat, as_writable_bytes(&f, 1)));
+    OIIO_CHECK_EQUAL(f, 42.0f);
+
+    ustring s;
+    OIIO_CHECK_ASSERT(
+        pl.getattribute("foo", TypeString, as_writable_bytes(&s, 1)));
+    OIIO_CHECK_EQUAL(s, "42");
+
+    Imath::Color3f c(0.0f);
+    OIIO_CHECK_ASSERT(
+        pl.getattribute("red", TypeColor, as_writable_bytes(&c, 1)));
+    OIIO_CHECK_EQUAL(c, Imath::Color3f(1.0f, 0.0f, 0.0f));
+
+    OIIO_CHECK_FALSE(
+        pl.getattribute("absent", TypeInt, as_writable_bytes(&i, 1)));
+
+    f = -1.0f;
+    OIIO_CHECK_ASSERT(
+        pl.getattribute_indexed("red", 0, TypeFloat, as_writable_bytes(&f, 1)));
+    OIIO_CHECK_EQUAL(f, 1.0f);
+    OIIO_CHECK_ASSERT(
+        pl.getattribute_indexed("red", 2, TypeFloat, as_writable_bytes(&f, 1)));
+    OIIO_CHECK_EQUAL(f, 0.0f);
+
+    // Out-of-range indices fail without touching the output
+    f = -1.0f;
+    OIIO_CHECK_FALSE(
+        pl.getattribute_indexed("red", 3, TypeFloat, as_writable_bytes(&f, 1)));
+    OIIO_CHECK_FALSE(pl.getattribute_indexed("red", -1, TypeFloat,
+                                             as_writable_bytes(&f, 1)));
+    OIIO_CHECK_EQUAL(f, -1.0f);
+}
+
+
+
+static void
+test_getattribute_spans()
+{
+    std::cout << "test_getattribute_spans\n";
+    ParamValueList pvlist;
+    populate_pvl(pvlist);
+    test_getattribute_span(pvlist);
+    test_getattribute_span(ParamValueSpan(pvlist));
+}
+
+
+
 static void
 print_pv(const ParamValue& pv)
 {
@@ -550,6 +610,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_delegates();
     test_implied_construction();
     test_paramlistspan();
+    test_getattribute_spans();
 
     return unit_test_failures;
 }
