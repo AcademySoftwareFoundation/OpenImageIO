@@ -18,6 +18,9 @@ command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/psd_123.psd", extraargs="--
 
 command += info_command ("src/different-mask-size.psd")
 command += info_command ("src/layer-mask.psd")
+# Real user mask (-3) with its own rectangle, stored Raw and RLE (#5659)
+command += info_command ("src/layer-mask-real-user-raw.psd")
+command += info_command ("src/layer-mask-real-user-rle.psd")
 
 # Test more modern (Photoshop 2023 files) with 16- and 32-bit files containing multiple sublayers
 command += info_command ("src/Layers_8bit_RGB.psd")
