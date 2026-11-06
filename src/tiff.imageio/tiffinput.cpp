@@ -1485,8 +1485,8 @@ TIFFInput::readspec(bool read_meta)
     if (s)
         m_emulate_mipmap = true;
     if (s && !strcmp(s, "Shadow")) {
-        for (int c = 0; c < m_spec.nchannels; ++c)
-            m_spec.channelnames[c] = "z";
+        for (auto& name : m_spec.channelnames)
+            name = "z";
     }
 
     // Set miplevels attribute in MIP emulation case (m_emulate_mipmap = true).

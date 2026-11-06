@@ -958,3 +958,6 @@ Full command line was:
 oiiotool ERROR: read : "src/bomb-40000.fits": fits header claims a 1525 MB image from a 2880 byte file; probably a corrupt or malicious header
 Full command line was:
 > oiiotool --info --hash src/bomb-40000.fits
+oiiotool ERROR: read : "src/stokes-5000ch.fits": fits does not support 5000-channel images. Possible corrupt input?
+Full command line was:
+> oiiotool --info --hash src/stokes-5000ch.fits
