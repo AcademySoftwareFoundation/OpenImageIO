@@ -215,6 +215,17 @@ WebpInput::open(const std::string& name, ImageSpec& spec,
                 close();
                 return false;
             }
+            // Exif stores ResolutionUnit as a number; the ImageSpec
+            // convention (as in TIFF and JPEG) is a string.
+            const ParamValue* resunit = m_spec.find_attribute("ResolutionUnit");
+            if (resunit && resunit->type() != TypeString) {
+                switch (resunit->get_int()) {
+                case 1: m_spec.attribute("ResolutionUnit", "none"); break;
+                case 2: m_spec.attribute("ResolutionUnit", "in"); break;
+                case 3: m_spec.attribute("ResolutionUnit", "cm"); break;
+                default: m_spec.erase_attribute("ResolutionUnit"); break;
+                }
+            }
         }
         WebPDemuxReleaseChunkIterator(&chunk_iter);
     }

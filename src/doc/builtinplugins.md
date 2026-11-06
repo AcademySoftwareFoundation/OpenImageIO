@@ -3262,6 +3262,16 @@ open standard for lossy-compressed images for use on the web.
      - uint8[]
      - The ICC color profile. A variety of other ``ICCProfile:*`` attributes
        may also be present, extracted from the main profile.
+   * - ``XResolution``, ``YResolution``
+     - float
+     - The resolution, stored in the EXIF chunk.
+   * - ``ResolutionUnit``
+     - string
+     - The resolution unit (``none``, ``in`` or ``cm``), stored in the EXIF
+       chunk.
+   * - ``Exif:*``
+     -
+     - Exif metadata is read from and written to the EXIF chunk.
    * - ``oiio:Movie``
      - int
      - If nonzero, indicates that it's a multi-subimage file intended to
