@@ -590,7 +590,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& srcspec(src.spec());
         const ImageSpec& dstspec(dst.spec());
-        int nchannels = dstspec.nchannels;
+        int nchannels = roi.chend;
 
         // Local copies of the source image window, converted to float
         float srcfx = srcspec.full_x;
@@ -870,7 +870,8 @@ ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, KWArgs options,
     IBA_check_optional(options, recognized);
 
     if (!IBAprep(roi, &dst, &src,
-                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL))
+                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL
+                     | IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     const ImageSpec& srcspec(src.spec());
     const ImageSpec& dstspec(dst.spec());
@@ -1950,10 +1951,11 @@ check_st_warp_args(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
 
     // Prep the output buffer, and then intersect the resulting ROI with the ST
     // buffer's ROI, since the ST warp is only defined for pixels in the latter.
-    bool res
-        = ImageBufAlgo::IBAprep(roi, &dst, &src,
-                                ImageBufAlgo::IBAprep_NO_SUPPORT_VOLUME
-                                    | ImageBufAlgo::IBAprep_NO_COPY_ROI_FULL);
+    bool res = ImageBufAlgo::IBAprep(
+        roi, &dst, &src,
+        ImageBufAlgo::IBAprep_NO_SUPPORT_VOLUME
+            | ImageBufAlgo::IBAprep_NO_COPY_ROI_FULL
+            | ImageBufAlgo::IBAprep_CLAMP_MUTUAL_NCHANNELS);
     if (res) {
         const int chbegin = roi.chbegin;
         const int chend   = roi.chend;

@@ -3186,7 +3186,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src,
     if (processor->isNoOp() && (&dst == &src))
         return true;
 
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
 
     // If the processor is a no-op (and it's not an in-place conversion),

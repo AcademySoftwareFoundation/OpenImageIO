@@ -719,7 +719,11 @@ ImageBufAlgo::perpixel_op(
     using namespace ImageBufAlgo;
     ImageBuf result;
     ROI roi;
-    if (!IBAprep(roi, result, { &srcA, &srcB }, options))
+    // The op may only see channels both inputs have
+    ParamValueList prepopts;
+    prepopts.assign(options.begin(), options.end());
+    prepopts.attribute("clamp_mutual_nchannels", 1);
+    if (!IBAprep(roi, result, { &srcA, &srcB }, prepopts))
         return result;
     int nthreads = options.get_int("nthreads", 0);
     bool ok      = true;
