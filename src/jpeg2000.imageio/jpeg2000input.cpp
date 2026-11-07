@@ -526,8 +526,10 @@ Jpeg2000Input::ojph_read_image()
     const size_t bufsize
         = clamped_mult64(clamped_mult64(uint64_t(w), uint64_t(h)),
                          clamped_mult64(uint64_t(ch), uint64_t(buffer_bpp)));
+    std::vector<int> colmap;
     try {
         m_buf.resize(bufsize);
+        colmap.resize(size_t(w) * ch);
         codestream.create();
     } catch (const std::exception& e) {
         errorfmt("openjph exception {}", e.what());
@@ -540,7 +542,6 @@ Jpeg2000Input::ojph_read_image()
     // each sample is replicated over the full-resolution pixels it covers.
     const int64_t x0 = siz.get_image_offset().x;
     const int64_t y0 = siz.get_image_offset().y;
-    std::vector<int> colmap(size_t(w) * ch);
     for (int c = 0; c < ch; ++c) {
         const int64_t dx  = std::max(siz.get_downsampling(c).x, 1u);
         const int64_t cx0 = (x0 + dx - 1) / dx;
