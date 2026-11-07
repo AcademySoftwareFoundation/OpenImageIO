@@ -59,7 +59,7 @@ ImageBufAlgo::flip(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
-    if (!IBAprep(dst_roi, &dst, &src))
+    if (!IBAprep(dst_roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2(ok, "flip", flip_, dst.spec().format,
@@ -108,7 +108,7 @@ ImageBufAlgo::flop(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
-    if (!IBAprep(dst_roi, &dst, &src))
+    if (!IBAprep(dst_roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2(ok, "flop", flop_, dst.spec().format,
@@ -189,7 +189,7 @@ ImageBufAlgo::rotate90(ImageBuf& dst, const ImageBuf& src, ROI roi,
                  && dst_roi.height() == src_roi.width());
 
     bool dst_initialized = dst.initialized();
-    if (!IBAprep(dst_roi, &dst, &src))
+    if (!IBAprep(dst_roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (!dst_initialized)
         dst.set_roi_full(dst_roi_full);
@@ -246,7 +246,7 @@ ImageBufAlgo::rotate180(ImageBuf& dst, const ImageBuf& src, ROI roi,
 
     // Compute the destination ROI, it's the source ROI reflected across
     // the midline of the display window.
-    if (!IBAprep(dst_roi, &dst, &src))
+    if (!IBAprep(dst_roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2(ok, "rotate180", rotate180_, dst.spec().format,
@@ -303,7 +303,7 @@ ImageBufAlgo::rotate270(ImageBuf& dst, const ImageBuf& src, ROI roi,
                  && dst_roi.height() == src_roi.width());
 
     bool dst_initialized = dst.initialized();
-    if (!IBAprep(dst_roi, &dst, &src))
+    if (!IBAprep(dst_roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (!dst_initialized)
         dst.set_roi_full(dst_roi_full);

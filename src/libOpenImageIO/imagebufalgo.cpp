@@ -722,7 +722,15 @@ ImageBufAlgo::perpixel_op(
     if (!IBAprep(roi, result, { &srcA, &srcB }, options))
         return result;
     int nthreads = options.get_int("nthreads", 0);
-    bool ok      = true;
+    // The op may only see channels both inputs have; zero the rest.
+    int mutual_nc = std::min(srcA.nchannels(), srcB.nchannels());
+    if (roi.chend > mutual_nc) {
+        ROI zroi     = roi;
+        zroi.chbegin = std::max(roi.chbegin, mutual_nc);
+        ImageBufAlgo::zero(result, zroi, nthreads);
+        roi.chend = mutual_nc;
+    }
+    bool ok = true;
     if (result.pixeltype() == TypeFloat && srcA.pixeltype() == TypeFloat
         && srcB.pixeltype() == TypeFloat) {
         // Source images (and therefore the destination we created) have float

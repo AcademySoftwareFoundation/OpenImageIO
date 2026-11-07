@@ -57,17 +57,19 @@ ImageBufAlgo::scale(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
     OIIO::pvt::LoggedTimer logtime("IBA::scale");
     bool ok = false;
     if (B.nchannels() == 1) {
-        if (IBAprep(roi, &dst, &A, &B))
-            OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl,
-                                        dst.spec().format, A.spec().format,
-                                        B.spec().format, dst, A, B, roi,
-                                        nthreads);
+        if (!IBAprep(roi, &dst, &A, &B))
+            return false;
+        roi.chend = std::min(roi.chend, A.nchannels());
+        OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl, dst.spec().format,
+                                    A.spec().format, B.spec().format, dst, A, B,
+                                    roi, nthreads);
     } else if (A.nchannels() == 1) {
-        if (IBAprep(roi, &dst, &A, &B))
-            OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl,
-                                        dst.spec().format, B.spec().format,
-                                        A.spec().format, dst, B, A, roi,
-                                        nthreads);
+        if (!IBAprep(roi, &dst, &A, &B))
+            return false;
+        roi.chend = std::min(roi.chend, B.nchannels());
+        OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl, dst.spec().format,
+                                    B.spec().format, A.spec().format, dst, B, A,
+                                    roi, nthreads);
     } else {
         dst.errorfmt(
             "ImageBufAlgo::scale(): one of the arguments must be a single channel image.");

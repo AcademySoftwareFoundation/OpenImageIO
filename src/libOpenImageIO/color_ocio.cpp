@@ -181,7 +181,7 @@ struct CSInfo {
         is_Rec709       = 64,   // Rec709 primaries and transfer function
         is_data         = 128,  // Non-color-managed data
         is_known = is_srgb_display | is_srgb_scene | is_lin_srgb | is_ACEScg
-                   | is_Rec709
+            | is_Rec709
 
     };
     int m_flags   = 0;
@@ -3186,7 +3186,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src,
     if (processor->isNoOp() && (&dst == &src))
         return true;
 
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
 
     // If the processor is a no-op (and it's not an in-place conversion),

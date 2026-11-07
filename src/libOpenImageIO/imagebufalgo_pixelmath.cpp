@@ -247,7 +247,7 @@ ImageBufAlgo::clamp(ImageBuf& dst, const ImageBuf& src, cspan<float> min,
                     cspan<float> max, bool clampalpha01, ROI roi, int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::clamp");
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     const float big = std::numeric_limits<float>::max();
     IBA_FIX_PERCHAN_LEN(min, dst.nchannels(), min.size() ? min.back() : -big,
@@ -1076,7 +1076,7 @@ ImageBufAlgo::contrast_remap(ImageBuf& dst, const ImageBuf& src,
                              ROI roi, int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::contrast_remap");
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     // Force all the input spans to have values for all channels.
     int n = dst.nchannels();
