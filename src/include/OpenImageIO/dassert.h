@@ -212,13 +212,8 @@ OIIO_NAMESPACE_END
 #endif
 
 
-/// Define OIIO_STATIC_ASSERT(cond) as a wrapper around static_assert(cond),
-/// with appropriate fallbacks for older C++ standards.
-#if (__cplusplus >= 201700L) /* FIXME - guess the token, fix when C++17 */
-#    define OIIO_STATIC_ASSERT(cond) static_assert(cond)
-#else
-#    define OIIO_STATIC_ASSERT(cond) static_assert(cond, "")
-#endif
+/// OIIO_STATIC_ASSERT(cond) is a wrapper around static_assert(cond).
+#define OIIO_STATIC_ASSERT(cond) static_assert(cond)
 
 /// Deprecated synonym:
 #define OIIO_STATIC_ASSERT_MSG(cond, msg) static_assert(cond, msg)
