@@ -73,6 +73,13 @@ command += oiiotool("--info -v --hash src/valid-16x16.j2c", failureok = True)
 # gives no signal for truncated data, so its pixels aren't compared).
 command += oiiotool("--info -v --hash src/valid-420.j2c", failureok = True)
 command += oiiotool("--info -v --hash src/valid-420-odd.j2c", failureok = True)
+# Subsampled with a color transform (decoded in interleaved order), and a
+# subsampled first component with an image offset not a multiple of it.
+command += oiiotool("--info -v --hash src/valid-420-mct.j2c", failureok = True)
+command += oiiotool("--info -v --hash src/valid-subsampled-offset.j2c",
+                    failureok = True)
+# An empty component ahead of a nonempty one used to hang.
+command += oiiotool("--info -v src/empty-component.j2c", failureok = True)
 command += oiiotool("src/subsampled-hang.j2c -o subsampled-hang.exr"
                     " > hang.txt 2>&1", failureok = True, silent = True)
 command += oiiotool("-echo \"subsampled-hang.j2c done\"")

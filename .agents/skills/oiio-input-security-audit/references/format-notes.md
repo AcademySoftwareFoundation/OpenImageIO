@@ -87,10 +87,13 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   past an array; OpenJPH global error handler needs static lifetime;
   sYCC conversion ran on 1-channel images (OpenJPEG sets SYCC from the
   `colr` box alone); subsampled components (OpenJPH path assumed
-  full-res; hung in `pull`) now decoded planar at per-component size.
-  Don't fall back to OpenJPEG for HTJ2K: < 2.5 can't decode HT at all,
-  and 2.5.4 mis-decodes odd-size subsampled HT.
-  Open: >4 components out of step; truncated codestream decodes silently
+  full-res; hung in `pull`) now decoded at per-component size. Keep
+  OpenJPH's pull order: it decodes the color transform (MCT) when
+  component 0 is pulled, so MCT files must stay interleaved (needs
+  equal subsampling; else rejected). Empty components hang `pull`;
+  rejected. Don't fall back to OpenJPEG for HTJ2K: < 2.5 can't decode HT
+  at all, and 2.5.4 mis-decodes odd-size subsampled HT.
+  Open: truncated codestream decodes silently
   (no completeness signal from OpenJPH).
 - webp: check_open + C2 moved before the decoded-image allocation; no real
   bomb reachable (libwebp caps canvas, demux cross-validates).
