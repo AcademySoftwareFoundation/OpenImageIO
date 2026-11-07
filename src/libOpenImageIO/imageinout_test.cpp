@@ -376,8 +376,8 @@ test_write_bad_channel_indices(string_view formatname, string_view extension,
         ImageSpec spec     = buf.spec();
         spec.alpha_channel = bad;
         spec.z_channel     = bad;
-        bool ok = checked_write(nullptr, filename, spec, spec.format,
-                                buf.localpixels_as_byte_image_span());
+        bool ok            = checked_write(nullptr, filename, spec, spec.format,
+                                           buf.localpixels_as_byte_image_span());
         if (ok)
             std::cout << Sysutil::Term(stdout).ansi("green", "OK\n");
     }
