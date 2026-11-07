@@ -19,6 +19,34 @@ src/valid-16x16.j2c  :   16 x   16, 3 channel, uint8 jpeg2000
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420.j2c
+src/valid-420.j2c    :   16 x   16, 3 channel, uint8 jpeg2000
+    SHA-1: A8C497C0B577F34192AFA09CD53589C452A4EB35
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420-odd.j2c
+src/valid-420-odd.j2c :   15 x   13, 3 channel, uint8 jpeg2000
+    SHA-1: 8716D35055114ECC6CB1774E289BAB35E0D1412F
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420-mct.j2c
+src/valid-420-mct.j2c :   11 x    7, 3 channel, uint8 jpeg2000
+    SHA-1: D495C28BECB83C2DB3DA17DBE4D7DB0BCFE8E3E5
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-subsampled-offset.j2c
+src/valid-subsampled-offset.j2c :   11 x    7, 3 channel, uint8 jpeg2000
+    SHA-1: FDE343ABC352247E383282538D0C9AFECBE1CB48
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+oiiotool ERROR: read : "src/empty-component.j2c": HTJ2K component 0 is empty
+Full command line was:
+> oiiotool --info -v src/empty-component.j2c
+subsampled-hang.j2c done
 Reading src/valid-16x16.j2c
 src/valid-16x16.j2c  :   16 x   16, 3 channel, uint8 jpeg2000
 Full command line was:
