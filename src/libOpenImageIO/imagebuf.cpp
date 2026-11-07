@@ -479,6 +479,16 @@ ImageBufImpl::ImageBufImpl(string_view filename, int subimage, int miplevel,
             if (!buforigin)
                 buforigin = static_cast<const void*>(bufspan.data());
             set_bufspan((char*)buforigin, xstride, ystride, zstride);
+            if (bufspan.size()
+                && !image_span_within_span(m_bufspan,
+                                           cspan<std::byte>(bufspan))) {
+                errorfmt("ImageBuf buffer span is too small for the image");
+                m_bufspan    = {};
+                m_spec       = ImageSpec();
+                m_nativespec = ImageSpec();
+                eval_contiguous();
+                return;
+            }
             m_storage      = ImageBuf::APPBUFFER;
             m_pixels_valid = true;
         } else {
@@ -1044,7 +1054,11 @@ ImageBuf::reset(const ImageSpec& spec, cspan<std::byte> buffer,
     image_span ispan((std::byte*)buforigin, spec.nchannels, spec.width,
                      spec.height, spec.depth, spec.format.size(), xstride,
                      ystride, zstride);
-    OIIO_ASSERT(image_span_within_span(ispan, buffer));
+    if (!image_span_within_span(ispan, buffer)) {
+        reset();
+        errorfmt("ImageBuf buffer span is too small for the image");
+        return;
+    }
     m_impl->reset("", spec, nullptr, ispan, true /*readonly*/);
 }
 
@@ -1060,7 +1074,11 @@ ImageBuf::reset(const ImageSpec& spec, span<std::byte> buffer,
     image_span ispan((std::byte*)buforigin, spec.nchannels, spec.width,
                      spec.height, spec.depth, spec.format.size(), xstride,
                      ystride, zstride);
-    OIIO_ASSERT(image_span_within_span(ispan, buffer));
+    if (!image_span_within_span(ispan, buffer)) {
+        reset();
+        errorfmt("ImageBuf buffer span is too small for the image");
+        return;
+    }
     m_impl->reset("", spec, nullptr, ispan, false /*readonly*/);
 }
 
