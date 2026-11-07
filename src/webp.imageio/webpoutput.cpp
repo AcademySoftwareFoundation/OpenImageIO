@@ -10,10 +10,47 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebufalgo.h>
 #include <OpenImageIO/imageio.h>
+#include <OpenImageIO/tiffutils.h>
 
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 namespace webp_pvt {
+
+
+// Exif block (starting with the TIFF header, as the WebP container spec
+// requires for the EXIF chunk) for the metadata in spec, or an empty vector
+// if none of it maps to an Exif tag.
+static std::vector<char>
+webp_exif_blob(const ImageSpec& spec)
+{
+    // ResolutionUnit is a string in the ImageSpec, but a SHORT in Exif.
+    ImageSpec exifspec;
+    exifspec.extra_attribs = spec.extra_attribs;
+    exifspec.erase_attribute("ResolutionUnit");
+    exifspec.erase_attribute("Exif:ResolutionUnit");
+    string_view resunit = spec.get_string_attribute("ResolutionUnit");
+    if (Strutil::iequals(resunit, "none"))
+        exifspec.attribute("ResolutionUnit", 1);
+    else if (Strutil::iequals(resunit, "in")
+             || Strutil::iequals(resunit, "inch"))
+        exifspec.attribute("ResolutionUnit", 2);
+    else if (Strutil::iequals(resunit, "cm"))
+        exifspec.attribute("ResolutionUnit", 3);
+    // Exif stores the resolution as a RATIONAL, which encode_exif() writes
+    // only from a float. Accept other numeric types, as the other writers do.
+    for (const char* name : { "XResolution", "YResolution" }) {
+        const ParamValue* p = spec.find_attribute(name);
+        if (p && p->type() != TypeFloat)
+            exifspec.attribute(name, p->get_float());
+    }
+
+    std::vector<char> blob;
+    encode_exif(exifspec, blob, endian::little);
+    // Header, entry count and next-IFD offset alone: no tags were written.
+    if (blob.size() <= sizeof(TIFFHeader) + sizeof(uint16_t) + sizeof(uint32_t))
+        blob.clear();
+    return blob;
+}
 
 
 class WebpOutput final : public ImageOutput {
@@ -141,14 +178,17 @@ WebpOutput::open(const std::string& name, const ImageSpec& spec, OpenMode mode)
 bool
 WebpOutput::write_complete_data()
 {
-    // Check if we have an optional ICC Profile to write.
+    // Check if we have an optional ICC Profile or Exif metadata to write.
     std::vector<uint8_t> icc_profile = get_colorspace_icc_profile(m_spec);
     const bool has_icc_data          = icc_profile.size() > 0;
+    std::vector<char> exif           = webp_exif_blob(m_spec);
+    const bool has_exif_data         = exif.size() > 0;
+    const bool use_mux               = has_icc_data || has_exif_data;
 
-    // If we have ICC data, encode to memory first. This is required in order
-    // to use the WebPMux assembly API below.
+    // If we have ICC or Exif data, encode to memory first. This is required
+    // in order to use the WebPMux assembly API below.
     WebPMemoryWriter wrt;
-    if (has_icc_data) {
+    if (use_mux) {
         WebPMemoryWriterInit(&wrt);
         m_webp_picture.writer     = WebPMemoryWrite;
         m_webp_picture.custom_ptr = &wrt;
@@ -178,25 +218,33 @@ WebpOutput::write_complete_data()
 
     if (!WebPEncode(&m_webp_config, &m_webp_picture)) {
         errorfmt("Failed to encode {} as WebP image", m_filename);
-        if (has_icc_data) {
+        if (use_mux) {
             WebPMemoryWriterClear(&wrt);
         }
         close();
         return false;
     }
 
-    // If there's no ICC data to write, we are done at this point.
+    // If there's no ICC or Exif data to write, we are done at this point.
     bool ok = true;
 
     // Otherwise, assemble the final WebP package and write it out.
-    if (has_icc_data) {
+    if (use_mux) {
         WebPMux* mux = WebPMuxNew();
 
         WebPData image_data = { wrt.mem, wrt.size };
         WebPMuxSetImage(mux, &image_data, false);
 
-        WebPData icc_chunk = { icc_profile.data(), icc_profile.size() };
-        WebPMuxSetChunk(mux, "ICCP", &icc_chunk, false);
+        if (has_icc_data) {
+            WebPData icc_chunk = { icc_profile.data(), icc_profile.size() };
+            WebPMuxSetChunk(mux, "ICCP", &icc_chunk, false);
+        }
+        if (has_exif_data) {
+            WebPData exif_chunk = {
+                reinterpret_cast<const uint8_t*>(exif.data()), exif.size()
+            };
+            WebPMuxSetChunk(mux, "EXIF", &exif_chunk, false);
+        }
 
         WebPData assembly;
         if (WebPMuxAssemble(mux, &assembly) != WEBP_MUX_OK) {
