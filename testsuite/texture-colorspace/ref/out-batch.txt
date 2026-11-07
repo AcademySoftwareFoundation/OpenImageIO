@@ -3,7 +3,12 @@ Testing BATCHED 2d texture grey.exr, output = nocc.exr
 Created texture system
 Treating texture as if it is in colorspace sRGB
 Testing BATCHED 2d texture grey.exr, output = cc.exr
+Created texture system
+Treating texture as if it is in colorspace sRGB
+Testing BATCHED 2d texture grey8.exr, output = cc8.exr
 Comparing "nocc.exr" and "ref/nocc.exr"
 PASS
 Comparing "cc.exr" and "ref/cc.exr"
+PASS
+Comparing "cc8.exr" and "ref/cc8.exr"
 PASS
