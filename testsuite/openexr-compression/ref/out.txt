@@ -11,6 +11,8 @@ out-dwab.exr compression dwab
 out-htj2k32.exr compression htj2k32
 out-htj2k256.exr compression htj2k256
 out-lj2k.exr compression lj2k
+Comparing "../common/tahoe-tiny.tif" and "out-lj2k.exr"
+PASS
 out-zstd.exr compression zstd
 Comparing "out-none.exr" and "ref/out-zip.exr"
 PASS
@@ -35,8 +37,6 @@ PASS
 Comparing "out-htj2k32.exr" and "ref/out-zip.exr"
 PASS
 Comparing "out-htj2k256.exr" and "ref/out-zip.exr"
-PASS
-Comparing "out-lj2k.exr" and "ref/out-lj2k.exr"
 PASS
 Comparing "out-zstd.exr" and "ref/out-zip.exr"
 PASS
