@@ -34,6 +34,12 @@ for c in compressions:
                         " -o " + outname)
     command += oiiotool(outname + " --echo \"" + outname + " compression "
                         + "{TOP.compression}\"")
-    outputs += [ outname ]
+    if c == "lj2k" :
+        # Lossy, and the exact output varies with OpenJPH version, so
+        # compare against the source with a lossy-appropriate threshold.
+        command += diff_command("../common/tahoe-tiny.tif", outname,
+                                extraargs="-fail 0.03 -failpercent 0 -warn 0.03 -warnpercent 0")
+    else :
+        outputs += [ outname ]
 
 outputs += [ "out.txt" ]
