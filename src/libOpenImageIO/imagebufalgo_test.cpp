@@ -1074,6 +1074,40 @@ test_compare()
     OIIO_CHECK_EQUAL(comp.maxx, 9);
     OIIO_CHECK_EQUAL(comp.maxy, 0);
     OIIO_CHECK_EQUAL_THRESH(comp.meanerror, 0.0045f, 1.0e-8f);
+
+    // Non-finite values: a single NaN or Inf mismatch must fail, and every
+    // mismatched pixel must be counted.
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const float inf = std::numeric_limits<float>::infinity();
+    ImageBufAlgo::fill(A, cspan<float>(grey));
+    const float nanpix[CHANNELS] = { 0.5f, nan, 0.5f };
+    A.setpixel(3, 4, cspan<float>(nanpix));
+    comp = ImageBufAlgo::compare(A, B, failthresh, warnthresh);
+    OIIO_CHECK_EQUAL(comp.nfail, 1);
+    OIIO_CHECK_EQUAL(comp.nwarn, 1);
+    OIIO_CHECK_ASSERT(std::isinf(comp.maxerror));
+    OIIO_CHECK_EQUAL(comp.maxx, 3);
+    OIIO_CHECK_EQUAL(comp.maxy, 4);
+    OIIO_CHECK_EQUAL(comp.maxc, 1);
+    comp = ImageBufAlgo::compare(B, A, failthresh, warnthresh);
+    OIIO_CHECK_EQUAL(comp.nfail, 1);
+    const float infpix[CHANNELS] = { inf, 0.5f, 0.5f };
+    A.setpixel(5, 5, cspan<float>(infpix));
+    comp = ImageBufAlgo::compare(A, B, failthresh, warnthresh);
+    OIIO_CHECK_EQUAL(comp.nfail, 2);
+    OIIO_CHECK_EQUAL(comp.nwarn, 2);
+    OIIO_CHECK_ASSERT(std::isfinite(comp.meanerror));
+    // Matching NaN and same-signed Inf still compare equal
+    comp = ImageBufAlgo::compare(A, A, failthresh, warnthresh);
+    OIIO_CHECK_EQUAL(comp.nfail, 0);
+    OIIO_CHECK_EQUAL(comp.maxerror, 0.0f);
+    // But +Inf vs -Inf does not
+    ImageBuf C;
+    C.copy(A);
+    const float ninfpix[CHANNELS] = { -inf, 0.5f, 0.5f };
+    C.setpixel(5, 5, cspan<float>(ninfpix));
+    comp = ImageBufAlgo::compare(A, C, failthresh, warnthresh);
+    OIIO_CHECK_EQUAL(comp.nfail, 1);
 }
 
 
