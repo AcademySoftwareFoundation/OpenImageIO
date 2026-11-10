@@ -24,6 +24,17 @@ if (OpenEXR_BUILD_VERSION VERSION_GREATER_EQUAL 3.5)
     list (APPEND MORE_OpenEXR_CMAKE_ARGS -D zstd_DIR=${zstd_DIR})
 endif ()
 
+# OpenEXR 3.4+ uses openjph for HTJ2K. Hand it ours, or else it bundles its
+# own copy into OpenEXRCore, unnamespaced, which collides with ours if they
+# differ and both are linked statically.
+if (OpenEXR_BUILD_VERSION VERSION_GREATER_EQUAL 3.4)
+    checked_find_package (openjph VERSION_MIN 0.21.2
+                          NO_FP_RANGE_CHECK)
+    if (openjph_FOUND AND openjph_DIR)
+        list (APPEND MORE_OpenEXR_CMAKE_ARGS -D openjph_DIR=${openjph_DIR})
+    endif ()
+endif ()
+
 # Make OpenEXR use exactly the Imath we found (or built) ourselves. Otherwise
 # its own search could settle on a different Imath, or fetch yet another one.
 if (Imath_DIR)
