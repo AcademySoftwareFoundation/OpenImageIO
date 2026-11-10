@@ -932,21 +932,17 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
         for (ImageBuf::Iterator<float> p(dst); !p.done(); ++p)
             p[0] = (*filter)((float)p.x(), (float)p.y());
     } else if (name == "binomial") {
-        // Binomial filter
-        float* wfilter = OIIO_ALLOCA(float, width);
-        for (int i = 0; i < width; ++i)
-            wfilter[i] = binomial(width - 1, i);
-        float* hfilter = (height == width) ? wfilter
-                                           : OIIO_ALLOCA(float, height);
-        if (height != width)
-            for (int i = 0; i < height; ++i)
-                hfilter[i] = binomial(height - 1, i);
-        float* dfilter = OIIO_ALLOCA(float, depth);
-        if (depth == 1)
-            dfilter[0] = 1;
-        else
-            for (int i = 0; i < depth; ++i)
-                dfilter[i] = binomial(depth - 1, i);
+        // Binomial filter, sized to the odd-rounded kernel image
+        float *wfilter, *hfilter, *dfilter;
+        OIIO_ALLOCATE_STACK_OR_HEAP(wfilter, float, w);
+        OIIO_ALLOCATE_STACK_OR_HEAP(hfilter, float, h);
+        OIIO_ALLOCATE_STACK_OR_HEAP(dfilter, float, d);
+        for (int i = 0; i < w; ++i)
+            wfilter[i] = binomial(w - 1, i);
+        for (int i = 0; i < h; ++i)
+            hfilter[i] = binomial(h - 1, i);
+        for (int i = 0; i < d; ++i)
+            dfilter[i] = binomial(d - 1, i);
         for (ImageBuf::Iterator<float> p(dst); !p.done(); ++p)
             p[0] = wfilter[p.x() - spec.x] * hfilter[p.y() - spec.y]
                    * dfilter[p.z() - spec.z];
