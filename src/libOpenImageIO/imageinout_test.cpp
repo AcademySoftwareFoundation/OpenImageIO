@@ -1090,6 +1090,9 @@ test_tiff_unassoc_reads()
 static void
 test_read_other_miplevel()
 {
+    if (!is_imageio_format_name("dds")
+        || (onlyformat.size() && onlyformat != "dds"))
+        return;
     std::cout << "Testing scanline reads of a non-current MIP level\n";
     // 64x64 8-bit luminance DDS with a full MIP chain
     const uint32_t W = 64, nmips = 7;
