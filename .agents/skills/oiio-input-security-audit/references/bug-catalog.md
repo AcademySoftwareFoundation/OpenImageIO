@@ -190,7 +190,10 @@ Streams and rotated images can change geometry after the header.
   heif `irot` with `oiio:reorient=0` (spec swapped w/h, libheif returned the
   stored plane); raw returned channel count vs spec; tiff CMYK->RGB
   (`m_spec.nchannels`=3 while `m_inputchannels`=4: tile path unpacked 4
-  values into 3-channel buffer). Fix: compare decoder-reported dims, channel
+  values into 3-channel buffer); jpeg2000 OpenJPH path assumed every
+  component full-res, so subsampled ones hung `codestream::pull()` and read
+  `w` samples from shorter lines (now pulled per component at its own
+  size and replicated). Fix: compare decoder-reported dims, channel
   count, and stride against the spec before every copy-out; size scratch
   buffers from the decoder-reported values, not the header.
 - Colorspace tag selecting a fixed-width conversion: a file-supplied tag

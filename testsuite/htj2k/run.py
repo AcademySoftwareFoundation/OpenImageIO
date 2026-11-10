@@ -68,6 +68,59 @@ if get_openjph_ver() >= 3100:
 # ... while a small valid codestream still reads.
 command += oiiotool("--info -v --hash src/valid-16x16.j2c", failureok = True)
 
+# Subsampled components, built by src/make_subsampled_htj2k.cpp. The reader
+# used to assume every component was full resolution and hung on these.
+# 4:2:0 at even and odd sizes.
+command += oiiotool("--info -v --hash src/valid-420.j2c", failureok = True)
+command += oiiotool("--info -v --hash src/valid-420-odd.j2c", failureok = True)
+# With a color transform (decoded in interleaved order), alone and with
+# tiles and offsets.
+command += oiiotool("--info -v --hash src/valid-420-mct.j2c", failureok = True)
+command += oiiotool("--info -v --hash src/valid-420-mct-tiled.j2c",
+                    failureok = True)
+# A subsampled first component with an image offset not a multiple of it.
+command += oiiotool("--info -v --hash src/valid-subsampled-offset.j2c",
+                    failureok = True)
+# 10-bit, tiles, both offsets and non-power-of-2 factors at once.
+command += oiiotool("--info -v --hash src/valid-tiled-offset-10bit.j2c",
+                    failureok = True)
+# Four components with a differently subsampled alpha. Keep the alpha
+# unassociated so the hash covers the decoded samples, not a premultiply.
+command += oiiotool("--iconfig oiio:UnassociatedAlpha 1 --info -v --hash"
+                    " src/valid-rgba-subsampled.j2c", failureok = True)
+# Five components with a color transform: only four are kept, but the
+# interleaved decode must still pull a row of every component.
+command += oiiotool("--iconfig oiio:UnassociatedAlpha 1 --info -v --hash"
+                    " src/valid-5comp-mct.j2c", failureok = True)
+# An empty component ahead of a nonempty one used to hang.
+command += oiiotool("--info -v src/empty-component.j2c", failureok = True)
+# Tiles smaller than the subsampling that each still hold a sample, and tile
+# rows holding no sample of a component, decode with every OpenJPH.
+command += oiiotool("--info -v --hash src/valid-tiles-under-subsampling.j2c",
+                    failureok = True)
+command += oiiotool("--info -v --hash src/valid-empty-tile-rows.j2c",
+                    failureok = True)
+# Tiles narrower than a component's subsampling leave it with no columns in
+# some tiles, which crashes OpenJPH before 0.27, so the reader rejects such
+# files there; later versions decode them. The corrupt one is the fuzzer
+# find that used to hang. Both outcomes are checked against their own ref
+# (out-emptytilecols*.txt).
+redirect_push("out-emptytilecols.txt")
+redirect += "2>&1 "
+command += oiiotool("--info -v --hash src/valid-empty-tile-cols.j2c",
+                    failureok = True)
+if get_openjph_ver() >= 2700:
+    # Decoding the corrupt file must succeed (no failureok, so a crash fails
+    # the test). It prints only an OpenJPH "info" line about the truncated
+    # data, whose source line number varies by version, so capture the log
+    # and filter that line out separately, expecting nothing left.
+    command += oiiotool("src/subsampled-hang.j2c -o hang.tif > hang.txt 2>&1",
+                        silent = True)
+    command += run_app("grep -v \"ojph info\" hang.txt", failureok = True)
+else:
+    command += oiiotool("src/subsampled-hang.j2c -o hang.tif", failureok = True)
+redirect_pop()
+
 # Reading a valid HTJ2K file and then a malformed one in the same process
 # used to crash: OpenJPH's error handler is global, and the old code left it
 # pointing at a stack object from the first open(). The second open's error

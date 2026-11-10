@@ -19,6 +19,69 @@ src/valid-16x16.j2c  :   16 x   16, 3 channel, uint8 jpeg2000
     channel list: R, G, B
     oiio:BitsPerSample: 8
     oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420.j2c
+src/valid-420.j2c    :   16 x   16, 3 channel, uint8 jpeg2000
+    SHA-1: B29A3A73CF5CE0A8BA7DB6B9C4018A309CF2A732
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420-odd.j2c
+src/valid-420-odd.j2c :   15 x   13, 3 channel, uint8 jpeg2000
+    SHA-1: 888F44F0B4E21966206CD2647224D6613EF7404B
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420-mct.j2c
+src/valid-420-mct.j2c :   11 x    7, 3 channel, uint8 jpeg2000
+    SHA-1: 953252994DAEE47E2C3CDDAB7363338D53B41A9B
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-420-mct-tiled.j2c
+src/valid-420-mct-tiled.j2c :   21 x   15, 3 channel, uint8 jpeg2000
+    SHA-1: 4D7F7DD8B999C7B831303D3977198D3BD4E811A1
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-subsampled-offset.j2c
+src/valid-subsampled-offset.j2c :   11 x    7, 3 channel, uint8 jpeg2000
+    SHA-1: C1C31A927E7A697BFF05B338F0658CFE6EF012F2
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-tiled-offset-10bit.j2c
+src/valid-tiled-offset-10bit.j2c :   21 x   15, 3 channel, uint10 jpeg2000
+    SHA-1: 3AA170C0716D5CA28DF08D17BCBF01E4DD2A395B
+    channel list: R, G, B
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-rgba-subsampled.j2c
+src/valid-rgba-subsampled.j2c :   17 x    9, 4 channel, uint8 jpeg2000
+    SHA-1: 1C4FAC6FE71C5C7E34481D3D8A10E806D33AC5F9
+    channel list: R, G, B, A
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-5comp-mct.j2c
+src/valid-5comp-mct.j2c :   11 x    7, 4 channel, uint8 jpeg2000
+    SHA-1: 3E491B97425612EA4668B3D3D4809AE9F5DAD70B
+    channel list: R, G, B, A
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+oiiotool ERROR: read : "src/empty-component.j2c": HTJ2K component 0 is empty
+Full command line was:
+> oiiotool --info -v src/empty-component.j2c
+Reading src/valid-tiles-under-subsampling.j2c
+src/valid-tiles-under-subsampling.j2c :    9 x    9, 3 channel, uint8 jpeg2000
+    SHA-1: 9E6E048A77D16E724859F9DA8F7A4DAA9DF58EF9
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading src/valid-empty-tile-rows.j2c
+src/valid-empty-tile-rows.j2c :    4 x   10, 3 channel, uint8 jpeg2000
+    SHA-1: D205DC22A791BDE5315E6BDA262C18F835048859
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"
 Reading src/valid-16x16.j2c
 src/valid-16x16.j2c  :   16 x   16, 3 channel, uint8 jpeg2000
 Full command line was:

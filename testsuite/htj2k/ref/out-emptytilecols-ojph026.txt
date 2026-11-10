@@ -1,0 +1,6 @@
+oiiotool ERROR: read : "src/valid-empty-tile-cols.j2c": HTJ2K component 1 has no samples in some tile, which OpenJPH before 0.27 cannot decode
+Full command line was:
+> oiiotool --info -v --hash src/valid-empty-tile-cols.j2c
+oiiotool ERROR: read : "src/subsampled-hang.j2c": HTJ2K component 2 has no samples in some tile, which OpenJPH before 0.27 cannot decode
+Full command line was:
+> oiiotool src/subsampled-hang.j2c -o hang.tif
