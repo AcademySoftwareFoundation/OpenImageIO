@@ -17,10 +17,12 @@ needs no J2K encoder. valid-16x16.j2c itself was produced with:
     oiiotool --pattern checker 16x16 3 -d uint8 -o valid-16x16.j2c
 
 A raw J2K codestream starts with SOC (0xFF4F) followed by SIZ (0xFF51). Within
-the SIZ segment, counting from the marker itself, Xsiz/Ysiz are at +6/+10 and
-the tile size XTsiz/YTsiz at +22/+26. Those four fields are all the reader
-consults for the image dimensions, so patching them is enough to make a tiny
-file claim an enormous image.
+the SIZ segment, counting from the marker itself, Xsiz/Ysiz are at +6/+10,
+the image offset XOsiz/YOsiz at +14/+18, the tile size XTsiz/YTsiz at +22/+26,
+and the per-component XRsiz/YRsiz subsampling factors at +41/+42 plus three
+bytes per component. The size fields are all the reader consults for the
+image dimensions, so patching them is enough to make a tiny file claim an
+enormous image.
 
 The COD segment (0xFF52) follows, with its length at +2, Scod at +4, the
 number of decomposition levels at +9, and the codeblock width and height
@@ -37,7 +39,9 @@ import struct
 import sys
 
 SIZ_XSIZ = 6
+SIZ_XOSIZ = 14
 SIZ_XTSIZ = 22
+SIZ_COMPS = 40
 
 
 def patch_size(base, width, height, tile_width=None, tile_height=None):
@@ -48,6 +52,25 @@ def patch_size(base, width, height, tile_width=None, tile_height=None):
     struct.pack_into('>II', d, i + SIZ_XSIZ, width, height)
     struct.pack_into('>II', d, i + SIZ_XTSIZ, tile_width or width,
                      tile_height or height)
+    return bytes(d)
+
+
+def patch_offset(base, xoff, yoff):
+    d = bytearray(base)
+    i = d.find(b'\xff\x51')
+    if i < 0:
+        raise RuntimeError('no SIZ marker found')
+    struct.pack_into('>II', d, i + SIZ_XOSIZ, xoff, yoff)
+    return bytes(d)
+
+
+def patch_subsampling(base, comp, xrsiz, yrsiz):
+    d = bytearray(base)
+    i = d.find(b'\xff\x51')
+    if i < 0:
+        raise RuntimeError('no SIZ marker found')
+    d[i + SIZ_COMPS + 3 * comp + 1] = xrsiz
+    d[i + SIZ_COMPS + 3 * comp + 2] = yrsiz
     return bytes(d)
 
 
@@ -143,6 +166,14 @@ def main(outdir):
     write('bomb-dfs.j2c',
           add_dfs(patch_cod(patch_size(base, 1024, 2048), 16, 6, 6,
                             [0x11] * 17), 16, 0x11))
+
+    # Component 0 has no rows: YOsiz=1 and Ysiz=2 both round up to component
+    # row 1 when YRsiz=2, though the image itself is 16x1. The reader rejects
+    # this from the header; before that it pulled past the empty component
+    # and OpenJPH spun forever.
+    write('empty-component.j2c',
+          patch_subsampling(patch_offset(patch_size(base, 16, 2), 0, 1),
+                            0, 1, 2))
 
 
 if __name__ == '__main__':
