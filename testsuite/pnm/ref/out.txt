@@ -139,3 +139,5 @@ Computing diff of "ramp-ascii.pgm" vs "ramp.tif"
 PASS
 Comparing "ramp.pfm" and "ramp.exr"
 PASS
+Comparing "ramp-half.pfm" and "ramp.exr"
+PASS
