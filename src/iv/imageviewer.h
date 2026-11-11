@@ -344,6 +344,7 @@ private slots:
     void fitWindowToImage(bool zoomok = true, bool minsize = false);
     void fullScreenToggle();  ///< Toggle full screen mode
     void about();             ///< Show "about iv" dialog
+    void showImageFormats();  ///< Show supported image formats dialog
     void prevImage();         ///< View previous image in sequence
     void nextImage();         ///< View next image in sequence
     void toggleImage();       ///< View most recently viewed image
@@ -458,6 +459,7 @@ private:
     QAction* normalSizeAct;
     QAction *fitWindowToImageAct, *fitImageToWindowAct;
     QAction* fullScreenAct;
+    QAction* formatsAct;
     QAction* aboutAct;
     QAction *nextImageAct, *prevImageAct, *toggleImageAct;
     QAction* comparisonAct         = nullptr;
