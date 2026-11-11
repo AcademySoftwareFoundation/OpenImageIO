@@ -133,3 +133,9 @@ Full command line was:
 > oiiotool --info -v -a --no-metamatch DateTime|Software|OriginatingProgram|ImageHistory --hash src/bomb-65000.pgm
 Computing diff of "tall-ramp.pfm" vs "new"
 PASS
+Computing diff of "ramp.pgm" vs "ramp.tif"
+PASS
+Computing diff of "ramp-ascii.pgm" vs "ramp.tif"
+PASS
+Comparing "ramp.pfm" and "ramp.exr"
+PASS
