@@ -453,7 +453,10 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
         }
     }
 
-    read_icc_profile(&m_cinfo, m_spec);  /// try to read icc profile
+    if (!read_icc_profile(&m_cinfo, m_spec)) {
+        close();
+        return false;
+    }
 
     // Try to interpret as Ultra HDR image.
     // The libultrahdr API requires to load the whole file content in memory
@@ -473,8 +476,20 @@ JpgInput::open(const std::string& name, ImageSpec& newspec)
 
 
 bool
+JpgInput::bad_icc_profile(string_view msg)
+{
+    if (!OIIO::get_int_attribute("imageinput:strict"))
+        return true;
+    errorfmt("Possible corrupt file, could not decode ICC profile: {}", msg);
+    return false;
+}
+
+
+
+bool
 JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 {
+    bool found      = false;
     int num_markers = 0;
     std::vector<uint8_t> icc_buf;
     unsigned int total_length = 0;
@@ -488,32 +503,32 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
 
     for (jpeg_saved_marker_ptr m = cinfo->marker_list; m; m = m->next) {
         if (is_icc_profile_marker(m)) {
-            if (num_markers == 0)
+            if (!found)
                 num_markers = GETJOCTET(m->data[13]);
             else if (num_markers != GETJOCTET(m->data[13]))
-                return false;
+                return bad_icc_profile("inconsistent marker count");
+            found      = true;
             int seq_no = GETJOCTET(m->data[12]);
             if (seq_no <= 0 || seq_no > num_markers)
-                return false;
-            if (marker_present[seq_no])  // duplicate marker
-                return false;
+                return bad_icc_profile("invalid marker sequence number");
+            if (marker_present[seq_no])
+                return bad_icc_profile("duplicate marker");
             marker_present[seq_no] = 1;  // flag found marker
             data_length[seq_no]    = m->data_length - ICC_HEADER_SIZE;
         }
     }
-    if (num_markers == 0)
-        return false;
+    if (!found)
+        return true;  // no ICC profile
 
-    // checking for missing markers
     for (int seq_no = 1; seq_no <= num_markers; seq_no++) {
         if (marker_present[seq_no] == 0)
-            return false;  // missing sequence number
+            return bad_icc_profile("missing marker");
         data_offset[seq_no] = total_length;
         total_length += data_length[seq_no];
     }
 
     if (total_length == 0)
-        return false;  // found only empty markers
+        return bad_icc_profile("empty profile");
 
     icc_buf.resize(total_length * sizeof(JOCTET));
 
@@ -521,26 +536,23 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
     for (jpeg_saved_marker_ptr m = cinfo->marker_list; m; m = m->next) {
         if (is_icc_profile_marker(m)) {
             int seq_no = GETJOCTET(m->data[12]);
-            if (data_offset[seq_no] + data_length[seq_no] > icc_buf.size()) {
-                errorfmt("Possible corrupt file, invalid ICC profile\n");
-                return false;
-            }
+            if (data_offset[seq_no] + data_length[seq_no] > icc_buf.size())
+                return bad_icc_profile("invalid marker length");
             spancpy(make_span(icc_buf), data_offset[seq_no],
                     make_cspan(m->data + ICC_HEADER_SIZE, data_length[seq_no]),
                     0, data_length[seq_no]);
         }
     }
+
+    // Decode into a scratch spec so a bad profile adds nothing to `spec`.
+    ImageSpec icc_spec;
+    std::string errormsg;
+    if (!decode_icc_profile(icc_buf, icc_spec, errormsg))
+        return bad_icc_profile(errormsg);
     spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, total_length),
                    icc_buf.data());
-
-    std::string errormsg;
-    bool ok = decode_icc_profile(icc_buf, spec, errormsg);
-    if (!ok && OIIO::get_int_attribute("imageinput:strict")) {
-        errorfmt("Possible corrupt file, could not decode ICC profile: {}\n",
-                 errormsg);
-        return false;
-    }
-
+    for (auto& p : icc_spec.extra_attribs)
+        spec.extra_attribs.add_or_replace(std::move(p));
     return true;
 }
 
