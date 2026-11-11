@@ -624,9 +624,8 @@ convert_type(TypeDesc srctype, cspan<std::byte> src,
              TypeDesc dsttype, span<std::byte> dst, int n = 1);
 
 /// A convenience version of `convert_type()` taking typed spans for the
-/// source and destination. It just calls the byte-span version above. It
-/// returns false, without writing to `dst`, if `S` or `D` does not match the
-/// basetype of `srctype` or `dsttype`.
+/// source and destination. The element types `S` and `D` must match the
+/// basetypes of `srctype` and `dsttype`.
 template<typename S, typename D>
 inline bool
 convert_type(TypeDesc srctype, cspan<S> src,
@@ -634,9 +633,6 @@ convert_type(TypeDesc srctype, cspan<S> src,
 {
     OIIO_DASSERT(BaseTypeFromC_v<S> == srctype.basetype
                  && BaseTypeFromC_v<D> == dsttype.basetype);
-    if (BaseTypeFromC_v<S> != srctype.basetype
-        || BaseTypeFromC_v<D> != dsttype.basetype)
-        return false;
     return convert_type(srctype, as_bytes(src), dsttype,
                         as_writable_bytes(dst), n);
 }

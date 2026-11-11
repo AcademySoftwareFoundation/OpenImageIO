@@ -210,12 +210,14 @@ test_convert_type_span()
     }
     // Typed spans with an aggregate type: only the basetype must match
     {
-        float src[3] = { 1.0f, 2.0f, 3.0f };
-        float dst[3] = { 0.0f, 0.0f, 0.0f };
-        OIIO_CHECK_ASSERT(convert_type(TypeVector, cspan<float>(src),
-                                       TypeVector, span<float>(dst)));
-        OIIO_CHECK_EQUAL(dst[0], 1.0f);
-        OIIO_CHECK_EQUAL(dst[2], 3.0f);
+        uint8_t src[3] = { 0, 128, 255 };
+        float dst[3]   = { -1.0f, -1.0f, -1.0f };
+        TypeDesc srctype(TypeDesc::UINT8, TypeDesc::VEC3, TypeDesc::VECTOR);
+        OIIO_CHECK_ASSERT(convert_type(srctype, cspan<uint8_t>(src), TypeVector,
+                                       span<float>(dst)));
+        OIIO_CHECK_EQUAL(dst[0], 0.0f);
+        OIIO_CHECK_EQUAL(dst[1], 128.0f);
+        OIIO_CHECK_EQUAL(dst[2], 255.0f);
     }
 }
 
