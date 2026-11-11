@@ -39,5 +39,8 @@ command += info_command ("src/bad-naxis.fits", verbose=False, failureok=True)
 # A 2880-byte header declaring a ~1.5 GB image (40000x40000): the
 # compression-ratio guard must reject it before the caller allocates.
 command += info_command ("src/bomb-40000.fits", verbose=False, failureok=True)
+# STOKES channel axis with more planes than limits:channels: channel naming
+# must not write past the (truncated) channel name list.
+command += info_command ("src/stokes-5000ch.fits", verbose=False, failureok=True)
 
 outputs = [ "out.txt" ]

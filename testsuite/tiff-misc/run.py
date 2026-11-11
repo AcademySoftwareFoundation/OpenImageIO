@@ -75,5 +75,10 @@ command += info_command ("inks.tif", safematch=True, hash=False)
 # NumberOfInks (5) exceeds SamplesPerPixel and the InkNames count (3);
 # older libtiff passes it through, which overread the InkNames string.
 command += info_command ("src/inknames-mismatch.tif", safematch=True, hash=False)
+# Shadow map with more channels than limits:channels: renaming the channels
+# must not write past the (truncated) channel name list. Also at the end, to
+# append to every ref variant.
+command += info_command ("src/shadow-many-channels.tif", verbose=False,
+                         failureok=True)
 
 outputs = [ "check1.tif", "out.txt" ]
