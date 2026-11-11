@@ -155,7 +155,9 @@ Glue-check only; log library internals as deferrals.
   Open: double materialization of packet; `decode_xmp` never reports failure;
   `string_is_rational(xmlname)` likely meant the value.
 - icc (`icc.cpp`): OOB pointer formation, misaligned loads, uint32 pointer
-  math; all through memcpy and 64-bit `range_in_bounds`.
+  math; all through memcpy and 64-bit `range_in_bounds`. Later: quadratic
+  time/memory from tags sharing data (D6): mluc nrecords bounded by tag
+  size, 1024-tag cap, decoded-bytes budget of 2x profile size.
 
 ## Cross-cutting sweeps that paid off
 

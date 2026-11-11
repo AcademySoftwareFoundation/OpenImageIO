@@ -267,6 +267,18 @@ fail later) and procedural readers that claim `supports("procedural")`.
 - Fix: `find()`; a missing required id is a hard error.
 - Seen: psd layer channel ids (#5594).
 
+### D6. Shared or overlapping sub-blocks re-decoded per reference
+A table of entries each holding (offset, size) lets many entries point at the
+same or overlapping data. Each is cheap alone, but T entries times an
+N-element block is O(size^2) time; distinct overlapping string suffixes are
+O(size^2) memory (strings become ustrings and are never freed). Distinct
+attribute names also make `ImageSpec::attribute` (linear find) quadratic.
+- Find: per-entry loops that seek to `entry.offset` and loop on a count read
+  from there; per-entry `spec.attribute` with file-derived names.
+- Fix: bound inner counts by the entry's own size; cap the entry count; charge
+  decoded bytes against a budget proportional to the blob size.
+- Seen: icc mluc/text/desc tags (GHSA-m4j3-vvxr-9jp7).
+
 
 ## E. Alignment and pointer formation
 

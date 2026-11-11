@@ -140,7 +140,14 @@ private:
     // decoding the iptc.
     bool jpeg_decode_iptc(string_view buf);
 
+    // Read and decode the ICC profile, if any. A bad profile is skipped
+    // (nothing added to spec), or fails the read in imageinput:strict mode.
+    // Return false only for a strict-mode failure.
     bool read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec);
+
+    // Handle a bad ICC profile: return true to skip it, or (in
+    // imageinput:strict mode) set an error and return false.
+    bool bad_icc_profile(string_view msg);
 
     bool read_uhdr(Filesystem::IOProxy* ioproxy);
 
