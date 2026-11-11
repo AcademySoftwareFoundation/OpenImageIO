@@ -82,6 +82,7 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   Deep paths: pixel-count math must be 64-bit in BOTH readers (classic
   deep scanline + partial-tile tmpbuf, core `realloc_deepdata`); dims go to
   2^30, so `int` products wrap within the imagesize limit.
+  Flat core-reader entry points must reject deep parts (C-7).
 - jpeg2000: two codepaths (OpenJPEG, OpenJPH/HTJ2K) - guard both before
   decode; HTJ2K error handling continued after failure; zero components read
   past an array; OpenJPH global error handler needs static lifetime;

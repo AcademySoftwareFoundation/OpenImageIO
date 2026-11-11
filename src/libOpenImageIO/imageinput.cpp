@@ -287,11 +287,24 @@ check_span_size(ImageInput* in, string_view caller, const ImageSpec& spec,
 
 
 
+static bool
+reject_deep(ImageInput& in, string_view caller, const ImageSpec& spec)
+{
+    if (!spec.deep)
+        return false;
+    in.errorfmt("{}: deep image, use read_native_deep_image()", caller);
+    return true;
+}
+
+
+
 bool
 ImageInput::read_scanline(int y, int z, TypeDesc format, void* data,
                           stride_t xstride)
 {
     lock_guard lock(*this);
+    if (reject_deep(*this, "read_scanline", m_spec))
+        return false;
 
     // native_pixel_bytes is the size of a pixel in the FILE, including
     // the per-channel format.
@@ -420,6 +433,8 @@ ImageInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
                  m_spec.height, m_spec.nchannels);
         return false;
     }
+    if (reject_deep(*this, "read_scanlines", spec))
+        return false;
 
     chend      = clamp(chend, chbegin + 1, spec.nchannels);
     int nchans = chend - chbegin;
@@ -648,6 +663,8 @@ ImageInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
                       stride_t xstride, stride_t ystride, stride_t zstride)
 {
     lock_guard lock(*this);
+    if (reject_deep(*this, "read_tile", m_spec))
+        return false;
     if (!m_spec.tile_width || ((x - m_spec.x) % m_spec.tile_width) != 0
         || ((y - m_spec.y) % m_spec.tile_height) != 0
         || ((z - m_spec.z) % m_spec.tile_depth) != 0)
@@ -762,6 +779,8 @@ ImageInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
 {
     ImageSpec spec = spec_dimensions(subimage, miplevel);  // thread-safe
     if (spec.undefined())
+        return false;
+    if (reject_deep(*this, "read_tiles", spec))
         return false;
 
     chend = clamp(chend, chbegin + 1, spec.nchannels);
@@ -1179,6 +1198,8 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
                  m_spec.height, m_spec.nchannels);
         return false;
     }
+    if (reject_deep(*this, "read_image", spec))
+        return false;
 
     if (chend < 0)
         chend = spec.nchannels;
@@ -1274,6 +1295,8 @@ ImageInput::read_image(int subimage, int miplevel, int chbegin, int chend,
                  m_spec.height, m_spec.nchannels);
         return false;
     }
+    if (reject_deep(*this, "read_image", spec))
+        return false;
 
     if (chend < 0 || chend > spec.nchannels)
         chend = spec.nchannels;

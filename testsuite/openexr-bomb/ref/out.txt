@@ -27,3 +27,7 @@ oiiotool ERROR: read : EXR Error (src/bigattr.exr): EXR_ERR_ATTR_SIZE_MISMATCH A
 EXR Error (src/bigattr.exr): EXR_ERR_MISSING_REQ_ATTR 'channels' attribute not found
 Full command line was:
 > oiiotool -oiioattrib openexr:core 1 --info -v src/bigattr.exr
+Comparing "src/deep-dense-scan.exr" and "deep-out.exr"
+PASS
+Comparing "src/deep-dense-tiled.exr" and "deep-out.exr"
+PASS
