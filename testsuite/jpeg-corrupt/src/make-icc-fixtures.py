@@ -28,6 +28,19 @@ src/libOpenImageIO/icc.cpp) rather than at libjpeg:
         The ICC header declares a profile_size far larger than the bytes that
         actually follow. Must be rejected cleanly (size mismatch) with a
         bounded read, never trusted as a length.
+
+  corrupt-icc-mluc-nrecords.jpg
+        An 'mluc' tag whose record count is far larger than its tag size can
+        hold. Many tags sharing one such block made decoding quadratic in the
+        profile size. Must be rejected.
+
+  corrupt-icc-overlap-text.jpg
+        Many 'text' tags pointing at overlapping suffixes of one block, so
+        each decodes a distinct long string. Decoded bytes must stay bounded
+        by the profile size.
+
+  corrupt-icc-many-tags.jpg
+        More tags than the decoder accepts. Must be rejected.
 """
 
 import struct
@@ -139,11 +152,48 @@ def make_oversized():
     return bytes(prof)
 
 
+def make_mluc_nrecords():
+    """Several tags sharing one 'mluc' block whose nrecords overflows it."""
+    ntags = 8
+    block_off = 128 + 4 + 12 * ntags
+    block = b'mluc' + b'\0' * 4 + struct.pack('>II', 1000000, 12)
+    block += struct.pack('>HHII', 0, 0, 0, 0) * 2
+    tags = [(b'mlc' + bytes([65 + i]), block_off, len(block))
+            for i in range(ntags)]
+    total = block_off + len(block)
+    return bytes(icc_header(total) + icc_tag_table(tags) + block)
+
+
+def make_overlap_text():
+    """'text' tags at successive offsets into one repeated-'text' block."""
+    ntags = 12
+    block_off = 128 + 4 + 12 * ntags
+    block = b'text' * 24
+    tags = [(b'tx' + bytes([65 + i // 26, 65 + i % 26]), block_off + 4 * i,
+             len(block) - 4 * i) for i in range(ntags)]
+    total = block_off + len(block)
+    return bytes(icc_header(total) + icc_tag_table(tags) + block)
+
+
+def make_many_tags():
+    """More tags than the decoder's cap, all sharing one tiny 'text' block."""
+    ntags = 1025
+    block_off = 128 + 4 + 12 * ntags
+    block = b'text' + b'\0' * 4
+    tags = [(struct.pack('>I', 0x41410000 + i), block_off, len(block))
+            for i in range(ntags)]
+    total = block_off + len(block)
+    return bytes(icc_header(total) + icc_tag_table(tags) + block)
+
+
 def main():
     outdir = sys.argv[1] if len(sys.argv) > 1 else '.'
     fixtures = {
         'corrupt-icc-unaligned-mluc.jpg': make_unaligned_mluc(),
         'corrupt-icc-oversized.jpg': make_oversized(),
+        'corrupt-icc-mluc-nrecords.jpg': make_mluc_nrecords(),
+        'corrupt-icc-overlap-text.jpg': make_overlap_text(),
+        'corrupt-icc-many-tags.jpg': make_many_tags(),
     }
     for name, profile in fixtures.items():
         path = os.path.join(outdir, name)
