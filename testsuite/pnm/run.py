@@ -42,3 +42,13 @@ command += info_command ("src/bomb-65000.pgm", failureok=True, safematch=True)
 # it against the same pattern. This catches per-chunk row flipping (#5471).
 command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 3840x2160 3 -d float -o tall-ramp.pfm")
 command += oiiotool ("tall-ramp.pfm --pattern fill:top=0,0,0:bottom=1,1,1 3840x2160 3 -d float --diff")
+
+# Writing an integer PNM from a float buffer (as oiiotool does) must not flip
+# the rows; only PFM is stored bottom-first.
+command += oiiotool ("--pattern fill:top=0:bottom=1 4x8 1 -d uint8 -o ramp.tif -o ramp.pgm --attrib pnm:binary 0 -o ramp-ascii.pgm")
+command += oiiotool ("ramp.pgm ramp.tif --diff")
+command += oiiotool ("ramp-ascii.pgm ramp.tif --diff")
+
+# PFM must also read back top-down when opened without a config (idiff).
+command += oiiotool ("--pattern fill:top=0:bottom=1 4x8 1 -d float -o ramp.exr -o ramp.pfm")
+command += diff_command ("ramp.pfm", "ramp.exr")

@@ -2080,8 +2080,9 @@ Both the reader and writer accept configuration hints "pnm:pfmflip"
 (default: 1), which if set to 0 will disable this flipping and ensure
 that scanline 0 is written as the first in the file (therefore
 representing what PFM assumes is the visual "bottom" of the image).
-This hint only affects PFM files and has no effect on the pbm, pgm,
-or ppm varieties.
+This is useful for PFM files written by applications that store them
+top-to-bottom despite the convention. This hint only affects PFM files
+and has no effect on the pbm, pgm, or ppm varieties.
 
 **Attributes**
 
