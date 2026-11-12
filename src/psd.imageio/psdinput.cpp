@@ -10,7 +10,6 @@
 
 
 #include <csetjmp>
-#include <functional>
 #include <map>
 #include <memory>
 #include <vector>
@@ -83,7 +82,7 @@ private:
     // into ImageSpec
     struct ResourceLoader {
         uint16_t resource_id;
-        std::function<bool(PSDInput*, uint32_t)> load;
+        bool (PSDInput::*load)(uint32_t length);
     };
 
     // Map image resource ID to image resource block
@@ -509,9 +508,7 @@ private:
 // 1) Add ADD_LOADER(<ResourceID>) below
 // 2) Add a method in PSDInput:
 //    bool load_resource_<ResourceID> (uint32_t length);
-#define ADD_LOADER(id)                                                    \
-    { id, std::bind(&PSDInput::load_resource_##id, std::placeholders::_1, \
-                    std::placeholders::_2) }
+#define ADD_LOADER(id) { id, &PSDInput::load_resource_##id }
 const PSDInput::ResourceLoader PSDInput::resource_loaders[]
     = { ADD_LOADER(1005), ADD_LOADER(1006), ADD_LOADER(1010), ADD_LOADER(1033),
         ADD_LOADER(1036), ADD_LOADER(1039), ADD_LOADER(1047), ADD_LOADER(1058),
@@ -1194,7 +1191,7 @@ PSDInput::handle_resources(ImageResourceMap& resources)
         // If a resource with that ID exists in the file, call the loader
         if (it != end) {
             if (!ioseek(it->second.pos)
-                || !loader.load(this, it->second.length))
+                || !(this->*loader.load)(it->second.length))
                 return false;
         }
     }
