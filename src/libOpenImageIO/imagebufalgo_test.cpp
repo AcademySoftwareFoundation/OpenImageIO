@@ -388,6 +388,90 @@ test_paste()
 
 
 static void
+test_paste_deep()
+{
+    std::cout << "test paste deep\n";
+    // Deep source: pixel (x,y) has x+1 samples, Z value of sample s is
+    // 100*y + 10*x + s.
+    ImageSpec spec(4, 4, 2, TypeDesc::FLOAT);
+    spec.channelnames = { "A", "Z" };
+    spec.deep         = true;
+    ImageBuf src(spec);
+    for (int y = 0; y < 4; ++y)
+        for (int x = 0; x < 4; ++x) {
+            src.set_deep_samples(x, y, 0, x + 1);
+            for (int s = 0; s <= x; ++s)
+                src.set_deep_value(x, y, 0, 1, s, 100.0f * y + 10.0f * x + s);
+        }
+
+    // Paste into an existing deep image, partly off the right edge. The
+    // overhang must be clipped, not wrapped onto the next scanline.
+    {
+        ImageBuf dst(spec);
+        OIIO_CHECK_ASSERT(ImageBufAlgo::paste(dst, 2, 0, 0, 0, src));
+        for (int y = 0; y < 4; ++y) {
+            OIIO_CHECK_EQUAL(dst.deep_samples(0, y, 0), 0);
+            OIIO_CHECK_EQUAL(dst.deep_samples(1, y, 0), 0);
+            OIIO_CHECK_EQUAL(dst.deep_samples(2, y, 0), 1);
+            OIIO_CHECK_EQUAL(dst.deep_samples(3, y, 0), 2);
+            OIIO_CHECK_EQUAL(dst.deep_value(3, y, 0, 1, 1), 100.0f * y + 11.0f);
+        }
+    }
+
+    // Paste entirely outside dst: nothing changes.
+    {
+        ImageBuf dst(spec);
+        OIIO_CHECK_ASSERT(ImageBufAlgo::paste(dst, 10, 0, 0, 0, src));
+        for (int y = 0; y < 4; ++y)
+            for (int x = 0; x < 4; ++x)
+                OIIO_CHECK_EQUAL(dst.deep_samples(x, y, 0), 0);
+    }
+
+    // Paste into an uninitialized ImageBuf: it takes the destination
+    // region, as in the flat case.
+    {
+        ImageBuf dst;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::paste(dst, 3, 5, 0, 0, src));
+        OIIO_CHECK_ASSERT(dst.deep());
+        OIIO_CHECK_EQUAL(dst.roi(), ROI(3, 7, 5, 9, 0, 1, 0, 2));
+        OIIO_CHECK_EQUAL(dst.deep_samples(6, 8, 0), 4);
+        OIIO_CHECK_EQUAL(dst.deep_value(6, 8, 0, 1, 3), 333.0f);
+    }
+
+    // Source ROI larger than src: dst gets the whole region, but pixels
+    // outside src's data window must get no samples, not wrapped ones.
+    {
+        ImageBuf dst;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::paste(dst, 0, 0, 0, 0, src,
+                                              ROI(0, 5, 0, 4, 0, 1, 0, 2)));
+        OIIO_CHECK_EQUAL(dst.roi(), ROI(0, 5, 0, 4, 0, 1, 0, 2));
+        for (int y = 0; y < 4; ++y) {
+            OIIO_CHECK_EQUAL(dst.deep_samples(3, y, 0), 4);
+            OIIO_CHECK_EQUAL(dst.deep_samples(4, y, 0), 0);
+        }
+    }
+
+    // Empty source ROI into an uninitialized dst: an error, not a crash.
+    {
+        ImageBuf dst;
+        OIIO_CHECK_FALSE(ImageBufAlgo::paste(dst, 0, 0, 0, 0, src,
+                                             ROI(0, 0, 0, 4, 0, 1, 0, 2)));
+        OIIO_CHECK_ASSERT(dst.has_error());
+        dst.geterror();
+    }
+
+    // Deep pixels are copied whole, so a channel offset is an error.
+    {
+        ImageBuf dst;
+        OIIO_CHECK_FALSE(ImageBufAlgo::paste(dst, 0, 0, 0, 1, src));
+        OIIO_CHECK_ASSERT(dst.has_error());
+        dst.geterror();
+    }
+}
+
+
+
+static void
 test_make_kernel()
 {
     std::cout << "test make_kernel\n";
@@ -2238,6 +2322,7 @@ main(int argc, char** argv)
     test_copy();
     test_crop();
     test_paste();
+    test_paste_deep();
     test_make_kernel();
     test_channel_append();
     HWY_TEST test_add();
