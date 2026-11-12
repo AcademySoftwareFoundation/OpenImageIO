@@ -310,13 +310,158 @@ public:
 
 
 
+// OpenVDB sizes strings and loops by 32-bit counts read from the file before
+// checking that the stream holds that much, so walk the parts io::File::open()
+// reads (header, file metadata, grid descriptors) the way it parses them and
+// bound every count by the bytes actually remaining. Needs the OpenVDB
+// metadata registry initialized.
+class VDBHeaderScanner {
+public:
+    VDBHeaderScanner(FILE* f, int64_t size) : m_file(f), m_size(size) {}
+
+    bool scan()
+    {
+        uint32_t version = 0, v[2];
+        if (!skip(8) || !read(version) || !read(v[0]) || !read(v[1]))
+            return false;
+        if (version < 211) {
+            // Legacy major, minor, patch. OpenVDB expects the library version
+            // words if the combined number is >= 211, so skip them too.
+            uint32_t combined = 100 * version + 10 * v[0] + v[1];
+            if (combined >= 211 && !skip(8))
+                return false;
+            version = combined;
+        }
+        uint8_t has_grid_offsets = 1;
+        if (version >= 212 && !read(has_grid_offsets))
+            return false;
+        if (version >= 220 && version < 222 && !skip(1))
+            return false;
+        if (version < 218) {
+            if (!skip(16))  // binary UUID
+                return false;
+        } else if (!skip_uuid()) {
+            return false;
+        }
+
+        // File-level metadata
+        uint32_t count = 0;
+        if (!read(count) || count > remaining() / 12)
+            return false;
+        for (uint32_t i = 0; i < count; ++i) {
+            std::string type;
+            uint32_t nbytes = 0;
+            if (!skip_string() || !read_string(type) || !read(nbytes))
+                return false;
+            // Registered fixed-size types read their own size, whatever
+            // nbytes says, and delayed-load metadata parses its own counts.
+            // A default instance of zero size (string, or any app-registered
+            // variable-length type) is assumed to read nbytes.
+            if (type == "__delayedload") {
+                if (nbytes)
+                    return false;
+            } else if (openvdb::Metadata::isRegisteredType(type)) {
+                auto size = openvdb::Metadata::createMetadata(type)->size();
+                if (size && nbytes != size)
+                    return false;
+            }
+            if (!skip(nbytes))
+                return false;
+        }
+
+        // Without grid offsets, open() streams whole grids; nothing more to
+        // bound here.
+        if (!has_grid_offsets)
+            return true;
+        int32_t ngrids = 0;
+        if (!read(ngrids) || ngrids < 0 || ngrids > remaining() / 32)
+            return false;
+        for (int32_t i = 0; i < ngrids; ++i) {
+            int64_t pos[3];  // grid, block, end
+            if (!skip_string() || !skip_string()
+                || (version >= 216 && !skip_string())  // instance parent
+                || !read(pos[0]) || !read(pos[1]) || !read(pos[2]))
+                return false;
+            if (pos[2] < m_pos || pos[2] > m_size || !seek(pos[2]))
+                return false;
+        }
+        return true;
+    }
+
+private:
+    FILE* m_file;
+    int64_t m_size;
+    int64_t m_pos = 0;
+
+    int64_t remaining() const { return m_size - m_pos; }
+
+    template<typename T> bool read(T& val)
+    {
+        if (fread(&val, sizeof(T), 1, m_file) != 1)
+            return false;
+        m_pos += sizeof(T);
+        return true;
+    }
+
+    bool seek(int64_t pos)
+    {
+        if (Filesystem::fseek(m_file, pos, SEEK_SET) != 0)
+            return false;
+        m_pos = pos;
+        return true;
+    }
+
+    bool skip(int64_t n) { return n <= remaining() && seek(m_pos + n); }
+
+    bool skip_string()
+    {
+        uint32_t len = 0;
+        return read(len) && skip(len);
+    }
+
+    bool read_string(std::string& str)
+    {
+        uint32_t len = 0;
+        if (!read(len) || len > remaining())
+            return false;
+        str.resize(len);
+        if (len && fread(&str[0], len, 1, m_file) != 1)
+            return false;
+        m_pos += len;
+        return true;
+    }
+
+    // Older OpenVDB parses the text UUID with a formatted stream read that
+    // skips whitespace, so insist on the exact 36-character form.
+    bool skip_uuid()
+    {
+        char uuid[36];
+        if (fread(uuid, sizeof(uuid), 1, m_file) != 1)
+            return false;
+        m_pos += sizeof(uuid);
+#if OPENVDB_LIBRARY_MAJOR_VERSION_NUMBER < 11
+        for (int i = 0; i < 36; ++i) {
+            bool hyphen = (i == 8 || i == 13 || i == 18 || i == 23);
+            if (hyphen ? uuid[i] != '-' : !isxdigit((unsigned char)uuid[i]))
+                return false;
+        }
+#endif
+        return true;
+    }
+};
+
+
+
 VDBFile
-openVDB(const std::string& filename, const ImageInput* errReport)
+open_vdb_file(const std::string& filename, const ImageInput* errReport)
 {
     if (!Filesystem::is_regular(filename))
         return nullptr;
 
-    FILE* f = Filesystem::fopen(filename, "rb");
+    std::unique_ptr<FILE, int (*)(FILE*)> fguard(Filesystem::fopen(filename,
+                                                                   "rb"),
+                                                 fclose);
+    FILE* f = fguard.get();
     if (!f)
         return nullptr;
 
@@ -327,7 +472,6 @@ openVDB(const std::string& filename, const ImageInput* errReport)
 
     if (fread(&magic, sizeof(magic), 1, f) != 1)
         magic = 0;
-    fclose(f);
     if (magic != OPENVDB_MAGIC)
         return nullptr;
 
@@ -337,6 +481,16 @@ openVDB(const std::string& filename, const ImageInput* errReport)
             OpenVDBLib() { openvdb::initialize(); }
             ~OpenVDBLib() { openvdb::uninitialize(); }
         } sVDBLib;
+
+        Filesystem::fseek(f, 0, SEEK_SET);
+        VDBHeaderScanner scanner(f, int64_t(Filesystem::file_size(filename)));
+        bool header_ok = scanner.scan();
+        fguard.reset();
+        if (!header_ok) {
+            errReport->errorfmt(
+                "Could not open '{}': corrupt or truncated header", filename);
+            return nullptr;
+        }
 
         VDBFile file(new io::File(filename));
 
@@ -363,7 +517,7 @@ openVDB(const std::string& filename, const ImageInput* errReport)
 bool
 OpenVDBInput::valid_file(const std::string& filename) const
 {
-    return openVDB(filename, this);
+    return open_vdb_file(filename, this);
 }
 
 
@@ -495,7 +649,7 @@ OpenVDBInput::open(const std::string& filename, ImageSpec& newspec)
 {
     close();  // Reset any prior state; open() may be called more than once
 
-    auto file = openVDB(filename, this);
+    auto file = open_vdb_file(filename, this);
     if (!file)
         return false;
 
