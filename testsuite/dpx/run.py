@@ -114,3 +114,17 @@ command += oiiotool("--pattern constant:color=0.25,0.5,0.75 64x64 3 "
 command += info_command("mixed-chans.dpx", safematch=True, hash=True)
 # Channel counts with no supported descriptor must fail cleanly.
 command += oiiotool("--create 8x8 2 -o twochan.dpx", failureok=True)
+
+# Packed 10- and 12-bit writes (1-channel 10-bit and all 12-bit force
+# "Packed"), with a width whose lines don't end on a 32-bit boundary.
+command += oiiotool("--pattern fill:topleft=0,0.3,0.6:topright=1,0.5,0"
+                    ":bottomleft=0.2,1,0.1:bottomright=0.9,0,1 37x13 3 "
+                    "-d uint16 -o packsrc.tif")
+for (ch, bits, extra) in [("R", 10, ""),
+                          ("R,G,B", 10, "--attrib dpx:Packing Packed"),
+                          ("R,G,B", 12, "")]:
+    name = f"packed-{bits}-{ch.replace(',', '')}"
+    command += oiiotool(f"packsrc.tif --ch {ch} -d uint{bits} {extra} -o {name}.dpx")
+    command += oiiotool(f"packsrc.tif --ch {ch} -o {name}.tif")
+    command += diff_command(f"{name}.dpx", f"{name}.tif",
+                            extraargs="-fail 0.001 -warn 0.001")
