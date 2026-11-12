@@ -993,25 +993,35 @@ convert_pixel_values(TypeDesc src_type, const void* src, TypeDesc dst_type,
         return true;
     }
 
-    if (dst_type == TypeFloat) {
-        // Special case -- converting non-float to float
-        OIIO::pvt::convert_to_float(src, (float*)dst, n, src_type);
+    // Dispatch on basetype: convert_to_float does, and returns src without
+    // copying for any FLOAT basetype, not just TypeFloat.
+    bool src_is_float = (src_type.basetype == TypeDesc::FLOAT);
+
+    if (dst_type.basetype == TypeDesc::FLOAT) {
+        // Special case -- converting to float
+        if (src_is_float)
+            memcpy(dst, src, n * sizeof(float));
+        else if (!OIIO::pvt::convert_to_float(src, (float*)dst, n, src_type))
+            return false;
         return true;
     }
 
     // Conversion is to a non-float type
 
     std::unique_ptr<float[]> tmp;  // In case we need a lot of temp space
-    float* buf = (float*)src;
-    if (src_type != TypeFloat) {
-        // If src is also not float, convert through an intermediate buffer
+    const float* buf = (const float*)src;
+    if (!src_is_float) {
+        // If src is not float, convert through an intermediate buffer
+        float* fbuf;
         if (n <= 4096)  // If < 16k, use the stack
-            buf = OIIO_ALLOCA(float, n);
+            fbuf = OIIO_ALLOCA(float, n);
         else {
             tmp.reset(new float[n]);  // Freed when tmp exists its scope
-            buf = tmp.get();
+            fbuf = tmp.get();
         }
-        OIIO::pvt::convert_to_float(src, buf, n, src_type);
+        if (!OIIO::pvt::convert_to_float(src, fbuf, n, src_type))
+            return false;
+        buf = fbuf;
     }
 
     // Convert float to 'dst_type'
