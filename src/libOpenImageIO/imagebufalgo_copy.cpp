@@ -56,7 +56,14 @@ static bool
 deep_paste_(ImageBuf& dst, const ImageBuf& src, ROI dstroi, ROI srcroi,
             int nthreads)
 {
-    OIIO_ASSERT(dst.deep() && src.deep());
+    // Deep pixels are copied whole, so channel offsets and subsets can't
+    // be honored.
+    if (dstroi.chbegin != 0 || srcroi.chbegin != 0
+        || srcroi.chend < src.nchannels()) {
+        dst.errorfmt("paste: channel offsets and subsets are not supported "
+                     "for deep images");
+        return false;
+    }
     int relative_x = dstroi.xbegin - srcroi.xbegin;
     int relative_y = dstroi.ybegin - srcroi.ybegin;
     int relative_z = dstroi.zbegin - srcroi.zbegin;
@@ -69,8 +76,33 @@ deep_paste_(ImageBuf& dst, const ImageBuf& src, ROI dstroi, ROI srcroi,
     // be a slow series of allocations and copies. If this is a problem, we
     // can return to optimize it somehow.
     if (!dst.initialized()) {
-        dst.reset(src.spec());
+        // Like IBAprep for the flat case: dst takes the destination region.
+        ImageSpec spec = src.spec();
+        set_roi(spec, dstroi);
+        set_roi_full(spec, dstroi);
+        spec.tile_width  = 0;
+        spec.tile_height = 0;
+        spec.tile_depth  = 0;
+        dst.reset(spec);
+        if (!dst.initialized())
+            return false;  // reset already set the error
     }
+    OIIO_ASSERT(dst.deep() && src.deep());
+    if (dst.nchannels() != src.nchannels()) {
+        dst.errorfmt("paste: deep images must have the same number of "
+                     "channels ({} vs {})",
+                     dst.nchannels(), src.nchannels());
+        return false;
+    }
+
+    // Clip to the part of srcroi that lands within dst's data window.
+    srcroi = roi_intersection(
+        srcroi, ROI(dst.xbegin() - relative_x, dst.xend() - relative_x,
+                    dst.ybegin() - relative_y, dst.yend() - relative_y,
+                    dst.zbegin() - relative_z, dst.zend() - relative_z,
+                    srcroi.chbegin, srcroi.chend));
+    if (srcroi.width() <= 0 || srcroi.height() <= 0 || srcroi.depth() <= 0)
+        return true;  // nothing overlaps
     // std::cout << "Reset: " << t.lap() << "\n";
     for (int z = srcroi.zbegin; z < srcroi.zend; ++z) {
         for (int y = srcroi.ybegin; y < srcroi.yend; ++y) {
@@ -83,7 +115,11 @@ deep_paste_(ImageBuf& dst, const ImageBuf& src, ROI dstroi, ROI srcroi,
     }
     // std::cout << "set samples: " << t.lap() << "\n";
 
-    // Now we can do the deep pixel copies in parallel.
+    // Now we can do the deep pixel copies in parallel. Pixels outside
+    // src's data window were given zero samples above; nothing to copy.
+    srcroi = roi_intersection(srcroi, src.roi());
+    if (srcroi.width() <= 0 || srcroi.height() <= 0 || srcroi.depth() <= 0)
+        return true;
     using namespace ImageBufAlgo;
     parallel_image(srcroi, nthreads, [&](ROI roi) {
         for (int z = roi.zbegin; z < roi.zend; ++z) {
