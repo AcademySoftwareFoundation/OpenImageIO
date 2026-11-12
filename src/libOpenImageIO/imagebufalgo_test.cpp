@@ -229,6 +229,39 @@ test_zero_fill()
 
 
 
+// IBA clamps a negative ROI chbegin to 0, and rejects chend < chbegin
+void
+test_bad_roi_channels()
+{
+    std::cout << "test bad ROI channel range\n";
+    const float vals[] = { 0.5f, 0.5f, 0.5f, 0.5f };
+    // Initialized dst
+    {
+        ImageBuf A(ImageSpec(4, 4, 4, TypeFloat));
+        OIIO_CHECK_FALSE(ImageBufAlgo::zero(A, ROI(0, 4, 0, 4, 0, 1, 3, 1)));
+        OIIO_CHECK_ASSERT(A.has_error());
+        A.geterror();
+    }
+    // Uninitialized dst, whose spec comes from the ROI
+    {
+        ImageBuf A;
+        OIIO_CHECK_FALSE(ImageBufAlgo::fill(A, cspan<float>(vals),
+                                            ROI(0, 4, 0, 4, 0, 1, 3, 1)));
+        OIIO_CHECK_ASSERT(A.has_error());
+        A.geterror();
+    }
+    {
+        ImageBuf A;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::fill(A, cspan<float>(vals),
+                                             ROI(0, 4, 0, 4, 0, 1, -1, 3)));
+        OIIO_CHECK_EQUAL(A.nchannels(), 3);
+        OIIO_CHECK_EQUAL(A.getchannel(1, 1, 0, 0), 0.5f);
+        OIIO_CHECK_EQUAL(A.getchannel(1, 1, 0, 2), 0.5f);
+    }
+}
+
+
+
 // Test ImageBuf::copy
 void
 test_copy()
@@ -2235,6 +2268,7 @@ main(int argc, char** argv)
 
     test_type_merge();
     test_zero_fill();
+    test_bad_roi_channels();
     test_copy();
     test_crop();
     test_paste();
