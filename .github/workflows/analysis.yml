@@ -14,20 +14,19 @@ on:
     # Run on pushes only to main or if the branch name contains "analysis"
     branches:
       - main
-      - dev-3.0
+      - dev-3.2
       - '*analysis*'
       - '*sonar*'
     paths:
       - '**'
       - '!**.md'
-      - '!**.rst'
-      - '!**/ci.yml'
-      - '!**/docs.yml'
-      - '!**/scorecard.yml'
-      - '!**/wheel.yml'
+      - '!**/*.yml'
+      - '**/analysis.yml'
+      - '**/build-steps.yml'
       - '!**.properties'
       - '!pyproject.toml'
       - '!docs/**'
+      - '!src/doc/**'
   # Run analysis on PRs only if the branch name indicates that the purpose of
   # the PR is related to the Sonar analysis. We don't run on every PR because
   # the analysis run is very expensive and just isn't usually necessary.
@@ -69,6 +68,7 @@ jobs:
       depcmds: ${{ matrix.depcmds }}
       extra_artifacts: ${{ matrix.extra_artifacts }}
       fmt_ver: ${{ matrix.fmt_ver }}
+      fmt_commit: ${{ matrix.fmt_commit }}
       opencolorio_ver: ${{ matrix.opencolorio_ver }}
       openexr_ver: ${{ matrix.openexr_ver }}
       pybind11_ver: ${{ matrix.pybind11_ver }}
@@ -88,18 +88,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - desc: sonar gcc11/C++17 py311 exr3.2 ocio2.3
+          - desc: sonar gcc14/C++20 py3.13 exr3.4 ocio2.5
             nametag: static-analysis-sonar
-            os: ubuntu-latest
-            container: aswf/ci-oiio:2024.2
-            cxx_std: 17
-            python_ver: "3.11"
+            runner: ubuntu-latest
+            container: aswf/ci-oiio:2027.1
+            cxx_std: 20
+            python_ver: "3.13"
             simd: "avx2,f16c"
             opencolorio_ver: v2.3.2
-            fmt_ver: 10.1.1
-            pybind11_ver: v2.12.0
             coverage: 1
-            # skip_tests: 1
             sonar: 1
             setenvs: export SONAR_SERVER_URL="https://sonarcloud.io"
                             BUILD_WRAPPER_OUT_DIR=/__w/OpenImageIO/OpenImageIO/bw_output

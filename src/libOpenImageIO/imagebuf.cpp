@@ -565,6 +565,8 @@ ImageBufImpl::ImageBufImpl(const ImageBufImpl& src)
         m_nmiplevels       = 0;
         m_spec.erase_attribute("oiio:subimages");
         m_nativespec.erase_attribute("oiio:subimages");
+        m_spec.erase_attribute("oiio:miplevels");
+        m_nativespec.erase_attribute("oiio:miplevels");
         m_pixels_read = true;
     }
     if (src.m_configspec)
@@ -870,6 +872,7 @@ ImageBufImpl::clear()
     m_name.clear();
     m_fileformat.clear();
     m_nsubimages       = 0;
+    m_nmiplevels       = 0;
     m_current_subimage = -1;
     m_current_miplevel = -1;
     m_spec             = ImageSpec();
@@ -2109,7 +2112,18 @@ ImageBuf::miplevel() const
 int
 ImageBuf::nmiplevels() const
 {
-    m_impl->validate_spec();
+    if (!m_impl->validate_spec()) {
+        // Spec is invalid. Unnamed means no file to refer to (for example,
+        // default-constructed), so 1 as documented. Named means the file
+        // failed, so 0.
+        m_impl->m_nmiplevels = m_impl->m_name.empty() ? 1 : 0;
+    } else if (m_impl->m_name.empty() || m_impl->m_fileformat.empty()) {
+        // No direct reference to a file, so 1 as documented.
+        m_impl->m_nmiplevels = 1;
+    } else if (m_impl->m_nmiplevels == 0) {
+        m_impl->m_nmiplevels
+            = m_impl->m_spec.get_int_attribute("oiio:miplevels", 1);
+    }
     return m_impl->m_nmiplevels;
 }
 
@@ -2389,9 +2403,11 @@ ImageBuf::copy_pixels(const ImageBuf& src)
     m_impl->m_nsubimages       = 1;
     m_impl->m_current_subimage = 0;
     m_impl->m_current_miplevel = 0;
-    m_impl->m_nmiplevels       = 0;
+    m_impl->m_nmiplevels       = 1;
     m_impl->m_spec.erase_attribute("oiio:subimages");
     m_impl->m_nativespec.erase_attribute("oiio:subimages");
+    m_impl->m_spec.erase_attribute("oiio:miplevels");
+    m_impl->m_nativespec.erase_attribute("oiio:miplevels");
 
     return ok;
 }

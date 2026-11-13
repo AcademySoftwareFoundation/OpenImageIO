@@ -366,7 +366,10 @@ public:
     /// Sets the `channelnames` to reasonable defaults for the number of
     /// channels.  Specifically, channel names are set to "R", "G", "B,"
     /// and "A" (up to and including 4 channels, beyond that they are named
-    /// "channel*n*").
+    /// "channel*n*"). If `nchannels` is less than 1, `channelnames` is left
+    /// empty. If it exceeds the `limits:channels` attribute, only that many
+    /// channels are named, and the rest have no entry in `channelnames`
+    /// (`channel_name()` returns an empty string for them).
     void default_channel_names () noexcept;
 
     /// Returns the number of bytes comprising each channel of each pixel
@@ -3574,6 +3577,8 @@ protected:
     ///   be adjusted to 0.
     /// * Whether the `extra_attribs` contains a request to use an IOProxy,
     ///   but the format writer does not report `supports("ioproxy")`.
+    /// * If alpha_channel and z_channel are not within the actual channel
+    ///   count, they will be set to -1.
     bool check_open(OpenMode mode, const ImageSpec &spec,
                     ROI range = {0, 65535, 0, 65535, 0, 1, 0, 4},
                     uint64_t flags = 0);
@@ -4733,15 +4738,9 @@ void debugfmt (const char* fmt, Args&&... args)
 }
 
 namespace pvt {
-// For internal use - use errorfmt() below for a nicer interface.
+// Only kept for ABI compatibility; will be removed in 4.0.
+[[deprecated("use errorfmt() instead (3.3)")]]
 OIIO_API void append_error(string_view message);
-}
-
-/// error logging (mostly for OIIO internals) with `std::format` conventions.
-template<typename... Args>
-inline void errorfmt(const char* fmt, Args&&... args)
-{
-    pvt::append_error(string_view(Strutil::fmt::format(fmt, args...)));
 }
 
 /// Internal function to log time recorded by an OIIO::timer(). It will only
@@ -4822,7 +4821,6 @@ using v3_1::debug;
 using v3_1::debugfmt;
 using v3_1::declare_imageio_format;
 using v3_1::equivalent_colorspace;
-using v3_1::errorfmt;
 using v3_1::get_colorspace_cicp;
 using v3_1::get_colorspace_icc_profile;
 using v3_1::get_extension_map;

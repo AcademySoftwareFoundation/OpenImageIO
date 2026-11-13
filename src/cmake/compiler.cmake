@@ -618,6 +618,7 @@ endif ()
 # Sanitizer options
 #
 set_cache (SANITIZE "" "Build code using sanitizer (address, thread, undefined)")
+set_option (${PROJ_NAME}_BUILD_FUZZ_TARGETS "Build libFuzzer fuzz targets (requires clang)" OFF)
 if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
     message (STATUS "Compiling for sanitizer=${SANITIZE}")
     string (REPLACE "," ";" SANITIZE_FEATURE_LIST ${SANITIZE})
@@ -627,6 +628,12 @@ if (SANITIZE AND (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_CLANG))
         add_link_options (-fsanitize=${feature})
     endforeach()
     add_compile_options (-g -fno-omit-frame-pointer)
+    if (${PROJ_NAME}_BUILD_FUZZ_TARGETS AND CMAKE_COMPILER_IS_CLANG)
+        # Coverage-instrument the libraries, not just the fuzz harness, so
+        # libFuzzer can see which paths through the readers it reached.
+        # The sanitizer runtime supplies the callbacks for non-fuzz links.
+        add_compile_options (-fsanitize=fuzzer-no-link)
+    endif ()
     if (CMAKE_COMPILER_IS_GNUCC)
         # turn on glibcxx extra annotations to find vector writes past end
         add_compile_definitions (_GLIBCXX_SANITIZE_VECTOR=1)

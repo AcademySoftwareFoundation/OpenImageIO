@@ -1467,6 +1467,38 @@ src/layer-mask.psd   :   10 x   10, 4 channel, uint8 psd
     stEvt:instanceID: "xmp.iid:a64763c8-be7b-ff48-b857-0f1ee8e5da2b; xmp.iid:9847e4c5-ca7e-fa42-9c7f-5fe6373d31de; xmp.iid:ddf40b95-b12c-744e-a1a9-5e7724fe4ca9"
     stEvt:softwareAgent: "Adobe Photoshop CC 2017 (Windows)"
     stEvt:when: "2017-07-13T10:26:10+09:00; 2017-07-13T10:32:41+09:00; 2017-07-13T11:42:54+09:00"
+Reading src/layer-mask-real-user-raw.psd
+src/layer-mask-real-user-raw.psd :   64 x   64, 3 channel, uint8 psd
+    3 subimages: 64x64 [u8,u8,u8], 32x32 [u8,u8,u8,u8], 16x16 [u8,u8,u8,u8]
+ subimage  0:   64 x   64, 3 channel, uint8 psd
+    SHA-1: E4AFCC9654B4D30A35D1457150A181252C8A25ED
+    channel list: R, G, B
+ subimage  1:   32 x   32, 4 channel, uint8 psd
+    SHA-1: 67F20050DCE553F3A5AA3A68888C31560B131AA0
+    channel list: R, G, B, A
+    pixel data origin: x=8, y=8
+    oiio:subimagename: "Layer 1"
+ subimage  2:   16 x   16, 4 channel, uint8 psd
+    SHA-1: 70D89B41FB32C61075236E45FD550204BE8C9E59
+    channel list: R, G, B, A
+    pixel data origin: x=40, y=40
+    oiio:subimagename: "Layer 2"
+Reading src/layer-mask-real-user-rle.psd
+src/layer-mask-real-user-rle.psd :   64 x   64, 3 channel, uint8 psd
+    3 subimages: 64x64 [u8,u8,u8], 32x32 [u8,u8,u8,u8], 16x16 [u8,u8,u8,u8]
+ subimage  0:   64 x   64, 3 channel, uint8 psd
+    SHA-1: E4AFCC9654B4D30A35D1457150A181252C8A25ED
+    channel list: R, G, B
+ subimage  1:   32 x   32, 4 channel, uint8 psd
+    SHA-1: 67F20050DCE553F3A5AA3A68888C31560B131AA0
+    channel list: R, G, B, A
+    pixel data origin: x=8, y=8
+    oiio:subimagename: "Layer 1"
+ subimage  2:   16 x   16, 4 channel, uint8 psd
+    SHA-1: 70D89B41FB32C61075236E45FD550204BE8C9E59
+    channel list: R, G, B, A
+    pixel data origin: x=40, y=40
+    oiio:subimagename: "Layer 2"
 Reading src/Layers_8bit_RGB.psd
 src/Layers_8bit_RGB.psd :   48 x   27, 3 channel, uint8 psd
     4 subimages: 48x27 [u8,u8,u8], 48x27 [u8,u8,u8,u8], 48x27 [u8,u8,u8,u8], 48x27 [u8,u8,u8,u8]
@@ -2145,3 +2177,10 @@ Full command line was:
 oiiotool ERROR: read : "src/crash-layer-origin.psd": Layer data window origin+size is out of range: origin (0, 2147483647), size 8x8. Possible corrupt input?
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-layer-origin.psd
+oiiotool ERROR: read : "src/crash-missing-chan.psd": [Layer Record] Layer is missing channel id 1
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-missing-chan.psd
+oiiotool ERROR: read : RLE row lengths (4042894331 bytes) exceed available data (1976 bytes)
+failed to open "src/crash-rlelen-psb.psb": failed load_image_data
+Full command line was:
+> oiiotool --info -v -a --hash src/crash-rlelen-psb.psb

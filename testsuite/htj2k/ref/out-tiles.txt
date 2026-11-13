@@ -1,0 +1,21 @@
+oiiotool ERROR: read : "src/bomb-tiles.j2c": jpeg2000 header's tile and precinct layout needs at least 57365 bytes, but the file is only 310 bytes; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-tiles.j2c
+oiiotool ERROR: read : "src/bomb-tiny-tiles.j2c": jpeg2000 header's tile and precinct layout needs at least 917298 bytes, but the file is only 310 bytes; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-tiny-tiles.j2c
+oiiotool ERROR: read : "src/bomb-narrow-blocks.j2c": jpeg2000 header's tile and precinct layout needs at least 917283 bytes, but the file is only 310 bytes; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-narrow-blocks.j2c
+oiiotool ERROR: read : "src/bomb-tiny-precincts.j2c": jpeg2000 header's tile and precinct layout needs at least 201326606 bytes, but the file is only 311 bytes; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-tiny-precincts.j2c
+oiiotool ERROR: read : "src/bomb-wide-row.j2c": jpeg2000 header's tile and precinct layout needs at least 3145742 bytes, but the file is only 311 bytes; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-wide-row.j2c
+oiiotool ERROR: read : "src/bomb-dfs.j2c": jpeg2000 header's tile and precinct layout needs at least 2097185 bytes, but the file is only 422 bytes; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-dfs.j2c
+oiiotool ERROR: read : "src/bomb-tall-blocks.j2c": jpeg2000 header claims a 98304 MB image from a 310 byte file; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-tall-blocks.j2c

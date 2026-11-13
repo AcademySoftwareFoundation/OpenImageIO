@@ -6,6 +6,7 @@
 #include <cmath>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,7 @@
 #include <OpenImageIO/sysutil.h>
 
 #include "imageio_pvt.h"
+#include "interop_config.h"
 
 #define MAKE_OCIO_VERSION_HEX(maj, min, patch) \
     (((maj) << 24) | ((min) << 16) | (patch))
@@ -216,6 +218,13 @@ public:
     OCIO::ConfigRcPtr config_;
     OCIO::ConfigRcPtr builtinconfig_;
 
+    // A color space's chromaticities (in the ColorInteropID table, or null)
+    // and transfer function gamma.
+    struct Properties {
+        const float* xy = nullptr;
+        float gamma     = 0.0f;
+    };
+
 private:
     std::vector<CSInfo> colorspaces;
     std::string scene_linear_alias;  // Alias for a scene-linear color space
@@ -225,6 +234,8 @@ private:
     std::string ACEScg_alias;
     std::string Rec709_alias;
     mutable spin_rw_mutex m_mutex;
+    mutable std::once_flag m_interop_names_once;
+    mutable std::vector<std::array<std::string, 2>> m_interop_names;
     mutable std::string m_error;
     ColorProcessorMap colorprocmap;  // cache of ColorProcessors
     atomic_int colorprocs_requested;
@@ -290,6 +301,15 @@ public:
         return nullptr;
     }
 
+    // Whether names a and b, which resolve() resolved to ra and rb, name the
+    // same color space, as ColorConfig::equivalent() decides.
+    bool equivalent(string_view a, string_view ra, string_view b,
+                    string_view rb) const;
+
+    // The ColorInteropID table's IDs and legacy aliases, as resolve()
+    // resolves them in this config, worked out on first use.
+    const std::vector<std::array<std::string, 2>>& interop_names() const;
+
     // Search for a matching ColorProcessor, return it if found (otherwise
     // return an empty handle).
     ColorProcessorHandle findproc(const ColorProcCacheKey& key)
@@ -322,6 +342,10 @@ public:
         }
         return handle;
     }
+
+    // The properties get_chromaticities() and get_transfer_function_gamma()
+    // report.
+    Properties properties(string_view colorspace) const;
 
     int getNumColorSpaces() const { return (int)colorspaces.size(); }
 
@@ -1268,12 +1292,12 @@ ColorConfig::isData(string_view name) const
 bool
 ColorConfig::Impl::isData(string_view name) const
 {
-    // Look the name up as OCIO does (names, aliases and roles, in any case),
-    // and honor the color space's own isdata.
+    // Look the name up as conversions do (names, aliases and roles, in any
+    // case, and namespaced IDs), and honor the color space's own isdata.
     OCIO::ConstColorSpaceRcPtr cs;
     if (config_ && !disable_ocio) {
         try {
-            cs = config_->getColorSpace(c_str(name));
+            cs = config_->getColorSpace(c_str(resolve(name)));
         } catch (...) {
         }
         if (cs && cs->isData())
@@ -1501,6 +1525,9 @@ ColorConfig::getDefaultViewName(string_view display) const
 }
 
 
+static ustring viewing_rules_space(const OCIO::ConstConfigRcPtr& config,
+                                   ustring name);
+
 const char*
 ColorConfig::getDefaultViewName(string_view display,
                                 string_view inputColorSpace) const
@@ -1512,8 +1539,10 @@ ColorConfig::getDefaultViewName(string_view display,
             inputColorSpace = getImpl()->config_->getColorSpaceFromFilepath(
                 c_str(inputColorSpace));
         if (getImpl()->config_ && !disable_ocio)
-            return getImpl()->config_->getDefaultView(c_str(display),
-                                                      c_str(inputColorSpace));
+            return getImpl()->config_->getDefaultView(
+                c_str(display), viewing_rules_space(getImpl()->config_,
+                                                    ustring(inputColorSpace))
+                                    .c_str());
     } catch (std::exception& e) {
         DBG("OCIO exception in getDefaultViewName: {}", e.what());
     }
@@ -1632,6 +1661,115 @@ ColorConfig::resolve(string_view name) const
 
 
 
+// Whether `id` follows the Color Interop ID syntax: lowercase tokens of the
+// allowed characters, at most two ':' separators, and a non-empty base. See
+// https://github.com/AcademySoftwareFoundation/ColorInterop/blob/main/Recommendations/03_ColorInteropID/ColorInteropID.md
+static bool
+valid_interop_id(string_view id)
+{
+    int colons       = 0;
+    size_t token_len = 0;
+    for (unsigned char c : id) {
+        if (c == ':') {
+            if (++colons > 2 || (token_len == 0 && colons == 1))
+                return false;
+            token_len = 0;
+            continue;
+        }
+        const bool allowed = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+                             || (c && strchr(".-_~/*#%^+()[]|", c));
+        if (!allowed)
+            return false;
+        ++token_len;
+    }
+    return token_len != 0;
+}
+
+
+
+// A name sanitized into an ID token, as that recommendation's Annex C
+// specifies, so that generated and searched IDs agree.
+static std::string
+sanitize_id_token(string_view name)
+{
+    std::vector<uint32_t> codepoints;
+    Strutil::utf8_to_unicode(name, codepoints);
+    std::string result;
+    result.reserve(codepoints.size());
+    for (uint32_t c : codepoints) {
+        if (c > 127)
+            result += '^';
+        else if (c >= 'A' && c <= 'Z')
+            result += char(c - 'A' + 'a');
+        else if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+                 || (c && strchr(".-_~/*#%^+()[]|", int(c))))
+            result += char(c);
+        else {
+            switch (c) {
+            case ' ':
+            case '\t':
+            case '\n':
+            case '\r': result += '_'; break;
+            case '{':
+            case '<': result += '('; break;
+            case '}':
+            case '>': result += ')'; break;
+            case ',': result += '.'; break;
+            case ';':
+            case ':': result += '|'; break;
+            case '\'':
+            case '"': result += '#'; break;
+            case '\\': result += '/'; break;
+            default: result += '*'; break;
+            }
+        }
+    }
+    return result;
+}
+
+
+
+// The Color Interop ID search fallbacks, for a namespaced ID the config does
+// not otherwise know: drop the leftmost namespace once and look for a color
+// space with that name or alias (never a role), then try an on-demand
+// "<config>:local:<base>" ID, which matches only this config's sanitized name.
+static string_view
+resolve_namespaced_id(const OCIO::Config& config, string_view name)
+{
+    const size_t colon = name.find(':');
+    if (colon == string_view::npos || !valid_interop_id(name))
+        return {};
+    const std::string stripped(name.substr(colon + 1));
+    if (!config.hasRole(stripped.c_str()))
+        if (auto cs = config.getColorSpace(stripped.c_str()))
+            return cs->getName();
+    const size_t second = name.find(':', colon + 1);
+    if (second == string_view::npos
+        || name.substr(colon + 1, second - colon - 1) != "local"
+        || !config.getName()[0]
+        || name.substr(0, colon) != sanitize_id_token(config.getName()))
+        return {};
+    const string_view base = name.substr(second + 1);
+    for (int i = 0,
+             n = config.getNumColorSpaces(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                          OCIO::COLORSPACE_ALL);
+         i < n; ++i) {
+        auto cs = config.getColorSpace(
+            config.getColorSpaceNameByIndex(OCIO::SEARCH_REFERENCE_SPACE_ALL,
+                                            OCIO::COLORSPACE_ALL, i));
+        if (!cs)
+            continue;
+        if (sanitize_id_token(cs->getName()) == base)
+            return cs->getName();
+        for (int a = 0, e = cs->getNumAliases(); a < e; ++a)
+            if (sanitize_id_token(cs->getAlias(a)) == base)
+                return cs->getName();
+    }
+    return {};
+}
+
+
+
 string_view
 ColorConfig::Impl::resolve(string_view name) const
 {
@@ -1641,6 +1779,9 @@ ColorConfig::Impl::resolve(string_view name) const
             OCIO::ConstColorSpaceRcPtr cs = config->getColorSpace(c_str(name));
             if (cs)
                 return cs->getName();
+            string_view id = resolve_namespaced_id(*config, name);
+            if (!id.empty())
+                return id;
         } catch (std::exception& e) {
             DBG("OCIO exception in resolve: {}", e.what());
         }
@@ -1687,14 +1828,30 @@ ColorConfig::equivalent(string_view color_space1,
     // Easy case: matching names are the same!
     if (Strutil::iequals(color_space1, color_space2))
         return true;
+    return getImpl()->equivalent(color_space1, resolve(color_space1),
+                                 color_space2, resolve(color_space2));
+}
 
-    // If "resolved" names (after converting aliases and roles to color
-    // spaces) match, they are equivalent.
-    color_space1 = resolve(color_space1);
-    color_space2 = resolve(color_space2);
+
+
+bool
+ColorConfig::Impl::equivalent(string_view color_space1, string_view resolved1,
+                              string_view color_space2,
+                              string_view resolved2) const
+{
+    // Empty color spaces never match
     if (color_space1.empty() || color_space2.empty())
         return false;
+    // Easy case: matching names are the same!
     if (Strutil::iequals(color_space1, color_space2))
+        return true;
+
+    // If "resolved" names (after converting aliases and roles to color
+    // spaces) match, they are equivalent. OCIO matches names in any case and
+    // resolves them to its own spelling, so this comparison can be exact.
+    if (resolved1.empty() || resolved2.empty())
+        return false;
+    if (resolved1 == resolved2)
         return true;
 
     // If the color spaces' flags (when masking only the bits that refer to
@@ -1702,8 +1859,8 @@ ColorConfig::equivalent(string_view color_space1,
     const int mask     = CSInfo::is_srgb_display | CSInfo::is_srgb_scene
                          | CSInfo::is_lin_srgb | CSInfo::is_ACEScg
                          | CSInfo::is_Rec709;
-    const CSInfo* csi1 = getImpl()->find(color_space1);
-    const CSInfo* csi2 = getImpl()->find(color_space2);
+    const CSInfo* csi1 = find(resolved1);
+    const CSInfo* csi2 = find(resolved2);
     if (csi1 && csi2) {
         int flags1 = csi1->flags() & mask;
         int flags2 = csi2->flags() & mask;
@@ -1843,6 +2000,78 @@ private:
 
 
 
+// OpenImageIO's built-in config of color interop identities, one color space
+// per ID, named by it. Parsed once, the first time a conversion needs it.
+static OCIO::ConstConfigRcPtr
+interop_identities_config()
+{
+    static const OCIO::ConstConfigRcPtr config = [] {
+        std::istringstream text(
+            reinterpret_cast<const char*>(interop_config_bytes));
+        return OCIO::Config::CreateFromStream(text);
+    }();
+    return config;
+}
+
+
+
+// A conversion endpoint the active config doesn't define, but that is named
+// exactly as a color interop ID, comes from the built-in identities config.
+// Names, aliases, roles and named transforms the config defines keep their
+// meaning. The OIIO_DISABLE_BUILTIN_OCIO_CONFIGS environment variable opts
+// out.
+//
+// `endpoint` and `ctx` are left alone unless the identities config supplies
+// the endpoint.
+static void
+external_endpoint(const OCIO::ConstConfigRcPtr& config, ustring name,
+                  OCIO::ConstConfigRcPtr& endpoint,
+                  OCIO::ConstContextRcPtr& ctx)
+{
+    if (disable_builtin_configs || config->getColorSpace(name.c_str())
+        || config->getNamedTransform(name.c_str()))
+        return;
+    auto identities = interop_identities_config();
+    auto cs         = identities->getColorSpace(name.c_str());
+    if (cs && Strutil::iequals(name, cs->getName())) {
+        endpoint = identities;
+        ctx      = identities->getCurrentContext();
+    }
+}
+
+
+
+// The interchange role a color space of another config reaches this config
+// through: the display one for a display-referred space, the scene one
+// otherwise.
+static const char*
+interchange_role(const OCIO::ConstColorSpaceRcPtr& cs)
+{
+    return cs && cs->getReferenceSpaceType() == OCIO::REFERENCE_SPACE_DISPLAY
+               ? OCIO::ROLE_INTERCHANGE_DISPLAY
+               : OCIO::ROLE_INTERCHANGE_SCENE;
+}
+
+
+
+// The color space whose viewing rules pick the default view for `name`: the
+// name itself or, for a space from the identities config, the interchange
+// space it reaches this config through.
+static ustring
+viewing_rules_space(const OCIO::ConstConfigRcPtr& config, ustring name)
+{
+    OCIO::ConstConfigRcPtr endpoint = config;
+    OCIO::ConstContextRcPtr ctx;
+    external_endpoint(config, name, endpoint, ctx);
+    if (endpoint != config)
+        if (auto cs = config->getColorSpace(
+                interchange_role(endpoint->getColorSpace(name.c_str()))))
+            return ustring(cs->getName());
+    return name;
+}
+
+
+
 ColorProcessorHandle
 ColorConfig::createColorProcessor(string_view inputColorSpace,
                                   string_view outputColorSpace,
@@ -1894,10 +2123,28 @@ ColorConfig::createColorProcessor(ustring inputColorSpace,
                 context = ctx;
             }
 
-            // Get the processor corresponding to this transform.
-            p = getImpl()->config_->getProcessor(context,
-                                                 inputColorSpace.c_str(),
-                                                 outputColorSpace.c_str());
+            // Get the processor corresponding to this transform, through the
+            // identities config for an endpoint this config doesn't define.
+            OCIO::ConstConfigRcPtr srcconfig = config, dstconfig = config;
+            OCIO::ConstContextRcPtr srccontext = context, dstcontext = context;
+            external_endpoint(config, inputColorSpace, srcconfig, srccontext);
+            external_endpoint(config, outputColorSpace, dstconfig, dstcontext);
+            if (srcconfig == dstconfig) {
+                p = srcconfig->getProcessor(srccontext, inputColorSpace.c_str(),
+                                            outputColorSpace.c_str());
+            } else {
+                auto src = srcconfig->getColorSpace(inputColorSpace.c_str());
+                auto dst = dstconfig->getColorSpace(outputColorSpace.c_str());
+                if (src && dst && (src->isData() || dst->isData())) {
+                    // Data passes through, as it does within one config, and
+                    // needs no interchange roles.
+                    p = srcconfig->getProcessor(srccontext, src, src);
+                } else {
+                    p = OCIO::Config::GetProcessorFromConfigs(
+                        srccontext, srcconfig, inputColorSpace.c_str(),
+                        dstcontext, dstconfig, outputColorSpace.c_str());
+                }
+            }
             getImpl()->clear_error();
             // DBG("Created OCIO processor '{}' -> '{}'\n",
             //                inputColorSpace, outputColorSpace);
@@ -2070,11 +2317,8 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
             OCIO::TransformDirection dir = inverse
                                                ? OCIO::TRANSFORM_DIR_INVERSE
                                                : OCIO::TRANSFORM_DIR_FORWARD;
-            transform->setSrc(inputColorSpace.c_str());
             transform->setDisplay(display.c_str());
             transform->setView(view.c_str());
-            transform->setDirection(dir);
-            legacy_viewing_pipeline->setDisplayViewTransform(transform);
             if (looks.size()) {
                 legacy_viewing_pipeline->setLooksOverride(looks.c_str());
                 legacy_viewing_pipeline->setLooksOverrideEnabled(true);
@@ -2089,9 +2333,43 @@ ColorConfig::createDisplayTransform(ustring display, ustring view,
                 context = ctx;
             }
 
-            // Get the processor corresponding to this transform.
+            // Get the processor corresponding to this transform. A source
+            // this config doesn't define comes from the identities config.
+            OCIO::ConstConfigRcPtr srcconfig   = config;
+            OCIO::ConstContextRcPtr srccontext = context;
+            external_endpoint(config, inputColorSpace, srcconfig, srccontext);
             OCIO::ConstProcessorRcPtr p;
-            p = legacy_viewing_pipeline->getProcessor(config, context);
+            if (srcconfig == config) {
+                transform->setSrc(inputColorSpace.c_str());
+                transform->setDirection(dir);
+                legacy_viewing_pipeline->setDisplayViewTransform(transform);
+                p = legacy_viewing_pipeline->getProcessor(config, context);
+            } else if (auto cs = srcconfig->getColorSpace(
+                           inputColorSpace.c_str());
+                       (cs && cs->isData())
+                       || isData(getDisplayViewColorSpaceName(display.string(),
+                                                              view.string()))) {
+                // Data at either end bypasses the display, as it bypasses
+                // OCIO's own conversions between configs.
+                p = config->getProcessor(context,
+                                         OCIO::GroupTransform::Create(), dir);
+            } else {
+                // OpenColorIO's two-config display recipe: the source reaches
+                // this config's interchange space for its reference space
+                // type, and the viewing pipeline, looks included, runs from
+                // there. The forward chain is built and inverted as a whole.
+                const char* interchange = interchange_role(cs);
+                auto chain              = OCIO::Config::GetProcessorFromConfigs(
+                                              srccontext, srcconfig, inputColorSpace.c_str(),
+                                              context, config, interchange)
+                                              ->createGroupTransform();
+                transform->setSrc(interchange);
+                legacy_viewing_pipeline->setDisplayViewTransform(transform);
+                chain->appendTransform(
+                    legacy_viewing_pipeline->getProcessor(config, context)
+                        ->createGroupTransform());
+                p = config->getProcessor(context, chain, dir);
+            }
             getImpl()->clear_error();
             handle = ColorProcessorHandle(new ColorProcessor_OCIO(p));
         } catch (OCIO::Exception& e) {
@@ -2365,23 +2643,53 @@ enum class CICPRange : int {
     Full   = 1,
 };
 
+// Chromaticities (Rx, Ry, Gx, Gy, Bx, By, Wx, Wy) of the published gamuts.
+constexpr float xy_rec709[]   = { .64f, .33f, .30f,   .60f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_p3d65[]    = { .68f, .32f, .265f,  .69f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_rec2020[]  = { .708f, .292f, .17f,   .797f,
+                                  .131f, .046f, .3127f, .329f };
+constexpr float xy_adobergb[] = { .64f, .33f, .21f,   .71f,
+                                  .15f, .06f, .3127f, .329f };
+constexpr float xy_ap0[]      = { .7347f, .2653f, 0.0f,    1.0f,
+                                  .0001f, -.077f, .32168f, .33767f };
+constexpr float xy_ap1[]      = { .713f, .293f, .165f,   .83f,
+                                  .128f, .044f, .32168f, .33767f };
+// CIE XYZ taken as RGB, so R = G = B is illuminant E.
+constexpr float xy_xyz[] = { 1.0f, 0.0f, 0.0f,     1.0f,
+                             0.0f, 0.0f, 1.0f / 3, 1.0f / 3 };
+
+// A color interop ID with what OIIO knows about it: a legacy alias for older
+// configs, its CICP code if it has one, and its chromaticities (Rx, Ry, Gx, Gy,
+// Bx, By, Wx, Wy) and gamma if it has RGB primaries. Gamma is 1 for linear,
+// the exponent of a pure power, or 0 for any other curve (sRGB, extended
+// sRGB, PQ, HLG).
 struct ColorInteropID {
-    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias)
+    constexpr ColorInteropID(const char* interop_id, const char* legacy_alias,
+                             const float* chromaticities = nullptr,
+                             float gamma                 = 0.0f)
         : interop_id(interop_id)
         , legacy_alias(legacy_alias)
         , cicp({ 0, 0, 0, 0 })
         , has_cicp(false)
+        , chromaticities(chromaticities)
+        , gamma(gamma)
     {
     }
 
     constexpr ColorInteropID(const char* interop_id, const char* legacy_alias,
                              CICPPrimaries primaries, CICPTransfer transfer,
-                             CICPMatrix matrix)
+                             CICPMatrix matrix,
+                             const float* chromaticities = nullptr,
+                             float gamma                 = 0.0f)
         : interop_id(interop_id)
         , legacy_alias(legacy_alias)
         , cicp({ int(primaries), int(transfer), int(matrix),
                  int(CICPRange::Full) })
         , has_cicp(true)
+        , chromaticities(chromaticities)
+        , gamma(gamma)
     {
     }
 
@@ -2389,6 +2697,8 @@ struct ColorInteropID {
     const char* legacy_alias;
     std::array<int, 4> cicp;
     bool has_cicp;
+    const float* chromaticities;
+    float gamma;
 };
 
 // Mapping between color interop ID and CICP, based on Color Interop Forum
@@ -2397,28 +2707,28 @@ constexpr ColorInteropID color_interop_ids[] = {
     // Scene referred interop IDs first so they are the default in automatic
     // conversion from CICP to interop ID. Some are not display color spaces
     // at all, but can be represented by CICP anyway.
-    { "lin_ap1_scene", "lin_ap1" },
-    { "lin_ap0_scene", "lin_ap0" },
+    { "lin_ap1_scene", "lin_ap1", xy_ap1, 1.0f },
+    { "lin_ap0_scene", "lin_ap0", xy_ap0, 1.0f },
     { "lin_rec709_scene", "lin_rec709", CICPPrimaries::Rec709,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_rec709, 1.0f },
     { "lin_p3d65_scene", "lin_p3d65", CICPPrimaries::P3D65,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_p3d65, 1.0f },
     { "lin_rec2020_scene", "lin_rec2020", CICPPrimaries::Rec2020,
-      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
-    { "lin_adobergb_scene", "lin_adobergb" },
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL, xy_rec2020, 1.0f },
+    { "lin_adobergb_scene", "lin_adobergb", xy_adobergb, 1.0f },
     { "lin_ciexyzd65_scene", "cie_xyz_d65", CICPPrimaries::XYZD65,
-      CICPTransfer::Linear, CICPMatrix::Unspecified },
+      CICPTransfer::Linear, CICPMatrix::Unspecified, xy_xyz, 1.0f },
     { "srgb_rec709_scene", "srgb_texture", CICPPrimaries::Rec709,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { "g24_rec709_scene", "g24_rec709" },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_rec709, 0.0f },
+    { "g24_rec709_scene", "g24_rec709", xy_rec709, 2.4f },
     { "g22_rec709_scene", "g22_rec709", CICPPrimaries::Rec709,
-      CICPTransfer::Gamma22, CICPMatrix::BT709 },
-    { "g18_rec709_scene", "g18_rec709" },
-    { "srgb_ap1_scene", "srgb_ap1" },
-    { "g22_ap1_scene", "g22_ap1" },
+      CICPTransfer::Gamma22, CICPMatrix::BT709, xy_rec709, 2.2f },
+    { "g18_rec709_scene", "g18_rec709", xy_rec709, 1.8f },
+    { "srgb_ap1_scene", "srgb_ap1", xy_ap1, 0.0f },
+    { "g22_ap1_scene", "g22_ap1", xy_ap1, 2.2f },
     { "srgb_p3d65_scene", "srgb_p3d65", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
-    { "g22_adobergb_scene", nullptr },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
+    { "g22_adobergb_scene", nullptr, xy_adobergb, 563.0f / 256.0f },
     { "data", nullptr },
     { "unknown", nullptr },
 
@@ -2426,37 +2736,39 @@ constexpr ColorInteropID color_interop_ids[] = {
     // The linear displays share their scene rows' codes, which come first,
     // so CICP input still reads as the scene identity.
     { "lin_rec709_display", nullptr, CICPPrimaries::Rec709,
-      CICPTransfer::Linear, CICPMatrix::BT709 },
+      CICPTransfer::Linear, CICPMatrix::BT709, xy_rec709, 1.0f },
     { "lin_p3d65_display", nullptr, CICPPrimaries::P3D65, CICPTransfer::Linear,
-      CICPMatrix::BT709 },
+      CICPMatrix::BT709, xy_p3d65, 1.0f },
     { "lin_rec2020_display", nullptr, CICPPrimaries::Rec2020,
-      CICPTransfer::Linear, CICPMatrix::Rec2020_CL },
+      CICPTransfer::Linear, CICPMatrix::Rec2020_CL, xy_rec2020, 1.0f },
     { "srgb_rec709_display", "srgb_display", CICPPrimaries::Rec709,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_rec709, 0.0f },
     // Not all software interprets this CICP the same, see the
     // "QuickTime Gamma Shift" issue. We follow the CIF recommendation and
     // interpret it as BT.1886.
     { "g24_rec709_display", "rec1886_rec709_display", CICPPrimaries::Rec709,
-      CICPTransfer::BT709, CICPMatrix::BT709 },
+      CICPTransfer::BT709, CICPMatrix::BT709, xy_rec709, 2.4f },
     { "srgb_p3d65_display", "displayp3_display", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
     { "srgbe_p3d65_display", "displayp3_hdr_display", CICPPrimaries::P3D65,
-      CICPTransfer::sRGB, CICPMatrix::BT709 },
+      CICPTransfer::sRGB, CICPMatrix::BT709, xy_p3d65, 0.0f },
     { "pq_p3d65_display", "st2084_p3d65_display", CICPPrimaries::P3D65,
-      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL, xy_p3d65, 0.0f },
     { "pq_rec2020_display", "rec2100_pq_display", CICPPrimaries::Rec2020,
-      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL },
+      CICPTransfer::PQ, CICPMatrix::Rec2020_NCL, xy_rec2020, 0.0f },
     { "hlg_rec2020_display", "rec2100_hlg_display", CICPPrimaries::Rec2020,
-      CICPTransfer::HLG, CICPMatrix::Rec2020_NCL },
-    // No CICP mapping to keep previous behavior unchanged, as Gamma 2.2
-    // display is more likely meant to be written as sRGB. On read the
-    // scene referred interop ID will be used.
-    { "g22_rec709_display", nullptr
-      /* CICPPrimaries::Rec709, CICPTransfer::Gamma22, CICPMatrix::BT709 */ },
+      CICPTransfer::HLG, CICPMatrix::Rec2020_NCL, xy_rec2020, 0.0f },
+    // No CICP mapping (Rec709, Gamma22, BT709) to keep previous behavior
+    // unchanged, as Gamma 2.2 display is more likely meant to be written as
+    // sRGB. On read the scene referred interop ID will be used.
+    { "g22_rec709_display", nullptr, xy_rec709, 2.2f },
     // No CICP code for Adobe RGB primaries.
-    { "g22_adobergb_display", nullptr },
+    { "g22_adobergb_display", nullptr, xy_adobergb, 563.0f / 256.0f },
     { "g26_p3d65_display", "p3d65_display", CICPPrimaries::P3D65,
-      CICPTransfer::Gamma26, CICPMatrix::BT709 },
+      CICPTransfer::Gamma26, CICPMatrix::BT709, xy_p3d65, 2.6f },
+    // The DCDM XYZ encodings have no properties: neither curve is a pure
+    // power (DCI headroom scaling precedes the 2.6 power), and no RGB
+    // primaries are reported for display XYZ encodings.
     { "g26_xyzd65_display", nullptr, CICPPrimaries::XYZD65,
       CICPTransfer::Gamma26, CICPMatrix::Unspecified },
     { "pq_xyzd65_display", nullptr, CICPPrimaries::XYZD65, CICPTransfer::PQ,
@@ -2469,17 +2781,32 @@ constexpr ColorInteropID color_interop_ids[] = {
 };
 }  // namespace
 
+const std::vector<std::array<std::string, 2>>&
+ColorConfig::Impl::interop_names() const
+{
+    std::call_once(m_interop_names_once, [&] {
+        for (const ColorInteropID& interop : color_interop_ids)
+            m_interop_names.push_back(
+                { std::string(resolve(interop.interop_id)),
+                  interop.legacy_alias
+                      ? std::string(resolve(interop.legacy_alias))
+                      : std::string() });
+    });
+    return m_interop_names;
+}
+
 string_view
 ColorConfig::get_color_interop_id(string_view colorspace) const
 {
     if (colorspace.empty())
         return "";
+    const string_view resolved = resolve(colorspace);
 #if OCIO_VERSION_HEX >= MAKE_OCIO_VERSION_HEX(2, 5, 0)
     if (getImpl()->config_ && !disable_ocio) {
         const char* interop_id = nullptr;
         try {
             OCIO::ConstColorSpaceRcPtr c = getImpl()->config_->getColorSpace(
-                std::string(resolve(colorspace)).c_str());
+                std::string(resolved).c_str());
             if (c)
                 interop_id = c->getInteropID();
         } catch (std::exception& e) {
@@ -2493,10 +2820,16 @@ ColorConfig::get_color_interop_id(string_view colorspace) const
         }
     }
 #endif
-    for (const ColorInteropID& interop : color_interop_ids) {
-        if (equivalent(colorspace, interop.interop_id)
+    // Compare with each ID and legacy alias as equivalent() would, with the
+    // table's names resolved once per config rather than on every call.
+    const auto& names = getImpl()->interop_names();
+    for (size_t i = 0; i < std::size(color_interop_ids); ++i) {
+        const ColorInteropID& interop = color_interop_ids[i];
+        if (getImpl()->equivalent(colorspace, resolved, interop.interop_id,
+                                  names[i][0])
             || (interop.legacy_alias
-                && equivalent(colorspace, interop.legacy_alias))) {
+                && getImpl()->equivalent(colorspace, resolved,
+                                         interop.legacy_alias, names[i][1]))) {
             return interop.interop_id;
         }
     }
@@ -2527,6 +2860,58 @@ ColorConfig::get_cicp(string_view colorspace) const
         }
     }
     return cspan<int>();
+}
+
+
+
+ColorConfig::Impl::Properties
+ColorConfig::Impl::properties(string_view colorspace) const
+{
+    // Identify the space as get_cicp() does, so that every name it accepts
+    // gives the same answer here.
+    const string_view interop_id = m_self->get_color_interop_id(colorspace);
+    OCIO::ConstColorSpaceRcPtr cs;
+    if (config_ && !disable_ocio && !colorspace.empty()) {
+        try {
+            cs = config_->getColorSpace(c_str(m_self->resolve(colorspace)));
+        } catch (const std::exception& e) {
+            DBG("OCIO exception looking up {}: {}\n", colorspace, e.what());
+        }
+    }
+    if (cs && cs->isData())
+        return {};
+    const string_view encoding(cs ? cs->getEncoding() : "");
+    const bool linear = encoding == "scene-linear"
+                        || encoding == "display-linear";
+    Properties result;
+    for (const ColorInteropID& interop : color_interop_ids) {
+        if (interop.chromaticities && interop_id == interop.interop_id) {
+            // An ID contradicting a declared linear encoding is ignored.
+            if (!(linear && interop.gamma != 1.0f))
+                result = { interop.chromaticities, interop.gamma };
+            break;
+        }
+    }
+    if (linear)
+        result.gamma = 1.0f;
+    return result;
+}
+
+
+
+cspan<float>
+ColorConfig::get_chromaticities(string_view colorspace) const
+{
+    const float* xy = getImpl()->properties(colorspace).xy;
+    return xy ? cspan<float>(xy, 8) : cspan<float>();
+}
+
+
+
+float
+ColorConfig::get_transfer_function_gamma(string_view colorspace) const
+{
+    return getImpl()->properties(colorspace).gamma;
 }
 
 
@@ -2708,7 +3093,7 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                         r.rerange(roi.xbegin, roi.xend, j, j + 1, k, k + 1);
                         for (; !r.done(); ++r, ++a)
                             for (int c = channelsToCopy; c < roi.chend; ++c)
-                                r[c] = 0.5 + 10 * a[c];
+                                r[c] = a[c];
                     }
                 }
             }

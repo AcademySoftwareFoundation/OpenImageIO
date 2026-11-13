@@ -27,6 +27,9 @@ for f in files :
 
 command += info_command ("src/rgb.fits")
 command += rw_command ("src", "rgb.fits")
+# Rows are stored bottom-first; file row 0 (value 32) is the bottom scanline
+command += info_command ("--dumpdata src/rows.fits", info_program="oiiotool",
+                         verbose=False)
 
 # Regression tests for broken files
 command += info_command ("src/broken_no_END.fits", verbose=False, failureok=True)
@@ -36,5 +39,8 @@ command += info_command ("src/bad-naxis.fits", verbose=False, failureok=True)
 # A 2880-byte header declaring a ~1.5 GB image (40000x40000): the
 # compression-ratio guard must reject it before the caller allocates.
 command += info_command ("src/bomb-40000.fits", verbose=False, failureok=True)
+# STOKES channel axis with more planes than limits:channels: channel naming
+# must not write past the (truncated) channel name list.
+command += info_command ("src/stokes-5000ch.fits", verbose=False, failureok=True)
 
 outputs = [ "out.txt" ]

@@ -295,7 +295,6 @@ if (NUKE_FOUND)
     add_subdirectory (src/nuke/txWriter)
 endif ()
 
-set_option (OIIO_BUILD_FUZZ_TARGETS "Build libFuzzer fuzz targets (requires clang)" OFF)
 if (OIIO_BUILD_FUZZ_TARGETS)
     add_subdirectory (src/fuzz)
 endif ()

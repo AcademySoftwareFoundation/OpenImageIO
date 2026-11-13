@@ -142,6 +142,18 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    // The libcineon code we use is not really 32 bit overflow safe in its
+    // allocations or offsets when reading and decoding individual scanlines.
+    // We'll never see a cin file that big anyway, so just consider it an
+    // error rather than track down every possible problem in libcineon.
+    if (m_spec.scanline_bytes()
+        > imagesize_t(std::numeric_limits<int32_t>::max())) {
+        errorfmt("Unsupported Cineon with scanlines exceeding {} bytes",
+                 std::numeric_limits<int>::max());
+        m_spec = ImageSpec();
+        return false;
+    }
+
     // fill channel names
     m_spec.channelnames.clear();
     int gscount = 0, rcount = 0, gcount = 0, bcount = 0;

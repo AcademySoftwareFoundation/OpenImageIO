@@ -562,6 +562,44 @@ void test_vint_to_uint8s ()
 
 
 
+// Partial/converting stores must work to addresses aligned only for the
+// element type, not the wider type the SIMD store might use internally.
+// Run under UBSan to catch misaligned typed stores (issue #5560).
+void test_unaligned_stores ()
+{
+    test_heading ("unaligned partial stores");
+    alignas(16) unsigned char buf[32];
+
+    // uint8: offset 1, misaligned for any wider type
+    std::fill (std::begin(buf), std::end(buf), 0);
+    vint4(1, 2, 3, 4).store (buf + 1);
+    for (int i = 0; i < 4; ++i)
+        OIIO_CHECK_EQUAL (int(buf[1 + i]), i + 1);
+
+    // uint16: offset 2, aligned for ushort but not for 8-byte stores
+    unsigned short us[4];
+    vint4(1, 2, 3, 4).store ((unsigned short*)(buf + 2));
+    memcpy (us, buf + 2, sizeof(us));
+    for (int i = 0; i < 4; ++i)
+        OIIO_CHECK_EQUAL (int(us[i]), i + 1);
+
+    // half: offset 2
+    half h[4];
+    vfloat4(1, 2, 3, 4).store ((half*)(buf + 2));
+    memcpy (h, buf + 2, sizeof(h));
+    for (int i = 0; i < 4; ++i)
+        OIIO_CHECK_EQUAL (float(h[i]), float(i + 1));
+
+    // 2 floats: offset 4, aligned for float but not for 8-byte stores
+    float f[2];
+    vfloat4(1, 2, 3, 4).store ((float*)(buf + 4), 2);
+    memcpy (f, buf + 4, sizeof(f));
+    OIIO_CHECK_EQUAL (f[0], 1.0f);
+    OIIO_CHECK_EQUAL (f[1], 2.0f);
+}
+
+
+
 template<typename VEC>
 void test_masked_loadstore ()
 {
@@ -2124,6 +2162,7 @@ main(int argc, char* argv[])
     test_metaprogramming();
     test_matrix();
     test_trivially_copyable();
+    test_unaligned_stores();
 
     std::cout << "\nTotal time: " << Strutil::timeintervalformat(timer())
               << "\n";

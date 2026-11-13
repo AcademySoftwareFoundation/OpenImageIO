@@ -24,6 +24,7 @@ using namespace OIIO;
 
 
 static std::string onlyformat = Sysutil::getenv("IMAGEINOUTTEST_ONLY_FORMAT");
+static std::string skipformat = Sysutil::getenv("IMAGEINOUTTEST_SKIP_FORMAT");
 static bool nodelete          = false;  // Don't delete the test files
 static bool enable_fpe        = false;  // Throw exceptions on FP errors.
 
@@ -47,6 +48,8 @@ getargs(int argc, char* argv[])
       .help("Enable floating point exceptions.");
     ap.arg("--onlyformat %s:FORMAT", &onlyformat)
       .help("Test only one format");
+    ap.arg("--skipformat %s:FORMAT", &skipformat)
+      .help("Skip test of one format");
     ap.arg("--iterations %d", &iterations)
       .help(Strutil::format("Number of benchmark iterations per trial (default: {})", iterations));
     ap.arg("--trials %d", &ntrials).help("Number of benchmark trials");
@@ -363,6 +366,30 @@ test_write_unwritable(string_view extension, const ImageBuf& buf)
 
 
 
+// Writers must tolerate alpha_channel and z_channel values that don't
+// refer to an actual channel, and not use them as pixel indices.
+static void
+test_write_bad_channel_indices(string_view formatname, string_view extension,
+                               const ImageBuf& buf)
+{
+    std::string filename = Strutil::format("imageinout_test-badchan-{}.{}",
+                                           formatname, extension);
+    for (int bad : { -2, buf.spec().nchannels, buf.spec().nchannels + 100 }) {
+        std::cout << "    Writing with alpha/z channel " << bad << " ... ";
+        ImageSpec spec     = buf.spec();
+        spec.alpha_channel = bad;
+        spec.z_channel     = bad;
+        bool ok = checked_write(nullptr, filename, spec, spec.format,
+                                buf.localpixels_as_byte_image_span());
+        if (ok)
+            std::cout << Sysutil::Term(stdout).ansi("green", "OK\n");
+    }
+    if (!nodelete)
+        Filesystem::remove(filename);
+}
+
+
+
 static void
 test_all_formats()
 {
@@ -382,6 +409,8 @@ test_all_formats()
             eps = 0.001f;
 
         if (onlyformat.size() && formatname != onlyformat)
+            continue;
+        if (formatname == skipformat)
             continue;
 
         auto extensions = Strutil::splitsv(fmtexts[1], ",");
@@ -451,6 +480,8 @@ test_all_formats()
         // error.
         //
         test_write_unwritable(extensions[0], buf);
+
+        test_write_bad_channel_indices(formatname, extensions[0], buf);
 
         if (!nodelete)
             Filesystem::remove(filename);
@@ -534,7 +565,7 @@ test_jxl_close_write_error()
     bool ok = checked_write(nullptr, "fail.jxl", buf.spec(), buf.spec().format,
                             buf.localpixels_as_byte_image_span(),
                             /*do_asserts=*/false, &errmsg, &proxy);
-    print("    {}\n\n", errmsg);
+    print("    {}\n", errmsg);
     OIIO_CHECK_ASSERT(!ok && errmsg.size());
 
     // libjxl can't parse this ICC profile, which leaves the encoder with an
@@ -546,7 +577,7 @@ test_jxl_close_write_error()
     ok = checked_write(nullptr, "fail.jxl", spec, spec.format,
                        buf.localpixels_as_byte_image_span(),
                        /*do_asserts=*/false, &errmsg, &memproxy);
-    print("    {}\n\n", errmsg);
+    print("    {}\n", errmsg);
     OIIO_CHECK_ASSERT(!ok
                       && Strutil::contains(errmsg, "JxlEncoderProcessOutput"));
 
@@ -565,7 +596,7 @@ test_jxl_close_write_error()
     if (auto out = open_short(&emptyproxy)) {
         OIIO_CHECK_ASSERT(!out->close());
         errmsg = out->geterror();
-        print("    {}\n\n", errmsg);
+        print("    {}\n", errmsg);
         OIIO_CHECK_ASSERT(errmsg.size());
     }
     Filesystem::IOVecOutput abandonproxy;
@@ -580,7 +611,7 @@ test_jxl_close_write_error()
                                                as_image_span_bytes(half)));
         OIIO_CHECK_ASSERT(!out->close());
         errmsg = out->geterror();
-        print("    {}\n\n", errmsg);
+        print("    {}\n", errmsg);
         OIIO_CHECK_ASSERT(errmsg.size());
     }
 
@@ -607,7 +638,7 @@ test_jxl_close_write_error()
             }
             OIIO_CHECK_ASSERT(!out->close());
             errmsg = out->geterror();
-            print("    {}\n\n", errmsg);
+            print("    {}\n", errmsg);
             OIIO_CHECK_ASSERT(errmsg.size() && nextproxy.buffer().empty());
         }
     }
@@ -994,6 +1025,116 @@ test_span_nonzero_origin()
 
 
 
+// Reads of a TIFF with unassociated alpha must premultiply each value
+// exactly once: for channel subsets that include alpha, and for tiled
+// images whose size is not a multiple of the tile size.
+static void
+test_tiff_unassoc_reads()
+{
+    std::cout << "Testing TIFF unassociated alpha reads\n";
+    const int W = 16, NC = 4;
+    const float pixel[NC] = { 0.5f, 0.25f, 0.75f, 0.5f };
+    for (bool tiled : { false, true }) {
+        for (int H : { 16, 4 }) {
+            std::string filename = Strutil::format("unassoc_{}_{}.tif",
+                                                   tiled ? "tiled" : "scan", H);
+            ImageSpec spec(W, H, NC, TypeFloat);
+            spec.attribute("oiio:UnassociatedAlpha", 1);
+            if (tiled) {
+                spec.tile_width  = 16;
+                spec.tile_height = 16;
+            }
+            std::vector<float> pixels(size_t(W) * H * NC);
+            for (size_t i = 0; i < pixels.size(); ++i)
+                pixels[i] = pixel[i % NC];
+            {
+                auto out = ImageOutput::create(filename);
+                OIIO_CHECK_ASSERT(out && out->open(filename, spec));
+                OIIO_CHECK_ASSERT(out->write_image(TypeFloat, pixels.data()));
+                OIIO_CHECK_ASSERT(out->close());
+            }
+            auto in = ImageInput::open(filename);
+            OIIO_CHECK_ASSERT(in);
+            if (!in)
+                continue;
+            // Read all channels, and just B and A
+            for (int chbegin : { 0, 2 }) {
+                int nch = NC - chbegin;
+                std::vector<float> buf(size_t(W) * H * nch, -1.0f);
+                bool ok = tiled
+                              ? in->read_tiles(0, 0, 0, W, 0, H, 0, 1, chbegin,
+                                               NC, TypeFloat, buf.data())
+                              : in->read_scanlines(0, 0, 0, H, 0, chbegin, NC,
+                                                   TypeFloat, buf.data());
+                OIIO_CHECK_ASSERT(ok);
+                bool match = true;
+                for (size_t i = 0; i < buf.size(); ++i) {
+                    int c = chbegin + int(i % nch);
+                    match &= buf[i]
+                             == (c == 3 ? pixel[3] : pixel[c] * pixel[3]);
+                }
+                OIIO_CHECK_ASSERT(match);
+            }
+            in->close();
+            if (!nodelete)
+                Filesystem::remove(filename);
+        }
+    }
+}
+
+
+
+// Explicit-subimage reads must use the requested MIP level's dimensions even
+// if the ImageInput is currently positioned on a different one. DDS uses the
+// base class read_native_scanlines loop.
+static void
+test_read_other_miplevel()
+{
+    if (!is_imageio_format_name("dds")
+        || (onlyformat.size() && onlyformat != "dds"))
+        return;
+    std::cout << "Testing scanline reads of a non-current MIP level\n";
+    // 64x64 8-bit luminance DDS with a full MIP chain
+    const uint32_t W = 64, nmips = 7;
+    std::vector<unsigned char> file = { 'D', 'D', 'S', ' ' };
+    auto put32                      = [&](uint32_t x) {
+        for (int i = 0; i < 4; ++i)
+            file.push_back((unsigned char)(x >> (8 * i)));
+    };
+    put32(124);                                              // header size
+    put32(0x1 | 0x2 | 0x4 | 0x8 | 0x1000 | 0x20000);         // flags
+    put32(W);                                                // height
+    put32(W);                                                // width
+    put32(W);                                                // pitch
+    put32(0);                                                // depth
+    put32(nmips);                                            // mipmaps
+    file.resize(file.size() + 44, 0);                        // unused
+    for (uint32_t v : { 32, 0x20000, 0, 8, 0xff, 0, 0, 0 })  // pixformat
+        put32(v);
+    for (uint32_t v : { 0x1000 | 0x8 | 0x400000, 0, 0, 0, 0 })  // caps
+        put32(v);
+    for (uint32_t m = 0, w = W; m < nmips; ++m, w = std::max(w / 2, 1u))
+        file.resize(file.size() + w * w, (unsigned char)(m + 1));
+
+    Filesystem::IOMemReader inproxy(file);
+    auto in = ImageInput::open("mem.dds", nullptr, &inproxy);
+    OIIO_CHECK_ASSERT(in);
+    if (!in)
+        return;
+    const int mip  = 4;
+    ImageSpec spec = in->spec_dimensions(0, mip);
+    OIIO_CHECK_EQUAL(spec.width, int(W >> mip));
+    std::vector<unsigned char> buf(spec.image_bytes(true));
+    OIIO_CHECK_ASSERT(in->seek_subimage(0, 0));
+    OIIO_CHECK_ASSERT(
+        in->read_native_scanlines(0, mip, 0, spec.height, 0, buf.data()));
+    bool match = std::all_of(buf.begin(), buf.end(),
+                             [=](unsigned char v) { return v == mip + 1; });
+    OIIO_CHECK_ASSERT(match);
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -1028,6 +1169,8 @@ main(int argc, char* argv[])
     test_jxl_close_write_error();
     test_read_tricky_sizes();
     test_span_nonzero_origin();
+    test_tiff_unassoc_reads();
+    test_read_other_miplevel();
     test_read_near_int_limit();
     benchmark_tile_sizes("exr", TypeHalf, 4);
     benchmark_tile_sizes("tif", TypeUInt16, 16);

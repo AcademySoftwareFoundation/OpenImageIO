@@ -60,7 +60,14 @@ ImageInput_read_scanlines(ImageInput& self, int subimage, int miplevel,
     chend            = clamp(chend, chbegin + 1, spec.nchannels);
     size_t nchans    = size_t(chend - chbegin);
     size_t pixelsize = size_t(nchans * format.size());
-    size_t size      = size_t((yend - ybegin) * width) * pixelsize;
+    // Match the core's clamping of yend, so the buffer we allocate and the
+    // array shape we return agree with what read_scanlines actually fills.
+    yend = std::min(yend, spec.y + spec.height);
+    if (ybegin < spec.y || ybegin > yend)
+        return py::none();
+    imagesize_t size = clamped_mult64(clamped_mult64(imagesize_t(yend - ybegin),
+                                                     imagesize_t(width)),
+                                      imagesize_t(pixelsize));
     std::unique_ptr<char[]> data(new char[size]);
     bool ok;
     {
@@ -95,8 +102,12 @@ ImageInput_read_tiles(ImageInput& self, int subimage, int miplevel, int xbegin,
     chend            = clamp(chend, chbegin + 1, spec.nchannels);
     size_t nchans    = size_t(chend - chbegin);
     size_t pixelsize = size_t(nchans * format.size());
-    size_t size      = (xend - xbegin) * (yend - ybegin) * (zend - zbegin)
-                       * pixelsize;
+    if (!spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
+        return py::none();
+    imagesize_t npixels = clamped_mult64(
+        clamped_mult64(imagesize_t(xend - xbegin), imagesize_t(yend - ybegin)),
+        imagesize_t(zend - zbegin));
+    imagesize_t size = clamped_mult64(npixels, imagesize_t(pixelsize));
     int dims         = spec.tile_depth > 1 ? 4 : 3;
     std::unique_ptr<char[]> data(new char[size]);
     bool ok;

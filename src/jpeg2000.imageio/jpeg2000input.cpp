@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+#include <algorithm>
 #include <cstdio>
 #include <vector>
 
@@ -23,6 +24,7 @@ OIIO_GCC_PRAGMA(GCC diagnostic ignored "-Wdelete-incomplete")
 OIIO_PRAGMA_WARNING_POP
 #    include <openjph/ojph_message.h>
 #    include <openjph/ojph_params.h>
+#    include <openjph/ojph_version.h>
 #endif
 
 #ifndef OIIO_OPJ_VERSION
@@ -330,20 +332,153 @@ convert_si32_to_si16(const ojph::si32 si32_value,
 
 
 
+// Bounds, from the SIZ/COD/COC markers, on the memory OpenJPH's
+// codestream::create() allocates for a tile and block layout, none of which
+// depends on the file size.
+//
+// `min_bytes` is the least a valid file with this layout can hold: every tile
+// needs at least a 14-byte SOT+SOD, and every precinct of each component and
+// resolution at least a 1-byte packet. The precincts are counted over the
+// whole image with plain dyadic decomposition, so this never errs high.
+//
+// `cb_bytes` estimates the sample buffer OpenJPH allocates for each codeblock
+// column of every subband (rows padded to 16 samples of up to 64 bits),
+// whatever the band's height, so even a valid file can make it huge, e.g.
+// with a single long row and tall, narrow codeblocks. It uses the full tile
+// size for every band, so it errs high, even with DFS.
+//
+// Needs the per-component (COC) getters from OpenJPH 0.31; older versions
+// skip the check.
+static void
+ojph_layout_bounds(ojph::codestream& codestream, uint64_t& min_bytes,
+                   uint64_t& cb_bytes)
+{
+    min_bytes = cb_bytes = 0;
+#    if OPENJPH_VERSION_MAJOR > 0 || OPENJPH_VERSION_MINOR >= 31
+    ojph::param_siz siz = codestream.access_siz();
+    ojph::param_cod cod = codestream.access_cod();
+    ojph::point extent  = siz.get_image_extent();
+    ojph::point offset  = siz.get_image_offset();
+    ojph::point toffset = siz.get_tile_offset();
+    ojph::size tsize    = siz.get_tile_size();
+    if (!tsize.w || !tsize.h || extent.x <= offset.x || extent.y <= offset.y
+        || extent.x <= toffset.x || extent.y <= toffset.y)
+        return;
+    auto ceil_div = [](uint64_t n, uint64_t d) { return (n + d - 1) / d; };
+    // Most blocks of size 2^lg that n > 0 samples can straddle
+    auto straddle = [](uint64_t n, int lg) {
+        return ((n + (uint64_t(1) << lg) - 2) >> lg) + 1;
+    };
+    auto add = [](uint64_t& total, uint64_t bytes) {
+        total += std::min(bytes, UINT64_MAX - total);
+    };
+    uint64_t ntiles   = clamped_mult64(ceil_div(extent.x - toffset.x, tsize.w),
+                                       ceil_div(extent.y - toffset.y, tsize.h));
+    uint64_t tw       = std::min(tsize.w, extent.x - offset.x);
+    min_bytes         = clamped_mult64(ntiles, 14);
+    uint64_t per_tile = 0;
+    for (uint32_t c = 0, n = siz.get_num_components(); c < n; ++c) {
+        ojph::point ds   = siz.get_downsampling(c);
+        uint64_t dsx     = std::max(ds.x, 1u);
+        uint64_t dsy     = std::max(ds.y, 1u);
+        int levels       = int(cod.get_num_decompositions(c));
+        ojph::size logcb = cod.get_log_block_dims(c);
+        for (int r = 0; r <= levels; ++r) {
+            ojph::size logpp = cod.get_log_precinct_size(c, r);
+            // Resolution r of the image spans [ceil(offset / s),
+            // ceil(extent / s)), where s = downsampling * 2^(levels - r).
+            uint64_t sx = dsx << (levels - r);
+            uint64_t sy = dsy << (levels - r);
+            uint64_t rw = ceil_div(extent.x, sx) - ceil_div(offset.x, sx);
+            uint64_t rh = ceil_div(extent.y, sy) - ceil_div(offset.y, sy);
+            add(min_bytes,
+                clamped_mult64(ceil_div(rw, uint64_t(1) << logpp.w),
+                               ceil_div(rh, uint64_t(1) << logpp.h)));
+            // Codeblocks of bands of r > 0 are capped at half a precinct.
+            uint32_t off = r > 0;
+            int xcb      = int(logpp.w >= off ? std::min(logcb.w, logpp.w - off)
+                                              : logcb.w);
+            int ycb      = int(logpp.h >= off ? std::min(logcb.h, logpp.h - off)
+                                              : logcb.h);
+            uint64_t stride = ((uint64_t(1) << xcb) + 15) & ~uint64_t(15);
+            uint64_t cols   = straddle(ceil_div(tw, dsx), xcb);
+            add(per_tile,
+                clamped_mult64(r ? 3 : 1,
+                               clamped_mult64(cols, (stride * 8) << ycb)));
+        }
+    }
+    cb_bytes = clamped_mult64(ntiles, per_tile);
+#    endif
+}
+
+
+
 bool
 Jpeg2000Input::ojph_read_header()
 {
     ojph::param_siz siz = codestream.access_siz();
     int ch              = siz.get_num_components();
-    const int w         = siz.get_recon_width(0);
-    const int h         = siz.get_recon_height(0);
-    TypeDesc dtype      = TypeDesc::UINT8;
+    const int w    = int(siz.get_image_extent().x - siz.get_image_offset().x);
+    const int h    = int(siz.get_image_extent().y - siz.get_image_offset().y);
+    TypeDesc dtype = TypeDesc::UINT8;
 
     if (ch < 1) {
         errorfmt("No components in HTJ2K codestream");
         close();
         return false;
     }
+    // A component may be empty even when the image is not, and OpenJPH would
+    // spin pulling past it. With a color transform, OpenJPH decodes in
+    // interleaved order, which needs every component to be the same size.
+    for (uint32_t c = 0, n = uint32_t(ch); c < n; ++c) {
+        if (!siz.get_recon_width(c) || !siz.get_recon_height(c)) {
+            errorfmt("HTJ2K component {} is empty", c);
+            close();
+            return false;
+        }
+        if (!codestream.is_planar()
+            && (siz.get_downsampling(c).x != siz.get_downsampling(0).x
+                || siz.get_downsampling(c).y != siz.get_downsampling(0).y)) {
+            errorfmt("HTJ2K color transform with unequal component "
+                     "subsampling is not supported");
+            close();
+            return false;
+        }
+    }
+#    if OPENJPH_VERSION_MAJOR == 0 && OPENJPH_VERSION_MINOR < 27
+    // OpenJPH before 0.27 crashes pulling a tile-component with no columns,
+    // as happens where tiles are narrower than a component's horizontal
+    // subsampling. (Tile rows with no samples are skipped by every version.)
+    // Tiles at least as wide as the subsampling can only be empty at the
+    // edges, so check those. Narrower tiles hold at most one column each, so
+    // all are nonempty only if there are as many sample columns as tiles.
+    auto tiles_nonempty = [](uint64_t off, uint64_t ext, uint64_t toff,
+                             uint64_t tsz, uint64_t ds) {
+        if (!tsz || ext <= off || ext <= toff)
+            return false;
+        auto samples = [ds](uint64_t a, uint64_t b) {
+            return (b + ds - 1) / ds - (a + ds - 1) / ds;
+        };
+        uint64_t ntiles = (ext - toff + tsz - 1) / tsz;
+        uint64_t first  = std::max(off, toff);
+        uint64_t last   = toff + (ntiles - 1) * tsz;
+        if (tsz < ds)
+            return samples(first, ext) == ntiles;
+        return samples(first, std::min(ext, toff + tsz))
+               && samples(std::max(off, last), ext);
+    };
+    for (uint32_t c = 0, n = uint32_t(ch); c < n; ++c) {
+        if (!tiles_nonempty(siz.get_image_offset().x, siz.get_image_extent().x,
+                            siz.get_tile_offset().x, siz.get_tile_size().w,
+                            std::max(siz.get_downsampling(c).x, 1u))) {
+            errorfmt("HTJ2K component {} has no samples in some tile, which "
+                     "OpenJPH before 0.27 cannot decode",
+                     c);
+            close();
+            return false;
+        }
+    }
+#    endif
     if (ch > 4)
         ch = 4;  // Only do the first 4 channels.
     m_bpp.resize(ch);
@@ -382,9 +517,24 @@ Jpeg2000Input::ojph_read_header()
     // The dimensions come straight from the SIZ marker, and ojph_read_image()
     // allocates the whole image up front, so the size has to be vetted here --
     // the guards on the OpenJPEG path below do not run for HTJ2K files.
+    // OpenJPH's own working memory can also dwarf the pixels, so vet that.
+    const uint64_t filesize = ioproxy() ? ioproxy()->size() : 0;
     if (!check_open(m_spec, { 0, std::numeric_limits<int>::max(), 0,
                               std::numeric_limits<int>::max(), 0, 1, 0, 4 })
-        || !check_compression_ratio(m_spec, ioproxy() ? ioproxy()->size() : 0)) {
+        || !check_compression_ratio(m_spec, filesize)) {
+        close();
+        return false;
+    }
+    uint64_t min_bytes, cb_bytes;
+    ojph_layout_bounds(codestream, min_bytes, cb_bytes);
+    if (filesize && min_bytes > filesize) {
+        errorfmt(
+            "{} header's tile and precinct layout needs at least {} bytes, but the file is only {} bytes; probably a corrupt or malicious header",
+            format_name(), min_bytes, filesize);
+        close();
+        return false;
+    }
+    if (!check_compression_ratio(cb_bytes, filesize)) {
         close();
         return false;
     }
@@ -410,8 +560,10 @@ Jpeg2000Input::ojph_read_image()
     const size_t bufsize
         = clamped_mult64(clamped_mult64(uint64_t(w), uint64_t(h)),
                          clamped_mult64(uint64_t(ch), uint64_t(buffer_bpp)));
+    std::vector<int> colmap;
     try {
         m_buf.resize(bufsize);
+        colmap.resize(size_t(w) * ch);
         codestream.create();
     } catch (const std::exception& e) {
         errorfmt("openjph exception {}", e.what());
@@ -420,77 +572,84 @@ Jpeg2000Input::ojph_read_image()
 
     int file_bit_depth = siz.get_bit_depth(0);  // Assuming RGBA are the same.
 
+    // Each component is pulled at its own (possibly subsampled) size, and
+    // each sample is replicated over the full-resolution pixels it covers.
+    const int64_t x0 = siz.get_image_offset().x;
+    const int64_t y0 = siz.get_image_offset().y;
+    for (int c = 0; c < ch; ++c) {
+        const int64_t dx  = std::max(siz.get_downsampling(c).x, 1u);
+        const int64_t cx0 = (x0 + dx - 1) / dx;
+        const int cw      = int(siz.get_recon_width(c));
+        for (int x = 0; x < w; ++x)
+            colmap[size_t(c) * w + x] = int(
+                std::clamp<int64_t>((x0 + x) / dx - cx0, 0, cw - 1));
+    }
+
+    auto pull = [&](int c) -> const ojph::line_buf* {
+        ojph::ui32 comp_num  = 0;
+        ojph::line_buf* line = nullptr;
+        try {
+            line = codestream.pull(comp_num);
+        } catch (const std::exception& e) {
+            errorfmt("openjph exception {}", e.what());
+        }
+        if (!line || !line->i32 || int(comp_num) != c
+            || (c < ch && line->size < siz.get_recon_width(c))) {
+            if (!has_error())
+                errorfmt("Could not pull HTJ2K scanline");
+            return nullptr;
+        }
+        return line;
+    };
+
+    // Store row r of component c into every image row it covers.
+    auto store = [&](int c, int r, const ojph::line_buf* line) {
+        const int64_t dy     = std::max(siz.get_downsampling(c).y, 1u);
+        const int64_t cy0    = (y0 + dy - 1) / dy;
+        const int chh        = int(siz.get_recon_height(c));
+        int64_t ybegin       = r == 0 ? 0 : (cy0 + r) * dy - y0;
+        int64_t yend         = r == chh - 1 ? h : (cy0 + r + 1) * dy - y0;
+        ybegin               = std::clamp<int64_t>(ybegin, 0, h);
+        yend                 = std::clamp<int64_t>(yend, ybegin, h);
+        const ojph::si32* sp = line->i32;
+        const int* cmap      = &colmap[size_t(c) * w];
+        for (int64_t i = ybegin; i < yend; ++i) {
+            const size_t pix = size_t(i) * w * ch + c;
+            if (m_spec.format == TypeDesc::UINT8) {
+                unsigned char* dout = &m_buf[pix];
+                for (int j = 0; j < w; ++j, dout += ch)
+                    *dout = sp[cmap[j]];
+            } else if (m_spec.format == TypeDesc::UINT16) {
+                unsigned short* dout = (unsigned short*)&m_buf[0] + pix;
+                for (int j = 0; j < w; ++j, dout += ch)
+                    *dout = bit_range_convert(sp[cmap[j]], file_bit_depth,
+                                              buffer_bpp * 8);
+            }
+        }
+    };
+
     // We are going to read the whole image into the buffer, since with openjph
     // its hard to easily grab part of the image.
     if (codestream.is_planar()) {
-        for (int c = 0; c < ch; ++c)
-            for (int i = 0; i < h; ++i) {
-                ojph::ui32 comp_num;
-                ojph::line_buf* line = nullptr;
-                try {
-                    line = codestream.pull(comp_num);
-                } catch (const std::exception& e) {
-                    errorfmt("openjph exception {}", e.what());
-                }
-                if (!line) {
-                    if (!has_error())
-                        errorfmt("Could not pull HTJ2K scanline");
+        for (int c = 0; c < ch; ++c) {
+            for (int r = 0, chh = siz.get_recon_height(c); r < chh; ++r) {
+                const ojph::line_buf* line = pull(c);
+                if (!line)
                     return false;
-                }
-
-                const ojph::si32* sp = line->i32;
-                OIIO_DASSERT(int(comp_num) == c);
-                if (m_spec.format == TypeDesc::UINT8) {
-                    unsigned char* dout = &m_buf[i * w * ch];
-                    dout += c;
-                    for (int j = w; j > 0; j--, dout += ch) {
-                        *dout = *sp++;
-                    }
-                }
-                if (m_spec.format == TypeDesc::UINT16) {
-                    unsigned short* dout
-                        = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
-                    dout += c;
-                    for (int j = w; j > 0; j--, dout += ch) {
-                        *dout = bit_range_convert(*sp++, file_bit_depth,
-                                                  buffer_bpp * 8);
-                    }
-                }
+                store(c, r, line);
             }
+        }
     } else {
-        for (int i = 0; i < h; ++i) {
-            for (int c = 0; c < ch; ++c) {
-                ojph::ui32 comp_num;
-                ojph::line_buf* line = nullptr;
-                try {
-                    line = codestream.pull(comp_num);
-                } catch (const std::exception& e) {
-                    errorfmt("openjph exception {}", e.what());
-                }
-                if (!line) {
-                    if (!has_error())
-                        errorfmt("Could not pull HTJ2K scanline");
+        // Interleaved order delivers a row of every component in turn, which
+        // ojph_read_header() ensured all have the same size.
+        const int ncomps = siz.get_num_components();
+        for (int r = 0, chh = siz.get_recon_height(0); r < chh; ++r) {
+            for (int c = 0; c < ncomps; ++c) {
+                const ojph::line_buf* line = pull(c);
+                if (!line)
                     return false;
-                }
-
-                const ojph::si32* sp = line->i32;
-                OIIO_DASSERT(int(comp_num) == c);
-                if (m_spec.format == TypeDesc::UINT8) {
-                    unsigned char* dout = &m_buf[i * w * ch];
-                    dout += c;
-                    for (int j = w; j > 0; j--, dout += ch) {
-                        *dout = *sp++;
-                    }
-                }
-                if (m_spec.format == TypeDesc::UINT16) {
-                    unsigned short* dout
-                        = (unsigned short*)&m_buf[buffer_bpp * (i * w * ch)];
-                    dout += c;
-                    for (int j = w; j > 0; j--, dout += ch) {
-                        *dout = bit_range_convert(*sp++, file_bit_depth,
-                                                  buffer_bpp * 8);
-                    }
-                }
+                if (c < ch)
+                    store(c, r, line);
             }
         }
     }
@@ -907,7 +1066,7 @@ Jpeg2000Input::copy_scanline(int y, int /*z*/, void* data)
             }
         }
     }
-    if (m_image->color_space == OPJ_CLRSPC_SYCC)
+    if (m_image->color_space == OPJ_CLRSPC_SYCC && nc >= 3)
         yuv_to_rgb(scanline);
 }
 

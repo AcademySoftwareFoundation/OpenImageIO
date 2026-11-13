@@ -27,14 +27,12 @@
 
 // General TIFF information:
 // TIFF 6.0 spec:
-//     http://partners.adobe.com/public/developer/en/tiff/TIFF6.pdf
-// Other Adobe TIFF docs:
-//     http://partners.adobe.com/public/developer/tiff/index.html
+//     https://download.osgeo.org/libtiff/doc/TIFF6.pdf
 // Adobe extensions to allow 16 (and 24) bit float in TIFF (ugh, not on
 // their developer page, only on Chris Cox's web site?):
 //     http://chriscox.org/TIFFTN3d1.pdf
 // Libtiff:
-//     http://remotesensing.org/libtiff/
+//     http://www.simplesystems.org/libtiff/
 
 
 // clang-format off
@@ -963,6 +961,14 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
         TIFFOpenOptionsSetErrorHandlerExtR(openopts, my_error_handler, this);
         TIFFOpenOptionsSetWarningHandlerExtR(openopts, my_warning_handler,
                                              this);
+        // Bound libtiff's own allocations by limits:imagesize_MB (0 = none).
+        tmsize_t memlimit = tmsize_t(
+            std::min(int64_t(std::max(pvt::limit_imagesize_MB, 0)) << 20,
+                     int64_t(std::numeric_limits<tmsize_t>::max())));
+        TIFFOpenOptionsSetMaxSingleMemAlloc(openopts, memlimit);
+#    if OIIO_TIFFLIB_VERSION >= 40601
+        TIFFOpenOptionsSetMaxCumulatedMemAlloc(openopts, memlimit);
+#    endif
 #endif
         if (ioproxy_opened()) {
             static_assert(sizeof(thandle_t) == sizeof(void*),
@@ -970,11 +976,11 @@ TIFFInput::seek_subimage(int subimage, int miplevel)
             // Strutil::print("\n\nOpening client \"{}\"\n", m_filename);
             ioseek(0);
 #if OIIO_TIFFLIB_VERSION >= 40500
-            m_tif = TIFFClientOpen(m_filename.c_str(), "rm", ioproxy(),
-                                   reader_readproc, reader_writeproc,
-                                   reader_seekproc, reader_closeproc,
-                                   reader_sizeproc, reader_mapproc,
-                                   reader_unmapproc);
+            m_tif = TIFFClientOpenExt(m_filename.c_str(), "rm", ioproxy(),
+                                      reader_readproc, reader_writeproc,
+                                      reader_seekproc, reader_closeproc,
+                                      reader_sizeproc, reader_mapproc,
+                                      reader_unmapproc, openopts);
 #else
             m_tif = TIFFClientOpen(m_filename.c_str(), "rm", ioproxy(),
                                    reader_readproc, reader_writeproc,
@@ -1479,8 +1485,18 @@ TIFFInput::readspec(bool read_meta)
     if (s)
         m_emulate_mipmap = true;
     if (s && !strcmp(s, "Shadow")) {
-        for (int c = 0; c < m_spec.nchannels; ++c)
-            m_spec.channelnames[c] = "z";
+        for (auto& name : m_spec.channelnames)
+            name = "z";
+    }
+
+    // Set miplevels attribute in MIP emulation case (m_emulate_mipmap = true).
+    if (m_emulate_mipmap) {
+        // libtiff's TIFFNumberOfDirectories() returns tdir_t (uint32_t after
+        // libtiff v4.5.0, uint16_t before it), but the int cast seems safe for
+        // any realistic directory count here.
+        int nmiplevels = (int)TIFFNumberOfDirectories(m_tif);
+        if (nmiplevels > 1)
+            m_spec.attribute("oiio:miplevels", nmiplevels);
     }
 
     /// read color profile
@@ -1546,12 +1562,13 @@ TIFFInput::readspec(bool read_meta)
 
     // Search for IPTC metadata in IIM form -- but older versions of
     // libtiff botch the size, so ignore it for very old libtiff.
-    int iptcsize         = 0;
+    uint32_t iptccount   = 0;
     const char* iptcdata = nullptr;
     TypeDesc iptctype    = tiffgetfieldtype(TIFFTAG_RICHTIFFIPTC);
-    if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptcsize, &iptcdata)
-        && iptcsize > 0) {
+    if (TIFFGetField(m_tif, TIFFTAG_RICHTIFFIPTC, &iptccount, &iptcdata)
+        && iptccount > 0 && iptcdata) {
         std::vector<char> iptc;
+        size_t iptcsize = iptccount;
         if (iptctype.size() == 4) {
             // Some TIFF files in the wild inexplicably think their IPTC
             // data are stored as longs, and we have to undo any byte
@@ -1563,7 +1580,7 @@ TIFFInput::readspec(bool read_meta)
         } else {
             iptc.assign(iptcdata, iptcdata + iptcsize);
         }
-        decode_iptc_iim(&iptc[0], iptcsize, m_spec);
+        decode_iptc_iim(string_view(iptc.data(), iptc.size()), m_spec);
     }
 
     // Search for an XML packet containing XMP (IPTC, Exif, etc.)
@@ -1679,10 +1696,12 @@ TIFFInput::readspec_photometric()
             m_spec.attribute("tiff:ColorSpace", "color separated");
             m_spec.attribute("oiio:ColorSpace", "color separated");
             m_raw_color = true;  // Conversion to RGB doesn't make sense
+            // libtiff's InkNames getter takes no count argument, and only
+            // guarantees SamplesPerPixel names, regardless of NumberOfInks.
             const char* inknames = NULL;
-            if (safe_tiffgetfield("tiff:InkNames", TIFFTAG_INKNAMES,
-                                  TypeUnknown, &inknames)
-                && inknames && inknames[0] && numberofinks) {
+            numberofinks = std::min(int(numberofinks), m_spec.nchannels);
+            if (TIFFGetField(m_tif, TIFFTAG_INKNAMES, &inknames) && inknames
+                && inknames[0] && numberofinks > 0) {
                 m_spec.channelnames.clear();
                 // Decode the ink names, which are all concatenated together.
                 for (int i = 0; i < int(numberofinks); ++i) {
@@ -2847,11 +2866,10 @@ TIFFInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         // by alpha should happen after we've already done data format
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
-        int nchannels, alpha_channel, z_channel, width;
+        int alpha_channel, z_channel, width;
         {
             lock_guard lock(*this);
             seek_subimage(subimage, miplevel);
-            nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;
             z_channel     = m_spec.z_channel;
             width         = m_spec.width;
@@ -2863,13 +2881,23 @@ TIFFInput::read_scanlines(int subimage, int miplevel, int ybegin, int yend,
         // this. Pity the hapless soul who tries to read only the first
         // three channels of an RGBA file with unassociated alpha. They will
         // not get the premultiplication they deserve.
+        // The data holds only channels [chbegin,chend), so describe that
+        // to premult, with the alpha and z indices relative to chbegin.
+        int nch = chend - chbegin;
         if (alpha_channel >= chbegin && alpha_channel < chend)
-            OIIO::premult(nchannels, width, yend - ybegin, 1, chbegin, chend,
-                          format, data, xstride, ystride, AutoStride,
-                          alpha_channel, z_channel);
+            OIIO::premult(nch, width, yend - ybegin, 1, 0, nch, format, data,
+                          xstride, ystride, AutoStride, alpha_channel - chbegin,
+                          z_channel - chbegin);
     }
     return ok;
 }
+
+
+
+// Set while TIFFInput::read_tiles() runs on this thread. The base class
+// read_tiles() may call read_tile() for partial or channel-subset tiles,
+// and those must not premultiply, since read_tiles() will do it after.
+static thread_local const TIFFInput* tl_in_read_tiles = nullptr;
 
 
 
@@ -2879,7 +2907,7 @@ TIFFInput::read_tile(int x, int y, int z, TypeDesc format, void* data,
 {
     bool ok = ImageInput::read_tile(x, y, z, format, data, xstride, ystride,
                                     zstride);
-    if (ok && m_convert_alpha) {
+    if (ok && m_convert_alpha && tl_in_read_tiles != this) {
         // If alpha is unassociated and we aren't requested to keep it that
         // way, multiply the colors by alpha per the usual OIIO conventions
         // to deliver associated color & alpha.  Any auto-premultiplication
@@ -2908,9 +2936,12 @@ TIFFInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
                       int chend, TypeDesc format, void* data, stride_t xstride,
                       stride_t ystride, stride_t zstride)
 {
+    const TIFFInput* saved_in_read_tiles = tl_in_read_tiles;
+    tl_in_read_tiles                     = this;
     bool ok = ImageInput::read_tiles(subimage, miplevel, xbegin, xend, ybegin,
                                      yend, zbegin, zend, chbegin, chend, format,
                                      data, xstride, ystride, zstride);
+    tl_in_read_tiles = saved_in_read_tiles;
     if (ok && m_convert_alpha) {
         // If alpha is unassociated and we aren't requested to keep it that
         // way, multiply the colors by alpha per the usual OIIO conventions
@@ -2918,11 +2949,10 @@ TIFFInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
         // by alpha should happen after we've already done data format
         // conversions. That's why we do it here, rather than in
         // read_native_blah.
-        int nchannels, alpha_channel, z_channel;
+        int alpha_channel, z_channel;
         {
             lock_guard lock(*this);
             seek_subimage(subimage, miplevel);
-            nchannels     = m_spec.nchannels;
             alpha_channel = m_spec.alpha_channel;
             z_channel     = m_spec.z_channel;
             if (format == TypeUnknown)  // unknown == native type
@@ -2933,10 +2963,13 @@ TIFFInput::read_tiles(int subimage, int miplevel, int xbegin, int xend,
         // this. Pity the hapless soul who tries to read only the first
         // three channels of an RGBA file with unassociated alpha. They will
         // not get the premultiplication they deserve.
+        // The data holds only channels [chbegin,chend), so describe that
+        // to premult, with the alpha and z indices relative to chbegin.
+        int nch = chend - chbegin;
         if (alpha_channel >= chbegin && alpha_channel < chend)
-            OIIO::premult(nchannels, xend - xbegin, yend - ybegin,
-                          zend - zbegin, chbegin, chend, format, data, xstride,
-                          ystride, zstride, alpha_channel, z_channel);
+            OIIO::premult(nch, xend - xbegin, yend - ybegin, zend - zbegin, 0,
+                          nch, format, data, xstride, ystride, zstride,
+                          alpha_channel - chbegin, z_channel - chbegin);
     }
     return ok;
 }

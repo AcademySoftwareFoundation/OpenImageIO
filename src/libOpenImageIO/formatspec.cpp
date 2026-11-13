@@ -197,25 +197,29 @@ ImageSpec::default_channel_names() noexcept
     channelnames.clear();
     alpha_channel = -1;
     z_channel     = -1;
-    if (nchannels < 1 || (limit_channels && nchannels > limit_channels))
+    if (nchannels < 1)
         return;  // early out for invalid channel counts
-    channelnames.reserve(nchannels);
+    // Only name up to limits:channels, leave any excess unnamed
+    int nnames = nchannels;
+    if (limit_channels && nnames > limit_channels)
+        nnames = limit_channels;
+    channelnames.reserve(nnames);
     if (nchannels == 1) {  // Special case: 1-channel is named "Y"
         channelnames.emplace_back("Y");
         return;
     }
     // General case: name channels R, G, B, A, channel4, channel5, ...
-    if (nchannels >= 1)
+    if (nnames >= 1)
         channelnames.emplace_back("R");
-    if (nchannels >= 2)
+    if (nnames >= 2)
         channelnames.emplace_back("G");
-    if (nchannels >= 3)
+    if (nnames >= 3)
         channelnames.emplace_back("B");
-    if (nchannels >= 4) {
+    if (nnames >= 4) {
         channelnames.emplace_back("A");
         alpha_channel = 3;
     }
-    for (int c = 4; c < nchannels; ++c)
+    for (int c = 4; c < nnames; ++c)
         channelnames.emplace_back(Strutil::fmt::format("channel{}", c));
 }
 

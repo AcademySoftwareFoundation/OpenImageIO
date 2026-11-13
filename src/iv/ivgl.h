@@ -27,6 +27,8 @@
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imageio.h>
 
+#include "ivutils.h"
+
 using namespace OIIO;
 
 class IvImage;
@@ -47,6 +49,18 @@ public:
         update_cursor();
     }
     bool wipe_horizontal() const { return m_wipe.horizontal; }
+
+    /// Select the difference view to display in place of the image (Off =
+    /// plain or wipe split, absdiff, or FLIP perceptual difference). See
+    /// DiffMode in ivutils.h.
+    void set_diff_mode(DiffMode mode) { m_diff_mode = mode; }
+    DiffMode diff_mode() const { return m_diff_mode; }
+
+    /// Display the given FLIP error map (already colormapped if desired)
+    /// instead of the primary image while in FlipDiff mode. Pass an
+    /// invalid/empty buffer to clear it.
+    void set_flipdiff_map(const ImageBuf& errmap);
+    void clear_flipdiff_map();
 
     /// Update the view -- center (in pixel coordinates) and zoom level.
     ///
@@ -170,6 +184,12 @@ protected:
     };
     std::array<ImageSlot, 2> m_slots;
     Wipe m_wipe;
+    DiffMode m_diff_mode = DiffMode::Off;
+    // FLIP error map texture (FlipDiff mode), shown when valid.
+    GLuint m_flipdiff_tex = 0;
+    bool m_flipdiff_valid = false;
+    int m_flipdiff_width  = 0;
+    int m_flipdiff_height = 0;
     bool m_mouse_activation;  ///< Can we expect the window to be activated by mouse?
 
 
@@ -233,6 +253,9 @@ private:
     size_t update_texture(ImageSlot& slot, GLenum texture_unit);
     void load_texture(ImageSlot& slot, GLenum texture_unit, int x, int y,
                       int width, int height);
+    /// Upload an RGB8 buffer of the given size into the flipdiff texture.
+    void upload_flipdiff_texture(const unsigned char* pixels, int width,
+                                 int height);
     void update_cursor();
 
     /// Destroys shaders and selects fixed-function pipeline

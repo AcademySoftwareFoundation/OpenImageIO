@@ -66,6 +66,9 @@ for f in [ "valid-32x32.dng", "bad-exif-type.dng", "truncated.dng",
     command += oiiotool ("--info src/" + f, failureok = True)
     command += oiiotool ("-iconfig raw:Demosaic none --stats src/" + f,
                          failureok = True)
+# Sensor data is under the ratio floor, but the RGB output image is not.
+command += oiiotool ("--oiioattrib try_all_readers 0 --info src/bomb-16000x16000.dng",
+                     failureok = True)
 
 # Check the crop size and position in all 4 orientations.
 for rotation in [0, 90, 180, 270]:

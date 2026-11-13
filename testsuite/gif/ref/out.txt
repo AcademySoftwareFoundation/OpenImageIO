@@ -117,3 +117,6 @@ src/short-graphics-ext.gif :    1 x    1, 4 channel, uint8 gif
     channel list: R, G, B, A
     gif:Interlacing: 0
     oiio:ColorSpace: "srgb_rec709_scene"
+oiiotool ERROR: -o : gif subimages must all have the same resolution (subimage 0 was 4x4, versus subimage 1 with 64x64)
+Full command line was:
+> oiiotool --create 4x4 3 --create 64x64 3 --siappend -o grow.gif

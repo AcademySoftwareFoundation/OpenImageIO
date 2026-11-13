@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+# Keep this at 0.32.x for now: OpenEXR 3.5 only accepts openjph 0.32.x, and
+# falls back to bundling its own copy of 0.32 otherwise, which then collides
+# with ours when both are linked statically.
 set_cache (openjph_BUILD_VERSION 0.32.0 "openjph version for local builds")
 set (openjph_GIT_REPOSITORY "https://github.com/aous72/OpenJPH.git")
-set (openjph_GIT_TAG "${openjph_BUILD_VERSION}")
+set_cache (openjph_GIT_TAG "${openjph_BUILD_VERSION}" "Git branch or tag")
 set_cache (openjph_GIT_COMMIT "23c422895ce6c3a156935222e4715ee0b7be952c"
            "commit hash to verify tag against")
 set_cache (openjph_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}

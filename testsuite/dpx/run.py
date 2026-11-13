@@ -83,3 +83,34 @@ command += oiiotool("src/crash-large-origin.dpx -o crash-large-origin.tif",
 # check_open() must reject it up front.
 command += info_command("src/crash-origin-overflow.dpx", safematch=True,
                         failureok=True)
+
+# Regression test: a DPX whose end-of-line padding (2^31) goes negative in
+# the int the readers use. A negative padding lets a tiny file stand in for
+# a huge image, which reached a 32-bit overflow of the output buffer offset.
+# The file must be rejected on open.
+command += info_command("src/bad-eolpad.dpx", safematch=True, failureok=True)
+
+# Regression test: a DPX whose pixel data is cut off after the first
+# scanline. libdpx ignored the short reads and reported success, so a tiny
+# file declaring huge images was "read" in full, which made the fuzzer time
+# out. The read must now fail.
+command += oiiotool("--testread src/truncated-pixels.dpx", failureok=True)
+
+# Regression test: a 10-bit DPX whose packing field holds 0x3001, which is
+# not a Packing enumerator. Loading it into the enum was undefined behavior
+# (flagged by UBSan). The read fails because the pixel data is too short
+# for the 16-bit words an unknown packing falls back to.
+command += oiiotool("--testread src/bad-packing.dpx", failureok=True)
+
+# Regression test: DPX image elements share one resolution, so subimages
+# that differ must be rejected rather than written with the first
+# subimage's size (which over-read the pixel buffer). Elements may have
+# different channel counts, and each must get its own descriptor.
+command += oiiotool("--create 64x64 3 --create 4x4 3 --siappend -o mixed-res.dpx",
+                    failureok=True)
+command += oiiotool("--pattern constant:color=0.25,0.5,0.75 64x64 3 "
+                    "--pattern constant:color=1 64x64 1 --chnames A "
+                    "--siappend -o mixed-chans.dpx")
+command += info_command("mixed-chans.dpx", safematch=True, hash=True)
+# Channel counts with no supported descriptor must fail cleanly.
+command += oiiotool("--create 8x8 2 -o twochan.dpx", failureok=True)

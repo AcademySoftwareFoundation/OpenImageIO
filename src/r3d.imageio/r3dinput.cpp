@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <climits>
 #include <cstdio>
 
 #include <OpenImageIO/filesystem.h>
@@ -118,6 +119,8 @@ private:
     int m_last_search_pos;
     int m_last_decoded_pos;
     bool m_read_frame;
+    bool m_frame_valid;  // did the last read_frame() actually decode?
+    bool m_sdk_ok;       // did InitializeSdk() succeed?
     int m_next_scanline;
 
     void initialize();
@@ -130,6 +133,7 @@ private:
         m_clip             = nullptr;
         m_next_scanline    = 0;
         m_read_frame       = false;
+        m_frame_valid      = false;
         m_subimage         = 0;
         m_last_search_pos  = 0;
         m_last_decoded_pos = 0;
@@ -183,6 +187,7 @@ R3dInput::initialize()
         );
     // initialize SDK
     // R3DSDK::InitializeStatus init_status = R3DSDK::InitializeSdk(".", OPTION_RED_CUDA);
+    m_sdk_ok = false;
     R3DSDK::InitializeStatus init_status
         = R3DSDK::InitializeSdk(library_path.c_str(), OPTION_RED_NONE);
     if (init_status != R3DSDK::ISInitializeOK) {
@@ -190,6 +195,7 @@ R3dInput::initialize()
         DBG("Failed to load R3DSDK Library\n");
         return;
     }
+    m_sdk_ok = true;
 
     DBG("SDK VERSION: {}\n", R3DSDK::GetSdkVersion());
 #ifdef GPU
@@ -227,13 +233,16 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
 
     DBG("m_filename = {}\n", m_filename);
 
+    if (!m_sdk_ok) {
+        errorfmt("Could not initialize the R3D SDK");
+        return false;
+    }
+
     // load the clip
     m_clip = new R3DSDK::Clip(m_filename.c_str());
 
     // let the user know if this failed
     if (m_clip->Status() != R3DSDK::LSClipLoaded) {
-        DBG("Error loading {}\n", m_filename);
-
         errorfmt("Could not load R3D clip \"{}\"", m_filename);
         close();
         return false;
@@ -241,31 +250,51 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
 
     DBG("Loaded {}\n", m_filename);
 
-    // calculate how much ouput memory we're going to need
+    // The clip dimensions and frame count come from the file, by way of the
+    // SDK. Range-check them before they reach the ImageSpec or the buffer
+    // size math. The comparisons are done in size_t so that a negative value
+    // from the SDK becomes a huge one and is rejected here too.
     size_t width  = m_clip->Width();
     size_t height = m_clip->Height();
+    size_t frames = m_clip->VideoFrameCount();
 
     m_channels = 3;
 
-    DBG("Video frame count {}\n", m_clip->VideoFrameCount());
+    DBG("Video frame count {}\n", frames);
 
-    m_frames     = m_clip->VideoFrameCount();
+    if (width > size_t(1 << 16) || height > size_t(1 << 16)
+        || frames > size_t(INT_MAX)) {
+        errorfmt("\"{}\" implausible R3D clip: {}x{}, {} frames", m_filename,
+                 width, height, frames);
+        return false;
+    }
+    m_frames     = int(frames);
     m_nsubimages = m_frames;
 
     DBG("Video framerate {}\n", m_clip->VideoAudioFramerate());
 
     m_fps = m_clip->VideoAudioFramerate();
 
-    // three channels (RGB) in 16-bit (2 bytes) requires this much memory:
-    size_t memNeeded = m_channels * width * height * sizeof(uint16_t);
+    m_spec = ImageSpec(int(width), int(height), m_channels, TypeDesc::UINT16);
+    if (!check_open(m_spec, ROI(0, 1 << 16, 0, 1 << 16, 0, 1, 0, m_channels))
+        || !check_compression_ratio(m_spec, Filesystem::file_size(name)))
+        return false;
+    if (m_frames < 1) {
+        errorfmt("\"{}\" R3D clip contains no video frames", m_filename);
+        return false;
+    }
+
+    // three channels (RGB) in 16-bit (2 bytes) requires this much memory.
+    // Take it from the spec that check_open just validated, so the buffer and
+    // the spec can never disagree about how big a frame is.
+    size_t memNeeded = size_t(m_spec.image_bytes());
 
     // alloc this memory 16-byte aligned
     m_image_buffer = static_cast<unsigned char*>(aligned_malloc(memNeeded, 16));
 
     if (m_image_buffer == NULL) {
-        DBG("Failed to allocate {} bytes of memory for output image\n",
-            static_cast<int>(memNeeded));
-
+        errorfmt("Could not allocate {} bytes for the R3D frame buffer",
+                 memNeeded);
         close();
         return false;
     }
@@ -282,7 +311,6 @@ R3dInput::open(const std::string& name, ImageSpec& newspec)
     // Interleaved RGB decoding in 16-bits per pixel
     m_job.PixelType = R3DSDK::PixelType_16Bit_RGB_Interleaved;
 
-    m_spec = ImageSpec(width, height, m_channels, TypeDesc::UINT16);
     m_spec.attribute("FramesPerSecond", TypeFloat, &m_fps);
     m_spec.attribute("oiio:Movie", true);
     m_spec.attribute("oiio:subimages", int(m_frames));
@@ -304,14 +332,21 @@ R3dInput::read_frame(int pos)
         seek(pos);
     }
 
+    m_read_frame  = true;
+    m_frame_valid = false;
+
     R3DSDK::DecodeStatus status = m_clip->DecodeVideoFrame(pos, m_job);
     if (status != R3DSDK::DSDecodeOK) {
         DBG("Failed to decode frame {}\n", pos);
+        // The output buffer is left untouched -- uninitialized on the first
+        // frame, stale afterwards -- so callers must not see it as pixels.
+        errorfmt("\"{}\" could not decode R3D frame {}", m_filename, pos);
+        return;
     }
 
     m_last_search_pos  = pos;
     m_last_decoded_pos = pos;
-    m_read_frame       = true;
+    m_frame_valid      = true;
     m_next_scanline    = 0;
 }
 
@@ -347,6 +382,14 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     if (!m_read_frame) {
         read_frame(m_subimage);
     }
+    if (!m_frame_valid) {
+        // Nothing was decoded into m_image_buffer for this subimage; copying
+        // it out would hand back uninitialized (or stale) heap contents.
+        if (!has_error())
+            errorfmt("\"{}\" could not decode R3D frame {}", m_filename,
+                     m_subimage);
+        return false;
+    }
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
     if (m_next_scanline > y) {
@@ -364,11 +407,14 @@ R3dInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
         OIIO_DASSERT(m_next_scanline == 0 && current_subimage() == subimage);
     }
 
-    return copy_image(
-        m_spec.nchannels, m_spec.width, 1, m_spec.depth,
-        m_image_buffer + y * m_spec.nchannels * m_spec.width * sizeof(uint16_t),
-        m_spec.nchannels * sizeof(uint16_t), AutoStride, AutoStride, AutoStride,
-        data, AutoStride, AutoStride, AutoStride);
+    // 64-bit: nchannels * width * y overflows int on a large enough frame.
+    imagesize_t offset = imagesize_t(y) * imagesize_t(m_spec.nchannels)
+                         * imagesize_t(m_spec.width) * sizeof(uint16_t);
+    return copy_image(m_spec.nchannels, m_spec.width, 1, m_spec.depth,
+                      m_image_buffer + offset,
+                      m_spec.nchannels * sizeof(uint16_t), AutoStride,
+                      AutoStride, AutoStride, data, AutoStride, AutoStride,
+                      AutoStride);
 }
 
 
@@ -423,7 +469,11 @@ void
 R3dInput::terminate()
 {
     DBG("R3dInput::terminate()\n");
-    R3DSDK::FinalizeSdk();
+    // initialize() already finalized if it failed; don't do it twice.
+    if (m_sdk_ok) {
+        R3DSDK::FinalizeSdk();
+        m_sdk_ok = false;
+    }
 }
 
 OIIO_PLUGIN_NAMESPACE_END

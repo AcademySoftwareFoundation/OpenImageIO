@@ -147,6 +147,8 @@ private:
         uint32_t width, height;
         uint16_t channel_count;
 
+        bool empty() const { return width == 0 || height == 0; }
+
         std::vector<ChannelInfo> channel_info;
         std::map<int16_t, ChannelInfo*> channel_id_map;
 
@@ -195,7 +197,7 @@ private:
     std::string m_filename;
     //Current subimage
     int m_subimage;
-    //Subimage count (1 + layer count)
+    //Subimage count (composite plus nonempty layers)
     int m_subimage_count;
     std::vector<ImageSpec> m_specs;
     static const ResourceLoader resource_loaders[];
@@ -282,6 +284,7 @@ private:
     bool load_layer_channels(Layer& layer);
     bool load_layer_channel(Layer& layer, ChannelInfo& channel_info);
     bool read_rle_lengths(uint32_t height, std::vector<uint32_t>& rle_lengths);
+    bool check_rle_lengths(cspan<uint32_t> rle_lengths, uint64_t available);
 
     //Global Mask Info
     bool load_global_mask_info();
@@ -651,8 +654,6 @@ PSDInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    // Layer count + 1 for merged composite (Image Data Section)
-    m_subimage_count = m_layers.size() + 1;
     // Setup ImageSpecs and m_channels
     bool ok = setup();
 
@@ -803,7 +804,7 @@ PSDInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     // here safely.
     const ImageSpec& spec = m_specs[subimage];
     y -= spec.y;
-    if (y < 0 || y > spec.height) {
+    if (y < 0 || y >= spec.height) {
         errorfmt("Requested scanline {} out of range [0-{}]", y,
                  spec.height - 1);
         return false;
@@ -1632,7 +1633,9 @@ PSDInput::load_layer(Layer& layer)
     int64_t h    = int64_t(layer.bottom) - int64_t(layer.top);
     layer.width  = uint32_t(w < 0 ? -w : w);
     layer.height = uint32_t(h < 0 ? -h : h);
-    if (!validate_resolution("Layer Record", layer.width, layer.height))
+    // Tolerate empty rectangles, but still enforce upper size limits.
+    if (!validate_resolution("Layer Record", std::max(layer.width, 1u),
+                             std::max(layer.height, 1u)))
         return false;
     layer.channel_info.resize(layer.channel_count);
     for (uint16_t channel = 0; channel < layer.channel_count; channel++) {
@@ -1756,6 +1759,28 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     if (channel_info.data_length <= 2)
         return true;
 
+    // A channel's stored data, including the 2 byte compression tag already
+    // read, cannot extend past the end of the file. Compare unsigned: for PSB
+    // the length is 64 bits and a corrupt value would wrap negative if cast.
+    int64_t file_size = ioproxy() ? ioproxy()->size() : 0;
+    int64_t remaining = file_size - start_pos;
+    if (remaining < 0 || channel_info.data_length > uint64_t(remaining)) {
+        errorfmt("[Layer Channel] data length {} exceeds remaining file size",
+                 channel_info.data_length);
+        return false;
+    }
+
+    // Empty layers are not exposed as images, but their channels may still
+    // contain RLE row counts or ZIP data. Masks have independent dimensions.
+    if (layer.empty() && channel_info.channel_id != ChannelID_LayerMask)
+        return ioseek(start_pos + channel_info.data_length);
+
+    // The real user mask (-3) has its own rectangle (the "real" fields of the
+    // layer mask data), which we don't parse. Its pixels are never exposed as
+    // image channels, so skip it using the length declared in the layer record.
+    if (channel_info.channel_id == ChannelID_UserMask)
+        return ioseek(start_pos + channel_info.data_length);
+
     // Use mask_data size when channel_id is -2
     uint32_t width, height;
     if (channel_info.channel_id == ChannelID_LayerMask) {
@@ -1779,17 +1804,6 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
     channel_info.height = height;
 
     channel_info.data_pos = iotell();
-
-    // A channel's stored data, including the 2 byte compression tag already
-    // read, cannot extend past the end of the file. Compare unsigned: for PSB
-    // the length is 64 bits and a corrupt value would wrap negative if cast.
-    int64_t file_size = ioproxy() ? ioproxy()->size() : 0;
-    int64_t remaining = file_size - start_pos;
-    if (remaining < 0 || channel_info.data_length > uint64_t(remaining)) {
-        errorfmt("[Layer Channel] data length {} exceeds remaining file size",
-                 channel_info.data_length);
-        return false;
-    }
 
     channel_info.row_pos.resize(height);
     channel_info.row_length = (width * m_header.depth + 7) / 8;
@@ -1824,6 +1838,9 @@ PSDInput::load_layer_channel(Layer& layer, ChannelInfo& channel_info)
         }
         channel_info.data_length = channel_info.data_length
                                    - (channel_info.data_pos - start_pos);
+        if (!check_rle_lengths(channel_info.rle_lengths,
+                               channel_info.data_length))
+            return false;
         if (height) {
             channel_info.row_pos[0] = channel_info.data_pos;
             for (uint32_t i = 1; i < height; ++i)
@@ -1894,6 +1911,23 @@ PSDInput::read_rle_lengths(uint32_t height, std::vector<uint32_t>& rle_lengths)
             ok &= read_bige<uint32_t>(rle_lengths[row]);
     }
     return ok;
+}
+
+
+
+// Sum of a channel's RLE row lengths must fit in the bytes available for it.
+bool
+PSDInput::check_rle_lengths(cspan<uint32_t> rle_lengths, uint64_t available)
+{
+    uint64_t total = 0;
+    for (uint32_t len : rle_lengths)
+        total += len;
+    if (total > available) {
+        errorfmt("RLE row lengths ({} bytes) exceed available data ({} bytes)",
+                 total, available);
+        return false;
+    }
+    return true;
 }
 
 
@@ -2094,6 +2128,14 @@ PSDInput::load_image_data()
                 return false;
         }
     }
+    if (compression == Compression_RLE) {
+        int64_t file_size = ioproxy() ? ioproxy()->size() : 0;
+        int64_t remaining = std::max(file_size - iotell(), int64_t(0));
+        for (ChannelInfo& channel_info : m_image_data.channel_info) {
+            if (!check_rle_lengths(channel_info.rle_lengths, remaining))
+                return false;
+        }
+    }
     bool ok = true;
     for (ChannelInfo& channel_info : m_image_data.channel_info) {
         channel_info.row_pos.resize(m_header.height);
@@ -2158,13 +2200,15 @@ PSDInput::setup()
             spec.attribute("oiio:UnassociatedAlpha", 1);
 
     // Composite channels
-    m_channels.reserve(m_subimage_count);
+    m_channels.reserve(m_layers.size() + 1);
     m_channels.resize(1);
     m_channels[0].reserve(raw_channel_count);
     for (int i = 0; i < raw_channel_count; ++i)
         m_channels[0].push_back(&m_image_data.channel_info[i]);
 
     for (Layer& layer : m_layers) {
+        if (layer.empty())
+            continue;
         spec_channel_count = m_WantRaw ? mode_channel_count[m_header.color_mode]
                                        : 3;
         raw_channel_count  = mode_channel_count[m_header.color_mode];
@@ -2200,8 +2244,14 @@ PSDInput::setup()
         std::vector<ChannelInfo*>& channels = m_channels.back();
         channels.reserve(raw_channel_count);
         for (unsigned int i = 0; i < mode_channel_count[m_header.color_mode];
-             ++i)
-            channels.push_back(layer.channel_id_map[i]);
+             ++i) {
+            auto found = layer.channel_id_map.find(int16_t(i));
+            if (found == layer.channel_id_map.end()) {
+                errorfmt("[Layer Record] Layer is missing channel id {}", i);
+                return false;
+            }
+            channels.push_back(found->second);
+        }
 
         if (transparency)
             channels.push_back(layer.channel_id_map[ChannelID_Transparency]);
@@ -2209,6 +2259,7 @@ PSDInput::setup()
             spec.attribute("oiio:subimagename", layer.name);
     }
 
+    m_subimage_count = int(m_specs.size());
     return true;
 }
 

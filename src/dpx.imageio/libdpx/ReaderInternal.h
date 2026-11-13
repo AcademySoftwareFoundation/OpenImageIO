@@ -64,7 +64,7 @@ namespace dpx
 
 	// this function is called when the DataSize is 10 bit and the packing method is kFilledMethodA or kFilledMethodB
 	template<typename BUF, int PADDINGBITS>
-	void Unfill10bitFilled(U32 *readBuf, const int x, BUF *data, int count, int bufoff, const int numberOfComponents)
+	void Unfill10bitFilled(U32 *readBuf, const int x, BUF *data, int count, int64_t bufoff, const int numberOfComponents)
 	{
 		// unpack the words in the buffer
 		BUF *obuf = data + bufoff;
@@ -160,9 +160,10 @@ namespace dpx
 			readSize = readSize / 3 * 4;
 			
 			// determine buffer offset
-			int bufoff = line * datums;
+			int64_t bufoff = int64_t(line) * datums;
 	
-			fd->Read(dpxHeader, element, offset, readBuf, readSize);
+			if (!fd->Read(dpxHeader, element, offset, readBuf, readSize))
+				return false;
 	
 			// unpack the words in the buffer
 #if RLE_WORKING			
@@ -213,12 +214,12 @@ namespace dpx
 	// 10 bit, packed data
 	// 12 bit, packed data
 	template <typename BUF, U32 MASK, int MULTIPLIER, int REMAIN, int REVERSE>
-	void UnPackPacked(U32 *readBuf, const int bitDepth, BUF *data, int count, int bufoff)
+	void UnPackPacked(U32 *readBuf, const int bitDepth, BUF *data, int64_t count, int64_t bufoff)
 	{
 		// unpack the words in the buffer
 		BUF *obuf = data + bufoff;
 				
-		for (int i = count - 1; i >= 0; i--)
+		for (int64_t i = count - 1; i >= 0; i--)
 		{
 			// unpacking the buffer backwards
 			// find the byte that the data starts in, read in as a 16 bits then shift and mask
@@ -278,27 +279,28 @@ namespace dpx
 		const int dataSize = dpxHeader.BitDepth(element);
 
 		// number of bytes 
-		const int lineSize = (dpxHeader.Width() * numberOfComponents * dataSize + 31) / 32;
+		const int64_t lineSize = (int64_t(dpxHeader.Width()) * numberOfComponents * dataSize + 31) / 32;
 
 		// read in each line at a time directly into the user memory space
-		for (int line = 0; line < height; line++)
+		for (int64_t line = 0; line < height; line++)
 		{
 			// determine offset into image element
-			int64_t offset = int64_t(line + block.y1) * (lineSize * sizeof(U32)) +
-						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + int64_t(line) * eolnPad;
+			int64_t offset = (line + block.y1) * (lineSize * sizeof(U32)) +
+						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + line * eolnPad;
 	
 			// calculate read size
-			int readSize = ((block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
-			readSize += (block.x1 * numberOfComponents * dataSize % 32);			// add the bits left over from the beginning of the line
+			int64_t readSize = (int64_t(block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
+			readSize += (int64_t(block.x1) * numberOfComponents * dataSize % 32);			// add the bits left over from the beginning of the line
 			readSize = ((readSize + 31) / 32) * sizeof(U32);
 
 			// calculate buffer offset
-			int bufoff = line * dpxHeader.Width() * numberOfComponents;
-	
-			fd->Read(dpxHeader, element, offset, readBuf, readSize);
+			int64_t bufoff = int64_t(line) * dpxHeader.Width() * numberOfComponents;
+
+			if (!fd->Read(dpxHeader, element, offset, readBuf, readSize))
+				return false;
 
 			// unpack the words in the buffer
-			int count = (block.x2 - block.x1 + 1) * numberOfComponents;
+			int64_t count = int64_t(block.x2 - block.x1 + 1) * numberOfComponents;
 			UnPackPacked<BUF, MASK, MULTIPLIER, REMAIN, REVERSE>(readBuf, dataSize, data, count, bufoff);
 		}
 
@@ -351,11 +353,13 @@ namespace dpx
 						
 			if (BUFTYPE == SRCTYPE)
 			{
-				fd->ReadDirect(dpxHeader, element, offset, reinterpret_cast<unsigned char *>(data + int64_t(width)*line), int64_t(width)*bytes);
+				if (!fd->ReadDirect(dpxHeader, element, offset, reinterpret_cast<unsigned char *>(data + int64_t(width)*line), int64_t(width)*bytes))
+					return false;
 			}
 			else
 			{
-				fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*bytes);
+				if (!fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*bytes))
+					return false;
 
 				// convert data
 				for (int i = 0; i < width; i++)
@@ -393,7 +397,8 @@ namespace dpx
 			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * 2 +
 						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line) * eolnPad;
 	
-			fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*2);
+			if (!fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*2))
+				return false;
 
 			// convert data
 			for (int i = 0; i < width; i++)

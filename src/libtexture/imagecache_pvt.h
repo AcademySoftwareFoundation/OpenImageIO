@@ -204,7 +204,11 @@ public:
 
     /// Mark the file as recently used.
     ///
-    void use(void) { m_used = true; }
+    void use(void)
+    {
+        if (!m_used.load(std::memory_order_relaxed))
+            m_used.store(true, std::memory_order_relaxed);
+    }
 
     /// Try to release resources for this file -- if recently used, mark
     /// as not recently used; if already not recently used, close the
@@ -479,7 +483,7 @@ public:
 private:
     ustring m_filename_original;   ///< original filename before search path
     ustring m_filename;            ///< Filename
-    bool m_used;                   ///< Recently used (in the LRU sense)
+    std::atomic<bool> m_used;      ///< Recently used (in the LRU sense)
     bool m_broken;                 ///< has errors; can't be used properly
     bool m_allow_release = true;   ///< Allow the file to release()?
     std::string m_broken_message;  ///< Error message for why it's broken
@@ -799,7 +803,11 @@ public:
 
     /// Mark the tile as recently used.
     ///
-    void use() { m_used = 1; }
+    void use()
+    {
+        if (!m_used.load(std::memory_order_relaxed))
+            m_used.store(1, std::memory_order_relaxed);
+    }
 
     /// Mark the tile as not recently used, return its previous value.
     ///
@@ -1343,7 +1351,7 @@ private:
 
     mutable FilenameMap m_files;    ///< Map file names to ImageCacheFile's
     ustring m_file_sweep_name;      ///< Sweeper for "clock" paging algorithm
-    spin_mutex m_file_sweep_mutex;  ///< Ensure only one in check_max_files
+    std::mutex m_file_sweep_mutex;  ///< Ensure only one in check_max_files
 
     spin_mutex m_fingerprints_mutex;  ///< Protect m_fingerprints
     FingerprintMap m_fingerprints;    ///< Map fingerprints to files

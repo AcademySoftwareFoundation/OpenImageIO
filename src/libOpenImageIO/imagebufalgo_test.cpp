@@ -387,6 +387,120 @@ test_paste()
 
 
 
+static void
+test_paste_deep()
+{
+    std::cout << "test paste deep\n";
+    // Deep source: pixel (x,y) has x+1 samples, Z value of sample s is
+    // 100*y + 10*x + s.
+    ImageSpec spec(4, 4, 2, TypeDesc::FLOAT);
+    spec.channelnames = { "A", "Z" };
+    spec.deep         = true;
+    ImageBuf src(spec);
+    for (int y = 0; y < 4; ++y)
+        for (int x = 0; x < 4; ++x) {
+            src.set_deep_samples(x, y, 0, x + 1);
+            for (int s = 0; s <= x; ++s)
+                src.set_deep_value(x, y, 0, 1, s, 100.0f * y + 10.0f * x + s);
+        }
+
+    // Paste into an existing deep image, partly off the right edge. The
+    // overhang must be clipped, not wrapped onto the next scanline.
+    {
+        ImageBuf dst(spec);
+        OIIO_CHECK_ASSERT(ImageBufAlgo::paste(dst, 2, 0, 0, 0, src));
+        for (int y = 0; y < 4; ++y) {
+            OIIO_CHECK_EQUAL(dst.deep_samples(0, y, 0), 0);
+            OIIO_CHECK_EQUAL(dst.deep_samples(1, y, 0), 0);
+            OIIO_CHECK_EQUAL(dst.deep_samples(2, y, 0), 1);
+            OIIO_CHECK_EQUAL(dst.deep_samples(3, y, 0), 2);
+            OIIO_CHECK_EQUAL(dst.deep_value(3, y, 0, 1, 1), 100.0f * y + 11.0f);
+        }
+    }
+
+    // Paste entirely outside dst: nothing changes.
+    {
+        ImageBuf dst(spec);
+        OIIO_CHECK_ASSERT(ImageBufAlgo::paste(dst, 10, 0, 0, 0, src));
+        for (int y = 0; y < 4; ++y)
+            for (int x = 0; x < 4; ++x)
+                OIIO_CHECK_EQUAL(dst.deep_samples(x, y, 0), 0);
+    }
+
+    // Paste into an uninitialized ImageBuf: it takes the destination
+    // region, as in the flat case.
+    {
+        ImageBuf dst;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::paste(dst, 3, 5, 0, 0, src));
+        OIIO_CHECK_ASSERT(dst.deep());
+        OIIO_CHECK_EQUAL(dst.roi(), ROI(3, 7, 5, 9, 0, 1, 0, 2));
+        OIIO_CHECK_EQUAL(dst.deep_samples(6, 8, 0), 4);
+        OIIO_CHECK_EQUAL(dst.deep_value(6, 8, 0, 1, 3), 333.0f);
+    }
+
+    // Source ROI larger than src: dst gets the whole region, but pixels
+    // outside src's data window must get no samples, not wrapped ones.
+    {
+        ImageBuf dst;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::paste(dst, 0, 0, 0, 0, src,
+                                              ROI(0, 5, 0, 4, 0, 1, 0, 2)));
+        OIIO_CHECK_EQUAL(dst.roi(), ROI(0, 5, 0, 4, 0, 1, 0, 2));
+        for (int y = 0; y < 4; ++y) {
+            OIIO_CHECK_EQUAL(dst.deep_samples(3, y, 0), 4);
+            OIIO_CHECK_EQUAL(dst.deep_samples(4, y, 0), 0);
+        }
+    }
+
+    // Empty source ROI into an uninitialized dst: an error, not a crash.
+    {
+        ImageBuf dst;
+        OIIO_CHECK_FALSE(ImageBufAlgo::paste(dst, 0, 0, 0, 0, src,
+                                             ROI(0, 0, 0, 4, 0, 1, 0, 2)));
+        OIIO_CHECK_ASSERT(dst.has_error());
+        dst.geterror();
+    }
+
+    // Deep pixels are copied whole, so a channel offset is an error.
+    {
+        ImageBuf dst;
+        OIIO_CHECK_FALSE(ImageBufAlgo::paste(dst, 0, 0, 0, 1, src));
+        OIIO_CHECK_ASSERT(dst.has_error());
+        dst.geterror();
+    }
+}
+
+
+
+static void
+test_make_kernel()
+{
+    std::cout << "test make_kernel\n";
+    // Binomial kernels of even or fractional size get rounded up to odd,
+    // and must fill the whole rounded-up image.
+    {
+        ImageBuf K = ImageBufAlgo::make_kernel("binomial", 3, 3);
+        OIIO_CHECK_EQUAL(K.roi(), ROI(-1, 2, -1, 2, 0, 1, 0, 1));
+        OIIO_CHECK_EQUAL(K.getchannel(0, 0, 0, 0), 4.0f / 16.0f);
+        OIIO_CHECK_EQUAL(K.getchannel(-1, -1, 0, 0), 1.0f / 16.0f);
+    }
+    for (float size : { 4.0f, 4.5f, 5.0f }) {
+        ImageBuf K = ImageBufAlgo::make_kernel("binomial", size, size);
+        OIIO_CHECK_EQUAL(K.roi(), ROI(-2, 3, -2, 3, 0, 1, 0, 1));
+        OIIO_CHECK_EQUAL(K.getchannel(0, 0, 0, 0), 36.0f / 256.0f);
+        OIIO_CHECK_EQUAL(K.getchannel(2, 2, 0, 0), 1.0f / 256.0f);
+        OIIO_CHECK_EQUAL(K.getchannel(-2, 0, 0, 0), 6.0f / 256.0f);
+    }
+    {
+        ImageBuf K = ImageBufAlgo::make_kernel("binomial", 1, 4);
+        OIIO_CHECK_EQUAL(K.roi(), ROI(0, 1, -2, 3, 0, 1, 0, 1));
+        OIIO_CHECK_EQUAL(K.getchannel(0, 0, 0, 0), 6.0f / 16.0f);
+        OIIO_CHECK_EQUAL(K.getchannel(0, -2, 0, 0), 1.0f / 16.0f);
+        OIIO_CHECK_EQUAL(K.getchannel(0, 2, 0, 0), 1.0f / 16.0f);
+    }
+}
+
+
+
 void
 test_channel_append()
 {
@@ -406,6 +520,28 @@ test_channel_append()
         OIIO_CHECK_EQUAL(r[0], Acolor);
         OIIO_CHECK_EQUAL(r[1], Bcolor);
     }
+
+    // Results with more channels than limits:channels must still get
+    // one channel name per channel.
+    int oldlimit = OIIO::get_int_attribute("limits:channels");
+    OIIO::attribute("limits:channels", 4);
+    ImageSpec spec3(2, 2, 3, TypeDesc::FLOAT);
+    spec3.channelnames = { "a_rather_long_channel_name_0",
+                           "a_rather_long_channel_name_1",
+                           "a_rather_long_channel_name_2" };
+    ImageBuf C(spec3);
+    ImageBuf R6 = ImageBufAlgo::channel_append(C, C);
+    OIIO_CHECK_EQUAL(R6.nchannels(), 6);
+    ImageBuf F = ImageBufAlgo::flip(R6);
+    ImageBuf M = ImageBufAlgo::mul(R6, 2.0f);
+    ImageBuf S = ImageBufAlgo::channels(R6, 6, {});
+    for (const ImageBuf* X : { &F, &M, &S }) {
+        OIIO_CHECK_EQUAL(X->spec().channelnames.size(), 6);
+        for (int c = 0; c < 6; ++c)
+            OIIO_CHECK_EQUAL(X->spec().channel_name(c),
+                             R6.spec().channel_name(c));
+    }
+    OIIO::attribute("limits:channels", oldlimit);
 }
 
 
@@ -2186,6 +2322,8 @@ main(int argc, char** argv)
     test_copy();
     test_crop();
     test_paste();
+    test_paste_deep();
+    test_make_kernel();
     test_channel_append();
     HWY_TEST test_add();
     HWY_TEST test_sub();

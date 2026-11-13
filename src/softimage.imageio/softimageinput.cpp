@@ -260,6 +260,8 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y,
     if (y == (int)m_scanline_markers.size() - 1) {
         // we're up to this scanline
         result = read_next_scanline(data);
+        if (!result)
+            return false;
 
         // save the marker for the next scanline if we haven't got the who images
         if (m_scanline_markers.size() < m_pic_header.height) {
@@ -280,6 +282,8 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y,
         } while ((int)m_scanline_markers.size() <= y);
 
         result = read_next_scanline(data);
+        if (!result)
+            return false;
         fgetpos(m_fd, &curPos);
         m_scanline_markers.push_back(curPos);
     } else {
@@ -293,6 +297,8 @@ SoftimageInput::read_native_scanline(int subimage, int miplevel, int y,
         }
 
         result = read_next_scanline(data);
+        if (!result)
+            return false;
 
         // If the index isn't complete let's shift the file pointer back to the latest readline
         if (m_scanline_markers.size() < m_pic_header.height) {

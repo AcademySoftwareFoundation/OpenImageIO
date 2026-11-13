@@ -24,6 +24,8 @@ The malformed variants exercise the reader's open-time guards:
   bomb-32000x32000.dng  Dimensions that imply ~2 GB of samples in a 280-byte
                       file, which only the decompression-ratio guard rejects
                       (the per-dimension and total-size limits pass).
+  bomb-16000x16000.dng  Sensor samples are under the ratio guard's 1 GB
+                      floor, but the 3-channel uint16 output is ~1.5 GB.
   truncated.dng       Valid header, pixel data cut short.
 """
 
@@ -115,6 +117,8 @@ def main(dir):
              exif=(0x829a, 42, 1))  # 0x829a = ExposureTime, type 42 = bogus
     make_dng(os.path.join(dir, 'bomb-32000x32000.dng'),
              width=32000, height=32000, pixels=False)
+    make_dng(os.path.join(dir, 'bomb-16000x16000.dng'),
+             width=16000, height=16000, pixels=False)
     make_dng(os.path.join(dir, 'truncated.dng'), truncate=1024)
 
 

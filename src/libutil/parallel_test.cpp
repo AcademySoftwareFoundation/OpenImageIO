@@ -92,7 +92,7 @@ test_parallel_for()
 
     // Verify that all elements are exactly 1
     bool all_one = std::all_of(vals.cbegin(), vals.cend(),
-                               [&](int i) { return vals[i] == 1; });
+                               [](int v) { return v == 1; });
     OIIO_CHECK_ASSERT(all_one);
 }
 
@@ -111,7 +111,7 @@ test_parallel_for_2D()
 
     // Verify that all elements are exactly 1
     bool all_one = std::all_of(vals.cbegin(), vals.cend(),
-                               [&](int i) { return vals[i] == 1; });
+                               [](int v) { return v == 1; });
     OIIO_CHECK_ASSERT(all_one);
 }
 

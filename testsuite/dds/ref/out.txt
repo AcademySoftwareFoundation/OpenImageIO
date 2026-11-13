@@ -11,6 +11,7 @@ Reading ../oiio-images/dds/dds_bc1_mips.dds
     channel list: R, G, B, A
     compression: "DXT1"
     textureformat: "Plain Texture"
+    oiio:miplevels: 5
 Reading ../oiio-images/dds/dds_bc2.dds
 ../oiio-images/dds/dds_bc2.dds :   16 x    8, 4 channel, uint8 dds
     SHA-1: B458B3BAA7F457E06D04D0FBF93C003FFA729C97
@@ -74,6 +75,7 @@ Reading ../oiio-images/dds/dds_npot_bc3_mips.dds
     channel list: R, G, B, A
     compression: "DXT5"
     textureformat: "Plain Texture"
+    oiio:miplevels: 4
 Reading ../oiio-images/dds/dds_npot_rgba8.dds
 ../oiio-images/dds/dds_npot_rgba8.dds :   13 x    7, 4 channel, uint8 dds
     SHA-1: 6CBA3E2782498E2E92F5E4B08376A2E948FE3BAF
@@ -87,6 +89,7 @@ Reading ../oiio-images/dds/dds_npot_rgba8_mips.dds
     channel list: R, G, B, A
     textureformat: "Plain Texture"
     oiio:BitsPerSample: 32
+    oiio:miplevels: 4
 Reading ../oiio-images/dds/dds_r5g6b5.dds
 ../oiio-images/dds/dds_r5g6b5.dds :   16 x    8, 3 channel, uint8 dds
     SHA-1: 37A3BFD2B8A52006B4F07065A90BE774F276B751
@@ -118,6 +121,7 @@ Reading ../oiio-images/dds/dds_rgba8_mips.dds
     channel list: R, G, B, A
     textureformat: "Plain Texture"
     oiio:BitsPerSample: 32
+    oiio:miplevels: 5
 Reading ../oiio-images/dds/dds_a8.dds
 ../oiio-images/dds/dds_a8.dds :   24 x   20, 1 channel, uint8 dds
     SHA-1: 497ACCA96FAAC89AE74BDE8CA7B69B37CA9C5F20
@@ -283,6 +287,7 @@ src/crash-3950.dds   :   16 x    1, 4 channel, uint8 dds
     channel list: R, G, B, A
     compression: "DXT4"
     textureformat: "Plain Texture"
+    oiio:miplevels: 6
 oiiotool ERROR: read : "src/crash-bpp.dds": Invalid DDS bytes-per-pixel (322122548). Possible corrupt input?
 Full command line was:
 > oiiotool --info -v -a --hash src/crash-bpp.dds

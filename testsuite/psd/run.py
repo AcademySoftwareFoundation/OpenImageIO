@@ -18,6 +18,9 @@ command += info_command (OIIO_TESTSUITE_IMAGEDIR + "/psd_123.psd", extraargs="--
 
 command += info_command ("src/different-mask-size.psd")
 command += info_command ("src/layer-mask.psd")
+# Real user mask (-3) with its own rectangle, stored Raw and RLE (#5659)
+command += info_command ("src/layer-mask-real-user-raw.psd")
+command += info_command ("src/layer-mask-real-user-rle.psd")
 
 # Test more modern (Photoshop 2023 files) with 16- and 32-bit files containing multiple sublayers
 command += info_command ("src/Layers_8bit_RGB.psd")
@@ -54,3 +57,7 @@ command += info_command ("src/crash-dup-layerinfo.psd", failureok=True)
 # size overflows the int scanline coordinates used by the read path. Per-layer
 # specs bypass check_open(), so the reader guards the origin itself.
 command += info_command ("src/crash-layer-origin.psd", failureok=True)
+# Layer whose channel records omit a channel its color mode requires
+command += info_command ("src/crash-missing-chan.psd", failureok=True)
+# PSB merged image whose 32-bit RLE row lengths far exceed the file size
+command += info_command ("src/crash-rlelen-psb.psb", failureok=True)

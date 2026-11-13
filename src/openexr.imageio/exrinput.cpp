@@ -422,8 +422,11 @@ OpenEXRInput::PartInfo::parse_header(OpenEXRInput* in,
 
     spec.deep = Strutil::istarts_with(header->type(), "deep");
 
-    if (levelmode != Imf::ONE_LEVEL)
+    if (levelmode != Imf::ONE_LEVEL) {
         spec.attribute("openexr:roundingmode", roundingmode);
+        if (nmiplevels > 1)
+            spec.attribute("oiio:miplevels", nmiplevels);
+    }
 
     const Imf::EnvmapAttribute* envmap;
     envmap = header->findTypedAttribute<Imf::EnvmapAttribute>("envmap");
@@ -1194,11 +1197,6 @@ OpenEXRInput::seek_subimage(int subimage, int miplevel)
     m_miplevel = miplevel;
     m_spec     = part.spec;
 
-    //! Add the number of miplevels as an attribute for the first miplevel.
-    //! TOFIX: adding the following attribute breaks unit tests
-    // if (m_miplevel == 0 && part.nmiplevels > 1)
-    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
-
     // The checks below reject this subimage. Invalidate rather than leave it
     // as the current one, or a repeat of this same seek would take the early
     // out above and hand back the spec we just refused.
@@ -1311,6 +1309,9 @@ bool
 OpenEXRInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
                                     int yend, int z, void* data)
 {
+    lock_guard lock(*this);
+    if (!seek_subimage(subimage, miplevel))
+        return false;
     return read_native_scanlines(subimage, miplevel, ybegin, yend, z, 0,
                                  m_spec.nchannels, data);
 }
@@ -1463,7 +1464,7 @@ OpenEXRInput::read_native_scanlines_impl(int subimage, int miplevel, int ybegin,
 
             Imf::Array2D<Imf::Rgba> pixels(chunk_height, dw_width);
             m_input_rgba->setFrameBuffer(&pixels[0][0] - dw.min.x
-                                             - ybegin * dw_width,
+                                             - int64_t(ybegin) * dw_width,
                                          1, dw_width);
             m_input_rgba->readPixels(ybegin, yend - 1);
 
@@ -1619,7 +1620,8 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     if (whole_width != (xend - xbegin) || whole_height != (yend - ybegin)) {
         // Deal with the case of reading not a whole number of tiles --
         // OpenEXR will happily overwrite user memory in this case.
-        tmpbuf.resize(nxtiles * nytiles * m_spec.tile_bytes(true));
+        tmpbuf.resize(size_t(nxtiles) * size_t(nytiles)
+                      * m_spec.tile_bytes(true));
         data = tmpbuf.data();
     }
     char* buf = (char*)data - ptrdiff_t(xbegin * pixelbytes)
@@ -1794,7 +1796,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
     }
 
     try {
-        size_t npixels = (yend - ybegin) * m_spec.width;
+        size_t npixels = size_t(yend - ybegin) * size_t(m_spec.width);
         chend          = clamp(chend, chbegin + 1, m_spec.nchannels);
         size_t nchans  = chend - chbegin;
 
@@ -1809,7 +1811,7 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
         Imf::DeepFrameBuffer frameBuffer;
         Imf::Slice countslice(Imf::UINT,
                               (char*)(&all_samples[0] - m_spec.x
-                                      - ybegin * m_spec.width),
+                                      - int64_t(ybegin) * m_spec.width),
                               sizeof(unsigned int),
                               sizeof(unsigned int) * m_spec.width);
         frameBuffer.insertSampleCountSlice(countslice);

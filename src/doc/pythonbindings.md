@@ -2940,6 +2940,23 @@ ImageBufAlgo.paste (Big, 100, 100, 0, 0, Small)
 ```
 
 ```{eval-rst}
+.. py:method:: ImageBuf ImageBufAlgo.normalize (src, inCenter=0.0, outCenter=0.0, scale=1.0, roi=ROI.All, nthreads=0)
+               bool ImageBufAlgo.normalize (dst, src, inCenter=0.0, outCenter=0.0, scale=1.0, roi=ROI.All, nthreads=0)
+
+    Normalize a 3-vector image (with optional alpha) by dividing each pixel
+    by its length: `out = outCenter + scale * (in - inCenter) / length(in - inCenter)`.
+
+    Example:
+
+    .. code-block:: python
+
+        # Normalize a normal map whose values in [0,1] are centered on 0.5
+        buf = ImageBufAlgo.normalize (ImageBuf("normalmap.tif"), 0.5, 0.5, 0.5)
+
+
+```
+
+```{eval-rst}
 .. py:method:: ImageBuf ImageBufAlgo.channel_sum (src, weights=(), roi=ROI.All, nthreads=0)
                bool ImageBufAlgo.channel_sum (dst, src, weights=(), roi=ROI.All, nthreads=0)
 
@@ -4039,6 +4056,36 @@ If OpenColorIO is not enabled at build time, a generic color configuration
 is provided for minimal color support.
 
 % TODO: The documentation for this class is incomplete.
+
+:::{py:method} get_chromaticities (colorspace)
+Get the RGB primaries and white point of a color space with a known Color
+Interop ID, as `get_color_interop_id()` finds it: a sequence of eight floats
+(Rx, Ry, Gx, Gy, Bx, By, Wx, Wy, CIE 1931 xy), or None if they are unknown.
+
+Example:
+
+```python
+xy = colorconfig.get_chromaticities("ACEScg")
+if xy:
+    rx, ry, gx, gy, bx, by, wx, wy = xy
+```
+
+This function was added in OpenImageIO 3.2.
+:::
+
+:::{py:method} get_transfer_function_gamma (colorspace)
+Get the exponent of a color space's transfer function if it decodes as a pure
+power, 1.0 if it is linear, or 0 if it is neither or is unknown. Piecewise
+curves such as sRGB's report 0.
+
+Example:
+
+```python
+gamma = colorconfig.get_transfer_function_gamma("g22_rec709_scene")  # 2.2
+```
+
+This function was added in OpenImageIO 3.2.
+:::
 
 :::{py:method} get_cicp (colorspace)
 Find CICP code corresponding to the colorspace.

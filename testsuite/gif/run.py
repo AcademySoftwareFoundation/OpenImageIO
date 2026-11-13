@@ -27,6 +27,12 @@ command += info_command ("src/gif_idx_overflow_32768x16385_top16384_1x1.gif",
 # dropped without an out-of-bounds read; the 1x1 image still decodes.
 command += info_command ("src/short-graphics-ext.gif", hash=False)
 
+# Regression test: the GIF writer sizes its frame state from the first
+# frame, so a later frame of a different resolution must be rejected rather
+# than overflowing that buffer.
+command += oiiotool ("--create 4x4 3 --create 64x64 3 --siappend -o grow.gif",
+                     failureok = True)
+
 outputs = [ "tahoe-tiny.gif", "out.txt" ]
 
 # Subimage seeking. GIF frames are drawn onto a shared canvas and giflib

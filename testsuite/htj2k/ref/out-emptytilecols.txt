@@ -1,0 +1,6 @@
+Reading src/valid-empty-tile-cols.j2c
+src/valid-empty-tile-cols.j2c :   10 x    4, 3 channel, uint8 jpeg2000
+    SHA-1: 6E37B0DC1950EB39F7B81B39711DB5C68201DED2
+    channel list: R, G, B
+    oiio:BitsPerSample: 8
+    oiio:ColorSpace: "srgb_rec709_scene"

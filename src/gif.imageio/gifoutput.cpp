@@ -84,7 +84,7 @@ private:
     int m_nsubimages;
     bool m_pending_write;                    // Do we have an image buffered?
     std::vector<ImageSpec> m_subimagespecs;  // Saved subimage specs
-    GifWriter<Filesystem::IOProxy> m_gifwriter;
+    GifWriter<Filesystem::IOProxy> m_gifwriter {};
     std::vector<uint8_t> m_canvas;  // Image canvas, accumulating output
     int m_delay;
 
@@ -171,10 +171,11 @@ bool
 GIFOutput::close()
 {
     bool ok = true;
-    if (m_pending_write) {
+    if (m_pending_write)
         ok &= finish_subimage();
+    // A rejected subimage can leave the file begun but nothing pending.
+    if (m_gifwriter.f)
         GifEnd(&m_gifwriter);
-    }
     init();
     return ok;
 }
@@ -187,6 +188,16 @@ GIFOutput::start_subimage(const ImageSpec& spec)
     if (!check_open(Create, spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 },
                     uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
+    // The GIF writer only supports frames that fill the whole canvas.
+    if (m_subimage > 0
+        && (m_spec.width != m_subimagespecs[0].width
+            || m_spec.height != m_subimagespecs[0].height)) {
+        errorfmt(
+            "{} subimages must all have the same resolution (subimage 0 was {}x{}, versus subimage {} with {}x{})",
+            format_name(), m_subimagespecs[0].width, m_subimagespecs[0].height,
+            m_subimage, m_spec.width, m_spec.height);
+        return false;
+    }
 
     m_spec.set_format(TypeDesc::UINT8);  // GIF is only 8 bit
 

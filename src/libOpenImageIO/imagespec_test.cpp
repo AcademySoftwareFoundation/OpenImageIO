@@ -47,6 +47,7 @@ const char* imagespec_xml_string = R"EOF(
 <attrib name="screenWindowCenter" type="float2">0, 0</attrib>
 <attrib name="screenWindowWidth" type="float">1</attrib>
 <attrib name="oiio:subimages" type="int">1</attrib>
+<attrib name="FramesPerSecond" type="rational">30000/1001</attrib>
 </ImageSpec>
 )EOF";
 
@@ -325,6 +326,27 @@ test_get_attribute()
 
 
 static void
+test_default_channel_names()
+{
+    ImageSpec spec(2, 2, 6, TypeFloat);
+    OIIO_CHECK_EQUAL(spec.channelnames.size(), 6);
+    OIIO_CHECK_EQUAL(spec.channel_name(5), "channel5");
+
+    // Beyond limits:channels, only the first `limit` channels get names
+    int oldlimit = OIIO::get_int_attribute("limits:channels");
+    OIIO::attribute("limits:channels", 4);
+    spec.default_channel_names();
+    OIIO_CHECK_EQUAL(spec.channelnames.size(), 4);
+    OIIO_CHECK_EQUAL(spec.channel_name(3), "A");
+    OIIO_CHECK_EQUAL(spec.alpha_channel, 3);
+    OIIO_CHECK_EQUAL(spec.channel_name(4), "");
+    OIIO_CHECK_EQUAL(spec.channel_name(5), "");
+    OIIO::attribute("limits:channels", oldlimit);
+}
+
+
+
+static void
 test_imagespec_from_ROI()
 {
     ROI roi(0, 640, 0, 480, 0, 1, 0, 3);
@@ -358,6 +380,20 @@ test_imagespec_from_xml()
     OIIO_CHECK_EQUAL(spec.format, TypeFloat);
     OIIO_CHECK_EQUAL(spec.get_string_attribute("oiio:ColorSpace"),
                      "scene_linear");
+    OIIO_CHECK_EQUAL(spec.getattributetype("FramesPerSecond"), TypeRational);
+    OIIO_CHECK_EQUAL_THRESH(spec.get_float_attribute("FramesPerSecond", -1.0f),
+                            30000.0f / 1001.0f, 1.0e-5f);
+
+    std::string xml = spec.to_xml();
+    OIIO_CHECK_ASSERT(xml.find("name=\"FramesPerSecond\" type=\"rational\"")
+                      != std::string::npos);
+    ImageSpec roundtripped;
+    roundtripped.from_xml(xml.c_str());
+    OIIO_CHECK_EQUAL(roundtripped.getattributetype("FramesPerSecond"),
+                     TypeRational);
+    OIIO_CHECK_EQUAL_THRESH(roundtripped.get_float_attribute("FramesPerSecond",
+                                                             -1.0f),
+                            30000.0f / 1001.0f, 1.0e-5f);
 }
 
 
@@ -412,6 +448,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_imagespec_metadata_val();
     test_imagespec_attribute_from_string();
     test_get_attribute();
+    test_default_channel_names();
     test_imagespec_from_ROI();
     test_imagespec_from_xml();
     test_valid_tile_range();

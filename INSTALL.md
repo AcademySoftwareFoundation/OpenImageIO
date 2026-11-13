@@ -38,7 +38,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
 ### Optional dependencies -- features may be disabled if not found
  * If you are building the `iv` viewer (which will be disabled if any of
    these are not found):
-     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.11)
+     * Qt5 >= 5.6 (tested through 5.15) or Qt6 (tested through 6.12)
      * OpenGL
  * If you are building the Python bindings or running the testsuite:
      * Python >= 3.9 (tested through 3.14).
@@ -49,7 +49,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * [pybind11](https://github.com/pybind/pybind11) >= 2.7 (tested through
        3.1 and master), if you are building with `OIIO_PYTHON_BINDINGS_BACKEND` set to
        either `pybind11` or `both`.
-     * NumPy (tested through 2.5.3)
+     * NumPy (tested through 2.5.4)
  * If you want support for PNG files:
      * libPNG >= 1.6.0 (tested though 1.6.59 and master)
  * If you want support for camera "RAW" formats:
@@ -70,7 +70,7 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
      * giflib >= 5.0 (tested through 6.1.3)
  * If you want support for HEIF/HEIC or AVIF images:
      * libheif >= 1.11 (1.16 required for correct orientation support and
-       1.17 required for monochrome HEIC support; tested through 1.23.5)
+       1.17 required for monochrome HEIC support; tested through 1.23.6)
      * libheif must be built with an AV1 encoder/decoder for AVIF support.
  * If you want support for DICOM medical image files:
      * DCMTK >= 3.6.2 (tested through 3.7.0)
@@ -79,13 +79,13 @@ NEW or CHANGED MINIMUM dependencies since the last major release are **bold**.
  * If you want support for Ptex:
      * Ptex >= 2.3.1 (probably works for older; tested through 2.5 and main)
  * If you want to be able to do font rendering into images:
-     * Freetype >= 2.10.0 (tested through 2.14 and master)
+     * Freetype >= 2.10.0 (tested through 2.15 and master)
  * If you want to be able to read "ultra-HDR" embedded in JPEG files:
      * libultrahdr >= 1.3 (tested through 2.0.2 and main)
  * If you want support for JPEG XL images:
      * libjxl >= 0.10.1 (tested through 0.12.0)
  * If you want support for j2c files:
-     * OpenJPH >= 0.21.2 (tested through 0.32)
+     * OpenJPH >= 0.21.2 (tested through 0.33)
  * We use PugiXML for XML parsing. There is a version embedded in the OIIO
    tree, but if you want to use an external, system-installed version (as
    may be required by some software distributions with policies against
@@ -459,25 +459,21 @@ the headers, and the CLI tools to a platform-specific, Python-specific location.
 See the [scikit-build-core docs](https://scikit-build-core.readthedocs.io/en/latest/configuration.html#configuring-cmake-arguments-and-defines)
 for more information on customizing and overriding build-tool options and CMake arguments.
 
-This repo contains python type stubs which are generated from `pybind11` signatures.
-The workflow for releasing new stubs is as follows:
+This repo contains python type stubs which are generated from the `nanobind`
+binding signatures. The workflow for releasing new stubs is as follows:
 
-- Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) and `docker`
-- Run `make pystubs` locally to generate updated stubs in `src/python/stubs/__init__.pyi`
+- Run `make pystubs` locally to generate updated stubs in
+  `src/python/stubs/OpenImageIO/__init__.pyi`. This runs nanobind's stub
+  generator on the freshly built python module directly from the build tree,
+  so neither `docker` nor `uv` are required. The signature overrides that
+  shape the generated stubs live in the pattern file
+  `src/python/stubs/OpenImageIO_patterns.pyi`.
 - Run `make test-pystubs` locally to use mypy to test the stubs against the code in 
   the python testsuite.
 - Commit the new stubs and push to Github
-- In CI, the stubs will be included in the wheels built by `cibuildwheel`, as defined in `.github/wheel.yml`
-- In CI, one of the `cibuildwheel` Github actions will rebuild the stubs to a 
-  temp location and verify that they match what has been committed to the repo.  
-  This step ensures that if changes to the C++ source code and bindings results 
-  in a change to the stubs, developers are notified of the need to regenerate 
-  the stubs, so that changes can be reviewed and the rules in `generate_stubs.py` 
-  can be updated, if necessary.
 
-Note that if you can't (or don't want to) build the stubs locally, you can 
-download an artifact containing the wheel and `__init__.pyi` file from any job 
-that fails the stub validation.
+Note that the stubs are only generated for the `nanobind` python bindings
+backend; the `pystubs` target is not available for `pybind11` builds.
 
 Test Images
 -----------

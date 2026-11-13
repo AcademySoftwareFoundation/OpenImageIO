@@ -1,0 +1,1 @@
+Empty-layer subimages, populated pixels, raw mode and size limits verified.

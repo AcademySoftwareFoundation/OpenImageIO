@@ -66,9 +66,14 @@ oiio_exr_error_handler(exr_const_context_t ctxt, exr_result_t code,
 static int64_t
 oiio_exr_query_size_func(exr_const_context_t ctxt, void* userdata)
 {
+    // OpenEXR uses the file size to validate header attribute and chunk
+    // table sizes; -1 means unknown and disables those checks.
     oiioexr_filebuf_struct* fb = static_cast<oiioexr_filebuf_struct*>(userdata);
-    if (fb)
-        return static_cast<int64_t>(fb->m_io->tell());
+    if (fb && fb->m_io) {
+        size_t size = fb->m_io->size();
+        if (size > 0)
+            return static_cast<int64_t>(size);
+    }
     return -1;
 }
 
@@ -599,8 +604,11 @@ OpenEXRCoreInput::PartInfo::parse_header(OpenEXRCoreInput* in,
     spec.deep = (storage == EXR_STORAGE_DEEP_TILED
                  || storage == EXR_STORAGE_DEEP_SCANLINE);
 
-    if (levelmode != EXR_TILE_ONE_LEVEL)
+    if (levelmode != EXR_TILE_ONE_LEVEL) {
         spec.attribute("openexr:roundingmode", (int)roundingmode);
+        if (nmiplevels > 1)
+            spec.attribute("oiio:miplevels", nmiplevels);
+    }
 
     exr_envmap_t envmap;
     rv = exr_attr_get_envmap(ctxt, subimage, "envmap", &envmap);
@@ -1217,11 +1225,6 @@ OpenEXRCoreInput::seek_subimage(int subimage, int miplevel)
     m_subimage = subimage;
     m_miplevel = miplevel;
     m_spec     = part.spec;
-
-    //! Add the number of miplevels as an attribute for the first miplevel.
-    //! TOFIX: adding the following attribute breaks unit tests
-    // if (m_miplevel == 0 && part.nmiplevels > 1)
-    //     m_spec.attribute("oiio:miplevels", part.nmiplevels);
 
     // The checks below reject this subimage, so don't leave it as the
     // current one with a spec that failed validation.
@@ -1867,12 +1870,12 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
     int chans        = ud->nchans;
     size_t fullwidth = ud->fullwidth;
     size_t xoff      = ud->xoff;
-    ud->linepointers.resize(w * h * chans);
+    ud->linepointers.resize(size_t(w) * size_t(h) * size_t(chans));
     if (ud->firstisfullread) {
         ud->deepdata->set_all_samples(
             cspan<unsigned int>((const uint32_t*)decode->sample_count_table,
                                 (const uint32_t*)decode->sample_count_table
-                                    + w * h));
+                                    + size_t(w) * size_t(h)));
         ud->deepdata->get_pointers(ud->linepointers);
     } else {
         // this is super slow, read the sample counts up front and set the counts once
@@ -1882,12 +1885,12 @@ realloc_deepdata(exr_decode_pipeline_t* decode)
                 for (int x = 0; x < w; ++x)
                     ud->deepdata->set_samples(
                         (y + ud->cury) * fullwidth + xoff + x,
-                        decode->sample_count_table[y * w + x]);
+                        decode->sample_count_table[size_t(y) * w + x]);
         }
         for (int y = 0; y < h; ++y)
             for (int x = 0; x < w; ++x)
                 for (int c = 0; c < chans; ++c)
-                    ud->linepointers[(y * w + x) * chans + c]
+                    ud->linepointers[(size_t(y) * w + x) * chans + c]
                         = ud->deepdata->data_ptr((y + ud->cury) * fullwidth
                                                      + xoff + x,
                                                  c, 0);

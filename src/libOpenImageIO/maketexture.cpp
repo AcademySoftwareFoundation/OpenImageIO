@@ -1110,7 +1110,7 @@ make_texture_impl(ImageBufAlgo::MakeTextureMode mode, const ImageBuf* input,
     bool ignore_unassoc = configspec.get_int_attribute("maketx:ignore_unassoc");
     ImageSpec inconfig;
     if (ignore_unassoc)
-        inconfig.attribute("oiio::UnassociatedAlpha", 1);
+        inconfig.attribute("oiio:UnassociatedAlpha", 1);
 
     std::stringstream localstream;  // catch output when user doesn't want it
     std::ostream& outstream(outstream_ptr ? *outstream_ptr : localstream);

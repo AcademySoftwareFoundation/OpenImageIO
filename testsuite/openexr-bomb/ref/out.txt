@@ -20,3 +20,10 @@ oiiotool ERROR: read : "src/bigdisplay.exr": openexr image full/display resoluti
 If you're sure this is a valid file, raise the OIIO global attribute "limits:resolution".
 Full command line was:
 > oiiotool -oiioattrib openexr:core 1 --info -v src/bigdisplay.exr
+oiiotool ERROR: read : OpenEXR exception: Invalid or missing attribute when attempting to open 'src/bigattr.exr' for read
+Full command line was:
+> oiiotool -oiioattrib openexr:core 0 --info -v src/bigattr.exr
+oiiotool ERROR: read : EXR Error (src/bigattr.exr): EXR_ERR_ATTR_SIZE_MISMATCH Attribute 'Software', type 'string': Invalid size 2147483646
+EXR Error (src/bigattr.exr): EXR_ERR_MISSING_REQ_ATTR 'channels' attribute not found
+Full command line was:
+> oiiotool -oiioattrib openexr:core 1 --info -v src/bigattr.exr

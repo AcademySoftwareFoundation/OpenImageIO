@@ -1151,6 +1151,16 @@ eval_as_bool(string_view value);
 }  // namespace Strutil
 
 
+
+/// error logging (mostly for OIIO internals) with `std::format` conventions.
+template<typename... Args>
+inline void errorfmt(const char* fmt, Args&&... args)
+{
+    Strutil::pvt::append_error(
+        Strutil::fmt::format(fmt, std::forward<Args>(args)...));
+}
+
+
 OIIO_NAMESPACE_3_1_END
 
 
@@ -1158,4 +1168,5 @@ OIIO_NAMESPACE_3_1_END
 OIIO_NAMESPACE_BEGIN
 // Bring the ever-useful Strutil::print into the OIIO namespace.
 using Strutil::print;
+using v3_1::errorfmt;
 OIIO_NAMESPACE_END

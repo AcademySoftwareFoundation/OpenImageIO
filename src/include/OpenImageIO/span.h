@@ -635,6 +635,13 @@ size_t
 spancpy(span<T> dst, size_t dstoffset, cspan<T> src, size_t srcoffset = 0,
         size_t n = size_t(-1))
 {
+    // An offset past the end is a caller bug (usually overflowed index
+    // math), so flag it in debug/hardened builds...
+    OIIO_DASSERT(srcoffset <= src.size() && dstoffset <= dst.size());
+    // ...but stay memory-safe regardless: size()-offset below would wrap to a
+    // huge value, leaving n unclamped, so bail before subtracting.
+    if (srcoffset >= src.size() || dstoffset >= dst.size())
+        return 0;
     // Where do the requests end (limited by span boundaries)?
     n = std::min(n, src.size() - srcoffset);
     n = std::min(n, dst.size() - dstoffset);
@@ -675,6 +682,9 @@ template<typename T>
 size_t
 spanset(span<T> dst, size_t offset, const T& val, size_t n = size_t(-1))
 {
+    OIIO_DASSERT(offset <= dst.size());
+    if (offset >= dst.size())
+        return 0;
     // Where does the request end (limited by span boundary)?
     n = std::min(n, dst.size() - offset);
     for (size_t i = 0; i < n; ++i)
@@ -700,6 +710,9 @@ template<typename T>
 size_t
 spanzero(span<T> dst, size_t offset = 0, size_t n = size_t(-1))
 {
+    OIIO_DASSERT(offset <= dst.size());
+    if (offset >= dst.size())
+        return 0;
     // Where does the request end (limited by span boundary)?
     n = std::min(n, dst.size() - offset);
     memset(dst.data() + offset, 0, n * sizeof(T));

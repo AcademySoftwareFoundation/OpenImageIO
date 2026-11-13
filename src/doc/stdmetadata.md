@@ -175,6 +175,14 @@ OpenImageIO understands.
 ```
 
 ```{eval-rst}
+.. option:: "oiio:miplevels" : int
+
+    The number of MIP levels of the subimage, only present for images
+    stored in a MIP-mapped layout with more than one MIP level, and absent
+    for non-MIP-mapped images.
+```
+
+```{eval-rst}
 .. option:: "oiio:SourcePath" : string
             "oiio:SourceFileFormat" : string
 

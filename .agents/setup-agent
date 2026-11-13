@@ -20,7 +20,7 @@
 #            If Anthropic eventually adds native AGENTS.md support, the
 #            .claude/CLAUDE.md wrapper can be retired.
 #   Skills:  .claude/skills/  (each subdirectory is a skill)
-#   Setup:   Write .claude/CLAUDE.md containing "@AGENTS.md" (Claude's include
+#   Setup:   Write .claude/CLAUDE.md containing "@../AGENTS.md" (Claude's include
 #            syntax), symlink .claude/skills -> ../.agents/skills.
 #   Docs:    https://docs.anthropic.com/en/docs/claude-code/memory
 #            https://docs.anthropic.com/en/docs/claude-code/skills
@@ -161,13 +161,13 @@ try_rmdir() { rmdir "$1" 2>/dev/null && echo "  RMDIR: $(rel "$1")" || true; }
 #------------------------------------------------------------------------------
 setup_claude() {
     echo "Setting up Claude Code..."
-    safe_write   "$REPO_ROOT/.claude/CLAUDE.md"  "@AGENTS.md"
+    safe_write   "$REPO_ROOT/.claude/CLAUDE.md"  "@../AGENTS.md"
     safe_symlink "$REPO_ROOT/.claude/skills"     "../.agents/skills"
     safe_write   "$REPO_ROOT/.claude/.gitignore" "settings.local.json"
 }
 clear_claude() {
     echo "Removing Claude Code setup..."
-    safe_remove_file    "$REPO_ROOT/.claude/CLAUDE.md"  "@AGENTS.md"
+    safe_remove_file    "$REPO_ROOT/.claude/CLAUDE.md"  "@../AGENTS.md"
     safe_remove_symlink "$REPO_ROOT/.claude/skills"     "../.agents/skills"
     safe_remove_file    "$REPO_ROOT/.claude/.gitignore" "settings.local.json"
     try_rmdir "$REPO_ROOT/.claude"

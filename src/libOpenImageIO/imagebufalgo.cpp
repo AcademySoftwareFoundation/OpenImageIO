@@ -196,30 +196,35 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
                 spec.default_channel_names();
                 spec.alpha_channel = -1;
                 spec.z_channel     = -1;
+                std::vector<std::string> names;
+                names.reserve(spec.nchannels);
                 for (int c = 0; c < spec.nchannels; ++c) {
+                    string_view name = spec.channel_name(c);
                     if (A && A->spec().channel_name(c) != "") {
-                        spec.channelnames[c] = A->spec().channel_name(c);
+                        name = A->spec().channel_name(c);
                         if (spec.alpha_channel < 0
                             && A->spec().alpha_channel == c)
                             spec.alpha_channel = c;
                         if (spec.z_channel < 0 && A->spec().z_channel == c)
                             spec.z_channel = c;
                     } else if (B && B->spec().channel_name(c) != "") {
-                        spec.channelnames[c] = B->spec().channel_name(c);
+                        name = B->spec().channel_name(c);
                         if (spec.alpha_channel < 0
                             && B->spec().alpha_channel == c)
                             spec.alpha_channel = c;
                         if (spec.z_channel < 0 && B->spec().z_channel == c)
                             spec.z_channel = c;
                     } else if (C && C->spec().channel_name(c) != "") {
-                        spec.channelnames[c] = C->spec().channel_name(c);
+                        name = C->spec().channel_name(c);
                         if (spec.alpha_channel < 0
                             && C->spec().alpha_channel == c)
                             spec.alpha_channel = c;
                         if (spec.z_channel < 0 && C->spec().z_channel == c)
                             spec.z_channel = c;
                     }
+                    names.emplace_back(name);
                 }
+                spec.channelnames = std::move(names);
             }
             // For multiple inputs, if they aren't the same data type, punt and
             // allocate a float buffer. If the user wanted something else,
@@ -488,11 +493,15 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
                 spec.default_channel_names();
                 spec.alpha_channel = -1;
                 spec.z_channel     = -1;
+                std::vector<std::string> names;
+                names.reserve(spec.nchannels);
+                for (int c = 0; c < spec.nchannels; ++c)
+                    names.emplace_back(spec.channel_name(c));
                 for (const ImageBuf* s : srcs) {
                     const ImageSpec& sspec(s->spec());
                     for (int c = 0; c < spec.nchannels; ++c) {
                         if (sspec.channel_name(c) != "") {
-                            spec.channelnames[c] = sspec.channel_name(c);
+                            names[c] = sspec.channel_name(c);
                             if (spec.alpha_channel < 0
                                 && sspec.alpha_channel == c)
                                 spec.alpha_channel = c;
@@ -501,6 +510,7 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
                         }
                     }
                 }
+                spec.channelnames = std::move(names);
             }
             // For multiple inputs, if they aren't the same data type, punt and
             // allocate a float buffer. If the user wanted something else,
@@ -922,21 +932,17 @@ ImageBufAlgo::make_kernel(string_view name, float width, float height,
         for (ImageBuf::Iterator<float> p(dst); !p.done(); ++p)
             p[0] = (*filter)((float)p.x(), (float)p.y());
     } else if (name == "binomial") {
-        // Binomial filter
-        float* wfilter = OIIO_ALLOCA(float, width);
-        for (int i = 0; i < width; ++i)
-            wfilter[i] = binomial(width - 1, i);
-        float* hfilter = (height == width) ? wfilter
-                                           : OIIO_ALLOCA(float, height);
-        if (height != width)
-            for (int i = 0; i < height; ++i)
-                hfilter[i] = binomial(height - 1, i);
-        float* dfilter = OIIO_ALLOCA(float, depth);
-        if (depth == 1)
-            dfilter[0] = 1;
-        else
-            for (int i = 0; i < depth; ++i)
-                dfilter[i] = binomial(depth - 1, i);
+        // Binomial filter, sized to the odd-rounded kernel image
+        float *wfilter, *hfilter, *dfilter;
+        OIIO_ALLOCATE_STACK_OR_HEAP(wfilter, float, w);
+        OIIO_ALLOCATE_STACK_OR_HEAP(hfilter, float, h);
+        OIIO_ALLOCATE_STACK_OR_HEAP(dfilter, float, d);
+        for (int i = 0; i < w; ++i)
+            wfilter[i] = binomial(w - 1, i);
+        for (int i = 0; i < h; ++i)
+            hfilter[i] = binomial(h - 1, i);
+        for (int i = 0; i < d; ++i)
+            dfilter[i] = binomial(d - 1, i);
         for (ImageBuf::Iterator<float> p(dst); !p.done(); ++p)
             p[0] = wfilter[p.x() - spec.x] * hfilter[p.y() - spec.y]
                    * dfilter[p.z() - spec.z];

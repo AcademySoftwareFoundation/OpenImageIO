@@ -246,9 +246,9 @@ type 'TypeVector3i'
 type 'TypeHalf'
     c_str "half"
 type 'TypeRational'
-    c_str "rational2i"
+    c_str "rational"
 type 'TypeURational'
-    c_str "rational2ui"
+    c_str "urational"
 type 'TypeUInt'
     c_str "uint"
 

@@ -155,7 +155,7 @@ new third-party dependencies without a strong reason.
 ## Change impact checklist
 
 - Bug fixes and behavior changes → add/update tests
-- Public API changes → update Python bindings, docs, `CHANGES.md`
+- Public API changes → update Python bindings, docs
 - `ImageBufAlgo` changes → consider oiiotool exposure, docs, Python, tests
 - Format plugin changes → regression coverage for metadata, edge cases,
   read/write

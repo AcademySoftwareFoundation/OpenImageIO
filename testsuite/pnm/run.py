@@ -24,6 +24,14 @@ files = [ "src/bad-4552.pgm", "src/bad-4553.pgm" ]
 for f in files:
     command += info_command (f, extraargs="--oiioattrib try_all_readers 0 --printstats", failureok=True)
 
+# Maxval beyond the netpbm limit of 65535 is rejected
+command += info_command ("src/bad-maxval.pgm", failureok=True)
+
+# 16-bit samples >= 32768 used to overflow int when rescaled; out-of-range
+# ASCII samples are clamped to [0, maxval]
+command += info_command ("src/high-binary16.pgm", extraargs="--printstats")
+command += info_command ("src/clamp-ascii16.pgm", extraargs="--printstats")
+
 # Decompression bomb: a 19-byte header declaring a ~4 GB image (65000x65000).
 # The compression-ratio guard must reject it before the caller allocates the
 # full pixel buffer.
@@ -34,3 +42,13 @@ command += info_command ("src/bomb-65000.pgm", failureok=True, safematch=True)
 # it against the same pattern. This catches per-chunk row flipping (#5471).
 command += oiiotool ("--pattern fill:top=0,0,0:bottom=1,1,1 3840x2160 3 -d float -o tall-ramp.pfm")
 command += oiiotool ("tall-ramp.pfm --pattern fill:top=0,0,0:bottom=1,1,1 3840x2160 3 -d float --diff")
+
+# Writing an integer PNM from a float buffer (as oiiotool does) must not flip
+# the rows; only PFM is stored bottom-first.
+command += oiiotool ("--pattern fill:top=0:bottom=1 4x8 1 -d uint8 -o ramp.tif -o ramp.pgm --attrib pnm:binary 0 -o ramp-ascii.pgm")
+command += oiiotool ("ramp.pgm ramp.tif --diff")
+command += oiiotool ("ramp-ascii.pgm ramp.tif --diff")
+
+# PFM must also read back top-down when opened without a config (idiff).
+command += oiiotool ("--pattern fill:top=0:bottom=1 4x8 1 -d float -o ramp.exr -o ramp.pfm")
+command += diff_command ("ramp.pfm", "ramp.exr")

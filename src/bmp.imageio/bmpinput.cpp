@@ -41,8 +41,8 @@ private:
     std::vector<bmp_pvt::color_table> m_colortable;
     std::vector<unsigned char> fscanline;       // temp space: read from file
     std::vector<unsigned char> m_uncompressed;  // uncompressed palette image
-    uint32_t m_right_shifts[3];
-    uint32_t m_bit_counts[3];
+    uint32_t m_right_shifts[4];
+    uint32_t m_bit_counts[4];
     bool m_allgray;
 
     void init(void)
@@ -211,6 +211,7 @@ BmpInput::open(const std::string& name, ImageSpec& newspec,
     calc_shifts(m_dib_header.red_mask, m_bit_counts[0], m_right_shifts[0]);
     calc_shifts(m_dib_header.green_mask, m_bit_counts[1], m_right_shifts[1]);
     calc_shifts(m_dib_header.blue_mask, m_bit_counts[2], m_right_shifts[2]);
+    calc_shifts(m_dib_header.alpha_mask, m_bit_counts[3], m_right_shifts[3]);
 
     // computing size of one scanline - this is the size of one scanline that
     // is stored in the file, not in the memory
@@ -454,6 +455,34 @@ BmpInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     ioseek(scanline_pos);
     if (!ioread(fscanline.data(), m_padded_scanline_size)) {
         return false;  // Read failed
+    }
+
+    if (m_dib_header.bpp == 32 && m_dib_header.compression == 3
+        && (m_dib_header.size == WINDOWS_V4
+            || m_dib_header.size == WINDOWS_V5)) {
+        for (unsigned int i = 0, j = 0; j < scanline_bytes; i += 4, j += 4) {
+            uint32_t pixel = *(uint32_t*)&fscanline[i];
+            mscanline[j + 0]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.red_mask)
+                                                 >> m_right_shifts[0],
+                                             m_bit_counts[0], 8);
+            mscanline[j + 1]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.green_mask)
+                                                 >> m_right_shifts[1],
+                                             m_bit_counts[1], 8);
+            mscanline[j + 2]
+                = (uint8_t)bit_range_convert((pixel & m_dib_header.blue_mask)
+                                                 >> m_right_shifts[2],
+                                             m_bit_counts[2], 8);
+            if (m_dib_header.alpha_mask == 0) {
+                mscanline[j + 3] = 255;
+            } else {
+                mscanline[j + 3] = (uint8_t)bit_range_convert(
+                    (pixel & m_dib_header.alpha_mask) >> m_right_shifts[3],
+                    m_bit_counts[3], 8);
+            }
+        }
+        return true;
     }
 
     // in each case we process only first m_spec.scanline_bytes () bytes

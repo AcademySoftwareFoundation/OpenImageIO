@@ -14,3 +14,5 @@ skills/*
 !skills/oiio-*/
 !skills/prepare-patch-release/
 !skills/release-notes-update/
+!skills/check-dependency-minmax/
+!skills/commit-message/
