@@ -1062,111 +1062,13 @@ KtxOutput::get_tf_and_primaries(string_view oiio_colorspace,
                                 khr_df_primaries_e& primaries) const
 {
     const auto& colorconfig = ColorConfig::default_colorconfig();
-
-    // sRGB (this and non-color data are the only ones supported by glTF)
-    if (colorconfig.equivalent(oiio_colorspace, "srgb_rec709_scene")
-        || colorconfig.equivalent(oiio_colorspace, "srgb_rec709_display")) {
-        tf        = KHR_DF_TRANSFER_SRGB;
-        primaries = KHR_DF_PRIMARIES_BT709;
-        return true;
+    for (const auto& [k, v] : color_interop_id_map) {
+        if (colorconfig.equivalent(oiio_colorspace, k)) {
+            tf        = v.tf;
+            primaries = v.primaries;
+            return true;
+        }
     }
-
-    // sRGB ACEScg / ACEScc primaries (AP1)
-    if (colorconfig.equivalent(oiio_colorspace, "srgb_ap1_scene")) {
-        tf        = KHR_DF_TRANSFER_SRGB;
-        primaries = KHR_DF_PRIMARIES_ACESCC;  // ACEScc same primaries as ACEScg
-        return true;
-    }
-
-    // Linear ACEScg / ACEScc primaries (AP1)
-    if (colorconfig.equivalent(oiio_colorspace, "lin_ap1_scene")) {
-        tf        = KHR_DF_TRANSFER_LINEAR;
-        primaries = KHR_DF_PRIMARIES_ACESCC;  // ACEScc same primaries as ACEScg
-        return true;
-    }
-
-    // ACES2065-1 primaries (AP0)
-    if (colorconfig.equivalent(oiio_colorspace, "lin_ap0_scene")) {
-        tf        = KHR_DF_TRANSFER_LINEAR;
-        primaries = KHR_DF_PRIMARIES_ACES;
-        return true;
-    }
-
-    // non-color data (this and sRGB are the only ones supported by glTF)
-    //
-    // Note:
-    // If colorspace is `data` then primaries MUST be set to UNSPECIFIED and
-    // TF MUST be set to LINEAR. These are part of the requirements for
-    // integrating KTX2 within glTF as can be read from here:
-    //
-    // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md#additional-requirements
-    //
-    if (colorconfig.equivalent(oiio_colorspace, "data")) {
-        tf        = KHR_DF_TRANSFER_LINEAR;
-        primaries = KHR_DF_PRIMARIES_UNSPECIFIED;
-        return true;
-    }
-
-    // Linear Rec.709
-    if (colorconfig.equivalent(oiio_colorspace, "lin_rec709_scene")
-        || colorconfig.equivalent(oiio_colorspace, "lin_rec709_display")) {
-        tf        = KHR_DF_TRANSFER_LINEAR;
-        primaries = KHR_DF_PRIMARIES_BT709;
-        return true;
-    }
-
-    // CIE XYZ-D65
-    if (colorconfig.equivalent(oiio_colorspace, "lin_ciexyzd65_scene")) {
-        tf        = KHR_DF_TRANSFER_LINEAR;
-        primaries = KHR_DF_PRIMARIES_CIEXYZ;
-        return true;
-    }
-
-    // Adobe RGB
-    if (colorconfig.equivalent(oiio_colorspace, "lin_adobergb_scene")) {
-        tf        = KHR_DF_TRANSFER_LINEAR;
-        primaries = KHR_DF_PRIMARIES_ADOBERGB;
-        return true;
-    }
-
-    // sRGB Display P3
-    if (colorconfig.equivalent(oiio_colorspace, "srgb_p3d65_scene")
-        || colorconfig.equivalent(oiio_colorspace, "srgb_p3d65_display")) {
-        tf        = KHR_DF_TRANSFER_SRGB;
-        primaries = KHR_DF_PRIMARIES_DISPLAYP3;
-        return true;
-    }
-
-    // Linear Display P3
-    if (colorconfig.equivalent(oiio_colorspace, "lin_p3d65_scene")
-        || colorconfig.equivalent(oiio_colorspace, "lin_p3d65_display")) {
-        tf        = KHR_DF_TRANSFER_LINEAR;
-        primaries = KHR_DF_PRIMARIES_DISPLAYP3;
-        return true;
-    }
-
-    // Rec. 2020
-    if (colorconfig.equivalent(oiio_colorspace, "lin_rec2020_scene")
-        || colorconfig.equivalent(oiio_colorspace, "lin_rec2020_display")) {
-        tf        = KHR_DF_TRANSFER_LINEAR;
-        primaries = KHR_DF_PRIMARIES_BT2020;
-        return true;
-    }
-
-    // Rec. 2100 PQ
-    if (colorconfig.equivalent(oiio_colorspace, "pq_rec2020_display")) {
-        tf        = KHR_DF_TRANSFER_PQ_EOTF;
-        primaries = KHR_DF_PRIMARIES_BT2020;
-        return true;
-    }
-
-    // Rec. 2100 HLG
-    if (colorconfig.equivalent(oiio_colorspace, "hlg_rec2020_display")) {
-        tf        = KHR_DF_TRANSFER_HLG_EOTF;
-        primaries = KHR_DF_PRIMARIES_BT2020;
-        return true;
-    }
-
     return false;
 }
 

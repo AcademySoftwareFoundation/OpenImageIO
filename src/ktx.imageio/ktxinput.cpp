@@ -109,7 +109,7 @@ private:
     // Checks the magic
     bool ktx_magic_cmp(cspan<uint8_t> sig) const noexcept;
 
-    const char* get_colorspace() const noexcept;
+    std::string get_colorspace() const noexcept;
 
     // std::string& because string_view are still not supported by std::regex
     void parse_ktx_sc_params_metadata(const std::string& ktx_sc_params);
@@ -258,7 +258,7 @@ KtxInput::open(const std::string& name, ImageSpec& newspec)
         m_spec.default_channel_names();
     }
 
-    const char* colorspace = get_colorspace();
+    std::string colorspace = get_colorspace();
     m_spec.set_colorspace(colorspace);
 
     // Set textureformat attribute
@@ -1257,57 +1257,37 @@ KtxInput::ktx_magic_cmp(cspan<uint8_t> sig) const noexcept
 // Since KTX2 textures are usually intended to be used within rendering context,
 // assume scene rather than display colorspaces.
 //
-const char*
+// See:
+//  https://github.com/KhronosGroup/KTX-Software/blob/main/external/dfdutils/KHR/khr_df.h
+//  https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/src/libOpenImageIO/color_ocio.cpp
+//
+std::string
 KtxInput::get_colorspace() const noexcept
 {
     //
     // for set of, see:
-    //  https://github.com/KhronosGroup/KTX-Software/blob/main/external/dfdutils/KHR/khr_df.h
-    // for OIIO colorspaces, see:
-    //  https://github.com/AcademySoftwareFoundation/OpenImageIO/blob/main/src/libOpenImageIO/color_ocio.cpp
     //
-    const khr_df_transfer_e transfer_function
-        = ktxTexture2_GetTransferFunction_e(m_tex.get());
-    const khr_df_primaries_e primaries = ktxTexture2_GetPrimaries_e(
-        m_tex.get());
-    DBG std::cout << "[ktxinput] tf: " << transfer_function
-                  << "; primaries: " << primaries << std::endl;
-    switch (transfer_function) {
-    case KHR_DF_TRANSFER_UNSPECIFIED: return "unknown";
-    case KHR_DF_TRANSFER_SRGB:
-        switch (primaries) {
-        case KHR_DF_PRIMARIES_BT709: return "srgb_rec709_scene";
-        case KHR_DF_PRIMARIES_ACESCC: return "srgb_ap1_scene";
-        case KHR_DF_PRIMARIES_DISPLAYP3: return "srgb_p3d65_scene";
-        default: break;
-        }
-        break;
-    case KHR_DF_TRANSFER_LINEAR:
-        switch (primaries) {
-        case KHR_DF_PRIMARIES_UNSPECIFIED: return "data";
-        case KHR_DF_PRIMARIES_BT709: return "lin_rec709_scene";
-        case KHR_DF_PRIMARIES_ACESCC: return "lin_ap1_scene";
-        case KHR_DF_PRIMARIES_ACES: return "lin_ap0_scene";
-        case KHR_DF_PRIMARIES_CIEXYZ: return "lin_ciexyzd65_scene";
-        case KHR_DF_PRIMARIES_ADOBERGB: return "lin_adobergb_scene";
-        case KHR_DF_PRIMARIES_DISPLAYP3: return "lin_p3d65_scene";
-        case KHR_DF_PRIMARIES_BT2020: return "lin_rec2020_scene";
-        default: break;
-        }
-        break;
-    case KHR_DF_TRANSFER_PQ_EOTF:
-        switch (primaries) {
-        case KHR_DF_PRIMARIES_BT2020: return "pq_rec2020_display";
-        default: break;
-        }
-    case KHR_DF_TRANSFER_HLG_EOTF:
-        switch (primaries) {
-        case KHR_DF_PRIMARIES_BT2020: return "hlg_rec2020_display";
-        default: break;
-        }
+    const auto tf        = ktxTexture2_GetTransferFunction_e(m_tex.get());
+    const auto primaries = ktxTexture2_GetPrimaries_e(m_tex.get());
 
-    default: break;
+    DBG std::cout << "[ktxinput] tf: " << tf << "; primaries: " << primaries
+                  << std::endl;
+
+    // First try to find first matching OIIO scene colorspace
+    for (const auto& [k, v] : color_interop_id_map) {
+        if (v.tf == tf && v.primaries == primaries
+            && Strutil::ends_with(k, "scene")) {
+            return k;
+        }
     }
+
+    // Otherwise just pick the first matching OIIO display colorspace
+    for (const auto& [k, v] : color_interop_id_map) {
+        if (v.tf == tf && v.primaries == primaries) {
+            return k;
+        }
+    }
+
     return "unknown";
 }
 

@@ -139,6 +139,74 @@ static std::unordered_map<std::string, khr_df_transfer_e> tf_str_to_enum{
 
 
 
+struct KtxColorID {
+    khr_df_transfer_e tf;
+    khr_df_primaries_e primaries;
+};
+
+
+
+// clang-format off
+///
+/// Only color spaces supported by glTF are: sRGB and data (non-color).
+/// Essentially: "srgb_rec709_display", "srgb_rec709_scene",
+///              "srgbe_rec709_display", and "data". All the others are
+///              supported by KTX but are not supported by glTF.
+///
+/// Note:
+/// If colorspace is `data` then primaries MUST be set to UNSPECIFIED and
+/// tf MUST be set to LINEAR. These are part of the requirements for
+/// integrating KTX2 within glTF as can be read from here:
+///
+/// https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md#additional-requirements
+///
+static std::unordered_map<std::string, KtxColorID> color_interop_id_map{
+  { "lin_ciexyzd65_display",  { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_CIEXYZ } },
+  { "lin_ciexyzd65_scene",    { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_CIEXYZ } },
+  { "lin_rec709_display",     { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_BT709 } },
+  { "lin_rec709_scene",       { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_BT709 } },
+  { "lin_rec2020_display",    { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_BT2020 } },
+  { "lin_rec2020_scene",      { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_BT2020 } },
+  { "lin_p3d65_display",      { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "lin_p3d65_scene",        { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "lin_adobergb_display",   { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_ADOBERGB } },
+  { "lin_adobergb_scene",     { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_ADOBERGB } },
+  { "lin_ap0_scene",          { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_ACES } },
+  { "lin_ap1_scene",          { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_ACESCC } },
+  { "srgb_ap1_scene",         { KHR_DF_TRANSFER_SRGB,         KHR_DF_PRIMARIES_ACESCC } },
+  { "g22_rec709_display",     { KHR_DF_TRANSFER_NTSC,         KHR_DF_PRIMARIES_BT709 } },
+  { "g22_rec709_scene",       { KHR_DF_TRANSFER_NTSC,         KHR_DF_PRIMARIES_BT709 } },
+  { "g22_p3d65_display",      { KHR_DF_TRANSFER_NTSC,         KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "g22_p3d65_scene",        { KHR_DF_TRANSFER_NTSC,         KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "g22_adobergb_display",   { KHR_DF_TRANSFER_ADOBERGB,     KHR_DF_PRIMARIES_ADOBERGB } },
+  { "g22_adobergb_scene",     { KHR_DF_TRANSFER_ADOBERGB,     KHR_DF_PRIMARIES_ADOBERGB } },
+  { "g24_rec709_display",     { KHR_DF_TRANSFER_BT1886,       KHR_DF_PRIMARIES_BT709 } },
+  { "g24_rec709_scene",       { KHR_DF_TRANSFER_BT1886,       KHR_DF_PRIMARIES_BT709 } },
+  { "g24_p3d65_display",      { KHR_DF_TRANSFER_BT1886,       KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "g24_p3d65_scene",        { KHR_DF_TRANSFER_BT1886,       KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "g24_rec2020_display",    { KHR_DF_TRANSFER_BT1886,       KHR_DF_PRIMARIES_BT2020 } },
+  { "g24_rec2020_scene",      { KHR_DF_TRANSFER_BT1886,       KHR_DF_PRIMARIES_BT2020 } },
+  { "g24_rec601_display",     { KHR_DF_TRANSFER_BT1886,       KHR_DF_PRIMARIES_BT601_SMPTE } },
+  { "g24_rec601pal_display",  { KHR_DF_TRANSFER_BT1886,       KHR_DF_PRIMARIES_BT601_EBU } },
+  { "srgb_rec709_display",    { KHR_DF_TRANSFER_SRGB,         KHR_DF_PRIMARIES_BT709 } },
+  { "srgb_rec709_scene",      { KHR_DF_TRANSFER_SRGB,         KHR_DF_PRIMARIES_BT709 } },
+  { "srgbe_rec709_display",   { KHR_DF_TRANSFER_SRGB,         KHR_DF_PRIMARIES_BT709 } },
+  { "srgb_p3d65_display",     { KHR_DF_TRANSFER_SRGB,         KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "srgb_p3d65_scene",       { KHR_DF_TRANSFER_SRGB,         KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "srgbe_p3d65_display",    { KHR_DF_TRANSFER_SRGB,         KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "g26_xyzd65_display",     { KHR_DF_TRANSFER_DCIP3,        KHR_DF_PRIMARIES_CIEXYZ } },
+  { "itu709_rec709_scene",    { KHR_DF_TRANSFER_ITU,          KHR_DF_PRIMARIES_BT709 } },
+  { "pq_rec709_display",      { KHR_DF_TRANSFER_PQ_EOTF,      KHR_DF_PRIMARIES_BT709 } },
+  { "pq_p3d65_display",       { KHR_DF_TRANSFER_PQ_EOTF,      KHR_DF_PRIMARIES_DISPLAYP3 } },
+  { "pq_rec2020_display",     { KHR_DF_TRANSFER_PQ_EOTF,      KHR_DF_PRIMARIES_BT2020 } },
+  { "hlg_rec2020_display",    { KHR_DF_TRANSFER_HLG_EOTF,     KHR_DF_PRIMARIES_BT2020 } },
+  { "data",                   { KHR_DF_TRANSFER_LINEAR,       KHR_DF_PRIMARIES_UNSPECIFIED } },
+  { "unknown",                { KHR_DF_TRANSFER_UNSPECIFIED,  KHR_DF_PRIMARIES_UNSPECIFIED } },
+};
+// clang-format on
+
+
+
 static inline std::string
 block_compression_name(BlockCompression cmp)
 {
