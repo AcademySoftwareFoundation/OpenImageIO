@@ -1,6 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright (c) Contributors to the OpenImageIO Project.
 
+# NOTE: Actions used here are locked in .github/workflows/actions.lock.
+# If you add, remove, or change the version of any `uses:` action (or add
+# a new workflow file), regenerate the lockfile and commit it:
+#     gh extension install github/gh-actions-lock   # once
+#     gh actions-lock
+# CI (lockfile.yml) runs `gh actions-lock --verify` and fails if stale.
+
 #
 # Releases are signed via https://github.com/sigstore/sigstore-python.
 # See https://docs.sigstore.dev for information about sigstore.
@@ -49,13 +56,13 @@ jobs:
         shell: bash
 
       - name: Checkout repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
 
       - name: Create archive
         run: git archive --format=tar.gz -o ${OPENIMAGEIO_TARBALL} --prefix ${OPENIMAGEIO_PREFIX} ${TAG}
 
       - name: Sign archive with Sigstore
-        uses: sigstore/gh-action-sigstore-python@790bc6befb9d733738f18d8f895854b453640ec9 # v3.5.0
+        uses: sigstore/gh-action-sigstore-python@v3.5.0
         with:
           inputs: ${{ env.OPENIMAGEIO_TARBALL }}
           upload-signing-artifacts: false

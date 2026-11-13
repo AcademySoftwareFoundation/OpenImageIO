@@ -1,0 +1,22 @@
+# Copyright Contributors to the OpenImageIO project.
+# SPDX-License-Identifier: Apache-2.0
+# https://github.com/AcademySoftwareFoundation/OpenImageIO
+
+# Dependabot version updates for GitHub Actions. All action bumps are
+# grouped into at most one PR per month, which also regenerates
+# .github/workflows/actions.lock. The cooldown skips releases younger
+# than 14 days, giving time for a bad or compromised release to be
+# caught upstream before we adopt it.
+# https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    cooldown:
+      default-days: 14
