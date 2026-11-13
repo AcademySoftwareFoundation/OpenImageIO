@@ -44,6 +44,7 @@ http://github.com/AcademySoftwareFoundation/OpenImageIO
 - `src/doc/` : User manual source (+ Doxygen comments in the public headers)
 - `docs/dev/` : Developer documentation
 - `docs/dev/Architecture.md` : Major subsystems overview
+- `docs/dev/Testing.md` : How to run, add, and debug tests
 
 
 ## Build and verification
@@ -71,7 +72,7 @@ By default, builds into `./build` and installs into `./dist`.
 
 - Test output lands in `build/testsuite/<testname>/`; references in
   `testsuite/<testname>/ref/`
-- Read `testsuite/TESTSUITE-README.md` before updating references or
+- Read `docs/dev/Testing.md` before adding tests, updating references, or
   diagnosing failures
 - For platform-specific diffs, add a variant ref (e.g. `out-win.txt`) rather
   than overwriting
