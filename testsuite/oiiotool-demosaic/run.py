@@ -116,3 +116,16 @@ for dict in tests:
                         cut_cmd = ""
 
                     command += oiiotool (f"testimage.exr " + cut_cmd + f"result_{type}_{pattern}{suffix}-{algo}.{ext} " + cut_cmd + test)
+
+# Negative data window origins: pattern phase must wrap correctly. An origin
+# shifted by a multiple of both pattern sizes (2 and 6) must match origin 0,
+# and an odd row origin must match the row-swapped layout at origin 0.
+for pa in ['pattern=bayer:algorithm=linear', 'pattern=bayer:algorithm=MHC',
+           'pattern=xtrans:algorithm=linear']:
+    name = pa.replace('pattern=', '').replace(':algorithm=', '-')
+    command += oiiotool (f"bayer_RGGB.exr --demosaic:{pa} -o neg_{name}_ref.exr")
+    command += oiiotool (f"bayer_RGGB.exr --origin -12-12 --demosaic:{pa} --origin +0+0 -o neg_{name}.exr")
+    command += diff_command (f"neg_{name}_ref.exr", f"neg_{name}.exr")
+command += oiiotool ("bayer_RGGB.exr --demosaic:layout=GBRG -o neg_odd_ref.exr")
+command += oiiotool ("bayer_RGGB.exr --origin -6-15 --demosaic:layout=RGGB --origin +0+0 -o neg_odd.exr")
+command += diff_command ("neg_odd_ref.exr", "neg_odd.exr")

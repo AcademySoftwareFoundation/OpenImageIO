@@ -111,8 +111,8 @@ protected:
                     ystart -= pattern_size;
                 }
 
-                int x_off = (xstart + x_offset) % pattern_size;
-                int y_off = (ystart + y_offset) % pattern_size;
+                int x_off = phase(xstart + x_offset);
+                int y_off = phase(ystart + y_offset);
 
                 Row row = { ImageBuf::ConstIterator<Atype>(src, xstart, ystart),
                             x_off, y_off, white_balance_values };
@@ -211,6 +211,14 @@ protected:
         return false;
     }
 
+    // Pattern phase of coordinate `v`, in [0, pattern_size) even for negative
+    // `v` (data windows may have a negative origin).
+    static int phase(int v)
+    {
+        int r = v % pattern_size;
+        return r < 0 ? r + pattern_size : r;
+    }
+
     /// All subclasses must initialize this table.
     typedef void (*Decoder)(Context& context);
     Decoder fast_decoders[pattern_size];
@@ -239,12 +247,12 @@ public:
                     window(y, roi.xbegin, src, x_offset, y_offset,
                            white_balance);
 
-                int r = (y_offset + y) % pattern_size;
+                int r = phase(y_offset + y);
 
                 Decoder& fast_decoder = fast_decoders[r];
                 Decoder& slow_decoder = slow_decoders[r];
 
-                int skip        = (x_offset + roi.xbegin) % pattern_size;
+                int skip        = phase(x_offset + roi.xbegin);
                 int count       = roi.width();
                 Context context = { window, it, roi.chbegin, skip, count };
 
