@@ -96,3 +96,7 @@ Reading ../openexr-images/LuminanceChroma/StarField.exr
     openexr:luminancechroma: 1
 Comparing "../openexr-images/LuminanceChroma/StarField.exr" and "StarField.exr"
 PASS
+Comparing "subset-R.exr" and "full-R.exr"
+PASS
+Comparing "subset-GB.exr" and "full-GB.exr"
+PASS
