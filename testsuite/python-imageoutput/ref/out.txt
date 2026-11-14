@@ -18,6 +18,11 @@ Testing create() invalid format:
 Testing open() bad mode:
   bad mode: ValueError
 
+Testing open() with 0 channels:
+  8x8 0-channel tiff fails: True
+  8x8 0-channel fits fails: True
+  0x0 0-channel fits (noimage) ok: True
+
 Testing write path errors:
   tile on scanline fails: True
   tile on scanline error nonempty: True

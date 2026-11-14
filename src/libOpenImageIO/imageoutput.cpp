@@ -1097,7 +1097,10 @@ ImageOutput::check_open(OpenMode mode, const ImageSpec& userspec, ROI range,
         || (m_spec.nchannels == 1
             && (flags & uint64_t(OpenChecks::Disallow1Channel)))
         || (m_spec.nchannels == 2
-            && (flags & uint64_t(OpenChecks::Disallow2Channel)))) {
+            && (flags & uint64_t(OpenChecks::Disallow2Channel)))
+        || (m_spec.nchannels == 0
+            && !(m_spec.width == 0 && m_spec.height == 0
+                 && supports("noimage")))) {
         errorfmt("{} does not support {}-channel images", format_name(),
                  m_spec.nchannels);
         return false;
