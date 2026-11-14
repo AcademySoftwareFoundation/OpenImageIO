@@ -240,7 +240,9 @@ ImageBufAlgo::copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert,
             newspec.set_format(convert);
         dst.reset(newspec);
     }
-    IBAprep(roi, &dst, &src, IBAprep_SUPPORT_DEEP);
+    if (!IBAprep(roi, &dst, &src,
+                 IBAprep_SUPPORT_DEEP | IBAprep_CLAMP_MUTUAL_NCHANNELS))
+        return false;
     if (dst.deep()) {
         // If it's deep, figure out the sample allocations first, because
         // it's not thread-safe to do that simultaneously with copying the
@@ -406,7 +408,7 @@ ImageBufAlgo::circular_shift(ImageBuf& dst, const ImageBuf& src, int xshift,
                              int yshift, int zshift, ROI roi, int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::circular_shift");
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2(ok, "circular_shift", circular_shift_,
