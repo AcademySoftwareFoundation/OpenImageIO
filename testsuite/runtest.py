@@ -441,8 +441,11 @@ def runtest (command: str, outputs: list[str], failureok: int=0) -> int :
     err = 0
 #    print ("working dir = " + tmpdir)
     os.chdir (srcdir)
-    open ("out.txt", "w").close()    # truncate out.txt
-    open ("out.err.txt", "w").close()    # truncate out.txt
+    # Truncate all text outputs, since commands append to them and stale
+    # contents from a previous run in the same build dir would remain.
+    for out in set(outputs + ["out.txt", "out.err.txt"]) :
+        if out.endswith(".txt") :
+            open (out, "w").close()
     if os.path.isfile("debug.log") :
         os.remove ("debug.log")
 
