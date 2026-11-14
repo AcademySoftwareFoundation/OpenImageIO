@@ -172,6 +172,10 @@ tahoe-icc.webp       :  128 x   96, 3 channel, uint8 webp
     SHA-1: 407D97F3D62F90C7F9A78AF85989ED3C06C59523
     channel list: R, G, B
     ICCProfile: 0, 0, 2, 48, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [560 x uint8]
+    Orientation: 1 (normal)
+    ResolutionUnit: "in"
+    XResolution: 72
+    YResolution: 72
     ICCProfile:attributes: "Reflective, Glossy, Positive, Color"
     ICCProfile:cmm_type: 1094992453
     ICCProfile:color_space: "RGB"

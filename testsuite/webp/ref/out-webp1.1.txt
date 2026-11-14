@@ -24,6 +24,22 @@ rgba.webp            :   64 x   64, 4 channel, uint8 webp
     channel list: R, G, B, A
     oiio:ColorSpace: "srgb_rec709_scene"
     oiio:UnassociatedAlpha: 1
+Reading resolution.webp
+resolution.webp      :    4 x    4, 3 channel, uint8 webp
+    SHA-1: C17FD92682CA5B304AC71074B558DDA9E8EB4D66
+    channel list: R, G, B
+    ResolutionUnit: "in"
+    XResolution: 150
+    YResolution: 150
+    oiio:ColorSpace: "srgb_rec709_scene"
+Reading resolution-int.webp
+resolution-int.webp  :    4 x    4, 3 channel, uint8 webp
+    SHA-1: C17FD92682CA5B304AC71074B558DDA9E8EB4D66
+    channel list: R, G, B
+    ResolutionUnit: "cm"
+    XResolution: 72
+    YResolution: 72
+    oiio:ColorSpace: "srgb_rec709_scene"
 short-exif-len0.webp-ok
 short-exif-len4.webp-ok
 short-exif-len5.webp-ok
