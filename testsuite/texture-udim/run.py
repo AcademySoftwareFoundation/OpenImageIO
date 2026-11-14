@@ -27,6 +27,12 @@ command += testtex_command ("\"file.%(UDIM)d.tx\"",
 command += testtex_command ("\"file.%(UDIM)d.tx\" --gettextureinfo Make --iters 0")
 command += testtex_command ("\"file.%(UDIM)d.tx\" --gettextureinfo Model --iters 0")
 
+# Regex metacharacters in the pattern must match literally, and must not
+# throw out of the ImageCache (a leading '+' used to).
+command += oiiotool ("-pattern constant:color=.5,.1,.1 64x64 3 --attrib Make pet -d uint8 -otex plus+1001.tx")
+command += testtex_command ("\"plus+<UDIM>.tx\" --gettextureinfo Make --iters 0")
+command += testtex_command ("\"+<UDIM>.tx\" --gettextureinfo Make --iters 0")
+
 # Exercise making making temp files, and having low file and tile limits
 command += testtex_command ("--udim --maketests 10 \"mktest_{:04}.<UDIM>.tx\""
                             + " --maketest-res 1024 --cachesize 1 --maxfiles 5"
