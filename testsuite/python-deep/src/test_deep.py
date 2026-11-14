@@ -307,6 +307,14 @@ try:
     ddr = input.read_native_deep_image ()
     if ddr :
         print_deep_image (ddr)
+    # Flat (non-deep) reads of a deep image must fail cleanly
+    print ("flat read_image:", input.read_image(), input.geterror())
+    print ("flat read_scanlines:", input.read_scanlines(0, 0, 0, 1, 0, 0, 6),
+           input.geterror())
+    ic = oiio.ImageCache()
+    print ("ImageCache get_pixels:",
+           ic.get_pixels("deeptest.exr", 0, 0, 0, 3, 0, 3, 0, 1, "float"),
+           ic.geterror())
 
     test_insert_erase ()
     test_deep_copy ()

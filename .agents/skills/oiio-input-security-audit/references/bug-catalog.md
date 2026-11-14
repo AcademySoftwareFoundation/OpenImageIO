@@ -242,6 +242,23 @@ pointers get written through: stack smash on any file carrying the tag.
   libtiff's documented arguments. Ink walk also trusted `NumberOfInks`, which
   older libtiff (4.3.0) does not reconcile with the string: clamp to `nchannels`.
 
+### C-7. Flat read entry point not gated on a variant storage mode
+A reader that supports a second storage mode (deep) through separate entry
+points must reject that mode in the flat ones. Otherwise the decoder is set up
+for the wrong layout and writes per-sample data into a per-pixel buffer.
+- Find: every flat `read_native_*` that reaches the decode call; check it
+  tests `spec.deep` (or equivalent) first. Overloads that only delegate need
+  no check.
+- Seen: openexr core reader flat scanline/tile paths ran `exr_decoding_run`
+  on deep parts; OpenEXR's deep unpacker wrote every sample, overrunning the
+  caller's buffer with file bytes (`iconvert` on any dense deep file).
+  The classic reader was safe by accident (no flat
+  part object for deep). Fix: `errorfmt` + `false` on `spec.deep`.
+- Also check the callers: a reader-side guard only turns the overrun into a
+  failure. The `ImageInput` base flat `read_*` wrappers now reject deep for
+  every format; `iconvert` lacked a deep path and needed one. ImageBuf,
+  oiiotool, maketx, idiff were already deep-aware.
+
 
 ## D. Structure walking: loops, recursion, state
 

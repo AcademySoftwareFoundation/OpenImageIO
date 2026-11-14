@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <OpenImageIO/argparse.h>
+#include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imagebuf.h>
 #include <OpenImageIO/imagecache.h>
@@ -465,7 +466,18 @@ convert_file(const std::string& in_filename, const std::string& out_filename)
 
             if (in->spec().nchannels != out->spec().nchannels)
                 nocopy = true;
-            if (!nocopy) {
+            if (inspec.deep) {
+                // Deep pixels can't go through the flat read_image path.
+                // The output converts channel types as needed.
+                DeepData deepdata;
+                ok = in->read_native_deep_image(subimage, miplevel, deepdata);
+                if (!ok)
+                    OIIO::print(stderr, "iconvert ERROR reading \"{}\": {}\n",
+                                in_filename, in->geterror());
+                else if (!(ok = out->write_deep_image(deepdata)))
+                    OIIO::print(stderr, "iconvert ERROR writing \"{}\": {}\n",
+                                out_filename, out->geterror());
+            } else if (!nocopy) {
                 ok = out->copy_image(in.get());
                 if (!ok)
                     OIIO::print(

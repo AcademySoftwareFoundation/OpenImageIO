@@ -25,3 +25,7 @@ Full command line was:
 oiiotool ERROR: read : EXR Error (src/bigattr.exr): EXR_ERR_ATTR_SIZE_MISMATCH Attribute 'Software', type 'string': Invalid size 2147483646
 Full command line was:
 > oiiotool -oiioattrib openexr:core 1 --info -v src/bigattr.exr
+Comparing "src/deep-dense-scan.exr" and "deep-out.exr"
+PASS
+Comparing "src/deep-dense-tiled.exr" and "deep-out.exr"
+PASS
