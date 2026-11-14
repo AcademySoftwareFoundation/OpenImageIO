@@ -2693,19 +2693,22 @@ TIFFInput::read_native_tiles_locked(int subimage, int miplevel, int xbegin,
         // If we're not parallelizing, just loop over the tiles and read each
         // one individually.
         std::unique_ptr<std::byte[]> pels(new std::byte[tile_bytes]);
-        for (int z = zbegin; z < zend; z += m_spec.tile_depth) {
-            for (int y = ybegin; y < yend; y += m_spec.tile_height) {
-                for (int x = xbegin; x < xend; x += m_spec.tile_width) {
+        // Copy only the part of each edge tile inside the rectangle.
+        for (int z = zbegin, zd = 0; z < zend; z += zd) {
+            zd = std::min(zend - z, std::max(1, m_spec.tile_depth));
+            for (int y = ybegin, yh = 0; y < yend; y += yh) {
+                yh = std::min(yend - y, m_spec.tile_height);
+                for (int x = xbegin, xw = 0; x < xend; x += xw) {
+                    xw      = std::min(xend - x, m_spec.tile_width);
                     bool ok = read_native_tile_locked(subimage, miplevel, x, y,
                                                       z,
                                                       make_span(pels.get(),
                                                                 tile_bytes));
                     if (!ok)
                         return false;
-                    copy_image(m_spec.nchannels, m_spec.tile_width,
-                               m_spec.tile_height, m_spec.tile_depth,
-                               pels.get(), size_t(pixel_bytes), pixel_bytes,
-                               tileystride, tilezstride,
+                    copy_image(m_spec.nchannels, xw, yh, zd, pels.get(),
+                               size_t(pixel_bytes), pixel_bytes, tileystride,
+                               tilezstride,
                                data.data() + (z - zbegin) * zstride
                                    + (y - ybegin) * ystride
                                    + (x - xbegin) * pixel_bytes,
@@ -2729,10 +2732,12 @@ TIFFInput::read_native_tiles_locked(int subimage, int miplevel, int xbegin,
     // Strutil::printf ("Parallel tile case %d %d  %d %d  %d %d\n",
     //                  xbegin, xend, ybegin, yend, zbegin, zend);
     size_t tileidx = 0;
-    for (int z = zbegin; z < zend; z += m_spec.tile_depth) {
-        for (int y = ybegin; ok && y < yend; y += m_spec.tile_height) {
-            for (int x = xbegin; ok && x < xend;
-                 x += m_spec.tile_width, ++tileidx) {
+    for (int z = zbegin, zd = 0; z < zend; z += zd) {
+        zd = std::min(zend - z, std::max(1, m_spec.tile_depth));
+        for (int y = ybegin, yh = 0; ok && y < yend; y += yh) {
+            yh = std::min(yend - y, m_spec.tile_height);
+            for (int x = xbegin, xw = 0; ok && x < xend; x += xw, ++tileidx) {
+                xw         = std::min(xend - x, m_spec.tile_width);
                 char* cbuf = compressed_scratch.get() + tileidx * cbound;
                 char* ubuf = scratch.get() + tileidx * tile_bytes;
                 auto csize = TIFFReadRawTile(m_tif, tile_index(x, y, z), cbuf,
@@ -2756,10 +2761,9 @@ TIFFInput::read_native_tiles_locked(int subimage, int miplevel, int xbegin,
                                               &ok);
                     if (out->m_photometric == PHOTOMETRIC_MINISWHITE)
                         out->invert_photometric(tilevals, ubuf);
-                    copy_image(out->m_spec.nchannels, out->m_spec.tile_width,
-                               out->m_spec.tile_height, out->m_spec.tile_depth,
-                               ubuf, size_t(pixel_bytes), pixel_bytes,
-                               tileystride, tilezstride,
+                    copy_image(out->m_spec.nchannels, xw, yh, zd, ubuf,
+                               size_t(pixel_bytes), pixel_bytes, tileystride,
+                               tilezstride,
                                data.data() + (z - zbegin) * zstride
                                    + (y - ybegin) * ystride
                                    + (x - xbegin) * pixel_bytes,
@@ -2783,8 +2787,7 @@ TIFFInput::read_native_tiles(int subimage, int miplevel, int xbegin, int xend,
         return false;
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend))
         return false;
-    if (!valid_raw_span_size(data, m_spec, m_spec.x, m_spec.x + m_spec.width,
-                             ybegin, yend))
+    if (!valid_raw_span_size(data, m_spec, xbegin, xend, ybegin, yend))
         return false;
 
     OIIO_DASSERT(m_spec.tile_depth == 1);
@@ -2808,8 +2811,8 @@ TIFFInput::read_native_volumetric_tiles(int subimage, int miplevel, int xbegin,
         return false;
     if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend))
         return false;
-    if (!valid_raw_span_size(data, m_spec, m_spec.x, m_spec.x + m_spec.width,
-                             ybegin, yend, zbegin, zend))
+    if (!valid_raw_span_size(data, m_spec, xbegin, xend, ybegin, yend, zbegin,
+                             zend))
         return false;
 
     OIIO_DASSERT(m_spec.tile_depth >= 1);

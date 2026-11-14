@@ -65,7 +65,9 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   current. libtiff's own allocations are capped at `limits:imagesize_MB` via
   TIFFOpenOptions (single 4.5+, cumulative 4.6.1+); the IOProxy path must use
   `TIFFClientOpenExt` or the options are silently skipped; InkNames read with
-  wrong `TIFFGetField` convention (stack smash, catalog C-6). Deferred:
+  wrong `TIFFGetField` convention (stack smash, catalog C-6);
+  `read_native_tiles` copied whole edge tiles into a rect-sized buffer
+  (catalog A9). Deferred:
   `iptcsize *= 4` int overflow (>0.5 GB field); `compressBound((uLong)...)` on
   LLP64.
 - jpeg: C2 added; checks must precede `jpeg_start_decompress` /
