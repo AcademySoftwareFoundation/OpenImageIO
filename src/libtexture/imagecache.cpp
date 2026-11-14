@@ -69,7 +69,7 @@ static ustring s_textureformat("textureformat"), s_fileformat("fileformat");
 static ustring s_format("format"), s_cachedformat("cachedformat");
 static ustring s_channels("channels"), s_cachedpixeltype("cachedpixeltype");
 static ustring s_exists("exists"), s_broken("broken");
-static ustring s_UDIM("UDIM");
+static ustring s_UDIM("UDIM"), s_udim("udim");
 static ustring s_subimages("subimages"), s_miplevels("miplevels");
 static ustring s_datawindow("datawindow"), s_displaywindow("displaywindow");
 static ustring s_averagecolor("averagecolor"), s_averagealpha("averagealpha");
@@ -3108,7 +3108,7 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
     }
     // No other queries below are expected to work with broken
 
-    if (dataname == s_UDIM && datatype == TypeInt) {
+    if ((dataname == s_udim || dataname == s_UDIM) && datatype == TypeInt) {
         // Just check for existence.  Need to do this before the invalid
         // file error below, since in this one case, it's not an error
         // for the file to be nonexistent or broken!
@@ -3155,6 +3155,11 @@ ImageCacheImpl::get_image_info(ImageCacheFile* file,
                         return false;
                 }
             }
+        }
+        if (first) {
+            // No tile was readable, so `common` was never written.
+            error("No readable tiles for UDIM file \"{}\"", file->filename());
+            return false;
         }
         // If we got this far, all the tiles we found had the attribute, and
         // they all had the same value. Copy to the user and return success.

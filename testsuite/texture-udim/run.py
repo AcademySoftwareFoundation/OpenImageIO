@@ -38,4 +38,11 @@ command += testtex_command ("--udim --maketests 10 \"mktest_{:04}.<UDIM>.tx\""
                             + " --maketest-res 1024 --cachesize 1 --maxfiles 5"
                             + " --res 256 256 -d uint8 -o out3.tif")
 
+# A UDIM set whose every tile is unreadable must fail queries, not return
+# uninitialized data.
+with open("bad.1001.tx", "w") as f :
+    f.write("not an image\n")
+open("bad.1002.tx", "w").close()
+command += testtex_command ("\"bad.<UDIM>.tx\" --gettextureinfo fileformat --iters 0")
+
 outputs = [ "out.tif", "out2.tif", "out3.tif", "out.txt" ]
