@@ -599,6 +599,9 @@ macro (oiio_add_all_tests)
                     IMAGEDIR oiio-images/libtiffpic)
     oiio_add_tests (tiff-subimage-seek
                     ENABLEVAR USE_PYTHON)
+    # Regression test (compiles its own helper and generates its own image)
+    # for a partial edge-tile heap overflow in the TIFF reader.
+    oiio_add_tests (tiff-partialtile)
     oiio_add_tests (webp
                     FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
                     IMAGEDIR oiio-images/webp)

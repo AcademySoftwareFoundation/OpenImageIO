@@ -97,6 +97,18 @@ floor while the spec it then publishes is well over it.
   same memory; it is a harness-limit issue (`docs/dev/fuzzing.md`), not a
   reader bug.
 
+### A9. Whole-tile copy into a rectangle-sized buffer
+A format override of `read_native_tiles` computes destination strides from
+the requested rectangle but copies `tile_width x tile_height` per tile, so a
+partial edge tile overruns the caller's buffer (and scrambles earlier rows).
+Internal callers pass only whole-tile ranges, so it shows only through the
+public API with a rectangle-sized buffer.
+- Find: overrides of `read_native_tiles`; `copy_image(` passed
+  `m_spec.tile_width`/`tile_height` with a rect-derived `ystride`.
+- Fix: per tile, `xw = min(xend - x, tile_width)` (same for y, z), copy that
+  extent and step by it, as the base-class `ImageInput::read_native_tiles`.
+- Seen: exr (#5295); tiff serial and parallel-decompress paths.
+
 
 ## B. Integer arithmetic
 
