@@ -1560,18 +1560,26 @@ ImageCacheImpl::find_file(ustring filename,
 #if IMAGECACHE_TIME_STATS
         Timer timer;
 #endif
-        size_t bin                  = m_files.lock_bin(filename);
-        FilenameMap::iterator found = m_files.find(filename, false);
-        if (found) {
-            tf = found->second.get();
-        } else {
-            // No such entry in the file cache.  Add it, but don't open yet.
-            tf = new ImageCacheFile(*this, thread_info, filename, creator,
-                                    config);
-            m_files.insert(filename, tf, false);
-            newfile = true;
+        bool found = false;
+        {
+            // Unlock the bin even if the ImageCacheFile ctor throws.
+            struct BinLock {
+                FilenameMap& map;
+                size_t bin;
+                ~BinLock() { map.unlock_bin(bin); }
+            } binlock { m_files, m_files.lock_bin(filename) };
+            FilenameMap::iterator it = m_files.find(filename, false);
+            if (it) {
+                found = true;
+                tf    = it->second.get();
+            } else {
+                // No such entry in the file cache. Add it, but don't open yet.
+                tf = new ImageCacheFile(*this, thread_info, filename, creator,
+                                        config);
+                m_files.insert(filename, tf, false);
+                newfile = true;
+            }
         }
-        m_files.unlock_bin(bin);
         if (replace && found) {
             invalidate(filename, true);
             tf->reset(creator, config);
@@ -4176,7 +4184,14 @@ ImageCacheFile::udim_setup()
     // 2-number kind of pattern, to populate the lookup map.
     std::vector<UdimInfo> udim_list;  // temporary -- we don't know extent
     udim_list.reserve(100);
-    std::regex decoder(pat);
+    std::regex decoder;
+    try {
+        decoder = std::regex(pat);
+    } catch (const std::exception& e) {
+        mark_broken(Strutil::format("Invalid UDIM pattern \"{}\": {}",
+                                    m_filename, e.what()));
+        return;
+    }
     for (auto udim_tile_name : filenames) {
         std::string fnpart = Filesystem::filename(udim_tile_name);
         std::match_results<std::string::const_iterator> match;
@@ -4219,8 +4234,7 @@ ImageCacheFile::udim_setup()
 std::string
 ImageCacheFile::udim_to_wildcard(string_view udimpattern)
 {
-    // dot, parens, brackets, and braces are special in regex and need to be
-    // preceded by a backslash to be matched literally.
+    // Backslash regex metacharacters so they are matched literally.
     std::string result = Filesystem::filename_to_regex(udimpattern);
     // Replace the udim specifiers with numeric wildcards, and surround the
     // number parts with regex parentheses, which will allow us later to

@@ -68,6 +68,10 @@ test_filename_decomposition()
                      "/foo/bar/baz\\..*");
     OIIO_CHECK_EQUAL(Filesystem::filename_to_regex("/fo?/b*r/b?z.*"),
                      "/fo.?/b.*r/b.?z\\..*");
+    OIIO_CHECK_EQUAL(Filesystem::filename_to_regex("+a^b$c|d\\e+.exr"),
+                     "\\+a\\^b\\$c\\|d\\\\e\\+\\.exr");
+    OIIO_CHECK_EQUAL(Filesystem::filename_to_regex("a?b*c", false),
+                     "a\\?b\\*c");
 }
 
 

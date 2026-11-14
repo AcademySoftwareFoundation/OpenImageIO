@@ -410,8 +410,9 @@ scan_for_matching_filenames(const std::string& pattern,
                             std::vector<std::string>& filenames);
 
 /// Convert a UTF-8 encoded filename into a regex-safe pattern -- any special
-/// regex characters `.`, `(`, `)`, `[`, `]`, `{`, `}` are backslashed. If
-/// `simple_glob` is also true, then replace `?` with `.?` and `*` with `.*`.
+/// regex characters `\`, `^`, `$`, `.`, `|`, `+`, `(`, `)`, `[`, `]`, `{`,
+/// `}` are backslashed. If `simple_glob` is true, then replace `?` with `.?`
+/// and `*` with `.*`; otherwise, `?` and `*` are backslashed, too.
 /// This doesn't support full Unix command line glob syntax (no char sets
 /// `[abc]` or string sets `{ab,cd,ef}`), but it does handle simple globbing
 /// of `?` to mean any single character and `*` to mean any sequence of 0 or

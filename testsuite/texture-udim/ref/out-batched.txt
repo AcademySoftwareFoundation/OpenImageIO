@@ -41,6 +41,10 @@ Image "file.%(UDIM)d.tx" attrib "Make" = "pet"
 Created texture system
 Image "file.%(UDIM)d.tx" attrib "Model" -> not found
 Created texture system
+Image "plus+<UDIM>.tx" attrib "Make" = "pet"
+Created texture system
+Image "+<UDIM>.tx" attrib "Make" -> not found
+Created texture system
 Temp file 0: mktest_0000.<UDIM>.tx
     mktest_0000.1001.tx
     mktest_0000.1002.tx

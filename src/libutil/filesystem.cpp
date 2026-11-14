@@ -1144,21 +1144,18 @@ Filesystem::scan_for_matching_filenames(const std::string& pattern_,
 std::string
 Filesystem::filename_to_regex(string_view pattern, bool simple_glob)
 {
-    // Replace dot unconditionally, since it's so common in filenames.
-    std::string p = Strutil::replace(pattern, ".", "\\.", true);
-    // Other problematic chars are rare in filenames, do a quick test to
-    // prevent needless string manipulation.
-    if (Strutil::contains_any_char(p, "()[]{}")) {
-        p = Strutil::replace(p, "(", "\\(", true);
-        p = Strutil::replace(p, ")", "\\)", true);
-        p = Strutil::replace(p, "[", "\\[", true);
-        p = Strutil::replace(p, "]", "\\]", true);
-        p = Strutil::replace(p, "{", "\\{", true);
-        p = Strutil::replace(p, "}", "\\}", true);
-    }
-    if (simple_glob && Strutil::contains_any_char(p, "?*")) {
-        p = Strutil::replace(p, "?", ".?", true);
-        p = Strutil::replace(p, "*", ".*", true);
+    // Backslash every ECMAScript regex metacharacter so that it matches
+    // literally, except that with simple_glob, `?` and `*` become wildcards.
+    std::string p;
+    p.reserve(pattern.size() + 8);
+    for (char c : pattern) {
+        if (simple_glob && (c == '?' || c == '*')) {
+            p += '.';
+        } else if (string_view("\\^$.|?*+()[]{}").find(c)
+                   != string_view::npos) {
+            p += '\\';
+        }
+        p += c;
     }
     return p;
 }
