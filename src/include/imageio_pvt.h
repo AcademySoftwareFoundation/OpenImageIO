@@ -50,6 +50,7 @@ extern int limit_resolution;
 extern int imagebuf_print_uncaught_errors;
 extern int imagebuf_use_imagecache;
 extern int imageinput_strict;
+extern int colorconfig_analyze_transforms;
 extern atomic_ll IB_local_mem_current;
 extern atomic_ll IB_local_mem_peak;
 extern std::atomic<float> IB_total_open_time;

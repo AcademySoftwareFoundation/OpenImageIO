@@ -430,10 +430,15 @@ test_color_space_properties()
         OIIO_CHECK_EQUAL(config.get_chromaticities("sRGB").size(), 8);
         OIIO_CHECK_EQUAL(config.get_transfer_function_gamma("Adobe"),
                          563.0f / 256.0f);
-        for (auto name : { "Plain", "Mislabeled" }) {
+        for (auto name : { "Plain", "Mislabeled" })
             OIIO_CHECK_EQUAL(config.get_transfer_function_gamma(name), 1.0f);
-            OIIO_CHECK_ASSERT(config.get_chromaticities(name).empty());
-        }
+        OIIO_CHECK_ASSERT(config.get_chromaticities("Plain").empty());
+        // The ID gives the primaries even when the encoding contradicts its
+        // transfer function, which the encoding decides.
+        const float rec709[] = { .64f, .33f, .30f,   .60f,
+                                 .15f, .06f, .3127f, .329f };
+        OIIO_CHECK_ASSERT(config.get_chromaticities("Mislabeled")
+                          == cspan<float>(rec709));
         for (auto name : { "Data", "data", "missing" }) {
             OIIO_CHECK_EQUAL(config.get_transfer_function_gamma(name), 0.0f);
             OIIO_CHECK_ASSERT(config.get_chromaticities(name).empty());
@@ -482,6 +487,270 @@ test_color_space_properties()
 
 
 
+static void
+test_derived_color_space_properties()
+{
+    if (!ColorConfig::supportsOpenColorIO())
+        return;
+
+    // Color spaces with no Color Interop ID, written with OCIO's built-in
+    // transforms, report what their transforms establish.
+    const std::string filename = Filesystem::temp_directory_path() + "/"
+                                 + Filesystem::unique_path() + ".ocio";
+    const std::string cube     = Filesystem::temp_directory_path() + "/"
+                                 + Filesystem::unique_path() + ".cube";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        cube, "LUT_3D_SIZE 2\n0.1 0.1 0.1\n1 0 0\n0 1 0\n1 1 0\n"
+              "0 0 1\n1 0 1\n0 1 1\n1 1 1\n"));
+    const std::string spi1d = Filesystem::temp_directory_path() + "/"
+                              + Filesystem::unique_path() + ".spi1d";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        spi1d, "Version 1\nFrom 0.0 1.0\nLength 2\nComponents 1\n"
+               "{\n0.0\n0.5\n}\n"));
+    auto scene = [](const char* name, const char* transform) {
+        return Strutil::fmt::format(
+            "  - !<ColorSpace>\n    name: {}\n    to_scene_reference: {}\n",
+            name, transform);
+    };
+    auto display = [](const char* name, const char* builtin,
+                      const char* encoding = nullptr) {
+        return Strutil::fmt::format(
+            "  - !<ColorSpace>\n    name: {}\n{}    from_display_reference: "
+            "!<BuiltinTransform> {{style: DISPLAY - CIE-XYZ-D65_to_{}}}\n",
+            name,
+            encoding ? Strutil::fmt::format("    encoding: {}\n", encoding)
+                     : std::string(),
+            builtin);
+    };
+    const char* acescg = "!<BuiltinTransform> {style: ACEScg_to_ACES2065-1}";
+    const std::string from_xyz
+        = "!<BuiltinTransform> {style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD, "
+          "direction: inverse}";
+    // RGB to CIE XYZ of P3-D65, and of the primaries (0.7, 0.3), (0.2, 0.75)
+    // and (0.12, 0.05) with a D65 white.
+    const std::string p3_matrix
+        = "!<MatrixTransform> {matrix: [0.4865709486482162, "
+          "0.2656676931690931, 0.1982172852343625, 0, 0.2289745640697488, "
+          "0.6917385218365064, 0.0792869140937450, 0, 0, 0.0451133818589026, "
+          "1.0439443689009760, 0, 0, 0, 0, 1]}";
+    const std::string custom_matrix
+        = "!<MatrixTransform> {matrix: [0.6204938816007054, "
+          "0.1789769595413957, 0.1509850859095705, 0, 0.2659259492574452, "
+          "0.6711635982802339, 0.06291045246232105, 0, 0, "
+          "0.04474423988534896, 1.044313510874529, 0, 0, 0, 0, 1]}";
+    // AP0's primaries with a D65 white to ACES2065-1, through Bradford
+    // adaptation: a matrix that barely mixes channels.
+    const char* ap0_d65_matrix
+        = "!<MatrixTransform> {matrix: [1.012897407375689, "
+          "0.004708603250484769, -0.01760601062617368, 0, "
+          "0.0018921829422998467, 1.0052288120241355, -0.007120994966435233, "
+          "0, -0.0010828841935718995, 0.0034120557569510923, "
+          "0.9976708284366206, 0, 0, 0, 0, 1]}";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+        filename,
+        "ocio_profile_version: 2.3\n"
+        "roles: {aces_interchange: ACES2065-1, "
+        "cie_xyz_d65_interchange: CIE-XYZ-D65, default: ACES2065-1}\n"
+        "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+        "colorspaces:\n"
+        "  - !<ColorSpace> {name: ACES2065-1}\n"
+            + scene("ACEScg", acescg)
+            + scene("Power AP1",
+                    "!<GroupTransform> {children: [!<ExponentTransform> "
+                    "{value: 2.2}, !<BuiltinTransform> {style: "
+                    "ACEScg_to_ACES2065-1}]}")
+            + scene("Log AP1",
+                    "!<BuiltinTransform> {style: ACEScct_to_ACES2065-1}")
+            // ACEScc's decoder clamps negatives after its matrix.
+            + scene("Clamped Log AP1",
+                    "!<BuiltinTransform> {style: ACEScc_to_ACES2065-1}")
+            // P3-D65 reaching ACES2065-1 through Bradford adaptation.
+            + scene("Plain P3", ("!<GroupTransform> {children: [" + p3_matrix
+                                 + ", " + from_xyz + "]}")
+                                    .c_str())
+            // A camera gamut, named as its maker publishes it.
+            + scene("RED Log",
+                    "!<BuiltinTransform> {style: RED_LOG3G10-RWG_to_ACES2065-1}")
+            // Primaries no published gamut has.
+            + scene("Custom Gamut", ("!<GroupTransform> {children: ["
+                                     + custom_matrix + ", " + from_xyz + "]}")
+                                        .c_str())
+            // A grade ahead of ACEScg answers as ACEScg.
+            + "  - !<ColorSpace>\n    name: Graded AP1\n"
+              "    from_scene_reference: !<GroupTransform> {children: ["
+              "!<CDLTransform> {slope: [1.1, 1, 0.9]}, "
+              "!<ColorSpaceTransform> {src: ACES2065-1, dst: ACEScg}]}\n"
+            // So does one defined only toward the reference.
+            + "  - !<ColorSpace>\n    name: Graded AP1 To Reference\n"
+              "    to_scene_reference: !<GroupTransform> {children: ["
+              "!<ColorSpaceTransform> {src: ACEScg, dst: ACES2065-1}, "
+              "!<CDLTransform> {slope: [1.1, 1, 0.9]}]}\n"
+            + scene("AP0 D65", ap0_d65_matrix)
+            // A matrix applied to encoded values establishes no primaries.
+            + scene("Curve Last",
+                    "!<GroupTransform> {children: [!<BuiltinTransform> "
+                    "{style: ACEScg_to_ACES2065-1}, !<ExponentTransform> "
+                    "{value: 2.2}]}")
+            // A declared linear encoding is honored over the transforms.
+            + "  - !<ColorSpace>\n    name: Said Linear\n"
+              "    encoding: scene-linear\n"
+              "    to_scene_reference: !<GroupTransform> {children: ["
+              "!<ExponentTransform> {value: 2.2}, !<BuiltinTransform> "
+              "{style: ACEScg_to_ACES2065-1}]}\n"
+            // Single quotes keep a Windows path's backslashes.
+            + scene("Cube",
+                    ("!<GroupTransform> {children: [!<FileTransform> "
+                     "{src: '"
+                     + cube + "', interpolation: linear}, " + acescg + "]}")
+                        .c_str())
+            // Nor does a curve and 3D LUT with no matrix.
+            + "  - !<ColorSpace>\n    name: Shaper Cube\n"
+              "    from_scene_reference: !<GroupTransform> {children: ["
+              "!<LogTransform> {base: 2}, !<FileTransform> {src: '"
+            + cube
+            + "', interpolation: linear}]}\n"
+            // A 3D LUT file ahead of a ColorSpaceTransform answers as its
+            // color space.
+            + "  - !<ColorSpace>\n    name: Cube Then AP1\n"
+              "    from_scene_reference: !<GroupTransform> {children: ["
+              "!<FileTransform> {src: '"
+            + cube
+            + "', interpolation: linear}, !<ColorSpaceTransform> "
+              "{src: ACES2065-1, dst: ACEScg}]}\n"
+            // A 1D LUT file is simple, so the matrix after it mixes encoded
+            // values.
+            + "  - !<ColorSpace>\n    name: Curve Then AP1\n"
+              "    from_scene_reference: !<GroupTransform> {children: ["
+              "!<FileTransform> {src: '"
+            + spi1d
+            + "'}, !<ColorSpaceTransform> {src: ACES2065-1, dst: ACEScg}]}\n"
+            + "display_colorspaces:\n"
+              "  - !<ColorSpace> {name: CIE-XYZ-D65}\n"
+            + display("Monitor 1886", "REC.1886-REC.709")
+            + display("Monitor P3", "DisplayP3")
+            + display("Cinema P3-D60", "G2.6-P3-D60-BFD")
+            + display("Cinema P3-DCI", "G2.6-P3-DCI-BFD")
+            // A scene encoding on a display space is not linear for it.
+            + display("Mistagged 1886", "REC.1886-REC.709", "scene-linear")));
+
+    const float ap0[] = { .7347f, .2653f, 0.0f,    1.0f,
+                          .0001f, -.077f, .32168f, .33767f };
+    const float ap1[] = { .713f, .293f, .165f,   .83f,
+                          .128f, .044f, .32168f, .33767f };
+    const float rec709[] = { .64f, .33f, .30f, .60f, .15f, .06f, .3127f, .329f };
+    const float p3d65[] = { .68f, .32f, .265f, .69f, .15f, .06f, .3127f, .329f };
+    const float p3d60[] = { .68f, .32f, .265f,   .69f,
+                            .15f, .06f, .32168f, .33767f };
+    const float p3dci[] = { .68f, .32f, .265f, .69f, .15f, .06f, .314f, .351f };
+    const float rwg[]   = { .780308f, .304253f,  .121595f, 1.493994f,
+                            .095612f, -.084589f, .3127f,   .329f };
+    const float custom[]  = { .7f, .3f, .2f, .75f, .12f, .05f, .3127f, .329f };
+    const float ap0_d65[] = { .7347f, .2653f, 0.0f,   1.0f,
+                              .0001f, -.077f, .3127f, .329f };
+    // CIE XYZ taken as RGB, so R = G = B is illuminant E.
+    const float xyz[]
+        = { 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f / 3, 1.0f / 3 };
+    {
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        struct Expected {
+            const char* name;
+            const float* xy;
+            float gamma;
+        };
+        for (const Expected& e : {
+                 Expected { "ACES2065-1", ap0, 1.0f },
+                 Expected { "ACEScg", ap1, 1.0f },
+                 Expected { "Power AP1", ap1, 0.0f },
+                 Expected { "Log AP1", ap1, 0.0f },
+                 Expected { "Clamped Log AP1", ap1, 0.0f },
+                 Expected { "Plain P3", p3d65, 1.0f },
+                 Expected { "RED Log", rwg, 0.0f },
+                 Expected { "Custom Gamut", custom, 1.0f },
+                 Expected { "Graded AP1", ap1, 1.0f },
+                 Expected { "Graded AP1 To Reference", ap1, 1.0f },
+                 Expected { "AP0 D65", ap0_d65, 1.0f },
+                 Expected { "Curve Last", nullptr, 0.0f },
+                 Expected { "Said Linear", ap1, 1.0f },
+                 Expected { "Cube", ap1, 0.0f },
+                 Expected { "Shaper Cube", nullptr, 0.0f },
+                 Expected { "Cube Then AP1", ap1, 0.0f },
+                 Expected { "Curve Then AP1", nullptr, 0.0f },
+                 Expected { "CIE-XYZ-D65", xyz, 1.0f },
+                 Expected { "Monitor 1886", rec709, 0.0f },
+                 Expected { "Monitor P3", p3d65, 0.0f },
+                 Expected { "Cinema P3-D60", p3d60, 0.0f },
+                 Expected { "Cinema P3-DCI", p3dci, 0.0f },
+                 Expected { "Mistagged 1886", rec709, 0.0f },
+             }) {
+            // Compared as text, so a failure names the color space.
+            auto describe = [&](cspan<float> xy, float gamma) {
+                return Strutil::fmt::format("{}: [{}] {}", e.name,
+                                            Strutil::join(xy, " "), gamma);
+            };
+            OIIO_CHECK_EQUAL(
+                describe(config.get_chromaticities(e.name),
+                         config.get_transfer_function_gamma(e.name)),
+                describe(e.xy ? cspan<float>(e.xy, 8) : cspan<float>(),
+                         e.gamma));
+        }
+
+        // With analysis off, only declarations and known names answer, even
+        // for a space already analyzed.
+        OIIO::attribute("colorconfig:analyze_transforms", 0);
+        OIIO_CHECK_ASSERT(config.get_chromaticities("Plain P3").empty());
+        OIIO_CHECK_EQUAL(config.get_transfer_function_gamma("Plain P3"), 0.0f);
+        OIIO::attribute("colorconfig:analyze_transforms", 1);
+    }
+    Filesystem::remove(filename);
+    Filesystem::remove(cube);
+    Filesystem::remove(spi1d);
+
+    // OpenColorIO 2.5 reads a declared interop_id. The ID gives the
+    // primaries, from the table or from OpenImageIO's own definition of it,
+    // whatever the transforms do; an ID OpenImageIO doesn't know leaves them
+    // to the transforms.
+    if (ColorConfig::OpenColorIO_version_hex() >= 0x02050000) {
+        OIIO_CHECK_ASSERT(Filesystem::write_text_file(
+            filename,
+            "ocio_profile_version: 2.5\n"
+            "roles: {aces_interchange: ACES2065-1, "
+            "cie_xyz_d65_interchange: CIE-XYZ-D65, default: ACES2065-1}\n"
+            "file_rules:\n  - !<Rule> {name: Default, colorspace: default}\n"
+            "colorspaces:\n"
+            "  - !<ColorSpace> {name: ACES2065-1}\n"
+            "  - !<ColorSpace> {name: Camera, interop_id: ocio:lin_awg3_scene}\n"
+            "  - !<ColorSpace> {name: Film, interop_id: ocio:adx10_apd_scene}\n"
+            "  - !<ColorSpace>\n    name: Studio Wide\n"
+            "    interop_id: acme:lin_wide_scene\n"
+            "    to_scene_reference: !<GroupTransform> {children: ["
+                + p3_matrix + ", " + from_xyz
+                + "]}\n"
+                  "display_colorspaces:\n"
+                  "  - !<ColorSpace> {name: CIE-XYZ-D65}\n"
+                  "  - !<ColorSpace>\n    name: XYZ Linear\n"
+                  "    interop_id: ocio:lin_ciexyzd65_display\n"));
+        const float awg3[] = { .684f,  .313f,  .221f,  .848f,
+                               .0861f, -.102f, .3127f, .329f };
+        ColorConfig config(filename);
+        OIIO_CHECK_FALSE(config.has_error());
+        OIIO_CHECK_ASSERT(config.get_chromaticities("Camera")
+                          == cspan<float>(awg3));
+        OIIO_CHECK_EQUAL(config.get_chromaticities("Film").size(), 8);
+        OIIO_CHECK_ASSERT(config.get_chromaticities("Studio Wide")
+                          == cspan<float>(p3d65));
+        OIIO_CHECK_EQUAL(config.get_transfer_function_gamma("Studio Wide"),
+                         1.0f);
+        OIIO_CHECK_ASSERT(config.get_chromaticities("XYZ Linear")
+                          == cspan<float>(xyz));
+        OIIO_CHECK_EQUAL(config.get_transfer_function_gamma("XYZ Linear"),
+                         1.0f);
+        Filesystem::remove(filename);
+    }
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -504,6 +773,7 @@ main(int argc, char* argv[])
     test_interop_identities_conversion();
     test_gamma_pair_conversion();
     test_color_space_properties();
+    test_derived_color_space_properties();
 
     return unit_test_failures != 0;
 }
