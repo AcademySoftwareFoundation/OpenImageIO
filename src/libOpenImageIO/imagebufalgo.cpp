@@ -307,6 +307,8 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
     if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS)
         roi.chend = std::min(roi.chend, minchans);
     roi.chend = std::min(roi.chend, maxchans);
+    // Clamping may leave no channels; never let the range go negative.
+    roi.chend = std::max(roi.chend, roi.chbegin);
     if (prepflags & IBAprep_REQUIRE_ALPHA) {
         if (dst->spec().alpha_channel < 0 || (A && A->spec().alpha_channel < 0)
             || (B && B->spec().alpha_channel < 0)
@@ -595,6 +597,8 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
     if (options.get_int("clamp_mutual_nchannels"))
         roi.chend = std::min(roi.chend, minchans);
     roi.chend = std::min(roi.chend, maxchans);
+    // Clamping may leave no channels; never let the range go negative.
+    roi.chend = std::max(roi.chend, roi.chbegin);
     if (options.get_int("require_alpha")) {
         if (dst.spec().alpha_channel < 0
             || ANY_SRC(s->spec().alpha_channel < 0)) {
@@ -719,8 +723,14 @@ ImageBufAlgo::perpixel_op(
     using namespace ImageBufAlgo;
     ImageBuf result;
     ROI roi;
-    if (!IBAprep(roi, result, { &srcA, &srcB }, options))
+    // The op may only see channels both inputs have
+    ParamValueList prepopts;
+    prepopts.assign(options.begin(), options.end());
+    prepopts.attribute("clamp_mutual_nchannels", 1);
+    if (!IBAprep(roi, result, { &srcA, &srcB }, prepopts))
         return result;
+    if (roi.chbegin >= roi.chend)
+        return result;  // no channels in common, nothing to do
     int nthreads = options.get_int("nthreads", 0);
     bool ok      = true;
     if (result.pixeltype() == TypeFloat && srcA.pixeltype() == TypeFloat
@@ -728,16 +738,17 @@ ImageBufAlgo::perpixel_op(
         // Source images (and therefore the destination we created) have float
         // pixels, so just iterate and call the user's op.
         parallel_image(roi, nthreads, [&](ROI roi) {
+            int cb = roi.chbegin;
             int nc = roi.nchannels();
             ImageBuf::ConstIterator<float> sa(srcA, roi);
             ImageBuf::ConstIterator<float> sb(srcB, roi);
             ImageBuf::Iterator<float> d(result, roi);
             for (; !d.done(); ++sa, ++sb, ++d) {
-                bool r = op(span<float>((float*)d.rawptr(),
+                bool r = op(span<float>((float*)d.rawptr() + cb,
                                         oiio_span_size_type(nc)),
-                            cspan<float>((const float*)sa.rawptr(),
+                            cspan<float>((const float*)sa.rawptr() + cb,
                                          oiio_span_size_type(nc)),
-                            cspan<float>((const float*)sb.rawptr(),
+                            cspan<float>((const float*)sb.rawptr() + cb,
                                          oiio_span_size_type(nc)));
                 if (!r)
                     ok = false;
@@ -773,20 +784,30 @@ ImageBufAlgo::perpixel_op(
         });
 #endif
     } else {
-        // Input has non-float images, so do conversions in and out.
+        // Input has non-float images, so do conversions in and out. The
+        // iterators convert whole pixels, so size the scratch for the full
+        // images and hand the op only the channels in the ROI.
         parallel_image(roi, nthreads, [&](ROI roi) {
-            int nc      = roi.nchannels();
-            float* vals = OIIO_ALLOCA(float, 3 * nc);
-            span<float> sapel(vals, nc);
-            span<float> sbpel(vals + nc, nc);
-            span<float> dpel(vals + 2 * nc, nc);
+            int nca     = srcA.nchannels();
+            int ncb     = srcB.nchannels();
+            int ncd     = result.nchannels();
+            float* vals = OIIO_ALLOCA(float, nca + ncb + ncd);
+            span<float> sapel(vals, nca);
+            span<float> sbpel(vals + nca, ncb);
+            span<float> dpel(vals + nca + ncb, ncd);
+            size_t cb = size_t(roi.chbegin);
+            size_t nc = size_t(roi.nchannels());
             ImageBuf::ConstIterator<float> sa(srcA, roi);
             ImageBuf::ConstIterator<float> sb(srcB, roi);
             ImageBuf::Iterator<float> d(result, roi);
+            // result is freshly allocated with its non-ROI channels zeroed,
+            // and the op only writes ROI channels, so start from zero.
+            std::fill(dpel.begin(), dpel.end(), 0.0f);
             for (; !d.done(); ++sa, ++sb, ++d) {
                 sa.store<float>(sapel);
                 sb.store<float>(sbpel);
-                bool r = op(dpel, sapel, sbpel);
+                bool r = op(dpel.subspan(cb, nc), sapel.subspan(cb, nc),
+                            sbpel.subspan(cb, nc));
                 if (!r)
                     ok = false;
                 d.load<float>(dpel);

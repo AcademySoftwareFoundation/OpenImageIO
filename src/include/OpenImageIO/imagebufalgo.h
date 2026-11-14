@@ -2114,7 +2114,10 @@ bool OIIO_API erode(ImageBuf& dst, const ImageBuf& src, int width = 3,
 ///
 /// The first three channels are presumed to be the color to be
 /// transformed, and the fourth channel (if it exists) is presumed to be
-/// alpha. Any additional channels will be simply copied unaltered.
+/// alpha. Any additional channels will be simply copied unaltered. The
+/// ROI's channel range must start at 0 and include all of the color
+/// channels (it may exclude alpha, leaving it unaltered); other channel
+/// ranges are an error.
 ///
 /// The transformation may be between any two spaces supported by the active
 /// OCIO configuration, or may be a "look" transformation created by

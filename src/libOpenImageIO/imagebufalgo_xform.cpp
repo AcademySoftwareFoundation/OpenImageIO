@@ -590,7 +590,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
     ImageBufAlgo::parallel_image(roi, nthreads, [&](ROI roi) {
         const ImageSpec& srcspec(src.spec());
         const ImageSpec& dstspec(dst.spec());
-        int nchannels = dstspec.nchannels;
+        int chend = roi.chend;
 
         // Local copies of the source image window, converted to float
         float srcfx = srcspec.full_x;
@@ -664,7 +664,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
         // Accumulate the weighted results in pel[]. We select a type big
         // enough to hold with required precision.
         typedef typename Accum_t<DSTTYPE>::type Acc_t;
-        Acc_t* pel = OIIO_ALLOCA(Acc_t, nchannels);
+        Acc_t* pel = OIIO_ALLOCA(Acc_t, chend);
 
 #define USE_SPECIAL 0
 #if USE_SPECIAL
@@ -723,7 +723,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
                     float s      = (x - dstfx + 0.5f) * dstpixelwidth;
                     float src_xf = srcfx + s * srcfw;
                     int src_x    = ifloor(src_xf);
-                    for (int c = 0; c < nchannels; ++c)
+                    for (int c = roi.chbegin; c < chend; ++c)
                         pel[c] = 0.0f;
                     const float* xfiltval = xfiltval_all.get()
                                             + (x - roi.xbegin) * xtaps;
@@ -745,7 +745,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
                             for (int i = 0; i < xtaps; ++i, ++srcpel) {
                                 float w = wy * xfiltval[i];
                                 if (w)
-                                    for (int c = 0; c < nchannels; ++c)
+                                    for (int c = roi.chbegin; c < chend; ++c)
                                         pel[c] += w * srcpel[c];
                             }
                         }
@@ -754,10 +754,10 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
                     OIIO_DASSERT(out.x() == x && out.y() == y);
                     if (totalweight_y == 0.0f) {
                         // zero it out
-                        for (int c = 0; c < nchannels; ++c)
+                        for (int c = roi.chbegin; c < chend; ++c)
                             out[c] = 0.0f;
                     } else {
-                        for (int c = 0; c < nchannels; ++c)
+                        for (int c = roi.chbegin; c < chend; ++c)
                             out[c] = pel[c];
                     }
                 }
@@ -777,7 +777,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
                     float src_xf = srcfx + s * srcfw;
                     int src_x;
                     float src_xf_frac = floorfrac(src_xf, &src_x);
-                    for (int c = 0; c < nchannels; ++c)
+                    for (int c = roi.chbegin; c < chend; ++c)
                         pel[c] = 0.0f;
                     float totalweight = 0.0f;
                     srcpel.rerange(src_x - radi, src_x + radi + 1, src_y - radi,
@@ -791,7 +791,7 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
                                                 * (j - (src_yf_frac - 0.5f)));
                             if (w) {
                                 totalweight += w;
-                                for (int c = 0; c < nchannels; ++c)
+                                for (int c = roi.chbegin; c < chend; ++c)
                                     pel[c] += w * srcpel[c];
                             }
                         }
@@ -802,10 +802,10 @@ resize_(ImageBuf& dst, const ImageBuf& src, const Filter2D* filter, ROI roi,
                     OIIO_DASSERT(out.x() == x && out.y() == y);
                     if (totalweight == 0.0f) {
                         // zero it out
-                        for (int c = 0; c < nchannels; ++c)
+                        for (int c = roi.chbegin; c < chend; ++c)
                             out[c] = 0.0f;
                     } else {
-                        for (int c = 0; c < nchannels; ++c)
+                        for (int c = roi.chbegin; c < chend; ++c)
                             out[c] = pel[c] / totalweight;
                     }
                 }
@@ -870,8 +870,11 @@ ImageBufAlgo::resize(ImageBuf& dst, const ImageBuf& src, KWArgs options,
     IBA_check_optional(options, recognized);
 
     if (!IBAprep(roi, &dst, &src,
-                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL))
+                 IBAprep_NO_SUPPORT_VOLUME | IBAprep_NO_COPY_ROI_FULL
+                     | IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
+    if (roi.chbegin >= roi.chend)
+        return true;  // no channels in common, nothing to do
     const ImageSpec& srcspec(src.spec());
     const ImageSpec& dstspec(dst.spec());
 
@@ -1950,10 +1953,11 @@ check_st_warp_args(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
 
     // Prep the output buffer, and then intersect the resulting ROI with the ST
     // buffer's ROI, since the ST warp is only defined for pixels in the latter.
-    bool res
-        = ImageBufAlgo::IBAprep(roi, &dst, &src,
-                                ImageBufAlgo::IBAprep_NO_SUPPORT_VOLUME
-                                    | ImageBufAlgo::IBAprep_NO_COPY_ROI_FULL);
+    bool res = ImageBufAlgo::IBAprep(
+        roi, &dst, &src,
+        ImageBufAlgo::IBAprep_NO_SUPPORT_VOLUME
+            | ImageBufAlgo::IBAprep_NO_COPY_ROI_FULL
+            | ImageBufAlgo::IBAprep_CLAMP_MUTUAL_NCHANNELS);
     if (res) {
         const int chbegin = roi.chbegin;
         const int chend   = roi.chend;
@@ -1982,6 +1986,8 @@ ImageBufAlgo::st_warp(ImageBuf& dst, const ImageBuf& src, const ImageBuf& stbuf,
     if (!check_st_warp_args(dst, src, stbuf, chan_s, chan_t, roi)) {
         return false;
     }
+    if (roi.chbegin >= roi.chend)
+        return true;  // no channels in common, nothing to do
 
     // Set up a shared pointer with custom deleter to make sure any
     // filter we allocate here is properly destroyed.
