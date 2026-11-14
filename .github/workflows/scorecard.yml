@@ -14,13 +14,15 @@ name: Scorecards supply-chain security
 on:
   # Only the default branch is supported.
   branch_protection_rule:
+  schedule:
+    - cron: '44 20 * * 6'
   push:
     # Run on pushes to main, but only the official repo, not forks
-    branches: [ "main" ]
-  pull_request:
-    # Only run on individual PRs if the workflows changed
-    paths:
-      - '.github/workflows/**'
+    branches: [ "main", "scorecard" ]
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+      - '**.tex'
 
 # Declare default permissions as read only.
 permissions: read-all
