@@ -52,3 +52,8 @@ command += oiiotool ("ramp-ascii.pgm ramp.tif --diff")
 # PFM must also read back top-down when opened without a config (idiff).
 command += oiiotool ("--pattern fill:top=0:bottom=1 4x8 1 -d float -o ramp.exr -o ramp.pfm")
 command += diff_command ("ramp.pfm", "ramp.exr")
+
+# Half data must write PFM (not 16-bit PGM from BitsPerSample=16), and the
+# flip must use the float file row size, not the native half row size.
+command += oiiotool ("--pattern fill:top=0:bottom=1 4x8 1 -d half -o ramp-half.pfm")
+command += diff_command ("ramp-half.pfm", "ramp.exr")
