@@ -2,6 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+# NOTE: Actions used here are locked in .github/workflows/actions.lock.
+# If you add, remove, or change the version of any `uses:` action (or add
+# a new workflow file), regenerate the lockfile and commit it:
+#     gh extension install github/gh-actions-lock   # once
+#     gh actions-lock
+# CI (lockfile.yml) runs `gh actions-lock --verify` and fails if stale.
+
 name: Analysis
 
 on:

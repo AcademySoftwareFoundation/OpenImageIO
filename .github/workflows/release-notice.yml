@@ -2,6 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
+# NOTE: Actions used here are locked in .github/workflows/actions.lock.
+# If you add, remove, or change the version of any `uses:` action (or add
+# a new workflow file), regenerate the lockfile and commit it:
+#     gh extension install github/gh-actions-lock   # once
+#     gh actions-lock
+# CI (lockfile.yml) runs `gh actions-lock --verify` and fails if stale.
+
 
 name: Publish Release Notice to ASWF Slack
 
@@ -23,4 +30,4 @@ jobs:
         slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
         slack_channel: "#release-announcements"
         project_logo: "https://artwork.aswf.io/projects/openimageio/icon/color/openimageio-icon-color.png"
-      uses: jmertic/slack-release-notifier@9d7d3a84563d2ebc8f7b2271be6c9568fedd7f3a # 20260406
+      uses: jmertic/slack-release-notifier@20260406
