@@ -81,7 +81,7 @@ jobs:
     - name: Check metadata
       run: pipx run twine check dist/*
 
-    - uses: actions/upload-artifact@v7.0.1
+    - uses: actions/upload-artifact@v7.0.2
       with:
         name: cibw-sdist
         path: dist/*.tar.gz
@@ -135,7 +135,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Install Python
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.9'
 
@@ -149,7 +149,7 @@ jobs:
 
       - name: Build wheels
         # Note: the version of cibuildwheel should be kept in sync with src/python/stubs/CMakeLists.txt
-        uses: pypa/cibuildwheel@v4.2.0
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           # pass GITHUB_ACTIONS through to the build container so that custom
           # processes can tell they are running in CI.
@@ -181,13 +181,13 @@ jobs:
           path: ~/.ccache
           key: wheel-${{runner.os}}-${{matrix.manylinux}}-${{matrix.python}}
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: cibw-wheels-${{matrix.manylinux}}-${{ matrix.python }}-${{ matrix.manylinux }}
           path: |
             ./wheelhouse/*.whl
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: stubs-${{ matrix.python }}-${{ matrix.manylinux }}
           path: |
@@ -247,7 +247,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Install Python
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.9'
         
@@ -260,7 +260,7 @@ jobs:
           restore-keys: wheel-${{runner.os}}-${{matrix.python}}
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4.2.0
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_ENVIRONMENT_PASS_LINUX: GITHUB_ACTIONS
           CIBW_BEFORE_ALL: "source src/build-scripts/build_ccache.bash && pwd && /project/ext/dist/bin/ccache --max-size=200M && /project/ext/dist/bin/ccache -sv && export CMAKE_C_COMPILER_LAUNCHER=/project/ext/dist/bin/ccache CMAKE_CXX_COMPILER_LAUNCHER=/project/ext/dist/bin/ccache"
@@ -288,13 +288,13 @@ jobs:
           path: ~/.ccache
           key: wheel-${{runner.os}}-${{matrix.python}}
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: cibw-wheels-${{ matrix.python }}-${{ matrix.manylinux }}
           path: |
             ./wheelhouse/*.whl
       
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: stubs-${{ matrix.python }}-${{ matrix.manylinux }}
           path: |
@@ -347,7 +347,7 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Install Python
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.9'
 
@@ -368,7 +368,7 @@ jobs:
             brew uninstall -f --ignore-dependencies openexr imath expat cmake || true
         
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4.2.0
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
@@ -390,7 +390,7 @@ jobs:
           path: ~/.ccache
           key: wheel-${{runner.os}}-${{matrix.python}}
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
@@ -439,7 +439,7 @@ jobs:
         uses: actions/checkout@v7.0.1
         
       - name: Install Python
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.9'
         
@@ -456,7 +456,7 @@ jobs:
             brew install ninja ccache || true
         
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4.2.0
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
@@ -474,7 +474,7 @@ jobs:
           path: ~/.ccache
           key: wheel-${{runner.os}}-${{matrix.python}}
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
@@ -522,12 +522,12 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Install Python
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.9'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4.2.0
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD: ${{ matrix.python }}
           CIBW_ARCHS: ${{ matrix.arch }}
@@ -538,7 +538,7 @@ jobs:
           CCACHE_DIR: ~/.ccache
           CCACHE_COMPRESSION: yes
 
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: cibw-wheels-${{ matrix.python }}
           path: ./wheelhouse/*.whl
@@ -551,12 +551,12 @@ jobs:
       id-token: write
     if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v3.2.') || startsWith(github.event.ref, 'refs/tags/v3.1.')) && github.event.repository.fork == false
     steps:
-      - uses: actions/setup-python@v7.0.0
+      - uses: actions/setup-python@v7.1.0
 
-      - uses: actions/download-artifact@v8.0.1
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: cibw-*
           path: dist
           merge-multiple: true
 
-      - uses: pypa/gh-action-pypi-publish@v1.14.2
+      - uses: pypa/gh-action-pypi-publish@v1.14.3
