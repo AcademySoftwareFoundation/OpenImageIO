@@ -36,7 +36,7 @@ workflows:
         - 'actions/setup-python@v7.0.0'
         - 'actions/upload-artifact@v7.0.1'
         - 'pypa/cibuildwheel@v4.2.0'
-        - 'pypa/gh-action-pypi-publish@v1.14.2'
+        - 'pypa/gh-action-pypi-publish@v1.14.3'
 dependencies:
     'actions/cache@v4.3.0':
         ref: 'v4.3.0'
@@ -120,9 +120,9 @@ dependencies:
         repo_id: 85508223
         uses:
             - 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
-    'pypa/gh-action-pypi-publish@v1.14.2':
-        ref: 'v1.14.2'
-        commit: 'sha1-dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
+    'pypa/gh-action-pypi-publish@v1.14.3':
+        ref: 'v1.14.3'
+        commit: 'sha1-7245906fb61fa33a13554f9d5fb856fe61758086'
         owner_id: 647025
         repo_id: 178055147
         uses:
