@@ -1430,6 +1430,8 @@ TIFFInput::readspec(bool read_meta)
         }
         if (m_photometric == PHOTOMETRIC_SEPARATED)
             m_spec.alpha_channel = -1;  // ignore alpha in CMYK
+        if (m_spec.alpha_channel >= m_spec.nchannels)
+            m_spec.alpha_channel = -1;
         if (m_spec.alpha_channel >= 0
             && m_spec.alpha_channel < m_spec.nchannels) {
             while (m_spec.channelnames.size() < size_t(m_spec.nchannels))
@@ -1796,6 +1798,11 @@ TIFFInput::readspec_photometric()
         m_spec.format = TypeDesc::UINT8;
         m_spec.channelformats.clear();
         m_photometric = PHOTOMETRIC_RGB;
+        // The RGBA interface yields at most 4 channels per pixel.
+        if (m_spec.nchannels > 4) {
+            m_spec.nchannels = 4;
+            m_spec.channelnames.resize(4);
+        }
     }
 
     // If we're not using the RGBA interface, but we have one of these
