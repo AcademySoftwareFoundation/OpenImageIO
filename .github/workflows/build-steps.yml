@@ -176,7 +176,7 @@ jobs:
       - name: Checkout repo-OLD
         if: inputs.old_node == '1'
         # Must use an old checkout action for old containers
-        uses: actions/checkout@v4.3.0
+        uses: actions/checkout@v7.0.1
       - name: Build setup
         shell: bash
         run: |
@@ -198,7 +198,7 @@ jobs:
         if: inputs.old_node == '1'
         id: ccache-restore-old
         # Must use an old cache restore action for old containers
-        uses: actions/cache/restore@v4.3.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
           # path: ./ccache
@@ -212,7 +212,7 @@ jobs:
             sudo apt-get install -y g++-${{inputs.gcc_action_ver}}
       - name: Install python
         if: inputs.python_action_ver != ''
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: ${{ inputs.python_action_ver }}
       - name: Install LLVM and Clang
@@ -244,7 +244,7 @@ jobs:
           key: windeps-${{inputs.nametag}}-c++${{inputs.cxx_std}}-${{inputs.build_type}}-py${{inputs.python_ver}}-${{ hashFiles('src/cmake/build_*.cmake', 'src/cmake/dependency_utils.cmake') }}
       - name: Install sonar build-wrapper
         if: inputs.sonar == '1'
-        uses: sonarsource/sonarqube-scan-action/install-build-wrapper@v8.2.1
+        uses: sonarsource/sonarqube-scan-action/install-build-wrapper@v8.4.0
       - name: Build
         if: inputs.skip_build != '1'
         shell: bash
@@ -280,7 +280,7 @@ jobs:
         if: inputs.old_node == '1'
         id: ccache-save-old
         # Must use an old cache action for old containers
-        uses: actions/cache/save@v4.3.0
+        uses: actions/cache/save@v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{inputs.nametag}}-${{steps.ccache_cache_keys.outputs.date}}
@@ -335,7 +335,7 @@ jobs:
           path: corpus/${{ inputs.fuzz_format }}
       - name: Upload fuzz crash artifacts
         if: always() && inputs.fuzz_format != '' && steps.fuzz.outcome == 'failure'
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: fuzz-crashes-${{ inputs.fuzz_format }}-${{ github.run_id }}
           path: crash_${{ inputs.fuzz_format }}_*
@@ -347,7 +347,7 @@ jobs:
         run: src/build-scripts/ci-coverage.bash
       - name: Sonar-scanner
         if: inputs.sonar == '1'
-        uses: sonarsource/sonarqube-scan-action@v8.2.1
+        uses: sonarsource/sonarqube-scan-action@v8.4.0
         env:
           GITHUB_TOKEN: ${{ secrets.PASSED_GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.PASSED_SONAR_TOKEN }}
@@ -363,7 +363,7 @@ jobs:
             time make doxygen
             time make sphinx
       - name: Upload testsuite debugging artifacts
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@v7.0.2
         if: ${{ inputs.old_node != '1' && (failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '') }}
         with:
           name: oiio-${{github.job}}-${{inputs.nametag}}
@@ -380,7 +380,7 @@ jobs:
             !build/testsuite/common
             ${{ inputs.extra_artifacts }}
       - name: Upload testsuite debugging artifacts-OLD
-        uses: actions/upload-artifact@v4.5.0
+        uses: actions/upload-artifact@v7.0.2
         if: ${{ inputs.old_node == '1' && (failure() || inputs.build_docs == '1' || inputs.benchmark == '1' || inputs.abi_check != '') }}
         with:
           name: oiio-${{github.job}}-${{inputs.nametag}}
