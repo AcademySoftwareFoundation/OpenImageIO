@@ -114,3 +114,18 @@ command += oiiotool("--pattern constant:color=0.25,0.5,0.75 64x64 3 "
 command += info_command("mixed-chans.dpx", safematch=True, hash=True)
 # Channel counts with no supported descriptor must fail cleanly.
 command += oiiotool("--create 8x8 2 -o twochan.dpx", failureok=True)
+
+# Regression test: end-of-line padding. Rows must be located using their
+# absolute line number, which only shows up when reading scanlines one at a
+# time.
+eolnpad_tests = ""
+for b in [ 8, 10, 12, 16 ] :
+    command += oiiotool("--pattern fill:top=0,0.5,1:bottom=1,0.25,0 13x9 3 "
+                        f"-d uint{b} -o eolnpad-ref-{b}bit.dpx")
+    eolnpad_tests += f" src/eolnpad-{b}bit.dpx eolnpad-ref-{b}bit.dpx"
+if subprocess.call ([pythonbin, "-c", "import OpenImageIO"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL) == 0 :
+    redirect_push ("eolnpad.txt")
+    command += pythonbin + " src/test_eolnpad.py" + eolnpad_tests + redirect + " ;"
+    redirect_pop ()
