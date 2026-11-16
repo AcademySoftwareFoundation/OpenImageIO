@@ -23,6 +23,9 @@ command += info_command ("resolution.webp", safematch=True)
 # Integer resolution, as oiiotool --attrib stores "72"
 command += oiiotool ("--create 4x4 3 -d uint8 --attrib XResolution 72 --attrib YResolution 72 --attrib ResolutionUnit cm -o resolution-int.webp")
 command += info_command ("resolution-int.webp", safematch=True)
+# Numeric Exif ResolutionUnit, as some readers (e.g. HEIF) report it
+command += oiiotool ("--create 4x4 3 -d uint8 --attrib:type=float XResolution 300 --attrib:type=float YResolution 300 --attrib:type=int ResolutionUnit 2 -o resolution-numunit.webp")
+command += info_command ("resolution-numunit.webp", safematch=True)
 
 
 command += oiiotool ("--create 1x1 3 -d uint8 -o base-short-exif.webp")

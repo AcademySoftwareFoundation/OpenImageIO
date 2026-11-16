@@ -24,18 +24,30 @@ static std::vector<char>
 webp_exif_blob(const ImageSpec& spec)
 {
     // ResolutionUnit is a string in the ImageSpec, but a SHORT in Exif.
+    // Some readers pass on the numeric Exif code, so accept that too.
     ImageSpec exifspec;
     exifspec.extra_attribs = spec.extra_attribs;
     exifspec.erase_attribute("ResolutionUnit");
     exifspec.erase_attribute("Exif:ResolutionUnit");
-    string_view resunit = spec.get_string_attribute("ResolutionUnit");
-    if (Strutil::iequals(resunit, "none"))
-        exifspec.attribute("ResolutionUnit", 1);
-    else if (Strutil::iequals(resunit, "in")
-             || Strutil::iequals(resunit, "inch"))
-        exifspec.attribute("ResolutionUnit", 2);
-    else if (Strutil::iequals(resunit, "cm"))
-        exifspec.attribute("ResolutionUnit", 3);
+    int resunit_code = 0;
+    if (const ParamValue* p = spec.find_attribute("ResolutionUnit")) {
+        if (p->type() == TypeString) {
+            string_view resunit = p->get_ustring();
+            if (Strutil::iequals(resunit, "none"))
+                resunit_code = 1;
+            else if (Strutil::iequals(resunit, "in")
+                     || Strutil::iequals(resunit, "inch"))
+                resunit_code = 2;
+            else if (Strutil::iequals(resunit, "cm"))
+                resunit_code = 3;
+        } else {
+            int code = p->get_int();
+            if (code >= 1 && code <= 3)
+                resunit_code = code;
+        }
+    }
+    if (resunit_code)
+        exifspec.attribute("ResolutionUnit", resunit_code);
     // Exif stores the resolution as a RATIONAL, which encode_exif() writes
     // only from a float. Accept other numeric types, as the other writers do.
     for (const char* name : { "XResolution", "YResolution" }) {
@@ -92,7 +104,8 @@ int
 WebpOutput::supports(string_view feature) const
 {
     return feature == "tiles" || feature == "alpha" || feature == "ioproxy"
-           || feature == "random_access" || feature == "rewrite";
+           || feature == "random_access" || feature == "rewrite"
+           || feature == "exif";
 }
 
 
