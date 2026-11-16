@@ -514,6 +514,8 @@ macro (oiio_add_all_tests)
     # Regression test (compiles its own helper and generates its own image)
     # for a partial edge-tile heap overflow in the OpenEXR readers.
     oiio_add_tests (openexr-partialtile)
+    # Flat read_native_* on deep files must fail, not overrun (own helper).
+    oiio_add_tests (openexr-deep-flatread)
     # Self-contained decompression-bomb regression (ships its own tiny fixture);
     # exercises both the C++ and C-API readers via the openexr:core attribute.
     oiio_add_tests (openexr-bomb)
