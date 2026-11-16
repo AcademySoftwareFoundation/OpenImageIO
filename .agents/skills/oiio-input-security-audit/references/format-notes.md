@@ -36,7 +36,8 @@ Check IDs (C1-C10) are defined in SKILL.md. "OK" = already satisfied.
   read published uninitialized tail; large origin overflow in generic read
   paths (origin must be set before `check_open`). libdpx RLE unimplemented.
 - cineon: C2 via `Filesystem::file_size` (no ioproxy); valid_file delegates to
-  base open().
+  base open(). libcineon per-row reads ignored short reads (A5); UserSize
+  unbounded and its short read ignored (A4); hard error, matching dpx.
 - sgi: C2; RLE16 short scanline (#5321); RLE run value byte past buffer for
   8-bit data (#5513).
 - rla: corrupt RLE; `NextOffset` must advance; offset table indexed unchecked
