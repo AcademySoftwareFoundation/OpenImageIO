@@ -7,7 +7,9 @@
 // one-value-per-channel buffer (a heap overrun when pixels hold several
 // samples). These are the reader's own entry points, below the ImageInput
 // read_scanlines/read_tiles wrappers, so they need their own guard.
+// Conversely, the deep calls must refuse a flat file.
 
+#include <OpenImageIO/deepdata.h>
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/imageio.h>
 
@@ -49,13 +51,24 @@ check_file(const char* filename, int use_core)
         return 1;
     }
     const ImageSpec& spec = in->spec();
-    if (!spec.deep) {
-        OIIO::print("{}: {} is not deep\n", label, filename);
-        return 1;
-    }
     int C = spec.nchannels, z = spec.z;
     int x0 = spec.x, x1 = spec.x + spec.width;
     int y0 = spec.y, y1 = spec.y + spec.height;
+    if (!spec.deep) {
+        // Flat file: the deep calls must refuse it.
+        DeepData dd;
+        bool ok = spec.tile_width
+                      ? in->read_native_deep_tiles(0, 0, x0, x1, y0, y1, z,
+                                                   z + 1, 0, C, dd)
+                      : in->read_native_deep_scanlines(0, 0, y0, y1, z, 0, C,
+                                                       dd);
+        std::string err = in->geterror();
+        bool pass       = !ok && !err.empty();
+        OIIO::print("{} read_native_deep_{}: ok={} err=\"{}\" -> {}\n", label,
+                    spec.tile_width ? "tiles" : "scanlines", ok, err,
+                    pass ? "PASS" : "FAIL");
+        return pass ? 0 : 1;
+    }
     size_t pixelbytes = spec.pixel_bytes(true);
     size_t allbytes   = pixelbytes * spec.image_pixels();
     int err           = 0;
