@@ -1162,8 +1162,10 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info,
         if (id.colortransformid() > 0) {
             // OIIO::print("CONVERT id {} {},{} to cs {}\n", filename(), id.x(), id.y(),
             //       id.colortransformid());
+            // The tile holds only channels [chbegin,chend).
             ImageSpec tilespec(dims.tile_width, dims.tile_height,
-                               dims.nchannels, format);
+                               id.nchannels(), format);
+            tilespec.depth = tilespec.full_depth = dims.tile_depth;
             ImageBuf wrapper(tilespec, make_cspan((const std::byte*)data,
                                                   tilespec.image_bytes()));
             ImageBufAlgo::colorconvert(
