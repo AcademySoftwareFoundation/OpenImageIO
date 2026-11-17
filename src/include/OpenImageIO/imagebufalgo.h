@@ -453,7 +453,10 @@ ImageBuf OIIO_API copy(const ImageBuf& src, TypeDesc convert = TypeUnknown,
                        ROI roi = {}, int nthreads = 0);
 /// Write to an existing image `dst` (allocating if it is uninitialized).
 /// If `dst` is not already initialized, it will be set to the same size as
-/// `roi` (defaulting to all of `src`)
+/// `roi` (defaulting to all of `src`). Only channels that `src` has are
+/// copied; other channels of an existing `dst` are left unchanged. For deep
+/// images, copying only some of an existing `dst`'s channels is an error if
+/// any non-empty `dst` pixel has a different number of samples than `src`.
 bool OIIO_API copy(ImageBuf& dst, const ImageBuf& src,
                    TypeDesc convert = TypeUnknown, ROI roi = {},
                    int nthreads = 0);
@@ -2114,7 +2117,11 @@ bool OIIO_API erode(ImageBuf& dst, const ImageBuf& src, int width = 3,
 ///
 /// The first three channels are presumed to be the color to be
 /// transformed, and the fourth channel (if it exists) is presumed to be
-/// alpha. Any additional channels will be simply copied unaltered.
+/// alpha. Any additional channels will be simply copied unaltered. The
+/// ROI's channel range must start at 0 and include all of the color
+/// channels (it may exclude alpha, leaving an existing `dst` alpha
+/// unaltered, or zero in a newly allocated `dst`); other channel ranges are
+/// an error.
 ///
 /// The transformation may be between any two spaces supported by the active
 /// OCIO configuration, or may be a "look" transformation created by
@@ -2187,7 +2194,9 @@ bool OIIO_API colorconvert(span<float> color, const ColorProcessor* processor,
 ///
 /// The first three channels are presumed to be the color to be
 /// transformed, and the fourth channel (if it exists) is presumed to be
-/// alpha. Any additional channels will be simply copied unaltered.
+/// alpha. Any additional channels will be simply copied unaltered. The
+/// ROI's channel range must meet the same requirements as for
+/// `colorconvert()`.
 ///
 /// @param  M
 ///             A 4x4 matrix. Following Imath conventions, the color is a
@@ -2219,7 +2228,9 @@ bool OIIO_API colormatrixtransform(ImageBuf& dst, const ImageBuf& src,
 ///
 /// The first three channels are presumed to be the color to be
 /// transformed, and the fourth channel (if it exists) is presumed to be
-/// alpha. Any additional channels will be simply copied unaltered.
+/// alpha. Any additional channels will be simply copied unaltered. The
+/// ROI's channel range must meet the same requirements as for
+/// `colorconvert()`.
 ///
 /// @param  looks
 ///             The looks to apply (comma-separated).
@@ -2268,7 +2279,9 @@ bool OIIO_API ociolook(ImageBuf& dst, const ImageBuf& src, string_view looks,
 ///
 /// The first three channels are presumed to be the color to be
 /// transformed, and the fourth channel (if it exists) is presumed to be
-/// alpha. Any additional channels will be simply copied unaltered.
+/// alpha. Any additional channels will be simply copied unaltered. The
+/// ROI's channel range must meet the same requirements as for
+/// `colorconvert()`.
 ///
 /// @param  display
 ///             The OCIO "display" to apply. If this is `"default"` or the
@@ -2327,7 +2340,9 @@ bool OIIO_API ociodisplay(ImageBuf& dst, const ImageBuf& src,
 ///
 /// The first three channels are presumed to be the color to be
 /// transformed, and the fourth channel (if it exists) is presumed to be
-/// alpha. Any additional channels will be simply copied unaltered.
+/// alpha. Any additional channels will be simply copied unaltered. The
+/// ROI's channel range must meet the same requirements as for
+/// `colorconvert()`.
 ///
 /// @param  name
 ///             The name of the file containing the transform information.
@@ -2363,7 +2378,9 @@ bool OIIO_API ociofiletransform(ImageBuf& dst, const ImageBuf& src,
 ///
 /// The first three channels are presumed to be the color to be
 /// transformed, and the fourth channel (if it exists) is presumed to be
-/// alpha. Any additional channels will be simply copied unaltered.
+/// alpha. Any additional channels will be simply copied unaltered. The
+/// ROI's channel range must meet the same requirements as for
+/// `colorconvert()`.
 ///
 /// @param  name
 ///             The name of the OCIO NamedTransform to apply.

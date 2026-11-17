@@ -56,18 +56,26 @@ ImageBufAlgo::scale(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
 {
     OIIO::pvt::LoggedTimer logtime("IBA::scale");
     bool ok = false;
+    // Clamp roi to the channels of the multi-channel input, which is the
+    // only one indexed per channel. Don't use IBAprep_CLAMP_MUTUAL_NCHANNELS,
+    // which would clamp to the 1-channel input.
     if (B.nchannels() == 1) {
-        if (IBAprep(roi, &dst, &A, &B))
-            OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl,
-                                        dst.spec().format, A.spec().format,
-                                        B.spec().format, dst, A, B, roi,
-                                        nthreads);
+        if (!IBAprep(roi, &dst, &A, &B))
+            return false;
+        roi.chend   = std::min(roi.chend, A.nchannels());
+        roi.chbegin = std::min(roi.chbegin, roi.chend);
+        OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl, dst.spec().format,
+                                    A.spec().format, B.spec().format, dst, A, B,
+                                    roi, nthreads);
     } else if (A.nchannels() == 1) {
-        if (IBAprep(roi, &dst, &A, &B))
-            OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl,
-                                        dst.spec().format, B.spec().format,
-                                        A.spec().format, dst, B, A, roi,
-                                        nthreads);
+        // B first, so an uninitialized dst gets B's channels
+        if (!IBAprep(roi, &dst, &B, &A))
+            return false;
+        roi.chend   = std::min(roi.chend, B.nchannels());
+        roi.chbegin = std::min(roi.chbegin, roi.chend);
+        OIIO_DISPATCH_COMMON_TYPES3(ok, "scale", scale_impl, dst.spec().format,
+                                    B.spec().format, A.spec().format, dst, B, A,
+                                    roi, nthreads);
     } else {
         dst.errorfmt(
             "ImageBufAlgo::scale(): one of the arguments must be a single channel image.");

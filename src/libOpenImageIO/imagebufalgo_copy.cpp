@@ -229,19 +229,55 @@ ImageBufAlgo::copy(ImageBuf& dst, const ImageBuf& src, TypeDesc convert,
     if (&dst == &src)  // trivial copy to self
         return true;
 
-    roi.chend = std::min(roi.chend, src.nchannels());
+    roi.chend           = std::min(roi.chend, src.nchannels());
+    bool dst_had_pixels = dst.initialized();
     if (!dst.initialized()) {
         ImageSpec newspec = src.spec();
         if (!roi.defined())
             roi = src.roi();
+        if (roi.chend < 1) {
+            dst.errorfmt("copy: invalid channel range [{},{})", roi.chbegin,
+                         roi.chend);
+            return false;
+        }
         set_roi(newspec, roi);
+        // Keep only the first roi.chend channels' descriptions
         newspec.nchannels = roi.chend;
+        newspec.channelnames.resize(roi.chend);
+        if (newspec.channelformats.size())
+            newspec.channelformats.resize(roi.chend);
+        if (newspec.alpha_channel >= roi.chend)
+            newspec.alpha_channel = -1;
+        if (newspec.z_channel >= roi.chend)
+            newspec.z_channel = -1;
         if (convert != TypeUnknown)
             newspec.set_format(convert);
         dst.reset(newspec);
     }
-    IBAprep(roi, &dst, &src, IBAprep_SUPPORT_DEEP);
+    if (!IBAprep(roi, &dst, &src,
+                 IBAprep_SUPPORT_DEEP | IBAprep_CLAMP_MUTUAL_NCHANNELS))
+        return false;
+    if (roi.chbegin >= roi.chend)
+        return true;  // no channels in common, nothing to do
     if (dst.deep()) {
+        // A deep pixel's sample count is shared by all its channels, so
+        // copying only some of them can't change it without clobbering the
+        // others. Refuse rather than lose data. (A dst we just allocated,
+        // or an empty dst pixel, has no data to lose.)
+        if (dst_had_pixels
+            && (roi.chbegin > 0 || roi.chend < dst.nchannels())) {
+            ImageBuf::ConstIterator<float> s(src, roi);
+            for (ImageBuf::ConstIterator<float> d(dst, roi); !d.done();
+                 ++d, ++s) {
+                if (d.deep_samples() != 0
+                    && d.deep_samples() != s.deep_samples()) {
+                    dst.errorfmt(
+                        "copy: can't copy a subset of deep channels into "
+                        "pixels with a different number of samples");
+                    return false;
+                }
+            }
+        }
         // If it's deep, figure out the sample allocations first, because
         // it's not thread-safe to do that simultaneously with copying the
         // values.
@@ -406,7 +442,7 @@ ImageBufAlgo::circular_shift(ImageBuf& dst, const ImageBuf& src, int xshift,
                              int yshift, int zshift, ROI roi, int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::circular_shift");
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     bool ok;
     OIIO_DISPATCH_COMMON_TYPES2(ok, "circular_shift", circular_shift_,

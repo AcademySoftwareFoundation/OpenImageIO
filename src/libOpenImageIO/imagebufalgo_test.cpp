@@ -4,6 +4,7 @@
 
 
 #include <cstdio>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -266,6 +267,31 @@ test_copy()
         } else {
             for (int c = 0; c < CHANNELS; ++c)
                 OIIO_CHECK_EQUAL(r[c], 0.0f);
+        }
+    }
+
+    // Copy/circular_shift from a 1-channel src into an existing 5-channel
+    // dst with default ROI: channels absent from src must be left alone,
+    // not read past the end of each src pixel (issue #5661).
+    {
+        ImageBuf src(ImageSpec(4, 4, 1, TypeDesc::FLOAT));
+        for (int y = 0; y < 4; ++y)
+            for (int x = 0; x < 4; ++x) {
+                float v = float(y * 4 + x);
+                src.setpixel(x, y, &v, 1);
+            }
+        for (int shift = 0; shift < 2; ++shift) {
+            ImageBuf dst(ImageSpec(4, 4, 5, TypeDesc::FLOAT));
+            float fill[5] = { -1, -1, -1, -1, -1 };
+            ImageBufAlgo::fill(dst, fill);
+            bool ok = shift ? ImageBufAlgo::circular_shift(dst, src, 0, 0)
+                            : ImageBufAlgo::copy(dst, src);
+            OIIO_CHECK_ASSERT(ok);
+            for (ImageBuf::ConstIterator<float> r(dst); !r.done(); ++r) {
+                OIIO_CHECK_EQUAL(r[0], float(r.y() * 4 + r.x()));
+                for (int c = 1; c < 5; ++c)
+                    OIIO_CHECK_EQUAL(r[c], -1.0f);
+            }
         }
     }
 
@@ -1005,6 +1031,468 @@ test_resample_channel_bounds()
         OIIO_CHECK_ASSERT(ImageBufAlgo::resample(below, src, interp, neg));
         OIIO_CHECK_EQUAL(below.getchannel(1, 1, 0, 0), 0.25f);
         OIIO_CHECK_EQUAL(below.getchannel(1, 1, 0, 2), 0.75f);
+    }
+}
+
+
+
+// Ops writing into a pre-allocated dst with more channels than src must
+// leave the channels src lacks alone, not read them from the following src
+// pixels (or past the end of src).
+void
+test_dst_more_channels_than_src()
+{
+    std::cout << "test dst with more channels than src\n";
+    const int nsrc = 2, ndst = 6;
+    ImageBuf src(ImageSpec(4, 4, nsrc, TypeFloat));
+    {
+        float v = 1.0f;
+        for (ImageBuf::Iterator<float> s(src); !s.done(); ++s)
+            for (int c = 0; c < nsrc; ++c)
+                s[c] = v++;
+    }
+    ImageBuf one(ImageSpec(4, 4, 1, TypeFloat));
+    ImageBufAlgo::fill(one, { 2.0f });
+    ImageBuf stbuf(ImageSpec(4, 4, 2, TypeFloat));
+    ImageBufAlgo::fill(stbuf, { 0.5f, 0.5f });
+
+    using Op = std::function<bool(ImageBuf&, ROI)>;
+    const std::pair<const char*, Op> ops[] = {
+        { "clamp",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::clamp(d, src,
+                                         -std::numeric_limits<float>::max(),
+                                         std::numeric_limits<float>::max(),
+                                         false, r);
+          } },
+        { "contrast_remap",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::contrast_remap(d, src, 0.0f, 1.0f, 0.0f,
+                                                  1.0f, 1.0f, 0.5f, r);
+          } },
+        { "invert",
+          [&](ImageBuf& d, ROI r) { return ImageBufAlgo::invert(d, src, r); } },
+        { "mad iii",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::mad(d, src, src, src, r);
+          } },
+        { "mad icc",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::mad(d, src, 2.0f, 3.0f, r);
+          } },
+        { "scale",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::scale(d, src, one, ImageBufAlgo::KWArgs(),
+                                         r);
+          } },
+        { "st_warp",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::st_warp(d, src, stbuf, "", 0.0f, 0, 1, false,
+                                           false, r);
+          } },
+        { "resize",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::resize(d, src, ImageBufAlgo::KWArgs(), r);
+          } },
+        { "colorconvert",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::colorconvert(d, src, "linear", "sRGB", false,
+                                                "", "", nullptr, r);
+          } },
+        { "flip",
+          [&](ImageBuf& d, ROI r) { return ImageBufAlgo::flip(d, src, r); } },
+        { "flop",
+          [&](ImageBuf& d, ROI r) { return ImageBufAlgo::flop(d, src, r); } },
+        { "rotate90", [&](ImageBuf& d,
+                          ROI r) { return ImageBufAlgo::rotate90(d, src, r); } },
+        { "rotate180",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::rotate180(d, src, r);
+          } },
+        { "rotate270",
+          [&](ImageBuf& d, ROI r) {
+              return ImageBufAlgo::rotate270(d, src, r);
+          } },
+    };
+    for (auto& op : ops) {
+        // The src channels should match the same op into a fresh dst
+        ImageBuf ref;
+        OIIO_CHECK_ASSERT(op.second(ref, ROI()));
+        // Both with no ROI and with a ROI spanning all of dst's channels
+        for (int withroi = 0; withroi < 2; ++withroi) {
+            ImageBuf dst(ImageSpec(4, 4, ndst, TypeFloat));
+            ImageBufAlgo::fill(dst,
+                               { -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f });
+            bool ok = op.second(dst, withroi ? dst.roi() : ROI());
+            OIIO_CHECK_ASSERT(ok);
+            int bad = 0, wrong = 0;
+            for (ImageBuf::ConstIterator<float> d(dst); !d.done(); ++d) {
+                for (int c = 0; c < nsrc; ++c)
+                    wrong += (std::abs(d[c]
+                                       - ref.getchannel(d.x(), d.y(), d.z(), c))
+                              > 1e-6f);
+                for (int c = nsrc; c < ndst; ++c)
+                    bad += (d[c] != -1.0f);
+            }
+            if (bad || wrong)
+                Strutil::print("  {} (roi={}): {} absent-channel values set, "
+                               "{} src-channel values wrong\n",
+                               op.first, withroi, bad, wrong);
+            OIIO_CHECK_EQUAL(bad, 0);
+            OIIO_CHECK_EQUAL(wrong, 0);
+        }
+    }
+
+    // flatten: deep RGBAZ src into a wider flat dst
+    {
+        ImageBuf rgba(ImageSpec(4, 4, 4, TypeFloat));
+        ImageBufAlgo::fill(rgba, { 0.25f, 0.5f, 0.75f, 0.5f });
+        ImageBuf deep = ImageBufAlgo::deepen(rgba);
+        int ndeep     = deep.nchannels();
+        ImageBuf dst(ImageSpec(4, 4, ndeep + 2, TypeFloat));
+        std::vector<float> fillval(ndeep + 2, -1.0f);
+        ImageBufAlgo::fill(dst, fillval);
+        OIIO_CHECK_ASSERT(ImageBufAlgo::flatten(dst, deep));
+        OIIO_CHECK_EQUAL(dst.getchannel(1, 1, 0, ndeep), -1.0f);
+        OIIO_CHECK_EQUAL(dst.getchannel(1, 1, 0, ndeep + 1), -1.0f);
+    }
+
+    // Mismatched image operands: only mutual channels are computed, the
+    // rest of a freshly allocated result is zero.
+    {
+        ImageBuf r;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::mad(r, src, one, src));
+        OIIO_CHECK_EQUAL(r.nchannels(), nsrc);
+        OIIO_CHECK_EQUAL(r.getchannel(0, 0, 0, 0), 1.0f * 2.0f + 1.0f);
+        OIIO_CHECK_EQUAL(r.getchannel(0, 0, 0, 1), 0.0f);
+
+        ImageBuf p = ImageBufAlgo::perpixel_op(
+            src, one, [](span<float> d, cspan<float> a, cspan<float> b) {
+                for (size_t c = 0; c < d.size(); ++c)
+                    d[c] = a[c] + b[c];
+                return true;
+            });
+        OIIO_CHECK_EQUAL(p.nchannels(), nsrc);
+        OIIO_CHECK_EQUAL(p.getchannel(0, 0, 0, 0), 1.0f + 2.0f);
+        OIIO_CHECK_EQUAL(p.getchannel(0, 0, 0, 1), 0.0f);
+    }
+
+    // Same with non-float operands, which go through conversion buffers
+    {
+        ImageBuf a8(ImageSpec(4, 4, 4, TypeUInt8));
+        ImageBufAlgo::fill(a8, { 0.2f, 0.4f, 0.6f, 0.8f });
+        ImageBuf b8(ImageSpec(4, 4, 1, TypeUInt8));
+        ImageBufAlgo::fill(b8, { 0.4f });
+        ImageBuf p = ImageBufAlgo::perpixel_op(
+            a8, b8, [](span<float> d, cspan<float> a, cspan<float> b) {
+                OIIO_CHECK_EQUAL(d.size(), 1);
+                for (size_t c = 0; c < d.size(); ++c)
+                    d[c] = a[c] + b[c];
+                return true;
+            });
+        OIIO_CHECK_EQUAL(p.nchannels(), 4);
+        OIIO_CHECK_EQUAL_THRESH(p.getchannel(1, 1, 0, 0), 0.6f, 1e-3f);
+        for (int c = 1; c < 4; ++c)
+            OIIO_CHECK_EQUAL(p.getchannel(1, 1, 0, c), 0.0f);
+    }
+
+    // A ROI selecting only channels src lacks leaves dst untouched
+    {
+        ROI roi(0, 4, 0, 4, 0, 1, 4, ndst);
+        const std::pair<const char*, std::function<bool(ImageBuf&)>> ops[] = {
+            { "st_warp",
+              [&](ImageBuf& d) {
+                  return ImageBufAlgo::st_warp(d, src, stbuf, "", 0.0f, 0, 1,
+                                               false, false, roi);
+              } },
+            { "resize",
+              [&](ImageBuf& d) {
+                  return ImageBufAlgo::resize(d, src, ImageBufAlgo::KWArgs(),
+                                              roi);
+              } },
+        };
+        for (auto& op : ops) {
+            ImageBuf dst(ImageSpec(4, 4, ndst, TypeFloat));
+            ImageBufAlgo::fill(dst,
+                               { -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f });
+            OIIO_CHECK_ASSERT(op.second(dst));
+            int bad = 0;
+            for (ImageBuf::ConstIterator<float> d(dst); !d.done(); ++d)
+                for (int c = 0; c < ndst; ++c)
+                    bad += (d[c] != -1.0f);
+            if (bad)
+                Strutil::print("  {} empty channel range: {} values set\n",
+                               op.first, bad);
+            OIIO_CHECK_EQUAL(bad, 0);
+        }
+    }
+
+    // colorconvert transforms the color channels together, so a channel
+    // range not starting at 0 or excluding a color channel is an error,
+    // and leaves dst untouched.
+    {
+        ImageBuf csrc(ImageSpec(4, 4, 3, TypeFloat));
+        ImageBufAlgo::fill(csrc, { 0.25f, 0.5f, 0.75f });
+        const std::pair<const ImageBuf*, ROI> bad_cases[] = {
+            { &src, ROI(0, 4, 0, 4, 0, 1, 4, ndst) },
+            { &csrc, ROI(0, 4, 0, 4, 0, 1, 1, 3) },
+            { &csrc, ROI(0, 4, 0, 4, 0, 1, 0, 2) },
+        };
+        for (auto& bc : bad_cases) {
+            ImageBuf dst(ImageSpec(4, 4, ndst, TypeFloat));
+            ImageBufAlgo::fill(dst,
+                               { -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f });
+            OIIO_CHECK_ASSERT(
+                !ImageBufAlgo::colorconvert(dst, *bc.first, "linear", "sRGB",
+                                            false, "", "", nullptr, bc.second));
+            OIIO_CHECK_ASSERT(dst.has_error());
+            dst.geterror();
+            int bad = 0;
+            for (ImageBuf::ConstIterator<float> d(dst); !d.done(); ++d)
+                for (int c = 0; c < ndst; ++c)
+                    bad += (d[c] != -1.0f);
+            OIIO_CHECK_EQUAL(bad, 0);
+        }
+        // ...and doesn't allocate an uninitialized dst
+        ImageBuf fresh;
+        OIIO_CHECK_ASSERT(
+            !ImageBufAlgo::colorconvert(fresh, csrc, "linear", "sRGB", false,
+                                        "", "", nullptr,
+                                        ROI(0, 4, 0, 4, 0, 1, 1, 3)));
+        OIIO_CHECK_ASSERT(!fresh.initialized());
+        fresh.geterror();
+        // ...including for an in-place no-op conversion
+        OIIO_CHECK_ASSERT(
+            !ImageBufAlgo::colorconvert(csrc, csrc, "linear", "linear", false,
+                                        "", "", nullptr,
+                                        ROI(0, 4, 0, 4, 0, 1, 1, 3)));
+        OIIO_CHECK_ASSERT(csrc.has_error());
+        csrc.geterror();
+    }
+
+    // A ROI excluding alpha converts the color, still unpremultiplying by
+    // alpha, and leaves alpha unaltered.
+    {
+        ImageBuf csrc(ImageSpec(4, 4, 4, TypeFloat));
+        ImageBufAlgo::fill(csrc, { 0.1f, 0.2f, 0.3f, 0.5f });
+        ImageBuf full = ImageBufAlgo::colorconvert(csrc, "linear", "sRGB",
+                                                   true);
+        ImageBuf dst(ImageSpec(4, 4, 4, TypeFloat));
+        ImageBufAlgo::fill(dst, { -1.0f, -1.0f, -1.0f, -1.0f });
+        OIIO_CHECK_ASSERT(
+            ImageBufAlgo::colorconvert(dst, csrc, "linear", "sRGB", true, "",
+                                       "", nullptr,
+                                       ROI(0, 4, 0, 4, 0, 1, 0, 3)));
+        for (int c = 0; c < 3; ++c)
+            OIIO_CHECK_EQUAL_THRESH(dst.getchannel(1, 1, 0, c),
+                                    full.getchannel(1, 1, 0, c), 1e-6f);
+        OIIO_CHECK_EQUAL(dst.getchannel(1, 1, 0, 3), -1.0f);
+    }
+
+    // resize honors a ROI that starts past channel 0
+    {
+        ImageBuf dst(ImageSpec(4, 4, ndst, TypeFloat));
+        ImageBufAlgo::fill(dst, { -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f });
+        OIIO_CHECK_ASSERT(ImageBufAlgo::resize(dst, src, ImageBufAlgo::KWArgs(),
+                                               ROI(0, 4, 0, 4, 0, 1, 1, 2)));
+        OIIO_CHECK_EQUAL(dst.getchannel(1, 1, 0, 0), -1.0f);
+        OIIO_CHECK_NE(dst.getchannel(1, 1, 0, 1), -1.0f);
+    }
+
+    // A negative chbegin with an uninitialized dst behaves like 0
+    {
+        ImageBuf dst;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::resize(dst, src, ImageBufAlgo::KWArgs(),
+                                               ROI(0, 4, 0, 4, 0, 1, -1, 2)));
+        OIIO_CHECK_EQUAL(dst.nchannels(), nsrc);
+        OIIO_CHECK_EQUAL_THRESH(dst.getchannel(1, 1, 0, 0),
+                                src.getchannel(1, 1, 0, 0), 1e-5f);
+        OIIO_CHECK_EQUAL_THRESH(dst.getchannel(1, 1, 0, 1),
+                                src.getchannel(1, 1, 0, 1), 1e-5f);
+    }
+
+    // fixNonFinite repairs only the channels src has
+    {
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        ImageBuf dst(ImageSpec(4, 4, ndst, TypeFloat));
+        ImageBufAlgo::fill(dst, { -1.0f, -1.0f, nan, nan, nan, nan });
+        OIIO_CHECK_ASSERT(
+            ImageBufAlgo::fixNonFinite(dst, src, ImageBufAlgo::NONFINITE_BLACK));
+        OIIO_CHECK_EQUAL(dst.getchannel(1, 1, 0, 0),
+                         src.getchannel(1, 1, 0, 0));
+        OIIO_CHECK_ASSERT(std::isnan(dst.getchannel(1, 1, 0, nsrc)));
+    }
+
+    // scale with the 1-channel operand first and an explicit ROI into an
+    // uninitialized dst computes all of the other operand's channels
+    {
+        ImageBuf dst;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::scale(dst, one, src,
+                                              ImageBufAlgo::KWArgs(),
+                                              ROI(0, 4, 0, 4, 0, 1, 0, nsrc)));
+        OIIO_CHECK_EQUAL(dst.nchannels(), nsrc);
+        for (int c = 0; c < nsrc; ++c)
+            OIIO_CHECK_EQUAL(dst.getchannel(1, 1, 0, c),
+                             2.0f * src.getchannel(1, 1, 0, c));
+    }
+
+    // Deep copy into a dst with more channels: a sample count mismatch is
+    // an error that leaves dst alone, unless the dst pixel is empty;
+    // matching counts copy the shared channels, and an empty channel range
+    // does nothing.
+    {
+        ImageBuf rgba(ImageSpec(4, 4, 4, TypeFloat));
+        ImageBufAlgo::fill(rgba, { 0.25f, 0.5f, 0.75f, 0.5f });
+        ImageBuf deep = ImageBufAlgo::deepen(rgba);
+        int ndeep     = deep.nchannels();
+        ImageSpec dspec(4, 4, ndeep + 2, TypeFloat);
+        dspec.deep = true;
+        ImageBuf empty_dst(dspec);
+        OIIO_CHECK_ASSERT(ImageBufAlgo::copy(empty_dst, deep));
+        OIIO_CHECK_EQUAL(empty_dst.deep_samples(1, 1, 0), 1);
+        OIIO_CHECK_EQUAL(empty_dst.deep_value(1, 1, 0, 0, 0), 0.25f);
+
+        ImageBuf dst(dspec);
+        for (int y = 0; y < 4; ++y)
+            for (int x = 0; x < 4; ++x)
+                dst.set_deep_samples(x, y, 0, 2);
+        OIIO_CHECK_ASSERT(!ImageBufAlgo::copy(dst, deep));
+        OIIO_CHECK_ASSERT(dst.has_error());
+        dst.geterror();
+        OIIO_CHECK_EQUAL(dst.deep_samples(1, 1, 0), 2);
+
+        for (int y = 0; y < 4; ++y)
+            for (int x = 0; x < 4; ++x)
+                dst.set_deep_samples(x, y, 0, 1);
+        dst.set_deep_value(1, 1, 0, ndeep, 0, -1.0f);
+        ROI empty(0, 4, 0, 4, 0, 1, ndeep, ndeep + 2);
+        OIIO_CHECK_ASSERT(ImageBufAlgo::copy(dst, deep, TypeUnknown, empty));
+        OIIO_CHECK_EQUAL(dst.deep_value(1, 1, 0, 0, 0), 0.0f);
+        OIIO_CHECK_ASSERT(ImageBufAlgo::copy(dst, deep));
+        OIIO_CHECK_EQUAL(dst.deep_samples(1, 1, 0), 1);
+        OIIO_CHECK_EQUAL(dst.deep_value(1, 1, 0, 0, 0), 0.25f);
+        OIIO_CHECK_EQUAL(dst.deep_value(1, 1, 0, ndeep, 0), -1.0f);
+
+        // An uninitialized dst has nothing to lose, so a channel subset
+        // starting past 0 is fine
+        ImageBuf fresh;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::copy(fresh, deep, TypeUnknown,
+                                             ROI(0, 4, 0, 4, 0, 1, 1, ndeep)));
+        OIIO_CHECK_EQUAL(fresh.deep_value(1, 1, 0, 1, 0), 0.5f);
+
+        // deep_merge copies into the empty dst it allocates, so a channel
+        // subset ROI works
+        ImageBuf merged;
+        OIIO_CHECK_ASSERT(
+            ImageBufAlgo::deep_merge(merged, deep, deep, true,
+                                     ROI(0, 4, 0, 4, 0, 1, 0, 3)));
+        OIIO_CHECK_EQUAL(merged.deep_value(1, 1, 0, 0, 0), 0.25f);
+
+        // ...but when that copy is refused, deep_merge leaves a populated
+        // dst alone rather than merging into it anyway
+        ImageBuf populated = ImageBufAlgo::deepen(rgba);
+        populated.set_deep_samples(1, 1, 0, 2);
+        populated.set_deep_value(1, 1, 0, 0, 1, -1.0f);
+        OIIO_CHECK_ASSERT(
+            !ImageBufAlgo::deep_merge(populated, deep, deep, false,
+                                      ROI(0, 4, 0, 4, 0, 1, 0, 3)));
+        OIIO_CHECK_ASSERT(populated.has_error());
+        populated.geterror();
+        OIIO_CHECK_EQUAL(populated.deep_samples(1, 1, 0), 2);
+        OIIO_CHECK_EQUAL(populated.deep_value(1, 1, 0, 0, 1), -1.0f);
+        // Same for fixNonFinite
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        populated.set_deep_value(1, 1, 0, 0, 1, nan);
+        OIIO_CHECK_ASSERT(
+            !ImageBufAlgo::fixNonFinite(populated, deep,
+                                        ImageBufAlgo::NONFINITE_BLACK, nullptr,
+                                        ROI(0, 4, 0, 4, 0, 1, 0, 3)));
+        OIIO_CHECK_ASSERT(populated.has_error());
+        populated.geterror();
+        OIIO_CHECK_ASSERT(std::isnan(populated.deep_value(1, 1, 0, 0, 1)));
+    }
+
+    // Very many channels: the mutual clamp must still use the source's
+    // channel count
+    {
+        const int nbig = 10000;
+        ImageBuf bigsrc(ImageSpec(1, 1, nbig, TypeFloat));
+        ImageBuf bigdst(ImageSpec(1, 1, nbig + 1, TypeFloat));
+        ImageBufAlgo::fill(bigsrc, std::vector<float>(nbig, 0.5f));
+        ImageBufAlgo::fill(bigdst, std::vector<float>(nbig + 1, -1.0f));
+        OIIO_CHECK_ASSERT(
+            ImageBufAlgo::clamp(bigdst, bigsrc, 0.0f, 1.0f, false,
+                                ROI(0, 1, 0, 1, 0, 1, 0, nbig + 1)));
+        OIIO_CHECK_EQUAL(bigdst.getchannel(0, 0, 0, nbig - 1), 0.5f);
+        OIIO_CHECK_EQUAL(bigdst.getchannel(0, 0, 0, nbig), -1.0f);
+    }
+
+    // A channel range wholly past the image's channels is empty, and must
+    // not size anything by the requested channel numbers
+    {
+        ImageBuf rgb(ImageSpec(4, 4, 3, TypeFloat));
+        ImageBufAlgo::fill(rgb, { 0.25f, 0.5f, 0.75f });
+        OIIO_CHECK_ASSERT(ImageBufAlgo::zero(rgb, ROI(0, 4, 0, 4, 0, 1,
+                                                      1000000000, 1000000001)));
+        OIIO_CHECK_EQUAL(rgb.getchannel(1, 1, 0, 2), 0.75f);
+    }
+
+    // copy into an uninitialized dst: no channels is an error, and a
+    // channel subset keeps only the matching channel descriptions
+    {
+        ImageSpec spec(4, 4, 4, TypeFloat);
+        spec.channelformats = { TypeHalf, TypeHalf, TypeHalf, TypeFloat };
+        ImageBuf rgba(spec);
+        ImageBuf none;
+        OIIO_CHECK_ASSERT(!ImageBufAlgo::copy(none, rgba, TypeUnknown,
+                                              ROI(0, 4, 0, 4, 0, 1, 0, 0)));
+        OIIO_CHECK_ASSERT(none.has_error());
+        none.geterror();
+        ImageBuf rgb;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::copy(rgb, rgba, TypeUnknown,
+                                             ROI(0, 4, 0, 4, 0, 1, 0, 3)));
+        OIIO_CHECK_EQUAL(rgb.nchannels(), 3);
+        OIIO_CHECK_EQUAL(rgb.spec().channelnames.size(), 3);
+        OIIO_CHECK_EQUAL(rgb.spec().alpha_channel, -1);
+    }
+
+    // transpose honors a channel range not starting at 0, and ignores a
+    // negative chbegin
+    {
+        ImageBuf rgb(ImageSpec(4, 4, 3, TypeFloat));
+        ImageBufAlgo::fill(rgb, { 0.25f, 0.5f, 0.75f });
+        ImageBuf dst(ImageSpec(4, 4, 3, TypeFloat));
+        ImageBufAlgo::fill(dst, { -1.0f, -1.0f, -1.0f });
+        OIIO_CHECK_ASSERT(
+            ImageBufAlgo::transpose(dst, rgb, ROI(0, 4, 0, 4, 0, 1, 2, 3)));
+        OIIO_CHECK_EQUAL(dst.getchannel(1, 2, 0, 1), -1.0f);
+        OIIO_CHECK_EQUAL(dst.getchannel(1, 2, 0, 2), 0.75f);
+        ImageBuf fresh;
+        OIIO_CHECK_ASSERT(
+            ImageBufAlgo::transpose(fresh, rgb, ROI(0, 4, 0, 4, 0, 1, -1, 1)));
+        OIIO_CHECK_EQUAL(fresh.getchannel(1, 2, 0, 0), 0.25f);
+    }
+
+    // A sourceless op into an uninitialized dst with a channel range not
+    // starting at 0 fills the requested channels
+    {
+        ImageBuf fresh;
+        OIIO_CHECK_ASSERT(ImageBufAlgo::fill(fresh, { 0.25f, 0.5f, 0.75f },
+                                             ROI(0, 4, 0, 4, 0, 1, 2, 3)));
+        OIIO_CHECK_EQUAL(fresh.nchannels(), 3);
+        OIIO_CHECK_EQUAL(fresh.getchannel(1, 1, 0, 0), 0.0f);
+        OIIO_CHECK_EQUAL(fresh.getchannel(1, 1, 0, 2), 0.75f);
+    }
+
+    // st_warp rejects negative ST channel indices
+    {
+        ImageBuf rgb(ImageSpec(4, 4, 3, TypeFloat));
+        ImageBuf st(ImageSpec(4, 4, 2, TypeFloat));
+        ImageBuf dst;
+        OIIO_CHECK_ASSERT(
+            !ImageBufAlgo::st_warp(dst, rgb, st, "", 0.0f, -1, 1));
+        OIIO_CHECK_ASSERT(dst.has_error());
+        dst.geterror();
     }
 }
 
@@ -2338,6 +2826,7 @@ main(int argc, char** argv)
     test_resample_hwy_nearest();
     test_resample_correctness();
     test_resample_channel_bounds();
+    test_dst_more_channels_than_src();
     test_resample();
     test_compare();
     test_isConstantColor();

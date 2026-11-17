@@ -247,7 +247,7 @@ ImageBufAlgo::clamp(ImageBuf& dst, const ImageBuf& src, cspan<float> min,
                     cspan<float> max, bool clampalpha01, ROI roi, int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::clamp");
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     const float big = std::numeric_limits<float>::max();
     IBA_FIX_PERCHAN_LEN(min, dst.nchannels(), min.size() ? min.back() : -big,
@@ -1076,7 +1076,7 @@ ImageBufAlgo::contrast_remap(ImageBuf& dst, const ImageBuf& src,
                              ROI roi, int nthreads)
 {
     OIIO::pvt::LoggedTimer logtime("IBA::contrast_remap");
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     // Force all the input spans to have values for all channels.
     int n = dst.nchannels();
@@ -2006,7 +2006,8 @@ ImageBufAlgo::fixNonFinite(ImageBuf& dst, const ImageBuf& src,
         return false;
     }
 
-    if (!IBAprep(roi, &dst, &src, IBAprep_SUPPORT_DEEP))
+    if (!IBAprep(roi, &dst, &src,
+                 IBAprep_SUPPORT_DEEP | IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
 
     // Initialize
@@ -2017,8 +2018,9 @@ ImageBufAlgo::fixNonFinite(ImageBuf& dst, const ImageBuf& src,
     *pixelsFixed = 0;
 
     // Start by copying dst to src, if they aren't the same image
-    if (&dst != &src)
-        ok &= ImageBufAlgo::copy(dst, src, TypeDesc::UNKNOWN, roi, nthreads);
+    if (&dst != &src
+        && !ImageBufAlgo::copy(dst, src, TypeDesc::UNKNOWN, roi, nthreads))
+        return false;
 
     if (dst.deep())
         ok &= fixNonFinite_deep_(dst, mode, pixelsFixed, roi, nthreads);

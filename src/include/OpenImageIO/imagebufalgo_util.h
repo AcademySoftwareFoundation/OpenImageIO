@@ -100,6 +100,11 @@ parallel_image(ROI roi, std::function<void(ROI)> f)
 /// specified but not initialized or are broken, it's an error, so return
 /// false. If all is ok, return true.
 ///
+/// The adjusted `roi` never has a negative `chbegin`, and `chend` is limited
+/// to the images' channels; if that leaves no channels, `chbegin` is lowered
+/// to `chend`, giving an empty range. A newly allocated flat `dst`'s
+/// channels outside the adjusted range are zero-filled.
+///
 /// The `options` list contains optional ParamValue's that control the
 /// behavior, including what input configurations are considered errors, and
 /// policies for how an uninitialized output is constructed from knowledge of
@@ -139,7 +144,7 @@ parallel_image(ROI roi, std::function<void(ROI)> f)
 ///   - "clamp_mutual_nchannels" : int (default: 0)
 ///
 ///     If nonzero, clamp roi.chend to the minimum number of channels of any
-///     of the input images.
+///     of the input images (and of `dst`, if already initialized).
 ///
 ///   - "support_deep" : string (default: "false")
 ///
@@ -793,7 +798,9 @@ OIIO_NODISCARD OIIO_API ImageBuf perpixel_op(
 
 /// A version of perpixel_op that performs a binary operation, taking two
 /// source images and a 3-argument `op` function that receives a destination
-/// and two source pixels.
+/// and two source pixels. If the sources have different numbers of channels,
+/// `op` is passed only the channels both have, and the result's remaining
+/// channels are zero (the "clamp_mutual_nchannels" hint is always on).
 OIIO_NODISCARD OIIO_API ImageBuf
 perpixel_op(const ImageBuf& srcA, const ImageBuf& srcB,
             function_view<bool(span<float>, cspan<float>, cspan<float>)> op,
