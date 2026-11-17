@@ -218,9 +218,10 @@ compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, VALT aval,
               float failrelative, float warnrelative)
 {
     if (!std::isfinite(aval) || !std::isfinite(bval)) {
-        if (std::isnan(aval) == std::isnan(bval)
-            && std::isinf(aval) == std::isinf(bval))
-            return;  // NaN may match NaN, Inf may match Inf
+        if ((std::isnan(aval) && std::isnan(bval)) || aval == bval)
+            return;  // NaN may match NaN, Inf may match same-signed Inf
+        // Mismatched non-finite values always fail and warn, and are kept
+        // out of the error sums so they don't poison mean/RMS.
         if (std::isfinite(result.maxerror)) {
             // non-finite errors trump finite ones
             result.maxerror = std::numeric_limits<float>::infinity();
@@ -228,8 +229,16 @@ compare_value(ImageBuf::ConstIterator<BUFT, float>& a, int chan, VALT aval,
             result.maxy     = a.y();
             result.maxz     = a.z();
             result.maxc     = chan;
-            return;
         }
+        if (!warned) {
+            ++result.nwarn;
+            warned = true;
+        }
+        if (!failed) {
+            ++result.nfail;
+            failed = true;
+        }
+        return;
     }
     auto aabs    = std::abs(aval);
     auto babs    = std::abs(bval);
