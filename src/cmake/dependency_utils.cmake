@@ -1005,6 +1005,16 @@ macro (build_dependency_with_cmake pkgname)
     # Pass along any CMAKE_MSVC_RUNTIME_LIBRARY
     if (WIN32 AND CMAKE_MSVC_RUNTIME_LIBRARY)
         list (APPEND _pkg_CMAKE_ARGS -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY})
+        # ... and make the sub-builds actually obey it.  CMAKE_MSVC_RUNTIME_LIBRARY
+        # is only honored under policy CMP0091=NEW, and a dependency whose
+        # cmake_minimum_required is older than 3.15 configures with the OLD
+        # behavior, silently ignoring the variable and defaulting to /MD.  That
+        # is exactly what a static-CRT (/MT) build cannot link against: pystring
+        # came out /MD, expat produced libexpatMD, and the final link died with
+        # LNK2038 plus a pile of msvcprt/libcpmt clashes.  Setting the *default*
+        # for the policy (rather than touching each dependency) keeps every
+        # sub-build on the same runtime library as us.
+        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0091=NEW)
     endif ()
 
     execute_process (COMMAND
