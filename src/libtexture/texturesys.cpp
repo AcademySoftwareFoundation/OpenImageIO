@@ -21,6 +21,7 @@
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/optparser.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
@@ -57,7 +58,8 @@ static spin_mutex shared_texturesys_mutex;
 static bool do_unit_test_texture    = false;
 static float unit_test_texture_blur = 0.0f;
 
-static thread_local tsl::robin_map<int64_t, std::string> txsys_error_messages;
+OIIO_TLS_OBJECT(txsys_error_messages, tsl::robin_map<int64_t, std::string>)
+
 static std::atomic_int64_t txsys_next_id(0);
 
 static vfloat4 u8scale(1.0f / 255.0f);
@@ -772,7 +774,7 @@ TextureSystemImpl::~TextureSystemImpl()
     // Erase any leftover errors from this thread
     // TODO: can we clear other threads' errors?
     // TODO: potentially unsafe due to the static destruction order fiasco
-    // txsys_error_messages.erase(m_id);
+    // txsys_error_messages().erase(m_id);
 }
 
 
@@ -1364,8 +1366,8 @@ TextureSystemImpl::get_texels(ustring filename, TextureOpt& options,
 bool
 TextureSystemImpl::has_error() const
 {
-    auto iter = txsys_error_messages.find(m_id);
-    if (iter == txsys_error_messages.end())
+    auto iter = txsys_error_messages().find(m_id);
+    if (iter == txsys_error_messages().end())
         return false;
     return iter.value().size() > 0;
 }
@@ -1376,11 +1378,11 @@ std::string
 TextureSystemImpl::geterror(bool clear) const
 {
     std::string e;
-    auto iter = txsys_error_messages.find(m_id);
-    if (iter != txsys_error_messages.end()) {
+    auto iter = txsys_error_messages().find(m_id);
+    if (iter != txsys_error_messages().end()) {
         e = iter.value();
         if (clear)
-            txsys_error_messages.erase(iter);
+            txsys_error_messages().erase(iter);
     }
     return e;
 }
@@ -1392,7 +1394,7 @@ TextureSystemImpl::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = txsys_error_messages[m_id];
+    std::string& err_str = txsys_error_messages()[m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");

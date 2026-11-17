@@ -17,6 +17,7 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/parallel.h>
+#include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/typedesc.h>
 
@@ -41,7 +42,8 @@ struct InputErrorMessages {
     ~InputErrorMessages() { alive = false; }
 };
 }  // namespace
-static thread_local InputErrorMessages input_error_messages;
+OIIO_TLS_OBJECT(input_error_messages, InputErrorMessages)
+
 static std::atomic_int64_t input_next_id(0);
 
 
@@ -136,8 +138,8 @@ ImageInput::~ImageInput()
     // been destroyed, its 'alive' flag is false and we must not touch it.
     // TODO: this only clears the entry if we are destroyed on the same thread
     // that accumulated the error; cross-thread errors still leak.
-    if (input_error_messages.alive)
-        input_error_messages.map.erase(m_impl->m_id);
+    if (input_error_messages().alive)
+        input_error_messages().map.erase(m_impl->m_id);
 }
 
 
@@ -1510,7 +1512,7 @@ ImageInput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = input_error_messages.map[m_impl->m_id];
+    std::string& err_str = input_error_messages().map[m_impl->m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -1526,8 +1528,8 @@ ImageInput::append_error(string_view message) const
 bool
 ImageInput::has_error() const
 {
-    auto iter = input_error_messages.map.find(m_impl->m_id);
-    if (iter == input_error_messages.map.end())
+    auto iter = input_error_messages().map.find(m_impl->m_id);
+    if (iter == input_error_messages().map.end())
         return false;
     return iter.value().size() > 0;
 }
@@ -1538,11 +1540,11 @@ std::string
 ImageInput::geterror(bool clear) const
 {
     std::string e;
-    auto iter = input_error_messages.map.find(m_impl->m_id);
-    if (iter != input_error_messages.map.end()) {
+    auto iter = input_error_messages().map.find(m_impl->m_id);
+    if (iter != input_error_messages().map.end()) {
         e = iter.value();
         if (clear)
-            input_error_messages.map.erase(iter);
+            input_error_messages().map.erase(iter);
     }
     return e;
 }

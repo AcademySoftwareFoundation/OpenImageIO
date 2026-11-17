@@ -170,6 +170,24 @@
 #endif
 
 
+// MSVC static CRT (/MT): a thread_local with a non-trivial destructor has its
+// thread-exit cleanup registered before the heap is usable and corrupts it.
+#if defined(_MSC_VER) && defined(_MT) && !defined(_DLL)
+#  define OIIO_TLS_OBJECT(name, ...)                                    \
+      static thread_local __VA_ARGS__* name##_p = nullptr;              \
+      static __VA_ARGS__& name()                                        \
+      {                                                                 \
+          if (!name##_p)                                                \
+              name##_p = new __VA_ARGS__();                             \
+          return *name##_p;                                             \
+      }
+#else
+#  define OIIO_TLS_OBJECT(name, ...)                                    \
+      static thread_local __VA_ARGS__ name##_s;                         \
+      static __VA_ARGS__& name() { return name##_s; }
+#endif
+
+
 // Detect which C++ standard we're using, and handy macros.
 // See https://en.cppreference.com/w/cpp/compiler_support
 //
