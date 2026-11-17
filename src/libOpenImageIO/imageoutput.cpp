@@ -16,7 +16,6 @@
 #include <OpenImageIO/filesystem.h>
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/plugin.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>

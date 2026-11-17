@@ -21,7 +21,6 @@
 #include <OpenImageIO/imagecache.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/optparser.h>
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/simd.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>

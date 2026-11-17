@@ -14,7 +14,6 @@
 
 #include "imageio_pvt.h"
 #include <OpenImageIO/imageio.h>
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/sysutil.h>
 #include <OpenImageIO/thread.h>

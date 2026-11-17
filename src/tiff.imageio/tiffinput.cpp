@@ -17,7 +17,6 @@
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/imageio.h>
 #include <OpenImageIO/parallel.h>
-#include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
 #include <OpenImageIO/thread.h>
 #include <OpenImageIO/tiffutils.h>
