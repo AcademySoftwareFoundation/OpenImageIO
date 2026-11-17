@@ -19,6 +19,7 @@
 #include <OpenImageIO/parallel.h>
 #include <OpenImageIO/platform.h>
 #include <OpenImageIO/strutil.h>
+#include <OpenImageIO/thread.h>
 #include <OpenImageIO/typedesc.h>
 
 #include "imageio_pvt.h"

@@ -30,6 +30,31 @@
 
 
 
+// MSVC static CRT (/MT): a thread_local with a non-trivial destructor has its
+// thread-exit cleanup registered from __dyn_tls_init, on thread attach, before
+// the heap is usable, and that path corrupts it -- so every site has to hold
+// the object behind a trivially destructible thread_local pointer instead.
+//
+// OIIO_TLS_OBJECT(name, Type) declares `name()` returning a Type&.  Under /MT
+// the object is allocated on first use and never freed (a bounded leak, one
+// object per thread per site, reclaimed by the OS at exit); everywhere else it
+// is the plain thread_local it always was.
+#if defined(_MSC_VER) && defined(_MT) && !defined(_DLL)
+#    define OIIO_TLS_OBJECT(name, ...)                       \
+        static thread_local __VA_ARGS__* name##_p = nullptr; \
+        static __VA_ARGS__& name()                           \
+        {                                                    \
+            if (!name##_p)                                   \
+                name##_p = new __VA_ARGS__();                \
+            return *name##_p;                                \
+        }
+#else
+#    define OIIO_TLS_OBJECT(name, ...)              \
+        static thread_local __VA_ARGS__ name##_s;   \
+        static __VA_ARGS__& name() { return name##_s; }
+#endif
+
+
 // OIIO_THREAD_ALLOW_DCLP, if set to 0, prevents us from using a dodgy
 // "double checked lock pattern" (DCLP).  We are very careful to construct
 // it safely and correctly, and these uses improve thread performance for
