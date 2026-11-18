@@ -25,3 +25,10 @@ for f in ["src/bigtile.exr", "src/bigdisplay.exr", "src/bigattr.exr"]:
                         failureok=True)
     command += oiiotool("-oiioattrib openexr:core 1 --info -v " + f,
                         failureok=True)
+
+# Converting deep files with several samples in every pixel must go through
+# the deep API (not overrun a flat buffer), including when iconvert can't
+# use copy_image.
+for f in ["src/deep-dense-scan.exr", "src/deep-dense-tiled.exr"]:
+    command += iconvert("--no-copy-image " + f + " deep-out.exr")
+    command += diff_command(f, "deep-out.exr")

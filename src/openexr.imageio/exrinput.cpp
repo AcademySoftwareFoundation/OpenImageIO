@@ -1486,6 +1486,10 @@ OpenEXRInput::read_native_scanlines_impl(int subimage, int miplevel, int ybegin,
             return true;
         }
 
+        if (m_spec.deep) {
+            errorfmt("deep image, use read_native_deep_scanlines()");
+            return false;
+        }
         if (!m_scanline_input_part) {
             errorfmt(
                 "called OpenEXRInput::read_native_scanlines without an open file");
@@ -1588,9 +1592,17 @@ OpenEXRInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     }
     DBGEXR("openexr rnt {} {}-{}, chans {}-{}", xbegin, xend, ybegin, yend,
            chend - 1);
-    if (!m_tiled_input_part
-        || !m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend)) {
+    if (m_spec.deep) {
+        errorfmt("deep image, use read_native_deep_tiles()");
+        return false;
+    }
+    if (!m_tiled_input_part) {
         errorfmt("called OpenEXRInput::read_native_tiles without an open file");
+        return false;
+    }
+    if (!m_spec.valid_tile_range(xbegin, xend, ybegin, yend, zbegin, zend)) {
+        errorfmt("read_native_tiles: invalid tile range [{},{})x[{},{})x[{},{})",
+                 xbegin, xend, ybegin, yend, zbegin, zend);
         return false;
     }
 
@@ -1789,6 +1801,10 @@ OpenEXRInput::read_native_deep_scanlines(int subimage, int miplevel, int ybegin,
             "OpenEXRInput::read_native_deep_scanlines is not supported for luminance-chroma images");
         return false;
     }
+    if (!m_spec.deep) {
+        errorfmt("not a deep image, use read_native_scanlines()");
+        return false;
+    }
     if (m_deep_scanline_input_part == NULL) {
         errorfmt(
             "called OpenEXRInput::read_native_deep_scanlines without an open file");
@@ -1865,6 +1881,10 @@ OpenEXRInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
     if (part.luminance_chroma) {
         errorfmt(
             "OpenEXRInput::read_native_deep_tiles is not supported for luminance-chroma images");
+        return false;
+    }
+    if (!m_spec.deep) {
+        errorfmt("not a deep image, use read_native_tiles()");
         return false;
     }
     if (m_deep_tiled_input_part == NULL) {

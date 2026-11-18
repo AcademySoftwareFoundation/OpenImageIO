@@ -1108,6 +1108,14 @@ ImageCacheFile::read_tile(ImageCachePerThreadInfo* thread_info,
     const SubimageInfo& si(subimageinfo(subimage));
     const ImageDims& dims(si.leveldims(miplevel));
 
+    if (si.spec().deep) {
+        if (errors_should_issue())
+            imagecache().error(
+                "\"{}\" is a deep image, which ImageCache cannot read as pixels",
+                filename());
+        return false;
+    }
+
     // Special case for un-MIP-mapped
     if (si.unmipped && miplevel != 0)
         return read_unmipped(thread_info, id, data);
