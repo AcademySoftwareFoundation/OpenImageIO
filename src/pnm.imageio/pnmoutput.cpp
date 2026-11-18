@@ -233,7 +233,11 @@ PNMOutput::open(const std::string& name, const ImageSpec& userspec,
     bool p_binary = m_spec.get_int_attribute("pnm:binary", 1);
     DBG std::cerr << "p_binary: " << p_binary << "\n";
 
-    if (bits_per_sample == 1) {
+    if (m_spec.format.is_floating_point()) {
+        // Float data is always PFM, regardless of BitsPerSample (e.g. half
+        // carries BitsPerSample=16, which must not select 16-bit PGM/PPM).
+        m_pfn_type = (m_spec.nchannels == 1) ? "f" : "F";
+    } else if (bits_per_sample == 1) {
         // black and white
         m_pnm_type = p_binary ? 4 : 1;
     } else if (bits_per_sample == 8 || bits_per_sample == 16) {
