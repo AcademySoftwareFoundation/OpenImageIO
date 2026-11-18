@@ -190,10 +190,10 @@ GIFOutput::start_subimage(const ImageSpec& spec)
                     uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
     // gif.h indexes the RGBA canvas with int.
-    if (spec.image_pixels()
+    if (m_spec.image_pixels()
         > imagesize_t(std::numeric_limits<int>::max() / 4)) {
         errorfmt("{} image resolution {}x{} is too large", format_name(),
-                 spec.width, spec.height);
+                 m_spec.width, m_spec.height);
         return false;
     }
     // The GIF writer only supports frames that fill the whole canvas.
