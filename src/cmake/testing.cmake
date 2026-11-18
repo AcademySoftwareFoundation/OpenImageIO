@@ -20,6 +20,16 @@ add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/testsuite
 set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
+# Tests that configure a nested project against the *installed* package
+# (cmake-consumer, docs-examples-cpp, the *-partialtile helpers) only work
+# with a shared library. With BUILD_SHARED_LIBS=OFF the exported
+# OpenImageIO::OpenImageIO target also needs all of OIIO's private
+# dependencies (pystring, fmt, tsl::robin_map, ...) to be findable by the
+# consumer, which an install of OIIO alone cannot provide.
+if (NOT BUILD_SHARED_LIBS)
+    set (OIIO_STATIC_BUILD 1)
+endif ()
+
 
 # Build a single ENVIRONMENT list entry "PYTHONPATH=..." for CTest.
 # On Windows, keep this deterministic and do not append inherited PYTHONPATH:
@@ -210,11 +220,14 @@ macro (oiio_add_all_tests)
         endif ()
     endif ()
 
+    # Tests that build a nested consumer project against the installed
+    # package; skipped for static builds (see OIIO_STATIC_BUILD above).
+    oiio_add_tests (cmake-consumer docs-examples-cpp
+                    DISABLEVAR OIIO_STATIC_BUILD)
+
     # Freestanding tests:
     oiio_add_tests (
-                    cmake-consumer
                     cryptomatte
-                    docs-examples-cpp
                     texture-device
                     iinfo igrep
                     nonwhole-tiles
@@ -370,6 +383,7 @@ macro (oiio_add_all_tests)
                      docs-examples-cpp
         FOUNDVAR hwy_FOUND
         ENABLEVAR OIIO_USE_HWY
+        DISABLEVAR OIIO_STATIC_BUILD
         SUFFIX ".hwy"
         ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"
         )
@@ -512,8 +526,11 @@ macro (oiio_add_all_tests)
     endif ()
     
     # Regression test (compiles its own helper and generates its own image)
-    # for a partial edge-tile heap overflow in the OpenEXR readers.
-    oiio_add_tests (openexr-partialtile)
+    # for a partial edge-tile heap overflow in the OpenEXR readers. The helper
+    # is built by a nested project against the installed package, so it is
+    # skipped for static builds (see OIIO_STATIC_BUILD above).
+    oiio_add_tests (openexr-partialtile
+                    DISABLEVAR OIIO_STATIC_BUILD)
     # Self-contained decompression-bomb regression (ships its own tiny fixture);
     # exercises both the C++ and C-API readers via the openexr:core attribute.
     oiio_add_tests (openexr-bomb)
@@ -600,8 +617,11 @@ macro (oiio_add_all_tests)
     oiio_add_tests (tiff-subimage-seek
                     ENABLEVAR USE_PYTHON)
     # Regression test (compiles its own helper and generates its own image)
-    # for a partial edge-tile heap overflow in the TIFF reader.
-    oiio_add_tests (tiff-partialtile)
+    # for a partial edge-tile heap overflow in the TIFF reader. The helper is
+    # built by a nested project against the installed package, so it is
+    # skipped for static builds (see OIIO_STATIC_BUILD above).
+    oiio_add_tests (tiff-partialtile
+                    DISABLEVAR OIIO_STATIC_BUILD)
     oiio_add_tests (webp
                     FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
                     IMAGEDIR oiio-images/webp)
