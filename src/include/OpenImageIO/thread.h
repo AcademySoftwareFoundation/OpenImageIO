@@ -49,9 +49,12 @@
             return *name##_p;                                \
         }
 #else
-#    define OIIO_TLS_OBJECT(name, ...)              \
-        static thread_local __VA_ARGS__ name##_s;   \
-        static __VA_ARGS__& name() { return name##_s; }
+#    define OIIO_TLS_OBJECT(name, ...)            \
+        static thread_local __VA_ARGS__ name##_s; \
+        static __VA_ARGS__& name()                \
+        {                                         \
+            return name##_s;                      \
+        }
 #endif
 
 
