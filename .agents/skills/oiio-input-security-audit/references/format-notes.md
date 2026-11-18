@@ -139,9 +139,11 @@ Glue-check only; log library internals as deferrals.
   readGrid; exception text clamped; state not reset on re-open; header,
   file metadata and grid descriptors pre-walked in `open_vdb_file()` with every
   declared length/count bounded by file size (fuzz OOM in `MetaMap::readMeta`
-  via `valid_file`). Open: OpenVDB `readGrid` still reads declared string
-  lengths unbounded and `TypedMetadata::readValue` leaves value
-  uninitialized.
+  via `valid_file`); file versions >= 300 rejected; for stream-written files
+  (no grid offsets) only the grid count and first descriptor are bounded.
+  Open: OpenVDB `readGrid`, and grid data plus later descriptors of
+  no-offset files, still read declared string lengths unbounded;
+  `TypedMetadata::readValue` leaves value uninitialized.
 
 ## Class D. Container of other readers, or no file input
 
