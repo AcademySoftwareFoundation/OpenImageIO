@@ -552,7 +552,7 @@ JpgInput::read_icc_profile(j_decompress_ptr cinfo, ImageSpec& spec)
     spec.attribute("ICCProfile", TypeDesc(TypeDesc::UINT8, total_length),
                    icc_buf.data());
     for (auto& p : icc_spec.extra_attribs)
-        spec.extra_attribs.add_or_replace(std::move(p));
+        spec.extra_attribs.add_or_replace(std::move(p), false);
     return true;
 }
 
