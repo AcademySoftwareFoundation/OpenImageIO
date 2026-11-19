@@ -150,7 +150,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         > imagesize_t(std::numeric_limits<int32_t>::max())) {
         errorfmt("Unsupported Cineon with scanlines exceeding {} bytes",
                  std::numeric_limits<int>::max());
-        m_spec = ImageSpec();
+        close();
         return false;
     }
 
@@ -160,7 +160,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         > (unsigned int)std::numeric_limits<int>::max()) {
         errorfmt("Invalid Cineon end-of-line padding {}",
                  m_cin.header.EndOfLinePadding());
-        m_spec = ImageSpec();
+        close();
         return false;
     }
 
