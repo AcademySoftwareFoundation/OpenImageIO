@@ -37,6 +37,9 @@
 #define _DPX_WRITERINTERNAL_H 1
 
 
+#include <cstdint>
+#include <cstring>
+
 #include "BaseTypeConverter.h"
 
 
@@ -142,57 +145,41 @@ namespace dpx
 
 	template <typename IB, int BITDEPTH>
 	void WritePackedMethod(IB *src, IB *dst, const int len, const bool reverse, BufferAccess &access)
-	{	
-		// pack into the same memory space
-		U32 *dst_u32 = reinterpret_cast<U32*>(dst);
-
-		// bit shift count for U16 source
-		const int shift = 16 - BITDEPTH;
-		
-		// bit mask
-		U32 mask = 0;
-		if (BITDEPTH == 10)
-			mask = 0x03ff;
-		else if (BITDEPTH == 12)
-			mask = 0x0fff;
-		else if (BITDEPTH == 8)
+	{
+		if (BITDEPTH == 8)
 			return;
 
-		int i, entry;
-		for (i = 0; i < len; i++)
+		// Pack in place, LSB first. Accumulate bits in a local and store
+		// each completed U32 with memcpy, so dst is never read back and is
+		// never accessed through a pointer of the wrong type. A completed
+		// word always lands behind the next unread source value.
+		const int shift = 16 - BITDEPTH;  // bit shift count for U16 source
+		const U32 mask = (1u << BITDEPTH) - 1;
+		unsigned char *out = reinterpret_cast<unsigned char *>(dst);
+		uint64_t bits = 0;
+		int nbits = 0;
+		for (int i = 0; i < len; i++)
 		{
-			// read value and determine write location
-			U32 value = static_cast<U32>(src[i+access.offset]) >> shift;
-
-			// if reverse the order
-/*** XXX TODO REVERSE
-			if (reverse)
-				// reverse the triplets so entry would be 2,1,0,5,4,3,8,7,6,...
-				entry = ((i / 3) * 3) + (2 - (i % 3));
-			else
-***/
-				entry = i;
-
-			int div = (entry * BITDEPTH) / 32;			// 32 bits in a U32
-			int rem = (entry * BITDEPTH) % 32;
-			
-			// write the bits that belong in the first U32
-			// calculate the masked bits for the added value
-			U32 shift_mask = mask << rem;
-			
-			// mask sure to mask the bits to save as part of the src_buf
-			// so if writing bits 8-18, save the bits of the source material
-			dst_u32[div] = (dst_u32[div] & ~shift_mask) | ((value << rem) & shift_mask);
-
-			// write across multiple U16? count the carry bits
-			int carry = BITDEPTH - (32 - rem);
-			if (carry > 0)
+			U32 value = (static_cast<U32>(src[i+access.offset]) >> shift) & mask;
+			// XXX TODO REVERSE: if reverse, the triplets should be written
+			// in order 2,1,0,5,4,3,...
+			bits |= uint64_t(value) << nbits;
+			nbits += BITDEPTH;
+			if (nbits >= 32)
 			{
-				U32 save = BITDEPTH - carry;
-				dst_u32[div+1] = (dst_u32[div+1] & ~(mask >> save)) | ((value >> save) & (mask >> save));
+				U32 word = static_cast<U32>(bits);
+				std::memcpy(out, &word, sizeof(word));
+				out += sizeof(word);
+				bits >>= 32;
+				nbits -= 32;
 			}
 		}
-		
+		if (nbits > 0)
+		{
+			U32 word = static_cast<U32>(bits);
+			std::memcpy(out, &word, sizeof(word));
+		}
+
 		// adjust offset/length
 		access.offset = 0;
 		access.length = (((len * BITDEPTH) / 32) + ((len * BITDEPTH) % 32 ? 1 : 0)) * 2;
