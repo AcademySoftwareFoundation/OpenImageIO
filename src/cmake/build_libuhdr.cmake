@@ -49,8 +49,8 @@ build_dependency_with_cmake(libuhdr
         -D UHDR_ENABLE_LOGS=TRUE
         -D JPEG_INCLUDE_DIR=${JPEG_INCLUDE_DIR}
         -D JPEG_LIBRARY=${JPEG_LIBRARY}
-        -D CMAKE_C_COMPILER=${UHDR_CMAKE_C_COMPILER}
-        -D CMAKE_CXX_COMPILER=${UHDR_CMAKE_CXX_COMPILER}
+        -D CMAKE_C_COMPILER=${libuhdr_CMAKE_C_COMPILER}
+        -D CMAKE_CXX_COMPILER=${libuhdr_CMAKE_CXX_COMPILER}
         # On MSVC, libuhdr's own CMakeLists forces a static (/MT) CRT for a
         # static-lib build unless BUILD_FOR_WINUI is set, which instead lets
         # our CMAKE_MSVC_RUNTIME_LIBRARY (passed down by
