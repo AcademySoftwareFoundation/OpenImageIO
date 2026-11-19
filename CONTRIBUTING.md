@@ -269,7 +269,9 @@ your own repository on GitHub, and then clone it to get a repository on your
 local machine.
 
 2. Edit, compile, and test your changes. Run clang-format (see the
-instructions on coding style below).
+instructions on coding style below). Please see the
+[Testing](docs/dev/Testing.md) document for how to run the test suite, add
+tests for your changes, and update reference output.
 
 3. Push your changes to your fork (each unrelated pull request to a separate
 "topic branch", please).
