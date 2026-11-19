@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <random>
 #include <vector>
 
@@ -196,6 +197,33 @@ getargs(int argc, char* argv[])
 
 
 
+// hashlittle must give the same result for a key at any alignment (each
+// alignment takes a different code path), and must not read past the end of
+// the key (an ASan build will catch that with the exact-size buffer).
+static void
+test_hashlittle_alignment()
+{
+    print("\nTesting hashlittle alignment independence\n");
+    alignas(16) static const char text[]
+        = "The quick brown fox jumps over the lazy dog!";
+    for (size_t len = 0; len < sizeof(text) - 1; ++len) {
+        std::unique_ptr<char[]> exact(new char[len]);
+        memcpy(exact.get(), text, len);
+        uint32_t h = bjhash::hashlittle(exact.get(), len);
+        for (size_t off = 1; off < 4; ++off) {
+            std::vector<char> buf(len + off);
+            memcpy(buf.data() + off, text, len);
+            OIIO_CHECK_EQUAL(bjhash::hashlittle(buf.data() + off, len), h);
+        }
+    }
+    // Known values, to be sure the hash itself hasn't changed
+    OIIO_CHECK_EQUAL(bjhash::hashlittle(text, 11), uint32_t(0x31f64c24));
+    OIIO_CHECK_EQUAL(bjhash::hashlittle(text, sizeof(text) - 1),
+                     uint32_t(0x34117e93));
+}
+
+
+
 int
 main(int argc, char* argv[])
 {
@@ -267,6 +295,8 @@ main(int argc, char* argv[])
 
         print("{} winner: {}\n", mem, best);
     }
+
+    test_hashlittle_alignment();
 
     print("\nTesting correctness\n");
     using hashfn_t = uint64_t(string_view);
