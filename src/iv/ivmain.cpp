@@ -72,6 +72,11 @@ getargs(int argc, char* argv[])
       .metavar("wipe|absdiff|flipdiff")
       .defaultval("");
 
+    ap.arg("--dark")
+      .help("Start in dark mode")
+      .dest("dark")
+      .store_true();
+
     ap.arg("--display")
       .help("OCIO display")
       .metavar("STRING")
@@ -138,8 +143,8 @@ main(int argc, char* argv[])
 #endif
     }
 
-    ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display,
-                                           view);
+    ImageViewer* mainWin = new ImageViewer(use_ocio, color_space, display, view,
+                                           ap["dark"].get<int>());
 
     mainWin->show();
 
