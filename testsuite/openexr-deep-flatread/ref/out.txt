@@ -1,0 +1,16 @@
+deep-dense-scan.exr
+classic read_native_scanline: ok=false smashed=0 err="deep image, use read_native_deep_scanlines()" -> PASS
+classic read_native_scanlines: ok=false smashed=0 err="deep image, use read_native_deep_scanlines()" -> PASS
+core read_native_scanline: ok=false smashed=0 err="deep image, use read_native_deep_scanlines()" -> PASS
+core read_native_scanlines: ok=false smashed=0 err="deep image, use read_native_deep_scanlines()" -> PASS
+deep-dense-tiled.exr
+classic read_native_tile: ok=false smashed=0 err="deep image, use read_native_deep_tiles()" -> PASS
+classic read_native_tiles: ok=false smashed=0 err="deep image, use read_native_deep_tiles()" -> PASS
+core read_native_tile: ok=false smashed=0 err="deep image, use read_native_deep_tiles()" -> PASS
+core read_native_tiles: ok=false smashed=0 err="deep image, use read_native_deep_tiles()" -> PASS
+flat-scan.exr
+classic read_native_deep_scanlines: ok=false err="not a deep image, use read_native_scanlines()" -> PASS
+core read_native_deep_scanlines: ok=false err="not a deep image, use read_native_scanlines()" -> PASS
+flat-tiled.exr
+classic read_native_deep_tiles: ok=false err="not a deep image, use read_native_tiles()" -> PASS
+core read_native_deep_tiles: ok=false err="not a deep image, use read_native_tiles()" -> PASS

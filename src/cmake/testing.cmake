@@ -531,6 +531,11 @@ macro (oiio_add_all_tests)
     # skipped for static builds (see OIIO_STATIC_BUILD above).
     oiio_add_tests (openexr-partialtile
                     DISABLEVAR OIIO_STATIC_BUILD)
+    # Flat read_native_* on deep files must fail, not overrun (own helper).
+    # Also a nested project against the installed package, so likewise
+    # skipped for static builds.
+    oiio_add_tests (openexr-deep-flatread
+                    DISABLEVAR OIIO_STATIC_BUILD)
     # Self-contained decompression-bomb regression (ships its own tiny fixture);
     # exercises both the C++ and C-API readers via the openexr:core attribute.
     oiio_add_tests (openexr-bomb)

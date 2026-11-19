@@ -1408,6 +1408,10 @@ OpenEXRCoreInput::read_native_scanlines(int subimage, int miplevel, int ybegin,
     const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
     if (!part_ok)
         return false;
+    if (spec.deep) {
+        errorfmt("deep image, use read_native_deep_scanlines()");
+        return false;
+    }
 
     chend = clamp(chend, chbegin + 1, spec.nchannels);
 
@@ -1587,6 +1591,10 @@ OpenEXRCoreInput::read_native_tile(int subimage, int miplevel, int x, int y,
     const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
     if (!part_ok)
         return false;
+    if (spec.deep) {
+        errorfmt("deep image, use read_native_deep_tiles()");
+        return false;
+    }
     exr_result_t rv;
 
     int32_t tilew = spec.tile_width;
@@ -1701,6 +1709,10 @@ OpenEXRCoreInput::read_native_tiles(int subimage, int miplevel, int xbegin,
     const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
     if (!part_ok)
         return false;
+    if (spec.deep) {
+        errorfmt("deep image, use read_native_deep_tiles()");
+        return false;
+    }
 
     int32_t tilew = spec.tile_width;
     int32_t tileh = spec.tile_height;
@@ -1939,6 +1951,10 @@ OpenEXRCoreInput::read_native_deep_scanlines(int subimage, int miplevel,
     const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
     if (!part_ok)
         return false;
+    if (!spec.deep) {
+        errorfmt("not a deep image, use read_native_scanlines()");
+        return false;
+    }
 
     chend = clamp(chend, chbegin + 1, spec.nchannels);
 
@@ -2109,6 +2125,10 @@ OpenEXRCoreInput::read_native_deep_tiles(int subimage, int miplevel, int xbegin,
     const ImageSpec& spec = init_part(subimage, miplevel, part_ok);
     if (!part_ok)
         return false;
+    if (!spec.deep) {
+        errorfmt("not a deep image, use read_native_tiles()");
+        return false;
+    }
     exr_result_t rv = EXR_ERR_SUCCESS;
 
     int32_t tilew = spec.tile_width;
