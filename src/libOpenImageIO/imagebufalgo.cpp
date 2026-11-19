@@ -87,6 +87,12 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         dst->errorfmt("Uninitialized input image");
         return false;
     }
+    if (roi.chend < std::max(roi.chbegin, 0)) {
+        dst->errorfmt("Invalid ROI channel range [{}, {})", roi.chbegin,
+                      roi.chend);
+        return false;
+    }
+    roi.chbegin = std::max(roi.chbegin, 0);
 
     int minchans, maxchans;
     if (dst || A || B || C) {
@@ -393,6 +399,12 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
         dst.errorfmt("Uninitialized input image");
         return false;
     }
+    if (roi.chend < std::max(roi.chbegin, 0)) {
+        dst.errorfmt("Invalid ROI channel range [{}, {})", roi.chbegin,
+                     roi.chend);
+        return false;
+    }
+    roi.chbegin = std::max(roi.chbegin, 0);
 
     const ImageBuf* A = srcs.size() ? srcs[0] : nullptr;
     int minchans = 10000, maxchans = 1;
