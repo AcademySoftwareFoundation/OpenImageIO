@@ -62,3 +62,11 @@ Computing diff of "testimage.exr" vs "result_uint8_BGGR-linear.tiff"
 PASS
 Computing diff of "testimage.exr" vs "result_uint8_BGGR-MHC.tiff"
 PASS
+Comparing "neg_bayer-linear_ref.exr" and "neg_bayer-linear.exr"
+PASS
+Comparing "neg_bayer-MHC_ref.exr" and "neg_bayer-MHC.exr"
+PASS
+Comparing "neg_xtrans-linear_ref.exr" and "neg_xtrans-linear.exr"
+PASS
+Comparing "neg_odd_ref.exr" and "neg_odd.exr"
+PASS
