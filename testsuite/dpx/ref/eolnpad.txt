@@ -1,0 +1,4 @@
+src/eolnpad-8bit.dpx  whole image matches: True  mismatched scanlines: []
+src/eolnpad-10bit.dpx  whole image matches: True  mismatched scanlines: []
+src/eolnpad-12bit.dpx  whole image matches: True  mismatched scanlines: []
+src/eolnpad-16bit.dpx  whole image matches: True  mismatched scanlines: []

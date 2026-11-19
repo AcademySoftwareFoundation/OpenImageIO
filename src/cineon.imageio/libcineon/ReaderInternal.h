@@ -88,7 +88,7 @@ namespace cineon
 			long offset = actline * lineLength;
 
 			// add in eoln padding
-			offset += line * eolnPad;
+			offset += int64_t(actline) * eolnPad;
 
 			// add in offset within the current line, rounding down so to catch any components within the word
 			offset += block.x1 * numberOfComponents / 3 * 4;
@@ -212,7 +212,7 @@ namespace cineon
 		{
 			// determine offset into image element
 			int64_t offset = (line + block.y1) * (lineSize * sizeof(U32)) +
-						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + (line * eolnPad);
+						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + int64_t(line + block.y1) * eolnPad;
 
 			// calculate read size
 			int64_t readSize = (int64_t(block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
@@ -276,7 +276,7 @@ namespace cineon
 
 			// determine offset into image element
 			long offset = (line + block.y1) * imageWidth * numberOfComponents * bytes +
-						block.x1 * numberOfComponents * bytes + (line * eolnPad);
+						block.x1 * numberOfComponents * bytes + int64_t(line + block.y1) * eolnPad;
 
 			if (BUFTYPE == SRCTYPE)
 			{
@@ -320,7 +320,7 @@ namespace cineon
 		{
 			// determine offset into image element
 			long offset = (line + block.y1) * imageWidth * numberOfComponents * 2 +
-						block.x1 * numberOfComponents * 2 + (line * eolnPad);
+						block.x1 * numberOfComponents * 2 + int64_t(line + block.y1) * eolnPad;
 
 			fd->Read(dpxHeader, offset, readBuf, width*2);
 

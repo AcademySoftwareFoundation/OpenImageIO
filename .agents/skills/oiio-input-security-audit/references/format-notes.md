@@ -35,8 +35,10 @@ Check IDs (C1-C10) are defined in SKILL.md. "OK" = already satisfied.
 - dpx: C2; 10-bit filled 1-channel swap overran a group of 3; UserData short
   read published uninitialized tail; large origin overflow in generic read
   paths (origin must be set before `check_open`). libdpx RLE unimplemented.
+  End-of-line padding was applied per block row, not per file row (D7).
 - cineon: C2 via `Filesystem::file_size` (no ioproxy); valid_file delegates to
-  base open().
+  base open(). End-of-line padding per block row, not file row (D7); padding
+  over INT_MAX rejected in open().
 - sgi: C2; RLE16 short scanline (#5321); RLE run value byte past buffer for
   8-bit data (#5513).
 - rla: corrupt RLE; `NextOffset` must advance; offset table indexed unchecked

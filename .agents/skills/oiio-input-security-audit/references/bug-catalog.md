@@ -315,6 +315,16 @@ overruns a buffer sized for the requested one.
   its own override: dds, ico, ...); classic openexr all-channel wrapper
   (`m_spec.nchannels`).
 
+### D7. Block-relative row index in a file offset
+A per-row file offset built from the row's index within the requested block
+(`line`) instead of its absolute row (`line + y1`) is right only when the
+block starts at row 0. Whole-image reads (oiiotool force-reads files under
+50 MB) hide it; reading one scanline at a time exposes it.
+- Find: in multi-row read loops, each term of the offset; padding/stride terms
+  are the usual culprit.
+- Test: compare `read_scanline(y)` per row against a whole-image read (Python).
+- Seen: libdpx and libcineon end-of-line padding.
+
 
 ## E. Alignment and pointer formation
 

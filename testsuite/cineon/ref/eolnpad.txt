@@ -1,0 +1,2 @@
+src/eolnpad-8bit.cin  whole image matches: True  mismatched scanlines: []
+src/eolnpad-10bit.cin  whole image matches: True  mismatched scanlines: []
