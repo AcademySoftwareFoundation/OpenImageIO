@@ -13,12 +13,23 @@ redirect = " >> out.txt 2>&1 "
 # (e.g. -R/TEST=py), the symlink may not exist yet. Create it ourselves so
 # this test doesn't depend on run order/selection.
 _cpp_ref_link = "../docs-examples-cpp/ref"
+_cpp_ref_src  = os.path.abspath (os.path.join (test_source_dir, "..",
+                                               "docs-examples-cpp", "ref"))
 if not os.path.lexists (_cpp_ref_link) :
+    # The link lives inside the docs-examples-cpp test's own build directory,
+    # which is not created at all when that test is skipped (as happens for
+    # static library builds). Windows then fails the symlink call with
+    # "path not found" because the destination's parent is missing.
+    os.makedirs (os.path.dirname (_cpp_ref_link), exist_ok = True)
     try :
-        os.symlink (os.path.join (test_source_dir, "..", "docs-examples-cpp", "ref"),
-                    _cpp_ref_link)
+        os.symlink (_cpp_ref_src, _cpp_ref_link)
     except FileExistsError :
         pass  # another concurrently-run test variant made it first
+    except (OSError, NotImplementedError) :
+        # Symlinks require Developer Mode or admin privileges on Windows,
+        # so fall back on copying the reference images.
+        import shutil
+        shutil.copytree (_cpp_ref_src, _cpp_ref_link)
 refdirlist += [ _cpp_ref_link ]
 
 # Prep:
