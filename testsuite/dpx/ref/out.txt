@@ -295,3 +295,9 @@ mixed-chans.dpx      :   64 x   64, 3 channel, float dpx
 oiiotool ERROR: -o : DPX writer does not support 2 channels
 Full command line was:
 > oiiotool --create 8x8 2 -o twochan.dpx
+Comparing "packed-10-R.dpx" and "packed-10-R.tif"
+PASS
+Comparing "packed-10-RGB.dpx" and "packed-10-RGB.tif"
+PASS
+Comparing "packed-12-RGB.dpx" and "packed-12-RGB.tif"
+PASS
