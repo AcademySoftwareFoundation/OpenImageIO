@@ -81,4 +81,10 @@ command += info_command ("src/inknames-mismatch.tif", safematch=True, hash=False
 command += info_command ("src/shadow-many-channels.tif", verbose=False,
                          failureok=True)
 
+# JPEG-compressed RGB with SamplesPerPixel > 4 takes the libtiff RGBA
+# fallback, which yields only 4 channels; the reader must not report (and
+# copy) more. Also at the end, to append to every ref variant.
+for f in [ "rgba-fallback-spp8-strip.tif", "rgba-fallback-spp8-tiled.tif" ] :
+    command += oiiotool ("src/" + f + " --echo \"nchannels={TOP.nchannels}\" --ch R,G,B --echo \"avg={TOP.AVGCOLOR}\"")
+
 outputs = [ "check1.tif", "out.txt" ]
