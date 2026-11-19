@@ -1468,17 +1468,18 @@ OpenEXRInput::read_native_scanlines_impl(int subimage, int miplevel, int ybegin,
                                          1, dw_width);
             m_input_rgba->readPixels(ybegin, yend - 1);
 
-            // FIXME There is probably some optimized code for this somewhere.
-            OIIO_DASSERT(chbegin >= 0 && chend > chbegin);
+            // The caller's buffer holds only channels [chbegin,chend).
+            OIIO_DASSERT(chbegin >= 0 && chend > chbegin && chend <= 4);
+            int nc = chend - chbegin;
             for (int c = chbegin; c < chend; ++c) {
-                size_t chanbytes = m_spec.channelformat(c).size();
-                half* src        = &pixels[0][0].r + c;
-                half* dst        = (half*)((char*)data + c * chanbytes);
+                const half* src = reinterpret_cast<const half*>(&pixels[0][0])
+                                  + c;
+                half* dst       = (half*)data + (c - chbegin);
                 for (int y = ybegin; y < yend; ++y) {
                     for (int x = 0; x < m_spec.width; ++x) {
                         *dst = *src;
                         src += 4;  // always advance 4 RGBA halfs
-                        dst += m_spec.nchannels;
+                        dst += nc;
                     }
                 }
             }

@@ -24,3 +24,10 @@ command += rw_command (imagedir, "CrissyField.exr", extraargs="--compression zip
 command += rw_command (imagedir, "Flowers.exr", extraargs="--compression zip")
 command += rw_command (imagedir, "MtTamNorth.exr")
 command += rw_command (imagedir, "StarField.exr")
+
+# Channel-subset reads must match the same channels of a full read.
+for ch in ["R", "G,B"]:
+    suf = ch.replace(",", "")
+    command += oiiotool(f"-i:ch={ch} {imagedir}/Flowers.exr -d half -o subset-{suf}.exr")
+    command += oiiotool(f"{imagedir}/Flowers.exr --ch {ch} -d half -o full-{suf}.exr")
+    command += diff_command(f"subset-{suf}.exr", f"full-{suf}.exr")
