@@ -56,24 +56,10 @@ on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 
 
 /*
- * My best guess at if you are big-endian or little-endian.  This may
- * need adjustment.
+ * Endianness, from OIIO's platform.h.
  */
-#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && \
-     __BYTE_ORDER == __LITTLE_ENDIAN) || \
-    (defined(i386) || defined(__i386__) || defined(__i486__) || \
-     defined(__i586__) || defined(__i686__) || defined(vax) || defined(MIPSEL))
-# define HASH_LITTLE_ENDIAN 1
-# define HASH_BIG_ENDIAN 0
-#elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && \
-       __BYTE_ORDER == __BIG_ENDIAN) || \
-      (defined(sparc) || defined(POWERPC) || defined(mc68000) || defined(sel))
-# define HASH_LITTLE_ENDIAN 0
-# define HASH_BIG_ENDIAN 1
-#else
-# define HASH_LITTLE_ENDIAN 0
-# define HASH_BIG_ENDIAN 0
-#endif
+#define HASH_LITTLE_ENDIAN (littleendian())
+#define HASH_BIG_ENDIAN (bigendian())
 
 #define hashsize(n) ((uint32_t)1<<(n))
 #define hashmask(n) (hashsize(n)-1)
@@ -296,13 +282,11 @@ acceptable.  Do NOT use for cryptographic purposes.
 uint32_t hashlittle( const void *key, size_t length, uint32_t initval)
 {
   uint32_t a,b,c;                                          /* internal state */
-  union { const void *ptr; size_t i; } u;     /* needed for Mac Powerbook G4 */
 
   /* Set up the internal state */
   a = b = c = 0xdeadbeef + ((uint32_t)length) + initval;
 
-  u.ptr = key;
-  if (HASH_LITTLE_ENDIAN && ((u.i & 0x3) == 0)) {
+  if (HASH_LITTLE_ENDIAN && ((uintptr_t(key) & 0x3) == 0)) {
     const uint32_t *k = (const uint32_t *)key;         /* read 32-bit chunks */
 
     /*------ all but last block: aligned reads and affect 32 bits of (a,b,c) */
@@ -326,7 +310,7 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval)
      * still catch it and complain.  The masking trick does make the hash
      * noticeably faster for short strings (like English words).
      */
-#ifndef VALGRIND
+#if !defined(VALGRIND) && 0 /* force the safe path for OIIO */
 
     switch(length)
     {
@@ -368,7 +352,7 @@ uint32_t hashlittle( const void *key, size_t length, uint32_t initval)
 
 #endif /* !valgrind */
 
-  } else if (HASH_LITTLE_ENDIAN && ((u.i & 0x1) == 0)) {
+  } else if (HASH_LITTLE_ENDIAN && ((uintptr_t(key) & 0x1) == 0)) {
     const uint16_t *k = (const uint16_t *)key;         /* read 16-bit chunks */
     const uint8_t  *k8;
 
@@ -481,14 +465,12 @@ void hashlittle2(
   uint32_t   *pb)        /* IN: secondary initval, OUT: secondary hash */
 {
   uint32_t a,b,c;                                          /* internal state */
-  union { const void *ptr; size_t i; } u;     /* needed for Mac Powerbook G4 */
 
   /* Set up the internal state */
   a = b = c = 0xdeadbeef + ((uint32_t)length) + *pc;
   c += *pb;
 
-  u.ptr = key;
-  if (HASH_LITTLE_ENDIAN && ((u.i & 0x3) == 0)) {
+  if (HASH_LITTLE_ENDIAN && ((uintptr_t(key) & 0x3) == 0)) {
     const uint32_t *k = (const uint32_t *)key;         /* read 32-bit chunks */
 
     /*------ all but last block: aligned reads and affect 32 bits of (a,b,c) */
@@ -512,7 +494,7 @@ void hashlittle2(
      * still catch it and complain.  The masking trick does make the hash
      * noticeably faster for short strings (like English words).
      */
-#ifndef VALGRIND
+#if !defined(VALGRIND) && 0 /* force the safe path for OIIO */
 
     switch(length)
     {
@@ -554,7 +536,7 @@ void hashlittle2(
 
 #endif /* !valgrind */
 
-  } else if (HASH_LITTLE_ENDIAN && ((u.i & 0x1) == 0)) {
+  } else if (HASH_LITTLE_ENDIAN && ((uintptr_t(key) & 0x1) == 0)) {
     const uint16_t *k = (const uint16_t *)key;         /* read 16-bit chunks */
     const uint8_t  *k8;
 
@@ -659,13 +641,11 @@ void hashlittle2(
 uint32_t hashbig( const void *key, size_t length, uint32_t initval)
 {
   uint32_t a,b,c;
-  union { const void *ptr; size_t i; } u; /* to cast key to (size_t) happily */
 
   /* Set up the internal state */
   a = b = c = 0xdeadbeef + ((uint32_t)length) + initval;
 
-  u.ptr = key;
-  if (HASH_BIG_ENDIAN && ((u.i & 0x3) == 0)) {
+  if (HASH_BIG_ENDIAN && ((uintptr_t(key) & 0x3) == 0)) {
     const uint32_t *k = (const uint32_t *)key;         /* read 32-bit chunks */
 
     /*------ all but last block: aligned reads and affect 32 bits of (a,b,c) */
@@ -689,7 +669,7 @@ uint32_t hashbig( const void *key, size_t length, uint32_t initval)
      * still catch it and complain.  The masking trick does make the hash
      * noticeably faster for short strings (like English words).
      */
-#ifndef VALGRIND
+#if !defined(VALGRIND) && 0 /* force the safe path for OIIO */
 
     switch(length)
     {
