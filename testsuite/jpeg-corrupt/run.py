@@ -68,6 +68,17 @@ command += info_command ("src/corrupt-icc-unaligned-mluc.jpg", safematch=True)
 # read, never trusting the declared length.
 command += info_command ("src/corrupt-icc-oversized.jpg", safematch=True)
 
+# A corrupt ICC profile is dropped entirely (no ICCProfile attributes at all)
+# in the default mode, but fails the read in strict mode.
+command += oiiotool("-oiioattrib imageinput:strict 1 -info -v src/corrupt-icc-oversized.jpg")
+
+# These ICC profiles have tags that share or overlap their data, an 'mluc'
+# record count larger than its tag, or too many tags. Decoding work and memory
+# must stay linear in the profile size, and the bad profile is dropped.
+command += info_command ("src/corrupt-icc-mluc-nrecords.jpg", safematch=True)
+command += info_command ("src/corrupt-icc-overlap-text.jpg", safematch=True)
+command += info_command ("src/corrupt-icc-many-tags.jpg", safematch=True)
+
 # These files have short APP1/APP2 metadata marker payloads that used to be
 # read past their saved-marker buffers before being ignored. Use iconvert to
 # a null output to force a full input read.

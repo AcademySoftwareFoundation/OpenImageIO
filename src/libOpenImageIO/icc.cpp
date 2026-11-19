@@ -324,6 +324,24 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
     uint32_t tag_count;
     if (!extract(iccdata, offset, tag_count, error))
         return false;
+    // Tags may share or overlap their data, so cap the tag count and the
+    // total bytes decoded to keep time and memory linear in profile size.
+    const uint32_t max_tags = 1024;
+    if (tag_count > max_tags) {
+        error = format("ICC profile has too many tags ({}, max {})", tag_count,
+                       max_tags);
+        return false;
+    }
+    uint64_t budget = 2 * uint64_t(iccdata.size());
+    auto charge     = [&](uint64_t nbytes, string_view signature) {
+        if (nbytes > budget) {
+            error = format("ICC profile tag {} exceeds decoding budget",
+                           signature);
+            return false;
+        }
+        budget -= nbytes;
+        return true;
+    };
     for (uint32_t i = 0; i < tag_count; ++i) {
         ICCTag tag;
         if (!extract(iccdata, offset, tag, error))
@@ -352,6 +370,8 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
                     signature);
                 return false;
             }
+            if (!charge(tag.size, signature))
+                return false;
             spec.attribute(tagname, string_view((const char*)iccdata.data()
                                                     + tag.offset + 8,
                                                 tag.size - 8));
@@ -365,6 +385,8 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
                     signature);
                 return false;
             }
+            if (!charge(tag.size, signature))
+                return false;
             spec.attribute(tagname, string_view((const char*)iccdata.data()
                                                     + tag.offset + 12,
                                                 tag.size - 12));
@@ -385,6 +407,14 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
                 || recordsize != 12) {
                 return false;
             }
+            if (tag.size < 16 || nrecords > (tag.size - 16) / 12) {
+                error = format(
+                    "ICC profile tag {} appears to contain corrupted/invalid data",
+                    signature);
+                return false;
+            }
+            if (!charge(16 + 12 * uint64_t(nrecords), signature))
+                return false;
             for (uint32_t r = 0; r < nrecords; ++r) {
                 uint16_t language = 0, country = 0;
                 uint32_t len = 0, stroffset = 0;
@@ -406,6 +436,8 @@ decode_icc_profile(cspan<uint8_t> iccdata, ImageSpec& spec, std::string& error)
                             signature);
                         return false;  // Non-sensical: tag extends beyond icc data block
                     }
+                    if (!charge(len, signature))
+                        return false;
                     const uint8_t* start = iccdata.data() + tag.offset
                                            + stroffset;
                     // The actual data is UTF-16. Copy it out byte-wise (memcpy)
