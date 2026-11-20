@@ -30,15 +30,12 @@
 
 
 
-// MSVC static CRT (/MT): a thread_local with a non-trivial destructor has its
-// thread-exit cleanup registered from __dyn_tls_init, on thread attach, before
-// the heap is usable, and that path corrupts it -- so every site has to hold
-// the object behind a trivially destructible thread_local pointer instead.
-//
-// OIIO_TLS_OBJECT(name, Type) declares `name()` returning a Type&.  Under /MT
-// the object is allocated on first use and never freed (a bounded leak, one
-// object per thread per site, reclaimed by the OS at exit); everywhere else it
-// is the plain thread_local it always was.
+/// OIIO_TLS_OBJECT(name, Type) declares function `name()` returning a `Type&`
+/// that is thread_local (implemented as a static variable internal to the
+/// function).  Under MSVC with static CRT (/MT), having a thread_local with a
+/// nontrivial destructor is problematic. This is our workaround, hiding it
+/// behind a pointer that is never freed. That's ok; it would only have been
+/// reclaimed until shutdown anyway.
 #if defined(_MSC_VER) && defined(_MT) && !defined(_DLL)
 #    define OIIO_TLS_OBJECT(name, ...)                       \
         static thread_local __VA_ARGS__* name##_p = nullptr; \

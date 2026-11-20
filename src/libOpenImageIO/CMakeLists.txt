@@ -308,9 +308,9 @@ if (OIIO_BUILD_TESTS AND BUILD_TESTING)
                           FOLDER "Unit Tests" NO_INSTALL)
     add_test (unit_compute ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/compute_test)
 
-    # The version resource lives in the DLLs, so there is nothing to check
-    # for a static library build.
     if (WIN32 AND BUILD_SHARED_LIBS)
+        # The version resource lives in the DLLs, so there is nothing to check
+        # for a static library build.
         set (version_string "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}.0")
         add_test (NAME win32_versioning COMMAND powershell ${CMAKE_SOURCE_DIR}/testsuite/win32/version_check.ps1 "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/" ${version_string})
     endif ()

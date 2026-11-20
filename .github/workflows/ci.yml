@@ -824,14 +824,6 @@ jobs:
             setenvs: export OPENIMAGEIO_PYTHON_LOAD_DLLS_FROM_PATH=1
             benchmark: 1
           # Static library build (MSVC static CRT, /MT).
-          #
-          # BUILD_SHARED_LIBS must be OFF here: with the static CRT every DLL
-          # links its own private copy of the runtime, so a FILE* handed out by
-          # one DLL is not a valid stream for the CRT inside another one. That
-          # breaks e.g. Filesystem::IOFile::handle() (implemented in
-          # OpenImageIO_Util) being passed to libjpeg/zlib inside
-          # OpenImageIO.dll, which fastfails with 0xC0000409
-          # (FAST_FAIL_INVALID_ARG, _invalid_parameter_noinfo_noreturn).
           - desc: Windows-2022 VS2022 static CRT
             runner: windows-2022
             nametag: windows-2022-mt

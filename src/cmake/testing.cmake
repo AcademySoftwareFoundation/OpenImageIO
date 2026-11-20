@@ -20,12 +20,9 @@ add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/testsuite
 set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
-# Tests that configure a nested project against the *installed* package
-# (cmake-consumer, docs-examples-cpp, the *-partialtile helpers) only work
-# with a shared library. With BUILD_SHARED_LIBS=OFF the exported
-# OpenImageIO::OpenImageIO target also needs all of OIIO's private
-# dependencies (pystring, fmt, tsl::robin_map, ...) to be findable by the
-# consumer, which an install of OIIO alone cannot provide.
+# If not building shared libs, set a flag we'll use to skip tests that only
+# with dynamic builds, primarily ones that configure a nested project
+# against our *installed* package.
 if (NOT BUILD_SHARED_LIBS)
     set (OIIO_STATIC_BUILD 1)
 endif ()
