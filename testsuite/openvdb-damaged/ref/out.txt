@@ -42,4 +42,23 @@ Full command line was:
 oiiotool ERROR: read : Could not open 'src/bad-desc-pasteof.vdb': corrupt or truncated header
 Full command line was:
 > oiiotool --info -v src/bad-desc-pasteof.vdb
+oiiotool ERROR: read : Could not open 'src/bad-version-future.vdb': corrupt or truncated header
+Full command line was:
+> oiiotool --info -v src/bad-version-future.vdb
+oiiotool ERROR: read : Could not open 'src/bad-stream-count.vdb': corrupt or truncated header
+Full command line was:
+> oiiotool --info -v src/bad-stream-count.vdb
+oiiotool ERROR: read : Could not open 'src/bad-stream-desc-length.vdb': corrupt or truncated header
+Full command line was:
+> oiiotool --info -v src/bad-stream-desc-length.vdb
+   9 x    9 x    9, 1 channel, volume float openvdb
+    Stats Min: 0.000000 (float)
+    Stats Max: 1.000000 (float)
+    Stats Avg: 0.002058 (float)
+    Stats StdDev: 0.041358 (float)
+    Stats NanCount: 0 
+    Stats InfCount: 0 
+    Stats FiniteCount: 729 
+    Constant: No
+    Monochrome: Yes
 truncated.vdb rejected

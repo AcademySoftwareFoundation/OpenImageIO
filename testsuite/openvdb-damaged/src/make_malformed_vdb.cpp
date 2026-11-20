@@ -15,9 +15,12 @@
 // file_bbox_min/file_bbox_max metadata that the reader trusts for the image
 // extents. That keeps the fixtures a few hundred bytes each.
 
+#include <openvdb/io/Stream.h>
 #include <openvdb/openvdb.h>
 
 #include <cstdio>
+#include <cstring>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -93,6 +96,33 @@ truncate_copy(const std::string& src, const std::string& dst, size_t nbytes)
 }
 
 
+// Overwrite bytes at a fixed offset in an already-written file.
+static void
+patch_copy(const std::string& src, const std::string& dst, long offset,
+           const void* data, size_t nbytes)
+{
+    FILE* in = fopen(src.c_str(), "rb");
+    if (!in)
+        return;
+    std::vector<char> buf;
+    char chunk[4096];
+    for (size_t r; (r = fread(chunk, 1, sizeof(chunk), in)) > 0;)
+        buf.insert(buf.end(), chunk, chunk + r);
+    fclose(in);
+    size_t n = buf.size();
+    if (offset + nbytes > n)
+        return;
+    memcpy(buf.data() + offset, data, nbytes);
+    FILE* out = fopen(dst.c_str(), "wb");
+    if (!out)
+        return;
+    fwrite(buf.data(), 1, n, out);
+    fclose(out);
+    printf("wrote %s\n", dst.c_str());
+}
+
+
+
 int
 main(int argc, char** argv)
 {
@@ -136,6 +166,40 @@ main(int argc, char** argv)
     // deeper trips an unbounded length-prefixed string read inside OpenVDB
     // that costs ~12 GB of RSS, which is no good for CI or the fuzzer.
     truncate_copy(p("bad-bbox-huge.vdb"), p("truncated.vdb"), 80);
+
+    // A valid file written through io::Stream, which has no grid offsets, so
+    // io::File::open() reads each grid inline after its descriptor.
+    {
+        FloatGrid::Ptr g = FloatGrid::create(0.0f);
+        g->setName("stream");
+        g->tree().setValue(Coord(1, 2, 3), 0.5f);
+        g->tree().setValue(Coord(6, 5, 4), 1.0f);
+        GridPtrVec grids;
+        grids.push_back(g);
+        const std::string path = p("good-stream.vdb");
+        std::ofstream os(path, std::ios_base::binary);
+        io::Stream stream(os);
+        // Plain active-mask compression needs neither zlib nor blosc.
+        stream.setCompression(io::COMPRESS_ACTIVE_MASK);
+        stream.write(grids);
+        os.close();
+        cap_file_version(path, OPENVDB_FILE_VERSION_MULTIPASS_IO);
+        printf("wrote %s\n", path.c_str());
+    }
+
+    // Header layout of these files: version at byte 8, has-grid-offsets flag
+    // at 20, metadata count at 57, grid count at 61, grid name length at 65.
+    {
+        uint32_t version = 300;  // OPENVDB_UNSUPPORTED_FILE_VERSION
+        patch_copy(p("bad-bbox-empty.vdb"), p("bad-version-future.vdb"), 8,
+                   &version, sizeof(version));
+        int32_t ngrids = 0x7fffffff;
+        patch_copy(p("good-stream.vdb"), p("bad-stream-count.vdb"), 61, &ngrids,
+                   sizeof(ngrids));
+        uint32_t namelen = 0xfffffff0;
+        patch_copy(p("good-stream.vdb"), p("bad-stream-desc-length.vdb"), 65,
+                   &namelen, sizeof(namelen));
+    }
 
     return 0;
 }
