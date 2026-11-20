@@ -47,6 +47,14 @@ command += oiiotool (exrdir+"/Balls.exr -cut 512x288+0+0 " +
                      " -deepmerge -deepmerge -deepmerge -flatten " +
                      " -ch R,G,B,A -d half -o deepmerge.exr")
 
+# --deepmerge of many mutually overlapping samples must not take
+# super-linear time per split, and must respect limits:imagesize_MB.
+# deep-cascade.exr: 1 pixel, channels A,Z,ZBack, 300 samples with
+# A=0.5, Z=i*eps, ZBack=1-i*eps, eps=0.5/301.
+command += oiiotool ("src/deep-cascade.exr src/deep-cascade.exr -deepmerge --printstats")
+command += oiiotool ("-nostderr --oiioattrib limits:imagesize_MB 1 src/deep-cascade.exr src/deep-cascade.exr -deepmerge --printstats",
+                     failureok=True)
+
 # --resample
 command += oiiotool (exrdir+"/Balls.exr -resample 128x72 -o resampled-balls.exr")
 
