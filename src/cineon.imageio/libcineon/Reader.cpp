@@ -143,11 +143,11 @@ bool cineon::Reader::ReadBlock(void *data, const DataSize size, Block &block)
 		block.x1 == 0 && block.x2 == (int)(this->header.Width()-1))
 	{
 		// seek to the beginning of the image block
-		if (this->fd->Seek((this->header.ImageOffset() + (block.y1 * this->header.Width() * (bitDepth / 8) * numberOfComponents)), InStream::kStart) == false)
+		if (this->fd->Seek(long(this->header.ImageOffset() + (int64_t(block.y1) * this->header.Width() * (bitDepth / 8) * numberOfComponents)), InStream::kStart) == false)
 			return false;
 
 		// size of the image
-		const size_t imageSize = this->header.Width() * (block.y2 - block.y1 + 1) * numberOfComponents;
+		const size_t imageSize = size_t(this->header.Width()) * (block.y2 - block.y1 + 1) * numberOfComponents;
 		const size_t imageByteSize = imageSize * bitDepth / 8;
 
 		size_t rs = this->fd->ReadDirect(data, imageByteSize);
