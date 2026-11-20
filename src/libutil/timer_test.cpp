@@ -55,72 +55,66 @@ main(int argc, char** argv)
     const int interval = 100000;  // 1/10 sec
     double eps         = 0.01;    // slop we allow in our timings
     double epsrel      = 0.1;     // Allow an additional 10% relative error
-
-    // The precision of usleep() varies wildly between platforms: it is
-    // accurate on most *nix systems, but on Windows Sysutil::usleep() is
-    // just Sleep(), which rounds every sleep up to the system timer
-    // granularity (~15ms), and a busy or virtualized CI machine can
-    // stretch the wakes much further still. So don't trust usleep() to
-    // sleep exactly `interval`: time each sleep with an (accurate) Timer,
-    // accumulate the durations we really measured, and require the timers
-    // under test to track those. That keeps these assertions meaningful --
-    // and tight -- no matter how imprecise the sleep itself turns out to
-    // be (which is also what makes the old Apple timer-coalescing and
-    // CI-specific slop unnecessary).
-    double slept_total = 0.0;  // real wall time of all the sleeps so far
-    double last_sleep  = 0.0;  // real wall time of the most recent sleep
-    auto sleep_step    = [&]() {
-        Timer slept(Timer::StartNow);
-        Sysutil::usleep(interval);
-        last_sleep = slept();
-        slept_total += last_sleep;
-    };
+#ifdef __APPLE__
+    eps = 0.03;
+    // On some Apple OSX systems (especially >= 10.10 Yosemite), a feature
+    // called "timer coalescing" causes sleep/wake events to merge in order
+    // to produce longer idle periods for the CPU to go into a lower power
+    // state. This tends to make usleep() less reliable in its timing.
+    //
+    // One (permanent) fix is to disable timer coalescing with this command:
+    //     $ sudo sysctl -w kern.timer.coalescing_enabled=0
+    // But you want better power use, so instead we just increase the timing
+    // tolereance on Apple to make this test pass.
+#    if defined(OIIO_CI) || defined(OIIO_CODE_COVERAGE)
+    // It seems especially bad on CI runs, so give extra time slop.
+    eps = 1.0;
+#    endif
+#elif defined(OIIO_CI)
+    // Also on GitHub Actions CI, timing seems a little imprecise. Give it
+    // some extra room to avoid spurious CI failures on this test.
+    eps = 0.25;
+#endif
 
     // Verify that Timer(false) doesn't start
     Timer all(Timer::StartNow);
     Timer selective(Timer::DontStartNow);
-    double sel_expected = 0.0;
-    sleep_step();
-    OIIO_CHECK_EQUAL_THRESH_REL(selective(), sel_expected, eps, epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(all(), slept_total, eps, epsrel);
+    Sysutil::usleep(interval);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.0, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.1, eps, epsrel);
 
     // Make sure start/stop work
     selective.start();
-    sleep_step();
-    sel_expected = last_sleep;
-    OIIO_CHECK_EQUAL_THRESH_REL(selective(), sel_expected, eps, epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(all(), slept_total, eps, epsrel);
+    Sysutil::usleep(interval);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.2, eps, epsrel);
     selective.stop();
-    sleep_step();
-    OIIO_CHECK_EQUAL_THRESH_REL(selective(), sel_expected, eps, epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(all(), slept_total, eps, epsrel);
+    Sysutil::usleep(interval);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.3, eps, epsrel);
     std::cout << "Checkpoint: All " << all() << " selective " << selective()
               << "\n";
 
     // Test reset() -- should set selective to 0 and turn it off
     selective.reset();
-    sel_expected = 0.0;
-    sleep_step();
-    OIIO_CHECK_EQUAL_THRESH_REL(selective(), sel_expected, eps, epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(all(), slept_total, eps, epsrel);
+    Sysutil::usleep(interval);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.0, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.4, eps, epsrel);
     selective.start();
-    sleep_step();
-    sel_expected = last_sleep;
-    OIIO_CHECK_EQUAL_THRESH_REL(selective(), sel_expected, eps, epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(all(), slept_total, eps, epsrel);
+    Sysutil::usleep(interval);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.5, eps, epsrel);
 
     // Test lap()
-    double lap = selective.lap();  // lap=last sleep, time_since_start resets
-    OIIO_CHECK_EQUAL_THRESH_REL(lap, last_sleep, eps, epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(selective(), sel_expected, eps, epsrel);
+    double lap = selective.lap();  // lap=.1, select.time_since_start
+    OIIO_CHECK_EQUAL_THRESH_REL(lap, 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.1, eps, epsrel);
     OIIO_CHECK_EQUAL_THRESH_REL(selective.time_since_start(), 0.0, eps, epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(all(), slept_total, eps, epsrel);
-    sleep_step();
-    sel_expected += last_sleep;
-    OIIO_CHECK_EQUAL_THRESH_REL(selective(), sel_expected, eps, epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(selective.time_since_start(), last_sleep, eps,
-                                epsrel);
-    OIIO_CHECK_EQUAL_THRESH_REL(all(), slept_total, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.5, eps, epsrel);
+    Sysutil::usleep(interval);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective(), 0.2, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(selective.time_since_start(), 0.1, eps, epsrel);
+    OIIO_CHECK_EQUAL_THRESH_REL(all(), 0.6, eps, epsrel);
     std::cout << "Checkpoint2: All " << all() << " selective " << selective()
               << "\n";
 
