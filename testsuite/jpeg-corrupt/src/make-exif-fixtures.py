@@ -22,6 +22,13 @@ aimed at the shared Exif decoder rather than at libjpeg:
   corrupt-exif-deep-ifds.jpg  A chain of ExifIFD pointers, each aimed at the
                               next. Every level costs a stack frame; the
                               decoder now stops descending well before this.
+  corrupt-exif-makernote-loop.jpg
+                              Make=Canon, and a Canon MakerNote IFD with
+                              several ExifIFD pointers, each to an Exif IFD
+                              whose MakerNote points back at it. Re-entering
+                              the MakerNote used to forget the IFDs already
+                              visited, so the walk grew exponentially, bounded
+                              only by the depth cap.
 """
 
 import struct
@@ -81,6 +88,23 @@ def deep_ifd_blob(depth=100):
     return bytes(blob)
 
 
+def makernote_loop_blob(fanout=6):
+    make = b'Canon\0'
+    ifd0_size = 2 + 2 * 12 + 4
+    hub = 8 + ifd0_size + len(make)
+    hub_size = 2 + fanout * 12 + 4
+    relay_size = 2 + 12 + 4
+    relays = [hub + hub_size + i * relay_size for i in range(fanout)]
+    blob = tiff_header()
+    blob += ifd([entry(0x010f, 2, len(make), 8 + ifd0_size),
+                 entry(0x8769, 4, 1, relays[0])])
+    blob += make
+    blob += ifd([entry(0x8769, 4, 1, r) for r in relays])
+    for r in relays:
+        blob += ifd([entry(0x927c, 7, hub_size, hub)])
+    return blob
+
+
 def write(path, exif_payload):
     with open(path, 'wb') as f:
         f.write(BASE_JPEG[:2] + app1(exif_payload) + BASE_JPEG[2:])
@@ -89,6 +113,8 @@ def write(path, exif_payload):
 def main(dir):
     write(os.path.join(dir, 'corrupt-exif-utf8-type.jpg'), utf8_type_blob())
     write(os.path.join(dir, 'corrupt-exif-deep-ifds.jpg'), deep_ifd_blob())
+    write(os.path.join(dir, 'corrupt-exif-makernote-loop.jpg'),
+          makernote_loop_blob())
 
 
 if __name__ == '__main__':

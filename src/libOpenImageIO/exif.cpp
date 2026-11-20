@@ -382,15 +382,18 @@ version4uint8_handler(const TagInfo& taginfo, const TIFFDirEntry& dir,
 // directly rather than through the handler pointer.
 static void
 decode_makernote(const TIFFDirEntry& dir, cspan<uint8_t> buf, ImageSpec& spec,
-                 bool swapendian, int offset_adjustment, int depth)
+                 bool swapendian, int offset_adjustment,
+                 std::set<size_t>& ifd_offsets_seen, int depth)
 {
     if (tiff_data_size(dir) <= 4)
         return;  // sanity check
 
     if (spec.get_string_attribute("Make") == "Canon") {
-        std::set<size_t> offsets_seen;
+        // Share the caller's visited set so MakerNote loops can't re-walk IFDs
+        if (!ifd_offsets_seen.insert(dir.tdir_offset).second)
+            return;
         decode_ifd(buf, dir.tdir_offset, spec, pvt::canon_maker_tagmap_ref(),
-                   offsets_seen, swapendian, offset_adjustment, depth);
+                   ifd_offsets_seen, swapendian, offset_adjustment, depth);
     } else {
         // Maybe we just haven't parsed the Maker metadata yet?
         // Allow a second try later by just stashing the maker note offset.
@@ -404,7 +407,9 @@ makernote_handler(const TagInfo& /*taginfo*/, const TIFFDirEntry& dir,
                   cspan<uint8_t> buf, ImageSpec& spec, bool swapendian = false,
                   int offset_adjustment = 0)
 {
-    decode_makernote(dir, buf, spec, swapendian, offset_adjustment, 0);
+    std::set<size_t> ifd_offsets_seen;
+    decode_makernote(dir, buf, spec, swapendian, offset_adjustment,
+                     ifd_offsets_seen, 0);
 }
 
 
@@ -996,7 +1001,7 @@ read_exif_tag(ImageSpec& spec, const TIFFDirEntry* dirp, cspan<uint8_t> buf,
         if (taginfo && !spec.extra_attribs.contains(taginfo->name)) {
             if (taginfo->handler == makernote_handler)
                 decode_makernote(dir, buf, spec, swab, offset_adjustment,
-                                 depth + 1);
+                                 ifd_offsets_seen, depth + 1);
             else if (taginfo->handler)
                 taginfo->handler(*taginfo, dir, buf, spec, swab,
                                  offset_adjustment);
@@ -1321,7 +1326,8 @@ decode_exif(cspan<uint8_t> exif, ImageSpec& spec)
     // makernote_handler for why this needs to come at the end.
     int makernote_offset = spec.get_int_attribute("oiio:MakerNoteOffset");
     if (makernote_offset > 0) {
-        if (Strutil::iequals(spec.get_string_attribute("Make"), "Canon")) {
+        if (Strutil::iequals(spec.get_string_attribute("Make"), "Canon")
+            && ifd_offsets_seen.insert(size_t(makernote_offset)).second) {
             if (!decode_ifd(exif, makernote_offset, spec,
                             OIIO::pvt::canon_maker_tagmap_ref(),
                             ifd_offsets_seen, swab))
