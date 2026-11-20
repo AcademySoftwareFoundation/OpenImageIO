@@ -170,6 +170,24 @@ After merge_deep_pixels, dd has 1 pixels, 6 channels.
   sample 1 :  [0 R] 0.50 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.50 /  [4 Z] 11.00 /  [5 Zback] 12.00 / 
   sample 2 :  [0 R] 0.29 /  [1 G] 0.00 /  [2 B] 0.00 /  [3 A] 0.29 /  [4 Z] 12.00 /  [5 Zback] 13.00 / 
 
+Testing merge_deep_pixels with half Z, float Zback...
+nsamples = 3
+  A=0.724088 Z=1.000000 Zback=1.000600
+  A=0.094292 Z=1.000977 Zback=1.000700
+  A=0.499792 Z=1.000977 Zback=2.000000
+
+Testing deep_merge size limit...
+empty B : False 300
+empty A : False 300
+float to half : True 1
+float to float : error True deep_merge: pixel (0, 0, 0) could not be
+209 nested : error False
+210 nested : error True
+channel subset : True 
+
+Testing deep_merge of random pixels...
+problems: 0
+
 Testing occlusion_cull...
 Before occlusion_cull, dd has 1 pixels, 6 channels.
   Channel indices: Z= 4 Zback= 5 A= 3 AR= 3 AG= 3 AB= 3
