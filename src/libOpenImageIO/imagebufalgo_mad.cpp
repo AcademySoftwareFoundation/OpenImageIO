@@ -190,7 +190,8 @@ ImageBufAlgo::mad(ImageBuf& dst, Image_or_Const A_, Image_or_Const B_,
         C = &Cnew;
     }
 
-    if (!IBAprep(roi, &dst, A, B ? B : C, C))
+    if (!IBAprep(roi, &dst, A, B ? B : C, C, nullptr,
+                 IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
 
     // Note: A is always an image. That leaves 4 cases to deal with.

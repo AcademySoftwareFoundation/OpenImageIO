@@ -101,7 +101,8 @@ ImageBufAlgo::flatten(ImageBuf& dst, const ImageBuf& src, ROI roi, int nthreads)
     force_spec.channelformats.clear();
 
     if (!IBAprep(roi, &dst, &src, NULL, &force_spec,
-                 IBAprep_SUPPORT_DEEP | IBAprep_DEEP_MIXED))
+                 IBAprep_SUPPORT_DEEP | IBAprep_DEEP_MIXED
+                     | IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
     if (dst.spec().deep) {
         dst.errorfmt("Cannot flatten to a deep image");
@@ -329,7 +330,8 @@ ImageBufAlgo::deep_merge(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
                                                  + self_overlap_splits);
             }
 
-    bool ok = ImageBufAlgo::copy(dst, A, TypeDesc::UNKNOWN, roi, nthreads);
+    if (!ImageBufAlgo::copy(dst, A, TypeDesc::UNKNOWN, roi, nthreads))
+        return false;
 
     for (int z = roi.zbegin; z < roi.zend; ++z)
         for (int y = roi.ybegin; y < roi.yend; ++y)
@@ -350,7 +352,7 @@ ImageBufAlgo::deep_merge(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
                 if (occlusion_cull)
                     dstdd.occlusion_cull(dstpixel);
             }
-    return ok;
+    return true;
 }
 
 
