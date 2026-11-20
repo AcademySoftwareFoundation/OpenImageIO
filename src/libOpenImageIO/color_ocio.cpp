@@ -3024,14 +3024,15 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
     using namespace simd;
     // Only process up to, and including, the first 4 channels.  This
     // does let us process images with fewer than 4 channels, which is
-    // the intent.
-    int channelsToCopy = std::min(4, roi.nchannels());
+    // the intent. Alpha feeds unpremult even if the ROI excludes it.
+    int channelsToCopy = std::min(4, A.nchannels());
     if (channelsToCopy < 4)
         unpremult = false;
+    int colorEnd = std::min(channelsToCopy, roi.chend);
     // clang-format off
     parallel_image(
         roi, paropt(nthreads),
-        [&, unpremult, channelsToCopy, processor](ROI roi) {
+        [&, unpremult, channelsToCopy, colorEnd, processor](ROI roi) {
             int width = roi.width();
             // Temporary space to hold one RGBA scanline
             vfloat4* scanline;
@@ -3084,15 +3085,15 @@ colorconvert_impl(ImageBuf& R, const ImageBuf& A,
                     float* dstPtr = (float*)&scanline[0];
                     r.rerange(roi.xbegin, roi.xend, j, j + 1, k, k + 1);
                     for (; !r.done(); ++r, dstPtr += 4)
-                        for (int c = 0; c < channelsToCopy; ++c)
+                        for (int c = 0; c < colorEnd; ++c)
                             r[c] = dstPtr[c];
-                    if (channelsToCopy < roi.chend && (&R != &A)) {
+                    if (colorEnd < roi.chend && (&R != &A)) {
                         // If there are "leftover" channels, just copy them
                         // unaltered from the source.
                         a.rerange(roi.xbegin, roi.xend, j, j + 1, k, k + 1);
                         r.rerange(roi.xbegin, roi.xend, j, j + 1, k, k + 1);
                         for (; !r.done(); ++r, ++a)
-                            for (int c = channelsToCopy; c < roi.chend; ++c)
+                            for (int c = colorEnd; c < roi.chend; ++c)
                                 r[c] = a[c];
                     }
                 }
@@ -3181,13 +3182,34 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src,
         return false;
     }
 
+    // Color channels are transformed together, so the ROI must cover all
+    // of them. Check the caller's ROI before IBAprep allocates dst, and
+    // after, that dst isn't narrower than the color channels.
+    const int ncolor = std::min(3, src.nchannels());
+    auto chans_ok    = [&](const ROI& r) {
+        if (r.chbegin <= 0 && r.chend >= ncolor)
+            return true;
+        dst.errorfmt("colorconvert: channel range [{},{}) must start at 0 "
+                     "and include all color channels",
+                     r.chbegin, r.chend);
+        return false;
+    };
+    if (roi.defined() && !chans_ok(roi))
+        return false;
+
     // If the processor is a no-op and the conversion is being done
     // in place, no work needs to be done. Early exit.
     if (processor->isNoOp() && (&dst == &src))
         return true;
 
-    if (!IBAprep(roi, &dst, &src))
+    if (!IBAprep(roi, &dst, &src, IBAprep_CLAMP_MUTUAL_NCHANNELS))
         return false;
+    if (roi.chend < ncolor) {
+        dst.errorfmt("colorconvert: dst has {} channels, fewer than the {} "
+                     "color channels of src",
+                     dst.nchannels(), ncolor);
+        return false;
+    }
 
     // If the processor is a no-op (and it's not an in-place conversion),
     // use copy() to simplify the operation.
@@ -3205,7 +3227,7 @@ ImageBufAlgo::colorconvert(ImageBuf& dst, const ImageBuf& src,
 
     if (dst.localpixels() && src.localpixels() && dst.spec().format == TypeFloat
         && src.spec().format == TypeFloat && dst.nchannels() == 4
-        && src.nchannels() == 4) {
+        && src.nchannels() == 4 && roi.chend == 4) {
         return colorconvert_impl_float_rgba(dst, src, processor, unpremult, roi,
                                             nthreads);
     }

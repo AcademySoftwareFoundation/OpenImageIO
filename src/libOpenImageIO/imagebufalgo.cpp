@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <memory>
 
 #include <OpenImageIO/half.h>
@@ -87,10 +88,13 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         dst->errorfmt("Uninitialized input image");
         return false;
     }
+    // Channel ranges never start below 0
+    if (roi.defined())
+        roi.chbegin = std::max(roi.chbegin, 0);
 
     int minchans, maxchans;
     if (dst || A || B || C) {
-        minchans = 10000;
+        minchans = std::numeric_limits<int>::max();
         maxchans = 1;
         if (dst->initialized()) {
             minchans = std::min(minchans, dst->spec().nchannels);
@@ -108,12 +112,12 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
             minchans = std::min(minchans, C->spec().nchannels);
             maxchans = std::max(maxchans, C->spec().nchannels);
         }
-        if (minchans == 10000 && roi.defined()) {
+        if (minchans > maxchans && roi.defined()) {
             // no images, oops, hope roi makes sense
-            minchans = maxchans = roi.nchannels();
+            minchans = maxchans = roi.chend;
         }
     } else if (roi.defined()) {
-        minchans = maxchans = roi.nchannels();
+        minchans = maxchans = roi.chend;
     } else {
         minchans = maxchans = 1;
     }
@@ -244,6 +248,11 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
         } else if (force_spec) {
             spec = *force_spec;
         } else {
+            if (roi.chend < 1) {
+                dst->errorfmt("Invalid channel range [{},{})", roi.chbegin,
+                              roi.chend);
+                return false;
+            }
             spec.set_format(TypeDesc::FLOAT);
             spec.nchannels = roi.chend;
             spec.default_channel_names();
@@ -307,6 +316,10 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf* dst, const ImageBuf* A,
     if (prepflags & IBAprep_CLAMP_MUTUAL_NCHANNELS)
         roi.chend = std::min(roi.chend, minchans);
     roi.chend = std::min(roi.chend, maxchans);
+    // Clamping may leave no channels; never let the range go negative,
+    // and keep it within the images' channels.
+    roi.chend   = std::max(roi.chend, 0);
+    roi.chbegin = std::min(roi.chbegin, roi.chend);
     if (prepflags & IBAprep_REQUIRE_ALPHA) {
         if (dst->spec().alpha_channel < 0 || (A && A->spec().alpha_channel < 0)
             || (B && B->spec().alpha_channel < 0)
@@ -393,12 +406,13 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
         dst.errorfmt("Uninitialized input image");
         return false;
     }
+    // Channel ranges never start below 0
+    if (roi.defined())
+        roi.chbegin = std::max(roi.chbegin, 0);
 
     const ImageBuf* A = srcs.size() ? srcs[0] : nullptr;
-    int minchans = 10000, maxchans = 1;
-    if (srcs.size()) {
-        minchans = 10000;
-        maxchans = 1;
+    int minchans = std::numeric_limits<int>::max(), maxchans = 1;
+    if (srcs.size() || dst.initialized()) {
         if (dst.initialized()) {
             minchans = std::min(minchans, dst.spec().nchannels);
             maxchans = std::max(maxchans, dst.spec().nchannels);
@@ -409,13 +423,13 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
                 maxchans = std::max(maxchans, s->spec().nchannels);
             }
         }
-        if (minchans == 10000 && roi.defined()) {
+        if (minchans > maxchans && roi.defined()) {
             // no images, oops, hope roi makes sense
-            minchans = maxchans = roi.nchannels();
+            minchans = maxchans = roi.chend;
         }
     } else if (roi.defined()) {
         // No inputs, no dest, but an ROI -- use it
-        minchans = maxchans = roi.nchannels();
+        minchans = maxchans = roi.chend;
     } else {
         // Punt -- one channel
         minchans = maxchans = 1;
@@ -530,6 +544,11 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
         } else {
             // No input images, no force_spec -- make it float and the number
             // of channels specified by the ROI.
+            if (roi.chend < 1) {
+                dst.errorfmt("Invalid channel range [{},{})", roi.chbegin,
+                             roi.chend);
+                return false;
+            }
             spec.set_format(TypeFloat);
             spec.nchannels = roi.chend;
             spec.default_channel_names();
@@ -595,6 +614,10 @@ ImageBufAlgo::IBAprep(ROI& roi, ImageBuf& dst, cspan<const ImageBuf*> srcs,
     if (options.get_int("clamp_mutual_nchannels"))
         roi.chend = std::min(roi.chend, minchans);
     roi.chend = std::min(roi.chend, maxchans);
+    // Clamping may leave no channels; never let the range go negative,
+    // and keep it within the images' channels.
+    roi.chend   = std::max(roi.chend, 0);
+    roi.chbegin = std::min(roi.chbegin, roi.chend);
     if (options.get_int("require_alpha")) {
         if (dst.spec().alpha_channel < 0
             || ANY_SRC(s->spec().alpha_channel < 0)) {
@@ -719,7 +742,11 @@ ImageBufAlgo::perpixel_op(
     using namespace ImageBufAlgo;
     ImageBuf result;
     ROI roi;
-    if (!IBAprep(roi, result, { &srcA, &srcB }, options))
+    // The op may only see channels both inputs have
+    ParamValueList prepopts;
+    prepopts.assign(options.begin(), options.end());
+    prepopts.attribute("clamp_mutual_nchannels", 1);
+    if (!IBAprep(roi, result, { &srcA, &srcB }, prepopts))
         return result;
     int nthreads = options.get_int("nthreads", 0);
     bool ok      = true;
@@ -773,20 +800,29 @@ ImageBufAlgo::perpixel_op(
         });
 #endif
     } else {
-        // Input has non-float images, so do conversions in and out.
+        // Input has non-float images, so do conversions in and out. The
+        // iterators convert whole pixels, so size the scratch for the full
+        // images and hand the op only the channels both inputs have.
         parallel_image(roi, nthreads, [&](ROI roi) {
-            int nc      = roi.nchannels();
-            float* vals = OIIO_ALLOCA(float, 3 * nc);
-            span<float> sapel(vals, nc);
-            span<float> sbpel(vals + nc, nc);
-            span<float> dpel(vals + 2 * nc, nc);
+            int nca     = srcA.nchannels();
+            int ncb     = srcB.nchannels();
+            int ncd     = result.nchannels();
+            float* vals = OIIO_ALLOCA(float, nca + ncb + ncd);
+            span<float> sapel(vals, nca);
+            span<float> sbpel(vals + nca, ncb);
+            span<float> dpel(vals + nca + ncb, ncd);
+            size_t nc = size_t(roi.nchannels());
             ImageBuf::ConstIterator<float> sa(srcA, roi);
             ImageBuf::ConstIterator<float> sb(srcB, roi);
             ImageBuf::Iterator<float> d(result, roi);
+            // result is freshly allocated with its extra channels zeroed,
+            // and the op only writes the shared ones, so start from zero.
+            std::fill(dpel.begin(), dpel.end(), 0.0f);
             for (; !d.done(); ++sa, ++sb, ++d) {
                 sa.store<float>(sapel);
                 sb.store<float>(sbpel);
-                bool r = op(dpel, sapel, sbpel);
+                bool r = op(dpel.subspan(0, nc), sapel.subspan(0, nc),
+                            sbpel.subspan(0, nc));
                 if (!r)
                     ok = false;
                 d.load<float>(dpel);
