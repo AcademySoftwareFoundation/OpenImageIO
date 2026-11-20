@@ -372,12 +372,18 @@ macro (oiio_add_all_tests)
     oiio_add_tests (oiiotool-color
                     FOUNDVAR OpenColorIO_FOUND)
 
-    # Tests to run with HWY enabled.
-    # Remember to add tests here as hwy enabled IBA functions are added
+    # Tests to run with HWY enabled; add hwy-enabled IBA functions here.
     oiio_add_tests ( oiiotool
                      oiiotool-composite
                      oiiotool-xform
-                     docs-examples-cpp
+        FOUNDVAR hwy_FOUND
+        ENABLEVAR OIIO_USE_HWY
+        SUFFIX ".hwy"
+        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"
+        )
+
+    # docs-examples-cpp builds a nested project, so skip it for static builds.
+    oiio_add_tests ( docs-examples-cpp
         FOUNDVAR hwy_FOUND
         ENABLEVAR OIIO_USE_HWY
         DISABLEVAR OIIO_STATIC_BUILD
