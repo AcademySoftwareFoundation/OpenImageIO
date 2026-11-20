@@ -139,6 +139,12 @@ used for allocation, indexing, or loop count.
 - Note: when a dimension or plausibility cap is raised, re-audit every
   downstream offset/index multiply. The iff flip overflow (#5593) was exactly
   that -- #5284 raised the caps to 65536^2 without revisiting the 32-bit math.
+- Note: widening a callee's parameter to 64-bit fixes nothing if a caller
+  still computes the argument in `int`; grep every call site. tiff
+  `invert_photometric(imagesize_t)` was widened, but the parallel tile path
+  still passed `int tilevals = tile_pixels() * nchannels`; a >= 2 GB tile
+  wrapped it negative, then sign-extended to a huge count (OOB write,
+  GHSA-36m5-fqvv-3xgp).
 
 ### B2. Signed overflow / negation UB
 - Find: `abs(`, unary `-x` on file-controlled signed fields, `right - left`
