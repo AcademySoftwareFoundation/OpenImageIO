@@ -39,6 +39,11 @@ command += info_command ("src/corrupt-exif-utf8-type.jpg", safematch=True)
 # the decoder now stops descending after a fixed depth.
 command += info_command ("src/corrupt-exif-deep-ifds.jpg", safematch=True)
 
+# This file's Exif block has a Canon MakerNote IFD fanning out to several Exif
+# IFDs, each with a MakerNote pointing back at it. Each IFD must be walked at
+# most once, or decoding time grows exponentially with the fan-out.
+command += info_command ("src/corrupt-exif-makernote-loop.jpg", safematch=True)
+
 # This file's APP1 XMP marker nests ~9000 XML elements, all a 64 KB marker
 # has room for. decode_xmp_node() recursed once per level with nothing
 # bounding the descent, enough to exhaust the stack of a sanitizer build or of

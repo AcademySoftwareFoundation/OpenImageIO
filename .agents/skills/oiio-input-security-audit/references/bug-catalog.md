@@ -280,7 +280,10 @@ for the wrong layout and writes per-sample data into a per-pixel buffer.
 - Fix: require strict forward progress (rla `NextOffset` must point past the
   current header) and/or a seen-set; plus a depth cap for recursion (exif IFD
   depth 32, xmp nesting 64).
-- Watch: a fresh seen-set per nested handler re-walks IFDs (exif MakerNote).
+- Watch: a fresh seen-set per nested handler re-walks IFDs. A depth cap does
+  NOT make that safe: it bounds height, not fan-out, so K pointers per level
+  give K^depth work (exif Canon MakerNote, 140 bytes hung for seconds,
+  GHSA-v6gq-pf2c-3w4x). Every re-entry path must share one visited set.
 
 ### D2. Stack exhaustion
 - Find: recursion over file nesting; `alloca`/`OIIO_ALLOCA` with a
