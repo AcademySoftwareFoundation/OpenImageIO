@@ -327,6 +327,21 @@ attribute names also make `ImageSpec::attribute` (linear find) quadratic.
   decoded bytes against a budget proportional to the blob size.
 - Seen: icc mluc/text/desc tags (GHSA-m4j3-vvxr-9jp7).
 
+### D8. Loop bound re-read while the body grows the container
+`for (i = 0; i < count(); ++i)` whose body inserts elements re-visits the new
+ones, and each insert that shifts or regrows storage is itself O(n). A few KB
+of input can then cost O(n^3)-O(n^4) time. Snapshotting the count is NOT a fix
+when inserts shift indices (it skips originals).
+- Find: loop bounds that call a size getter (`samples(`, `size()`) where the
+  body calls `insert*`/`split`/`set_samples`; per-element `set_capacity(+1)`
+  or `vector::insert` in a loop; O(n^2) pairwise "precount" loops.
+- Fix: compute the full result size first, allocate once, fill in one pass
+  (back to front for in-place expansion); compact deletions in one pass; bound
+  the result by `limits:imagesize_MB`.
+- Seen: `DeepData::merge_deep_pixels` / `IBA::deep_merge`
+  (GHSA-984v-h3xp-jfg2), also `sort()` alloca (D2) and `merge_overlaps`
+  per-sample erase.
+
 
 ## E. Alignment and pointer formation
 

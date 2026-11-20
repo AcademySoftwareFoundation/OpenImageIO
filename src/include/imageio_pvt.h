@@ -302,6 +302,16 @@ OIIO_API bool test_read_image(ImageInput& inp, int subimage, int miplevel,
 /// Read all subimage and MIP levels of the open file.
 OIIO_API bool test_read_all_images(ImageInput& inp,
                                    TypeDesc format = TypeUInt8);
+
+/// Return the sorted, unique, non-NaN set of all depths in `z` and `zback`,
+/// i.e., every depth at which a deep pixel with those samples must be split.
+std::vector<float> deep_split_depths(cspan<float> z, cspan<float> zback);
+
+/// Return the number of samples that a deep pixel with the given sample
+/// `z` and `zback` values will have after splitting at every one of the
+/// `depths` (as returned by deep_split_depths).
+int64_t deep_split_count(cspan<float> depths, cspan<float> z,
+                         cspan<float> zback);
 }  // namespace pvt
 OIIO_NAMESPACE_3_1_END
 
