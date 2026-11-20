@@ -2722,8 +2722,8 @@ TIFFInput::read_native_tiles_locked(int subimage, int miplevel, int xbegin,
     // Make room for, and read the raw (still compressed) tiles. As each one
     // is read, kick off the decompress and any other extras, to execute in
     // parallel.
-    int tilevals  = m_spec.tile_pixels() * m_spec.nchannels;
-    size_t cbound = compressBound((uLong)tile_bytes);
+    imagesize_t tilevals = m_spec.tile_pixels() * m_spec.nchannels;
+    size_t cbound        = compressBound((uLong)tile_bytes);
     std::unique_ptr<char[]> compressed_scratch(new char[cbound * ntiles]);
     std::unique_ptr<char[]> scratch(new char[tile_bytes * ntiles]);
     task_set tasks(pool);
