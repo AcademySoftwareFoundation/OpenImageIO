@@ -69,7 +69,8 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   wrong `TIFFGetField` convention (stack smash, catalog C-6);
   `read_native_tiles` copied whole edge tiles into a rect-sized buffer
   (catalog A9); RGBA-interface fallback kept SamplesPerPixel > 4 as
-  nchannels, over-reading the 4-byte/pixel buffer (catalog C-4). Deferred:
+  nchannels, over-reading the 4-byte/pixel buffer (catalog C-4); parallel
+  tile path's MinIsWhite `tilevals` in `int` (catalog B1). Deferred:
   `iptcsize *= 4` int overflow (>0.5 GB field); `compressBound((uLong)...)` on
   LLP64.
 - jpeg: C2 added; checks must precede `jpeg_start_decompress` /
