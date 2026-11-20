@@ -20,6 +20,7 @@
 
 #include <QApplication>
 #include <QComboBox>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QKeyEvent>
 #include <QLabel>
@@ -32,7 +33,9 @@
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStatusBar>
+#include <QTextEdit>
 #include <QTimer>
+#include <QVBoxLayout>
 
 #if OIIO_QT_MAJOR < 6
 #    include <QDesktopWidget>
@@ -395,6 +398,9 @@ ImageViewer::createActions()
 
     aboutAct = new QAction(tr("&About"), this);
     connect(aboutAct, SIGNAL(triggered()), this, SLOT(about()));
+
+    formatsAct = new QAction(tr("Image &Formats..."), this);
+    connect(formatsAct, SIGNAL(triggered()), this, SLOT(showImageFormats()));
 
     prevImageAct = new QAction(tr("Previous Image"), this);
     prevImageAct->setShortcut(tr("PgUp"));
@@ -854,6 +860,8 @@ ImageViewer::createMenus()
     menuBar()->addMenu(toolsMenu);
 
     helpMenu = new QMenu(tr("&Help"), this);
+    helpMenu->addAction(formatsAct);
+    helpMenu->addSeparator();
     helpMenu->addAction(aboutAct);
     menuBar()->addMenu(helpMenu);
     // Bring up user's guide
@@ -2706,6 +2714,48 @@ ImageViewer::fullScreenToggle()
         m_fullscreen = true;
         fitImageToWindow();
     }
+}
+
+
+
+static std::string
+format_list(OIIO::string_view attr)
+{
+    auto formats = OIIO::Strutil::splitsv(OIIO::get_string_attribute(attr),
+                                          ",");
+    std::sort(formats.begin(), formats.end());
+    return OIIO::Strutil::join(formats, ", ");
+}
+
+
+
+void
+ImageViewer::showImageFormats()
+{
+    QString text;
+    text += tr("Input formats:\n");
+    text += QString::fromStdString(format_list("input_format_list"));
+    text += "\n\n";
+    text += tr("Output formats:\n");
+    text += QString::fromStdString(format_list("output_format_list"));
+    text += "\n\n";
+    text += tr("Extensions by format:\n");
+    text += QString::fromStdString(
+        std::string(OIIO::get_string_attribute("extension_list")));
+    text += "\n";
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Supported Image Formats"));
+    auto* layout   = new QVBoxLayout(&dialog);
+    auto* textedit = new QTextEdit(&dialog);
+    textedit->setReadOnly(true);
+    textedit->setPlainText(text);
+    layout->addWidget(textedit);
+    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    dialog.resize(640, 480);
+    dialog.exec();
 }
 
 
