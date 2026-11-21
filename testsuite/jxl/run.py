@@ -26,7 +26,12 @@ command += oiiotool ("-info -oiioattrib limits:imagesize_MB 16384 src/crash-bfd2
 
 # Truncated codestream: the decoder must report a clean error, not read
 # uninitialized input or leave a null decode buffer for a later scanline read.
-command += info_command ("src/truncated.jxl", failureok=True, safematch=True)
+# Header-only info must not decode pixels, so it succeeds on the same file.
+# Non-verbose because the ICC profile libjxl synthesizes varies by build.
+command += info_command ("src/truncated.jxl", failureok=True, verbose=False,
+                         safematch=True)
+command += info_command ("src/truncated.jxl", hash=False, verbose=False,
+                         safematch=True)
 
 outputs = [
             "test-jxl.icc",

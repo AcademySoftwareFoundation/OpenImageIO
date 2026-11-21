@@ -111,7 +111,10 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   one.
 - jpegxl: uint32 size check, unchecked `m_io->read()`, null `m_buffer` after
   basic-info-only; C2 N/A (extreme legit ratios). Writer: close-time failures
-  must propagate.
+  must propagate. open() is header-only (streams the file in chunks); pixels
+  decode on first read; libjxl allocations capped at 5x
+  `limits:imagesize_MB` + 64 MB via `JxlMemoryManager` (catalog A10;
+  libjxl 0.13 requests up to ~4.2x output for uint8, ~3x for 16-bit).
 - raw: bomb guard before `unpack()`; `raw_bps` 0/format-code collapsed the
   guard; undebayered flip table covered 4 of 8 codes (returned true without
   writing: heap disclosure); 64-bit index bounded by the real allocation
