@@ -30,6 +30,31 @@
 
 
 
+/// OIIO_TLS_OBJECT(name, Type) declares function `name()` returning a `Type&`
+/// that is thread_local (implemented as a static variable internal to the
+/// function).  Under MSVC with static CRT (/MT), having a thread_local with a
+/// nontrivial destructor is problematic. This is our workaround, hiding it
+/// behind a pointer that is never freed. That's ok; it would only have been
+/// reclaimed until shutdown anyway.
+#if defined(_MSC_VER) && defined(_MT) && !defined(_DLL)
+#    define OIIO_TLS_OBJECT(name, ...)                       \
+        static thread_local __VA_ARGS__* name##_p = nullptr; \
+        static __VA_ARGS__& name()                           \
+        {                                                    \
+            if (!name##_p)                                   \
+                name##_p = new __VA_ARGS__();                \
+            return *name##_p;                                \
+        }
+#else
+#    define OIIO_TLS_OBJECT(name, ...)            \
+        static thread_local __VA_ARGS__ name##_s; \
+        static __VA_ARGS__& name()                \
+        {                                         \
+            return name##_s;                      \
+        }
+#endif
+
+
 // OIIO_THREAD_ALLOW_DCLP, if set to 0, prevents us from using a dodgy
 // "double checked lock pattern" (DCLP).  We are very careful to construct
 // it safely and correctly, and these uses improve thread performance for

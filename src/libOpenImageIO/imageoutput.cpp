@@ -56,7 +56,8 @@ struct OutputErrorMessages {
     ~OutputErrorMessages() { alive = false; }
 };
 }  // namespace
-static thread_local OutputErrorMessages output_error_messages;
+OIIO_TLS_OBJECT(output_error_messages, OutputErrorMessages)
+
 static std::atomic_int64_t output_next_id(0);
 
 
@@ -120,8 +121,8 @@ ImageOutput::~ImageOutput()
     // been destroyed, its 'alive' flag is false and we must not touch it.
     // TODO: this only clears the entry if we are destroyed on the same thread
     // that accumulated the error; cross-thread errors still leak.
-    if (output_error_messages.alive)
-        output_error_messages.map.erase(m_impl->m_id);
+    if (output_error_messages().alive)
+        output_error_messages().map.erase(m_impl->m_id);
 }
 
 
@@ -417,7 +418,7 @@ ImageOutput::append_error(string_view message) const
 {
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& err_str = output_error_messages.map[m_impl->m_id];
+    std::string& err_str = output_error_messages().map[m_impl->m_id];
     OIIO_DASSERT(
         err_str.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -897,8 +898,8 @@ ImageOutput::copy_tile_to_image_buffer(int x, int y, int z, TypeDesc format,
 bool
 ImageOutput::has_error() const
 {
-    auto iter = output_error_messages.map.find(m_impl->m_id);
-    if (iter == output_error_messages.map.end())
+    auto iter = output_error_messages().map.find(m_impl->m_id);
+    if (iter == output_error_messages().map.end())
         return false;
     return iter.value().size() > 0;
 }
@@ -909,11 +910,11 @@ std::string
 ImageOutput::geterror(bool clear) const
 {
     std::string e;
-    auto iter = output_error_messages.map.find(m_impl->m_id);
-    if (iter != output_error_messages.map.end()) {
+    auto iter = output_error_messages().map.find(m_impl->m_id);
+    if (iter != output_error_messages().map.end()) {
         e = iter.value();
         if (clear)
-            output_error_messages.map.erase(iter);
+            output_error_messages().map.erase(iter);
     }
     return e;
 }

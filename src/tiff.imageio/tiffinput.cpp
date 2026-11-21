@@ -695,7 +695,8 @@ OIIO_PLUGIN_EXPORTS_END
 // For TIFF 4.4 and earlier, we need someplace to store an error message from
 // the global TIFF error handler. To avoid thread oddities, we have the
 // storage area buffering error messages be thread-specific.
-static thread_local std::string thread_error_msg;
+OIIO_TLS_OBJECT(thread_error_msg, std::string)
+
 static atomic_int handler_set;
 static spin_mutex handler_mutex;
 
@@ -704,7 +705,7 @@ static spin_mutex handler_mutex;
 std::string&
 oiio_tiff_last_error()
 {
-    return thread_error_msg;
+    return thread_error_msg();
 }
 
 

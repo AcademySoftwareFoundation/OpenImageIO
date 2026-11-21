@@ -20,6 +20,13 @@ add_custom_target ( CopyFiles ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/testsuite
 set(OIIO_TESTSUITE_IMAGEDIR "${PROJECT_BINARY_DIR}/testsuite" CACHE PATH
     "Location of oiio-images, openexr-images, libtiffpic, etc.." )
 
+# If not building shared libs, set a flag we'll use to skip tests that only
+# with dynamic builds, primarily ones that configure a nested project
+# against our *installed* package.
+if (NOT BUILD_SHARED_LIBS)
+    set (OIIO_STATIC_BUILD 1)
+endif ()
+
 
 # Build a single ENVIRONMENT list entry "PYTHONPATH=..." for CTest.
 # On Windows, keep this deterministic and do not append inherited PYTHONPATH:
@@ -210,11 +217,14 @@ macro (oiio_add_all_tests)
         endif ()
     endif ()
 
+    # Tests that build a nested consumer project against the installed
+    # package; skipped for static builds (see OIIO_STATIC_BUILD above).
+    oiio_add_tests (cmake-consumer docs-examples-cpp
+                    DISABLEVAR OIIO_STATIC_BUILD)
+
     # Freestanding tests:
     oiio_add_tests (
-                    cmake-consumer
                     cryptomatte
-                    docs-examples-cpp
                     texture-device
                     iinfo igrep
                     nonwhole-tiles
@@ -362,14 +372,21 @@ macro (oiio_add_all_tests)
     oiio_add_tests (oiiotool-color
                     FOUNDVAR OpenColorIO_FOUND)
 
-    # Tests to run with HWY enabled.
-    # Remember to add tests here as hwy enabled IBA functions are added
+    # Tests to run with HWY enabled; add hwy-enabled IBA functions here.
     oiio_add_tests ( oiiotool
                      oiiotool-composite
                      oiiotool-xform
-                     docs-examples-cpp
         FOUNDVAR hwy_FOUND
         ENABLEVAR OIIO_USE_HWY
+        SUFFIX ".hwy"
+        ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"
+        )
+
+    # docs-examples-cpp builds a nested project, so skip it for static builds.
+    oiio_add_tests ( docs-examples-cpp
+        FOUNDVAR hwy_FOUND
+        ENABLEVAR OIIO_USE_HWY
+        DISABLEVAR OIIO_STATIC_BUILD
         SUFFIX ".hwy"
         ENVIRONMENT "OPENIMAGEIO_ENABLE_HWY=1"
         )
@@ -512,10 +529,16 @@ macro (oiio_add_all_tests)
     endif ()
     
     # Regression test (compiles its own helper and generates its own image)
-    # for a partial edge-tile heap overflow in the OpenEXR readers.
-    oiio_add_tests (openexr-partialtile)
+    # for a partial edge-tile heap overflow in the OpenEXR readers. The helper
+    # is built by a nested project against the installed package, so it is
+    # skipped for static builds (see OIIO_STATIC_BUILD above).
+    oiio_add_tests (openexr-partialtile
+                    DISABLEVAR OIIO_STATIC_BUILD)
     # Flat read_native_* on deep files must fail, not overrun (own helper).
-    oiio_add_tests (openexr-deep-flatread)
+    # Also a nested project against the installed package, so likewise
+    # skipped for static builds.
+    oiio_add_tests (openexr-deep-flatread
+                    DISABLEVAR OIIO_STATIC_BUILD)
     # Self-contained decompression-bomb regression (ships its own tiny fixture);
     # exercises both the C++ and C-API readers via the openexr:core attribute.
     oiio_add_tests (openexr-bomb)
@@ -602,8 +625,11 @@ macro (oiio_add_all_tests)
     oiio_add_tests (tiff-subimage-seek
                     ENABLEVAR USE_PYTHON)
     # Regression test (compiles its own helper and generates its own image)
-    # for a partial edge-tile heap overflow in the TIFF reader.
-    oiio_add_tests (tiff-partialtile)
+    # for a partial edge-tile heap overflow in the TIFF reader. The helper is
+    # built by a nested project against the installed package, so it is
+    # skipped for static builds (see OIIO_STATIC_BUILD above).
+    oiio_add_tests (tiff-partialtile
+                    DISABLEVAR OIIO_STATIC_BUILD)
     oiio_add_tests (webp
                     FOUNDVAR WebP_FOUND ENABLEVAR ENABLE_WebP
                     IMAGEDIR oiio-images/webp)

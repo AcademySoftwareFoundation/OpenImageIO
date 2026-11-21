@@ -61,13 +61,13 @@ size_t cuda_total_memory = 0;
 
 #ifdef OIIO_USE_CUDA
 
-thread_local std::string saved_cuda_error_message;
+OIIO_TLS_OBJECT(saved_cuda_error_message, std::string)
 
 inline std::string
 cuda_geterror()
 {
     std::string e;
-    std::swap(e, saved_cuda_error_message);
+    std::swap(e, saved_cuda_error_message());
     return e;
 }
 
@@ -85,7 +85,7 @@ __checkCudaErrors(cudaError_t err, const char* call, const char* file,
                   const int line)
 {
     if (err != cudaSuccess) {
-        saved_cuda_error_message += Strutil::fmt::format(
+        saved_cuda_error_message() += Strutil::fmt::format(
             "CUDA runtime API error {}: {} ({} @ {}:{})\n", (int)err,
             cudaGetErrorString(err), call, file, line);
     }
