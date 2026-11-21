@@ -154,8 +154,8 @@ Glue-check only; log library internals as deferrals.
 - exif (`src/libOpenImageIO/exif.cpp`): short blob into TIFF header (#5322);
   recursive IFD count overread at size-1; `size_t(-1)` unknown-type sentinel
   wrapping bounds math (also made Exif 3.0 UTF-8 decode); IFD depth cap 32;
-  alloca with file count. Open: unbounded RATIONAL arrays, fresh seen-set in
-  MakerNote handler.
+  alloca with file count; Canon MakerNote shares the outer IFD seen-set
+  (fresh set + fan-out was exponential). Open: unbounded RATIONAL arrays.
 - xmp (`xmp.cpp`): unbounded decode recursion (2.5 KB PNG segfaulted Release);
   quadratic list append and attribute scan; encoder did not escape values.
   Open: double materialization of packet; `decode_xmp` never reports failure;
