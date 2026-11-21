@@ -32,7 +32,7 @@ using namespace Plugin;
 namespace {
 
 static mutex plugin_mutex;
-static thread_local std::string last_error;
+OIIO_TLS_OBJECT(last_error, std::string)
 
 }  // namespace
 
@@ -100,13 +100,13 @@ Handle
 Plugin::open(const char* plugin_filename, bool global)
 {
     lock_guard guard(plugin_mutex);
-    last_error.clear();
+    last_error().clear();
     int mode = RTLD_LAZY;
     if (global)
         mode |= RTLD_GLOBAL;
     Handle h = dlopen(plugin_filename, mode);
     if (!h)
-        last_error = dlerror();
+        last_error() = dlerror();
     return h;
 }
 
@@ -116,9 +116,9 @@ bool
 Plugin::close(Handle plugin_handle)
 {
     lock_guard guard(plugin_mutex);
-    last_error.clear();
+    last_error().clear();
     if (dlclose(plugin_handle)) {
-        last_error = dlerror();
+        last_error() = dlerror();
         return false;
     }
     return true;
@@ -130,10 +130,10 @@ void*
 Plugin::getsym(Handle plugin_handle, const char* symbol_name, bool report_error)
 {
     lock_guard guard(plugin_mutex);
-    last_error.clear();
+    last_error().clear();
     void* s = dlsym(plugin_handle, symbol_name);
     if (!s && report_error)
-        last_error = dlerror();
+        last_error() = dlerror();
     return s;
 }
 
@@ -141,9 +141,9 @@ Plugin::getsym(Handle plugin_handle, const char* symbol_name, bool report_error)
 std::string
 Plugin::geterror(bool clear)
 {
-    std::string e = last_error;
+    std::string e = last_error();
     if (clear)
-        last_error.clear();
+        last_error().clear();
     return e;
 }
 

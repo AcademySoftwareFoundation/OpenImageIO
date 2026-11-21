@@ -214,7 +214,7 @@ struct ErrorHolder {
 
 // To avoid thread oddities, we have the storage area buffering error
 // messages for append_error()/geterror() be thread-specific.
-static thread_local ErrorHolder error_msg_holder;
+OIIO_TLS_OBJECT(error_msg_holder, ErrorHolder)
 
 
 void
@@ -223,7 +223,7 @@ Strutil::pvt::append_error(string_view message)
     // Remove a single trailing newline
     if (message.size() && message.back() == '\n')
         message.remove_suffix(1);
-    std::string& error_msg(error_msg_holder.error_msg);
+    std::string& error_msg(error_msg_holder().error_msg);
     OIIO_ASSERT(
         error_msg.size() < 1024 * 1024 * 16
         && "Accumulated error messages > 16MB. Try checking return codes!");
@@ -243,7 +243,7 @@ Strutil::pvt::append_error(string_view message)
 bool
 Strutil::pvt::has_error()
 {
-    std::string& error_msg(error_msg_holder.error_msg);
+    std::string& error_msg(error_msg_holder().error_msg);
     return !error_msg.empty();
 }
 
@@ -251,7 +251,7 @@ Strutil::pvt::has_error()
 std::string
 Strutil::pvt::geterror(bool clear)
 {
-    std::string& error_msg(error_msg_holder.error_msg);
+    std::string& error_msg(error_msg_holder().error_msg);
     std::string e = error_msg;
     if (clear)
         error_msg.clear();

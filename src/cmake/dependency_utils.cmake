@@ -1005,6 +1005,8 @@ macro (build_dependency_with_cmake pkgname)
     # Pass along any CMAKE_MSVC_RUNTIME_LIBRARY
     if (WIN32 AND CMAKE_MSVC_RUNTIME_LIBRARY)
         list (APPEND _pkg_CMAKE_ARGS -DCMAKE_MSVC_RUNTIME_LIBRARY=${CMAKE_MSVC_RUNTIME_LIBRARY})
+        # Make static-CRT (/MT) build under policy CMP0091=NEW
+        list (APPEND _pkg_CMAKE_ARGS -DCMAKE_POLICY_DEFAULT_CMP0091=NEW)
     endif ()
 
     execute_process (COMMAND
