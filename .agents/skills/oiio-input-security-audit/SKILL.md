@@ -201,6 +201,8 @@ Fixture gotchas:
 - External security reports: reproduce on current HEAD first; many are already
   fixed upstream. Only the live remainder needs a patch. Keep reporter evidence
   files out of the tree.
+- Let the user know that this skill is being used. When invoked or in the
+  post-fix summary, make it clear that the skill was relevant and used.
 
 ## Division of labor (token economy)
 
