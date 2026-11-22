@@ -161,6 +161,16 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
+    // The readers hold end-of-line padding in an int, so a larger value
+    // would go negative and step rows backward through the file.
+    if (m_cin.header.EndOfLinePadding()
+        > (unsigned int)std::numeric_limits<int>::max()) {
+        errorfmt("Invalid Cineon end-of-line padding {}",
+                 m_cin.header.EndOfLinePadding());
+        close();
+        return false;
+    }
+
     // fill channel names
     m_spec.channelnames.clear();
     int gscount = 0, rcount = 0, gcount = 0, bcount = 0;

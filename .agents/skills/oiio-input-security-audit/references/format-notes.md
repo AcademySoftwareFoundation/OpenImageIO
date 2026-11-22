@@ -40,8 +40,8 @@ Check IDs (C1-C10) are defined in SKILL.md. "OK" = already satisfied.
   unbounded and its short read ignored (A4); hard error, matching dpx.
   2026-10 re-audit: unterminated header strings (E4), negative TypeDesc
   arraylen for UserData, mixed channel bit depths (uninit output), 10-bit
-  read-size rounding, EOL padding never applied, 64-bit offsets and Seek,
-  missing close() on a reject path.
+  read-size rounding, EOL padding per block row not file row (D8), padding
+  over INT_MAX, 64-bit offsets and Seek, missing close() on a reject path.
 - sgi: C2; RLE16 short scanline (#5321); RLE run value byte past buffer for
   8-bit data (#5513).
 - rla: corrupt RLE; `NextOffset` must advance; offset table indexed unchecked

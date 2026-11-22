@@ -340,6 +340,16 @@ attribute names also make `ImageSpec::attribute` (linear find) quadratic.
   decoded bytes against a budget proportional to the blob size.
 - Seen: icc mluc/text/desc tags (GHSA-m4j3-vvxr-9jp7).
 
+### D8. Block-relative row index in a file offset
+A per-row file offset built from the row's index within the requested block
+(`line`) instead of its absolute row (`line + y1`) is right only when the
+block starts at row 0. Whole-image reads (oiiotool force-reads files under
+50 MB) hide it; one-row scanline reads or ImageCache autotiles expose it.
+- Find: in multi-row read loops, each term of the offset; padding/stride terms
+  are the usual culprit.
+- Test: read one scanline at a time, or a block not starting at row 0.
+- Seen: libcineon and libdpx end-of-line padding.
+
 
 ## E. Alignment and pointer formation
 
@@ -381,8 +391,7 @@ metadata. ASan is silent while the read stays inside the enclosing object.
 - Packed-sample unpackers (DPX 10/12-bit methods A/B, 1-channel swap
   workaround): the group-of-N loop must confirm a full group remains.
   Check read-size rounding with N = 1 mod 3 (cineon `n += n % 3` dropped the
-  last word), and that per-row padding uses the absolute row, not the
-  block-relative one (always 0 for one-row scanline reads).
+  last word).
 - Per-channel fields the decoder ignores: the spec built from the max of all
   channels while the decoder uses channel 0 (cineon bit depth) leaves part of
   the output buffer unwritten. Reject mixes the decoder cannot handle.

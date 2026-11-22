@@ -320,7 +320,7 @@ namespace cineon
 		{
 			// determine offset into image element
 			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * 2 +
-						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line) * eolnPad;
+						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line + block.y1) * eolnPad;
 
 			if (!fd->Read(dpxHeader, offset, readBuf, int64_t(width)*2))
 				return false;

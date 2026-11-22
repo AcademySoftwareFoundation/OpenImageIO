@@ -111,3 +111,6 @@ src/eolpad-10bit.cin :    3 x    2, 1 channel, uint10 cineon
     Pixel (0, 1): 32031 (0.48876172)
     Pixel (1, 1): 38437 (0.586511)
     Pixel (2, 1): 44843 (0.6842603)
+oiiotool ERROR: read : "src/bad-eolpad.cin": Invalid Cineon end-of-line padding 2147483648
+Full command line was:
+> oiiotool --info --hash src/bad-eolpad.cin

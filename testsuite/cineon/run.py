@@ -41,5 +41,7 @@ command += info_command ("src/width4-10bit.cin", extraargs="--dumpdata",
 # Regression test: 10-bit rows separated by end-of-line padding.
 command += info_command ("src/eolpad-10bit.cin", extraargs="--dumpdata",
                          verbose=False)
+# Regression test: end-of-line padding too large for an int is rejected.
+command += info_command ("src/bad-eolpad.cin", verbose=False, failureok=True)
 
 outputs = [ "out.txt" ]
