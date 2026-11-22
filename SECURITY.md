@@ -3,15 +3,14 @@
 ## Supported Versions
 
 This gives guidance about which branches are supported with patches to
-security vulnerabilities.
+security vulnerabilities, and which accept vulnerability reports.
 
-| Version / branch  | Supported                                            |
-| ----------------- | ---------------------------------------------------- |
-| main              | :white_check_mark: :construction: ALL fixes immediately, but this is a branch under development with a frequently unstable ABI and occasionally unstable API. |
-| 3.2.x             | :white_check_mark: All fixes that can be backported without breaking ABI compatibility. New tagged releases monthly. |
-| 3.1.x             | :warning: All fixes that can be backported easily and without breaking ABI compatibility (less will be backported than to 3.2, because it has diverged for longer). New tagged releases monthly at first, but possibly becoming less frequent with time. |
-| 3.0.x             | :warning: :warning: Only the most critical bugs will be backported, only if it's very easy. Releases are sporadic now and support should be expected to end soon. |
-| <= 2.5.x          | :x: No longer receiving patches of any kind.        |
+| Version / branch  | Support Level | Explanation                                               |
+| ----------------- | -- | ---------------------------------------------------- |
+| main              | :construction: Unreleased    | ALL fixes immediately, but this is a branch under development with a frequently unstable ABI and occasionally unstable API. Because main is unreleased, we don't accept confidential security reports or file CVEs for issues that can only be reproduced in main. File a regular GitHub Issue instead. |
+| 3.2.x             | :white_check_mark: Full  | All fixes that can be backported without breaking ABI compatibility. New tagged releases monthly. We accept vulnerability reports and will file CVEs upon request for problems in this release branch. |
+| 3.1.x             | :warning: Partial | All fixes that can be backported *easily* and without breaking ABI compatibility (less will be backported than to 3.2, because it has diverged for longer). New tagged releases monthly at first, but possibly becoming less frequent with time.  We accept vulnerability reports and will file CVEs upon request for problems in this release branch, but may only fix the problems in fully supported branches. |
+| <= 3.0.x          | :x: NONE  | No longer planning patches of any kind, and no longer accepting vulnerability reports that can only be reproduced in these old versions.  |
 
 
 ## Reporting a Vulnerability
@@ -42,6 +41,7 @@ A true vulnerability, by our definition, requires the following:
   similarly serious outcome.
 - It can be plausibly exploited by an untrusted party through normal product
   inputs (for example, a maliciously crafted input image).
+- It is in a currently supported release branch.
 
 We would like to hear about these through the confidential GitHub
 vulnerability reporting mechanism described above.
@@ -75,6 +75,18 @@ could occur are expected to:
   OIIO's own "dependency auto-build" scripts. A problem that depends on
   having anything but the lastest dependencies is not an OIIO vulnerbility.
 
+**Versions vs. vulnerabilities**
+
+- Problems that can be reproduced in any tagged release of a branch marked as
+  "supported" in the table above will accept confidential security reports,
+  publish advisories, and request/issue CVE's.
+- Problems that can only be reproduced in unreleased main should just be filed
+  as an ordinary GitHub Issue, not a vulnerability report.
+- Problems that can only be reproduced in obsolete branches that are no longer
+  marked as "supported," and which never existed in any released version of a
+  currently supported branch, should not be reported as security
+  vulnerabilities. We will close them without investigation. This is a
+  limitation of maintainer resources.
 
 ## Other security features
 
