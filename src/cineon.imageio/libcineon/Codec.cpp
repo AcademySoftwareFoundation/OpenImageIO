@@ -79,7 +79,7 @@ bool cineon::Codec::Read(const Header &dpxHeader, ElementReadStream *fd, const B
 		int slsize = ((numberOfComponents * dpxHeader.Width() *
 					  (bitDepth / 8 + (bitDepth % 8 ? 1 : 0))) / sizeof(U32))+1;
 
-		this->scanline = new U32[slsize];
+		this->scanline = new U32[slsize]();
 	}
 
 

@@ -46,7 +46,8 @@ window, z/depth, subimage count, mip levels, frame counts, and the
   after earlier headers), and use unsigned comparison for 64-bit fields (PSB
   data_length cast to int64 wraps negative and slips past a `<` guard).
 - Seen: psd thumbnail (`length - 28` underflow), psd color data, psd layer
-  channel data, dpx UserSize (compared to total file size, not remaining).
+  channel data, dpx and cineon UserSize (compared to total file size, not
+  remaining).
 - Inside a dependency that opens the file by path (no IOProxy, no hook): if
   the layout it reads first is simple, pre-walk it in OIIO and bound every
   length/count by bytes remaining before calling the library. Remember
@@ -63,7 +64,9 @@ buffer is published as metadata or pixels (disclosure of stale heap).
 - Fix: treat short read as error (pixel => always hard error; metadata =>
   strict rule), never publish the unread tail.
 - Seen: dpx UserData, zfile gzread (header and scanline), jpegxl input read,
-  raw undebayered flips that returned true without writing the buffer.
+  raw undebayered flips that returned true without writing the buffer,
+  libcineon per-row reads (libdpx had been fixed, its sibling had not: when
+  fixing a vendored lib, check its twin).
 
 ### A6. Pathological counts in names/vectors
 - Find: loops generating one string/ustring per channel, `default_channel_names`

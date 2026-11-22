@@ -392,9 +392,24 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     }
 
     // read in user data
-    if (m_cin.header.UserSize() != 0 && m_cin.header.UserSize() != 0xFFFFFFFF) {
-        m_userBuf.resize(m_cin.header.UserSize());
-        m_cin.ReadUserData(&m_userBuf[0]);
+    const uint32_t usersize = m_cin.header.UserSize();
+    if (usersize != 0 && usersize != 0xFFFFFFFF) {
+        const uint64_t useroffset = sizeof(cineon::GenericHeader)
+                                    + sizeof(cineon::IndustryHeader);
+        if (useroffset + usersize > Filesystem::file_size(name)) {
+            errorfmt(
+                "Corrupt userbuf: {} bytes of user data at offset {} run past the end of the file",
+                usersize, useroffset);
+            close();
+            return false;
+        }
+        m_userBuf.resize(usersize);
+        if (!m_cin.ReadUserData(m_userBuf.data())) {
+            errorfmt("Corrupt userbuf: could not read {} bytes of user data",
+                     usersize);
+            close();
+            return false;
+        }
     }
     if (!m_userBuf.empty())
         m_spec.attribute("cineon:UserData",
@@ -427,8 +442,10 @@ CineonInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
     cineon::Block block(0, y, m_cin.header.Width() - 1, y);
 
     // FIXME: un-hardcode the channel from 0
-    if (!m_cin.ReadBlock(data, m_cin.header.ComponentDataSize(0), block))
+    if (!m_cin.ReadBlock(data, m_cin.header.ComponentDataSize(0), block)) {
+        errorfmt("Failed to read scanline {}", y);
         return false;
+    }
 
     return true;
 }
