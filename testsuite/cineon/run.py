@@ -21,5 +21,11 @@ command += info_command ("src/broken_bitdepth2.cin", verbose=False, failureok=Tr
 # (46341x46341x3) -- a decompression bomb the compression-ratio guard must
 # reject before any large allocation.
 command += info_command ("src/bomb-46341.cin", verbose=False, failureok=True)
+# Regression test: pixel data cut short must fail the read, not return
+# uninitialized memory (both the 10-bit filled and generic per-row paths).
+command += oiiotool ("--testread src/truncated-10bit-filled.cin", failureok=True)
+command += oiiotool ("--testread src/truncated-8bit-eolpad.cin", failureok=True)
+# Regression test: user data running past the end of the file is an error.
+command += info_command ("src/bad-usersize.cin", verbose=False, failureok=True)
 
 outputs = [ "out.txt" ]

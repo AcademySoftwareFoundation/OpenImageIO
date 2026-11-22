@@ -85,13 +85,13 @@ namespace cineon
 			int actline = line + block.y1;
 
 			// first get line offset
-			long offset = actline * lineLength;
+			int64_t offset = int64_t(actline) * lineLength;
 
 			// add in eoln padding
-			offset += line * eolnPad;
+			offset += int64_t(line) * eolnPad;
 
 			// add in offset within the current line, rounding down so to catch any components within the word
-			offset += block.x1 * numberOfComponents / 3 * 4;
+			offset += int64_t(block.x1) * numberOfComponents / 3 * 4;
 
 
 			// get the read count in bytes, round to the 32-bit boundary
@@ -100,9 +100,10 @@ namespace cineon
 			readSize = readSize / 3 * 4;
 
 			// determine buffer offset
-			int bufoff = line * dpxHeader.Width() * numberOfComponents;
+			int64_t bufoff = int64_t(line) * datums;
 
-			fd->Read(dpxHeader, offset, readBuf, readSize);
+			if (!fd->Read(dpxHeader, offset, readBuf, readSize))
+				return false;
 
 			// unpack the words in the buffer
 			BUF *obuf = data + bufoff;
@@ -275,20 +276,22 @@ namespace cineon
 		{
 
 			// determine offset into image element
-			long offset = (line + block.y1) * imageWidth * numberOfComponents * bytes +
-						block.x1 * numberOfComponents * bytes + (line * eolnPad);
+			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * bytes +
+						int64_t(block.x1) * numberOfComponents * bytes + int64_t(line) * eolnPad;
 
 			if (BUFTYPE == SRCTYPE)
 			{
-				fd->ReadDirect(dpxHeader, offset, reinterpret_cast<unsigned char *>(data + (width*line)), width*bytes);
+				if (!fd->ReadDirect(dpxHeader, offset, reinterpret_cast<unsigned char *>(data + int64_t(width)*line), int64_t(width)*bytes))
+					return false;
 			}
 			else
 			{
-				fd->Read(dpxHeader, offset, readBuf, width*bytes);
+				if (!fd->Read(dpxHeader, offset, readBuf, int64_t(width)*bytes))
+					return false;
 
 				// convert data
 				for (int i = 0; i < width; i++)
-					BaseTypeConverter(readBuf[i], data[width*line+i]);
+					BaseTypeConverter(readBuf[i], data[int64_t(width)*line+i]);
 			}
 
 		}
@@ -319,16 +322,17 @@ namespace cineon
 		for (int line = 0; line < height; line++)
 		{
 			// determine offset into image element
-			long offset = (line + block.y1) * imageWidth * numberOfComponents * 2 +
-						block.x1 * numberOfComponents * 2 + (line * eolnPad);
+			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * 2 +
+						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line) * eolnPad;
 
-			fd->Read(dpxHeader, offset, readBuf, width*2);
+			if (!fd->Read(dpxHeader, offset, readBuf, int64_t(width)*2))
+				return false;
 
 			// convert data
 			for (int i = 0; i < width; i++)
 			{
 				U16 d1 = readBuf[i] << 4;
-				BaseTypeConverter(d1, data[width*line+i]);
+				BaseTypeConverter(d1, data[int64_t(width)*line+i]);
 			}
 		}
 
