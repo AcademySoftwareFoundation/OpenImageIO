@@ -301,3 +301,47 @@ Comparing "packed-10-RGB.dpx" and "packed-10-RGB.tif"
 PASS
 Comparing "packed-12-RGB.dpx" and "packed-12-RGB.tif"
 PASS
+Comparing "pad10filled-eolpad.dpx" and "pad10filled.dpx"
+PASS
+Comparing "pad10packed-eolpad.dpx" and "pad10packed.dpx"
+PASS
+Comparing "pad16-eolpad.dpx" and "pad16.dpx"
+PASS
+src/1chan-10bit-filled-width4.dpx :    4 x    3, 1 channel, uint10 dpx
+    Pixel (0, 0): 6406 (0.09774929)
+    Pixel (1, 0): 9609 (0.14662394)
+    Pixel (2, 0): 12812 (0.19549859)
+    Pixel (3, 0): 16015 (0.24437323)
+    Pixel (0, 1): 12812 (0.19549859)
+    Pixel (1, 1): 16015 (0.24437323)
+    Pixel (2, 1): 19218 (0.29324788)
+    Pixel (3, 1): 22421 (0.34212252)
+    Pixel (0, 2): 19218 (0.29324788)
+    Pixel (1, 2): 22421 (0.34212252)
+    Pixel (2, 2): 25625 (0.39101243)
+    Pixel (3, 2): 28828 (0.43988708)
+Reading src/bad-strings.dpx
+src/bad-strings.dpx  :    2 x    1, 3 channel, uint8 dpx
+    SHA-1: 7722745105E9E02E8F1AAF17F7B3AAC5C56CD805
+    channel list: R, G, B
+    Copyright: "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+    DocumentName: "PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP"
+    Orientation: 1 (normal)
+    PixelAspectRatio: 1
+    dpx:Colorimetric: "User defined"
+    dpx:DittoKey: 1
+    dpx:EndOfImagePadding: 0
+    dpx:EndOfLinePadding: 0
+    dpx:Format: "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+    dpx:FrameId: "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+    dpx:ImageDescriptor: "RGB"
+    dpx:InputDevice: "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII"
+    dpx:InputDeviceSerialNumber: "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
+    dpx:Packing: "Filled, method A"
+    dpx:Signal: "Undefined"
+    dpx:SlateInfo: "LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL"
+    dpx:SourceImageFileName: "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS"
+    dpx:Transfer: "Undefined"
+    dpx:Version: "VVVVVVVV"
+    oiio:BitsPerSample: 8
+    oiio:subimages: 1

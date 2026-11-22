@@ -142,7 +142,7 @@ bool dpx::Reader::ReadBlock(const int element, unsigned char *data, Block &block
         block.x1 == 0 && block.x2 == (int)(this->header.Width()-1))
     {
         // seek to the beginning of the image block
-        if (this->fd->Seek(long(this->header.DataOffset(element) + (int64_t(block.y1) * this->header.Width() * (bitDepth / 8) * numberOfComponents)), InStream::kStart) == false)
+        if (this->fd->Seek(int64_t(this->header.DataOffset(element)) + int64_t(block.y1) * this->header.Width() * (bitDepth / 8) * numberOfComponents, InStream::kStart) == false)
             return false;
 
         // size of the image

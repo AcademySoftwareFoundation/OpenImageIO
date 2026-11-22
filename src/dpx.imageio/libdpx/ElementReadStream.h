@@ -51,8 +51,8 @@ namespace dpx
 
 		virtual void Reset();
 		
-		virtual bool Read(const dpx::Header &, const int element, const long offset, void * buf, const size_t size);
-		virtual bool ReadDirect(const dpx::Header &, const int element, const long offset, void * buf, const size_t size);
+		virtual bool Read(const dpx::Header &, const int element, const int64_t offset, void * buf, const size_t size);
+		virtual bool ReadDirect(const dpx::Header &, const int element, const int64_t offset, void * buf, const size_t size);
 
 	protected:
 		void EndianDataCheck(const dpx::Header &, const int element, void *, const size_t size);
