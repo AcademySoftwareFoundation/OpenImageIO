@@ -361,6 +361,17 @@ Public-header helpers that read the full vector then mask (NEON
 `vfloat4::load(values, n)` read 12 bytes past the buffer). Check `n<width`
 branches in `simd.h`.
 
+### E4. Unterminated fixed-width header strings
+`char field[N]` read straight from the file, then passed as `const char*`
+(attribute, `"{}"` format). A full-width field with no NUL makes strlen run
+into later fields and past the struct, leaking adjacent heap (pointers) into
+metadata. ASan is silent while the read stays inside the enclosing object.
+- Find: `grep -nE "attribute\([^,]+, *m_[a-z]+\.header\.[a-zA-Z]+\)"` and
+  `#define .*_SET_ATTRIB_STR`; any header `char[N]` used without a length.
+- Fix: `Strutil::safe_string_view(field, sizeof(field))`.
+- Seen: cineon slateInfo + reserved tail (pointer bytes in SlateInfo); dpx
+  `DPX_SET_ATTRIB_STR` and Copyright/Software/DocumentName.
+
 
 ## F. Format-specific patterns worth re-checking everywhere
 
@@ -369,6 +380,12 @@ branches in `simd.h`.
   16-bit variants with half-width lengths.
 - Packed-sample unpackers (DPX 10/12-bit methods A/B, 1-channel swap
   workaround): the group-of-N loop must confirm a full group remains.
+  Check read-size rounding with N = 1 mod 3 (cineon `n += n % 3` dropped the
+  last word), and that per-row padding uses the absolute row, not the
+  block-relative one (always 0 for one-row scanline reads).
+- Per-channel fields the decoder ignores: the spec built from the max of all
+  channels while the decoder uses channel 0 (cineon bit depth) leaves part of
+  the output buffer unwritten. Reject mixes the decoder cannot handle.
 - Palette/color-map indexing: bounds-check every index case, including
   bits-per-pixel variants.
 - Container sub-block / extension lengths (GIF graphics control extension):

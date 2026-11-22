@@ -53,9 +53,9 @@ void cineon::ElementReadStream::Reset()
 }
 
 
-bool cineon::ElementReadStream::Read(const cineon::Header &dpxHeader, const long offset, void * buf, const size_t size)
+bool cineon::ElementReadStream::Read(const cineon::Header &dpxHeader, const int64_t offset, void * buf, const size_t size)
 {
-	long position = dpxHeader.ImageOffset() + offset;
+	int64_t position = dpxHeader.ImageOffset() + offset;
 
 	// seek to the memory position
 	if (this->fd->Seek(position, InStream::kStart) == false)
@@ -72,9 +72,9 @@ bool cineon::ElementReadStream::Read(const cineon::Header &dpxHeader, const long
 }
 
 
-bool cineon::ElementReadStream::ReadDirect(const cineon::Header &dpxHeader, const long offset, void * buf, const size_t size)
+bool cineon::ElementReadStream::ReadDirect(const cineon::Header &dpxHeader, const int64_t offset, void * buf, const size_t size)
 {
-	long position = dpxHeader.ImageOffset() + offset;
+	int64_t position = dpxHeader.ImageOffset() + offset;
 
 	// seek to the memory position
 	if (this->fd->Seek(position, InStream::kStart) == false)

@@ -79,7 +79,7 @@ void InStream::Rewind()
 }
 
 
-bool InStream::Seek(long offset, Origin origin)
+bool InStream::Seek(int64_t offset, Origin origin)
 {
 	int o = 0;
 	switch (origin)
@@ -97,7 +97,7 @@ bool InStream::Seek(long offset, Origin origin)
 
 	if (this->fp == 0)
 		return false;
-	return (::fseek(this->fp, offset, o) == 0);
+	return (OIIO::Filesystem::fseek(this->fp, offset, o) == 0);
 }
 
 

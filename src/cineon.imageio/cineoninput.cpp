@@ -121,6 +121,12 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
             close();
             return false;
         }
+        if (b != m_cin.header.BitDepth(0)) {
+            errorfmt("Unsupported mix of channel bit depths ({} and {})",
+                     int(m_cin.header.BitDepth(0)), b);
+            close();
+            return false;
+        }
         maxbits = std::max(maxbits, b);
     }
     switch ((maxbits + 7) / 8) {
@@ -135,9 +141,10 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     }
     m_spec = ImageSpec(m_cin.header.Width(), m_cin.header.Height(), nchannels,
                        typedesc);
+    const uint64_t filesize = Filesystem::file_size(name);
 
     if (!check_open(m_spec, { 0, 1 << 30, 0, 1 << 30, 0, 1, 0, 8 })
-        || !check_compression_ratio(m_spec, Filesystem::file_size(name))) {
+        || !check_compression_ratio(m_spec, filesize)) {
         close();
         return false;
     }
@@ -150,7 +157,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         > imagesize_t(std::numeric_limits<int32_t>::max())) {
         errorfmt("Unsupported Cineon with scanlines exceeding {} bytes",
                  std::numeric_limits<int>::max());
-        m_spec = ImageSpec();
+        close();
         return false;
     }
 
@@ -240,6 +247,11 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         set_colorspace_rec709_gamma(m_spec, float(m_cin.header.Gamma()));
 #endif
 
+    // Header text fields are fixed width and need not be NUL-terminated
+    auto hdrstr = [](const auto& field) {
+        return Strutil::safe_string_view(field, sizeof(field));
+    };
+
     // general metadata
     // some non-compliant writers will dump a field filled with 0xFF rather
     // than a NULL string termination on the first character, so take that
@@ -248,9 +260,9 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         // libcineon's date/time format is pretty close to OIIO's (libcineon
         // uses %Y:%m:%d:%H:%M:%S%Z)
         m_spec.attribute("DateTime",
-                         Strutil::fmt::format("{} {}",
-                                              m_cin.header.creationDate,
-                                              m_cin.header.creationTime));
+                         Strutil::format("{} {}",
+                                         hdrstr(m_cin.header.creationDate),
+                                         hdrstr(m_cin.header.creationTime)));
         // FIXME: do something about the time zone
     }
 
@@ -287,7 +299,7 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     m_spec.attribute("cineon:" #x, TypeDesc(TypeDesc::FLOAT, 2), &floats[0])
 #define CINEON_SET_ATTRIB_STR(X, x)                         \
     if (m_cin.header.x[0] && m_cin.header.x[0] != char(-1)) \
-    m_spec.attribute("cineon:" #X, m_cin.header.x)
+    m_spec.attribute("cineon:" #X, hdrstr(m_cin.header.x))
 
 // per-element attribs
 #define CINEON_SET_ATTRIB_N(x, a, t, c)                                      \
@@ -380,8 +392,9 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
         // libcineon's date/time format is pretty close to OIIO's (libcineon
         // uses %Y:%m:%d:%H:%M:%S%Z)
         m_spec.attribute("DateTime",
-                         Strutil::fmt::format("{} {}", m_cin.header.sourceDate,
-                                              m_cin.header.sourceTime));
+                         Strutil::format("{} {}",
+                                         hdrstr(m_cin.header.sourceDate),
+                                         hdrstr(m_cin.header.sourceTime)));
         // FIXME: do something about the time zone
     }
     {
@@ -394,12 +407,13 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     // read in user data
     const uint32_t usersize = m_cin.header.UserSize();
     if (usersize != 0 && usersize != 0xFFFFFFFF) {
-        const uint64_t useroffset = sizeof(cineon::GenericHeader)
-                                    + sizeof(cineon::IndustryHeader);
-        if (useroffset + usersize > Filesystem::file_size(name)) {
+        const uint64_t userstart = sizeof(cineon::GenericHeader)
+                                   + sizeof(cineon::IndustryHeader);
+        if (usersize > uint32_t(std::numeric_limits<int>::max())
+            || filesize < userstart || usersize > filesize - userstart) {
             errorfmt(
                 "Corrupt userbuf: {} bytes of user data at offset {} run past the end of the file",
-                usersize, useroffset);
+                usersize, userstart);
             close();
             return false;
         }
@@ -413,8 +427,8 @@ CineonInput::open(const std::string& name, ImageSpec& newspec)
     }
     if (!m_userBuf.empty())
         m_spec.attribute("cineon:UserData",
-                         TypeDesc(TypeDesc::UCHAR, m_cin.header.UserSize()),
-                         &m_userBuf[0]);
+                         TypeDesc(TypeDesc::UCHAR, int(m_userBuf.size())),
+                         m_userBuf.data());
 
     newspec = spec();
     return true;

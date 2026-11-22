@@ -51,3 +51,63 @@ Full command line was:
 oiiotool ERROR: read : "src/bad-usersize.cin": Corrupt userbuf: 4000 bytes of user data at offset 2048 run past the end of the file
 Full command line was:
 > oiiotool --info --hash src/bad-usersize.cin
+Reading src/bad-strings.cin
+src/bad-strings.cin  :    3 x    1, 1 channel, uint10 cineon
+    SHA-1: AD2B61D607EBB089808F5F2B5BAA397984281186
+    channel list: R
+    DateTime: "2022:10:17 10:12:05+10"
+    Orientation: 1 (normal)
+    cineon:BitDepth: 10
+    cineon:BluePrimary: 9.15861e-41, 9.15861e-41
+    cineon:FrameId: "written by Nuke"
+    cineon:FramePosition: 16777216
+    cineon:FrameRate: 9.15861e-41
+    cineon:GreenPrimary: 9.15861e-41, 9.15861e-41
+    cineon:HighData: 1.76781e-38
+    cineon:HighQuantity: 8.96831e-44
+    cineon:ImageDescriptor: "Red, printing density"
+    cineon:InputDevice: "Created with Nuke 12.2"
+    cineon:InputDeviceModelNumber: "Nuke"
+    cineon:InputDeviceSerialNumber: "12.2"
+    cineon:LinesPerElement: 1
+    cineon:LowData: 0
+    cineon:LowQuantity: 0
+    cineon:Metric: 0
+    cineon:Packing: "32-bit boundary, left justified, at most one pixel per cell"
+    cineon:PixelsPerLine: 3
+    cineon:RedPrimary: 9.15861e-41, 9.15861e-41
+    cineon:SlateInfo: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    cineon:SourceImageFileName: "test.cin"
+    cineon:Version: "V4.5"
+    cineon:WhitePoint: 9.15861e-41, 9.15861e-41
+    cineon:XDevicePitch: -1.60948e-35
+    cineon:XOffset: 0
+    cineon:YDevicePitch: -1.60948e-35
+    cineon:YOffset: 0
+    oiio:BitsPerSample: 10
+    oiio:ColorSpace: "KodakLog"
+oiiotool ERROR: read : "src/mixed-bitdepth.cin": Unsupported mix of channel bit depths (8 and 16)
+Full command line was:
+> oiiotool --info --hash src/mixed-bitdepth.cin
+oiiotool ERROR: -info : SHA-1: Failed to read scanline 1
+Full command line was:
+> oiiotool --info --hash src/truncated.cin
+src/truncated.cin    :    3 x    2, 1 channel, uint10 cineon
+src/width4-10bit.cin :    4 x    2, 1 channel, uint10 cineon
+    SHA-1: 47B340B9CAD6C5C3594D8DD639983CEB56DABACB
+    Pixel (0, 0): 6406 (0.09774929)
+    Pixel (1, 0): 12812 (0.19549859)
+    Pixel (2, 0): 19218 (0.29324788)
+    Pixel (3, 0): 25625 (0.39101243)
+    Pixel (0, 1): 32031 (0.48876172)
+    Pixel (1, 1): 38437 (0.586511)
+    Pixel (2, 1): 44843 (0.6842603)
+    Pixel (3, 1): 51250 (0.78202486)
+src/eolpad-10bit.cin :    3 x    2, 1 channel, uint10 cineon
+    SHA-1: 3FA40488FC37800C56823663DB1B760213C8460F
+    Pixel (0, 0): 6406 (0.09774929)
+    Pixel (1, 0): 12812 (0.19549859)
+    Pixel (2, 0): 19218 (0.29324788)
+    Pixel (0, 1): 32031 (0.48876172)
+    Pixel (1, 1): 38437 (0.586511)
+    Pixel (2, 1): 44843 (0.6842603)
