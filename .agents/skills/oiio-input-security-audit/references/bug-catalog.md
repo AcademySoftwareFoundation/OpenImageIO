@@ -53,7 +53,11 @@ window, z/depth, subimage count, mip levels, frame counts, and the
   length/count by bytes remaining before calling the library. Remember
   `valid_file()` runs during format probing of ANY input, so a fuzzer on one
   format reaches every probing reader. Seen: openvdb `MetaMap::readMeta`
-  via `valid_file` (found by the raw fuzz job).
+  via `valid_file` (found by the raw fuzz job). The pre-walk must follow
+  every branch the library takes (openvdb no-grid-offsets files skipped the
+  descriptor walk and OOMed in `GridDescriptor::read`), and must not assume
+  the library rejects what the newest version rejects (OpenVDB < 14 only
+  warns on a future file version, then keeps parsing).
 
 ### A5. Default-initialized buffer published after short read
 A failed or short read leaves the tail of a buffer uninitialized, then the

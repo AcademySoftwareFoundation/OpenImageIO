@@ -32,6 +32,14 @@ for f in [ "bad-meta-length.vdb", "bad-meta-count.vdb",
            "bad-desc-backward.vdb", "bad-desc-pasteof.vdb" ]:
     command += oiiotool("--info -v src/" + f, failureok=True)
 
+# A file version OpenVDB rejects, and files written without grid offsets
+# (via io::Stream) whose grid count or first descriptor's name length runs
+# past EOF. The valid stream-written file must still read.
+for f in [ "bad-version-future.vdb", "bad-stream-count.vdb",
+           "bad-stream-desc-length.vdb" ]:
+    command += oiiotool("--info -v src/" + f, failureok=True)
+command += oiiotool("-i src/good-stream.vdb --printstats")
+
 # Also rejected, but the message is OpenVDB's own and its wording varies by
 # version, so keep it out of the compared output and just check that the read
 # fails.
