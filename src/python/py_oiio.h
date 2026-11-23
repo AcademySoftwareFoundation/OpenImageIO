@@ -82,7 +82,11 @@ template<> struct npy_format_descriptor<half> {
         // following: https://docs.python.org/3/library/struct.html#format-characters
         return "e";
     }
+#    if PYBIND11_VERSION_HEX >= 0x02090000
+    static constexpr auto name = const_name("float16");
+#    else
     static constexpr auto name = _("float16");
+#    endif
 };
 
 }  // namespace detail
