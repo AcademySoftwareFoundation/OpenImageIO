@@ -272,6 +272,22 @@ for the wrong layout and writes per-sample data into a per-pixel buffer.
   every format; `iconvert` lacked a deep path and needed one. ImageBuf,
   oiiotool, maketx, idiff were already deep-aware.
 
+### C-8. Memory bug in an older release of a dependency
+Fuzz stack ends inside the library; reproduces only with the version CI
+builds. Confirm with a few-line harness against that version's source (ASan
+build, no OIIO), then check the latest release.
+- Per SECURITY.md, a bug that needs anything but the latest dependency
+  release is not an OIIO vulnerability. If the latest release fixes it, the
+  fix is version bumps only: the auto-builder (`src/cmake/build_<dep>.cmake`,
+  plus `src/build-scripts/build_<dep>.bash`), and, since the fuzz CI takes
+  most deps from the ASWF container (check the job log for the version it
+  found), add the dep to `OpenImageIO_BUILD_LOCAL_DEPS` in `fuzz.yml`. Also
+  build locally anything that links the dep (OpenEXR links openjph), else
+  two copies get linked. Add an OIIO-side workaround only if exceptionally
+  simple. If the latest release still has it, report upstream.
+- Seen: OpenJPH 0.32.0 `param_nlt::read` overflowed a heap buffer on
+  LUT-style NLT markers with 8-bit points; fixed in 0.33.0.
+
 
 ## D. Structure walking: loops, recursion, state
 

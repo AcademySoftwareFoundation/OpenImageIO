@@ -104,6 +104,9 @@ OIIO validates geometry, checks returns, bounds its own buffers.
   at all, and 2.5.4 mis-decodes odd-size subsampled HT.
   Open: truncated codestream decodes silently
   (no completeness signal from OpenJPH).
+  OpenJPH 0.32.0 NLT heap overflow is a library bug fixed in 0.33.0;
+  handled by version bumps only (C-8). OpenJPEG path: file
+  smaller than 14 bytes per declared tile rejected before `opj_decode`.
 - webp: check_open + C2 moved before the decoded-image allocation; no real
   bomb reachable (libwebp caps canvas, demux cross-validates).
 - heif: had NO check_open; C2 N/A (libheif has its own limits); `irot` +

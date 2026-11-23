@@ -19,3 +19,6 @@ PASS
     Constant: Yes
     Constant Color: 128.00 (of 255)
     Monochrome: Yes
+oiiotool ERROR: read : "src/bomb-tiles.j2c": jpeg2000 header's tile layout needs at least 349440 bytes, but the file is only 171 bytes; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-tiles.j2c

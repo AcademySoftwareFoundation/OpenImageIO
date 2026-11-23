@@ -131,7 +131,7 @@ FORMAT_SOURCES = {
     ],
     "jpeg2000": [
         ("testsuite/htj2k/src",      ["j2c"]),
-        ("testsuite/jpeg2000/src",   ["jp2"]),
+        ("testsuite/jpeg2000/src",   ["jp2", "j2c"]),
         ("../oiio-images/jpeg2000",  ["jp2", "j2k"]),
         ("../j2kp4files_v1_5/codestreams_profile0", ["j2k"]),
     ],

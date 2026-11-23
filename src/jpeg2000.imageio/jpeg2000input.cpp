@@ -796,6 +796,19 @@ Jpeg2000Input::open(const std::string& name, ImageSpec& p_spec)
             close();
             return false;
         }
+
+        // Every tile needs at least one tile-part (a 14-byte SOT+SOD).
+        if (opj_codestream_info_v2_t* cinfo = opj_get_cstr_info(m_codec)) {
+            uint64_t min_bytes = uint64_t(cinfo->tw) * uint64_t(cinfo->th) * 14;
+            opj_destroy_cstr_info(&cinfo);
+            if (filesize && min_bytes > filesize) {
+                errorfmt(
+                    "{} header's tile layout needs at least {} bytes, but the file is only {} bytes; probably a corrupt or malicious header",
+                    format_name(), min_bytes, filesize);
+                close();
+                return false;
+            }
+        }
     }
 
     if (!opj_decode(m_codec, m_stream, m_image) || has_error()) {
