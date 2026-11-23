@@ -79,7 +79,8 @@ OIIO validates geometry, checks returns, bounds its own buffers.
 - png: C2 added; rest OK. Chunk-borne eXIf/zTXt/iTXt are the routes into
   shared decoders (and unbounded size: PNG chunks have no small cap).
 - gif: C2; short graphics-control extension OOB read; subimage stream position
-  tracked separately from index.
+  tracked separately from index. Writer (C10): canvas pixels capped at
+  `INT_MAX/4` (gif.h int math) and row offset 64-bit (GHSA-4263-cfpj-85m5).
 - openexr: C2 on BOTH the C++ and C-API readers; tile/display-window limits
   were missing from `check_open`; library bounds its own framebuffer (C6 left).
   Deep paths: pixel-count math must be 64-bit in BOTH readers (classic
