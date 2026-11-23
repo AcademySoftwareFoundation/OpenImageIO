@@ -332,6 +332,9 @@ public:
                 return false;
             version = combined;
         }
+        // OPENVDB_UNSUPPORTED_FILE_VERSION (14.0+); older libraries only warn.
+        if (version >= 300)
+            return false;
         uint8_t has_grid_offsets = 1;
         if (version >= 212 && !read(has_grid_offsets))
             return false;
@@ -369,10 +372,6 @@ public:
                 return false;
         }
 
-        // Without grid offsets, open() streams whole grids; nothing more to
-        // bound here.
-        if (!has_grid_offsets)
-            return true;
         int32_t ngrids = 0;
         if (!read(ngrids) || ngrids < 0 || ngrids > remaining() / 32)
             return false;
@@ -382,6 +381,10 @@ public:
                 || (version >= 216 && !skip_string())  // instance parent
                 || !read(pos[0]) || !read(pos[1]) || !read(pos[2]))
                 return false;
+            // Without grid offsets, open() reads each grid inline after its
+            // descriptor, so only the first descriptor can be located.
+            if (!has_grid_offsets)
+                return true;
             if (pos[2] < m_pos || pos[2] > m_size || !seek(pos[2]))
                 return false;
         }
