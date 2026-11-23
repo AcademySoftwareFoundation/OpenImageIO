@@ -139,6 +139,12 @@ used for allocation, indexing, or loop count.
   sample-count/pointer arrays from the wrapped value, then OpenEXR writes the
   real count past the end). Same function's tiled
   sibling was already widened; diff sibling paths for the same expression.
+  gif writer (C10: canvas allocated with 64-bit size but `write_scanline`
+  row offset `y*width*4` in `int`; 65535x16385 from a TGA bomb wraps
+  negative => OOB write before the canvas. Vendored gif.h also counts
+  pixels in `int`, so the writer caps pixels at `INT_MAX/4` like the reader
+  -- GHSA-4263-cfpj-85m5). A correctly sized allocation does not clear the
+  indexing math; check both.
 - Note: when a dimension or plausibility cap is raised, re-audit every
   downstream offset/index multiply. The iff flip overflow (#5593) was exactly
   that -- #5284 raised the caps to 65536^2 without revisiting the 32-bit math.

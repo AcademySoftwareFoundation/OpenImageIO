@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <vector>
 
 #include <OpenImageIO/filesystem.h>
@@ -188,6 +189,13 @@ GIFOutput::start_subimage(const ImageSpec& spec)
     if (!check_open(Create, spec, { 0, 65535, 0, 65535, 0, 1, 0, 4 },
                     uint64_t(OpenChecks::Disallow1or2Channel)))
         return false;
+    // gif.h indexes the RGBA canvas with int.
+    if (m_spec.image_pixels()
+        > imagesize_t(std::numeric_limits<int>::max() / 4)) {
+        errorfmt("{} image resolution {}x{} is too large", format_name(),
+                 m_spec.width, m_spec.height);
+        return false;
+    }
     // The GIF writer only supports frames that fill the whole canvas.
     if (m_subimage > 0
         && (m_spec.width != m_subimagespecs[0].width
@@ -241,8 +249,8 @@ GIFOutput::write_scanline(int y, int /*z*/, TypeDesc format, const void* data,
 {
     return convert_image(spec().nchannels, spec().width, 1 /*1 scanline*/, 1,
                          data, format, xstride, AutoStride, AutoStride,
-                         &m_canvas[y * spec().width * 4], TypeDesc::UINT8, 4,
-                         AutoStride, AutoStride);
+                         &m_canvas[(size_t(y) * size_t(spec().width)) * 4],
+                         TypeDesc::UINT8, 4, AutoStride, AutoStride);
 }
 
 
