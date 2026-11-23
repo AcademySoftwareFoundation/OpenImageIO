@@ -128,3 +128,28 @@ for (ch, bits, extra) in [("R", 10, ""),
     command += oiiotool(f"packsrc.tif --ch {ch} -o {name}.tif")
     command += diff_command(f"{name}.dpx", f"{name}.tif",
                             extraargs="-fail 0.001 -warn 0.001")
+# Regression test: DPX end-of-line padding was multiplied by the row index
+# within the requested block rather than within the image, so any read not
+# starting at scanline 0 used the wrong file offset. Compare padded copies
+# of 10-bit filled, 10-bit packed, and 16-bit files against the originals.
+# idiff reads through an ImageCache with 256-row autotiles, so images taller
+# than that are read in blocks that don't all start at scanline 0.
+pattern = "--pattern fill:topleft=0,0,0:topright=1,0,0:bottomleft=0,1,0:bottomright=0,0,1 5x300 3 "
+command += oiiotool(pattern + "-d uint10 -o pad10filled.dpx")
+command += oiiotool(pattern + "-d uint10 --attrib dpx:Packing Packed -o pad10packed.dpx")
+command += oiiotool(pattern + "-d uint16 -o pad16.dpx")
+command += (pythonbin + " src/test_eolpad.py pad10filled.dpx pad10packed.dpx"
+            " pad16.dpx >> out.txt 2>&1 ;")
+for name in ["pad10filled", "pad10packed", "pad16"]:
+    command += diff_command(name + "-eolpad.dpx", name + ".dpx",
+                            extraargs="-fail 0 -warn 0")
+
+# Regression test: 1-channel, 10-bit, "Filled method A" DPX whose width (4)
+# leaves one datum in the last 32-bit word of each row. The read size was
+# rounded down and missed that word, so the last column read as 0 (or
+# stale data from the previous row).
+command += oiiotool("--dumpdata src/1chan-10bit-filled-width4.dpx")
+
+# Regression test: header text fields filling their whole width, with no
+# NUL terminator, must not read past the field.
+command += info_command("src/bad-strings.dpx", safematch=True)

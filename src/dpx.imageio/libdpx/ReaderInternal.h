@@ -148,7 +148,7 @@ namespace dpx
 			int64_t offset = int64_t(actline) * lineLength;
 
 			// add in eoln padding
-			offset += int64_t(line) * eolnPad;
+			offset += int64_t(actline) * eolnPad;
 
 			// add in offset within the current line, rounding down so to catch any components within the word
 			offset += int64_t(block.x1) * numberOfComponents / 3 * 4;
@@ -156,8 +156,7 @@ namespace dpx
 			
 			// get the read count in bytes, round to the 32-bit boundary
 			int readSize = (block.x2 - block.x1 + 1) * numberOfComponents;
-			readSize += readSize % 3;
-			readSize = readSize / 3 * 4;
+			readSize = (readSize + 2) / 3 * 4;
 			
 			// determine buffer offset
 			int64_t bufoff = int64_t(line) * datums;
@@ -286,7 +285,7 @@ namespace dpx
 		{
 			// determine offset into image element
 			int64_t offset = (line + block.y1) * (lineSize * sizeof(U32)) +
-						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + line * eolnPad;
+						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + (line + block.y1) * eolnPad;
 	
 			// calculate read size
 			int64_t readSize = (int64_t(block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
@@ -349,7 +348,7 @@ namespace dpx
 			
 			// determine offset into image element
 			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * bytes +
-						int64_t(block.x1) * numberOfComponents * bytes + int64_t(line) * eolnPad;
+						int64_t(block.x1) * numberOfComponents * bytes + int64_t(line + block.y1) * eolnPad;
 						
 			if (BUFTYPE == SRCTYPE)
 			{
@@ -395,7 +394,7 @@ namespace dpx
 		{
 			// determine offset into image element
 			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * 2 +
-						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line) * eolnPad;
+						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line + block.y1) * eolnPad;
 	
 			if (!fd->Read(dpxHeader, element, offset, readBuf, int64_t(width)*2))
 				return false;

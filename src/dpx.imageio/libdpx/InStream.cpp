@@ -48,7 +48,7 @@ void InStream::Rewind()
         m_io->seek(0);
 }
 
-bool InStream::Seek(long offset, Origin origin)
+bool InStream::Seek(int64_t offset, Origin origin)
 {
     if (!IsValid())
         return false;

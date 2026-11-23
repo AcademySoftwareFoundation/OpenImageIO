@@ -53,9 +53,9 @@ void dpx::ElementReadStream::Reset()
 }
 
 
-bool dpx::ElementReadStream::Read(const dpx::Header &dpxHeader, const int element, const long offset, void * buf, const size_t size)
+bool dpx::ElementReadStream::Read(const dpx::Header &dpxHeader, const int element, const int64_t offset, void * buf, const size_t size)
 {
-	long position = dpxHeader.DataOffset(element) + offset;
+	int64_t position = dpxHeader.DataOffset(element) + offset;
 
 	// seek to the memory position				 				 
 	if (this->fd->Seek(position, InStream::kStart) == false)
@@ -72,9 +72,9 @@ bool dpx::ElementReadStream::Read(const dpx::Header &dpxHeader, const int elemen
 }
 
 
-bool dpx::ElementReadStream::ReadDirect(const dpx::Header &dpxHeader, const int element, const long offset, void * buf, const size_t size)
+bool dpx::ElementReadStream::ReadDirect(const dpx::Header &dpxHeader, const int element, const int64_t offset, void * buf, const size_t size)
 {
-	long position = dpxHeader.DataOffset(element) + offset;
+	int64_t position = dpxHeader.DataOffset(element) + offset;
 
 	// seek to the memory position				 				 
 	if (this->fd->Seek(position, InStream::kStart) == false)

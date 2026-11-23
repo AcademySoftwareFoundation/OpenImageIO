@@ -108,7 +108,7 @@ class InStream
 	 * \param origin originating position
 	 * \return success true/false
 	 */ 	
-	virtual bool Seek(long offset, Origin origin);
+	virtual bool Seek(int64_t offset, Origin origin);
 
 	/*!
 	* \brief Tells the current position in the file

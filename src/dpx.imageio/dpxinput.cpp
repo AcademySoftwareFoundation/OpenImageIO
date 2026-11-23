@@ -383,16 +383,21 @@ DPXInput::seek_subimage(int subimage, int miplevel)
                      get_characteristic_string(
                          m_dpx.header.Colorimetric(subimage)));
 
+    // Header text fields are fixed width and need not be NUL-terminated
+    auto hdrstr = [](const auto& field) {
+        return Strutil::safe_string_view(field, sizeof(field));
+    };
+
     // general metadata
     // some non-compliant writers will dump a field filled with 0xFF rather
     // than a NULL string termination on the first character, so take that
     // into account, too
     if (m_dpx.header.copyright[0] && m_dpx.header.copyright[0] != (char)0xFF)
-        m_spec.attribute("Copyright", m_dpx.header.copyright);
+        m_spec.attribute("Copyright", hdrstr(m_dpx.header.copyright));
     if (m_dpx.header.creator[0] && m_dpx.header.creator[0] != (char)0xFF)
-        m_spec.attribute("Software", m_dpx.header.creator);
+        m_spec.attribute("Software", hdrstr(m_dpx.header.creator));
     if (m_dpx.header.project[0] && m_dpx.header.project[0] != (char)0xFF)
-        m_spec.attribute("DocumentName", m_dpx.header.project);
+        m_spec.attribute("DocumentName", hdrstr(m_dpx.header.project));
     if (m_dpx.header.creationTimeDate[0]) {
         // libdpx's date/time format is pretty close to OIIO's (libdpx uses
         // %Y:%m:%d:%H:%M:%S%Z)
@@ -445,7 +450,7 @@ DPXInput::seek_subimage(int subimage, int miplevel)
     // see comment above Copyright, Software and DocumentName
 #define DPX_SET_ATTRIB_STR(X, x)                            \
     if (m_dpx.header.x[0] && m_dpx.header.x[0] != char(-1)) \
-    m_spec.attribute("dpx:" #X, m_dpx.header.x)
+    m_spec.attribute("dpx:" #X, hdrstr(m_dpx.header.x))
 
     DPX_SET_ATTRIB_INT(EncryptKey);
     DPX_SET_ATTRIB_INT(DittoKey);
