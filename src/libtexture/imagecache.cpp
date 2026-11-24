@@ -3025,21 +3025,22 @@ ImageCacheImpl::check_max_mem(ImageCachePerThreadInfo* /*thread_info*/)
 
 
 std::string
-ImageCacheImpl::resolve_filename(const std::string& filename) const
+ImageCacheImpl::resolve_filename(string_view filename) const
 {
     // Ask if the format can generate imagery procedurally. If so, don't
     // go looking for a file.
     if (OIIO::pvt::is_procedural_plugin(filename)
         || OIIO::pvt::is_procedural_plugin(
             Filesystem::extension(filename, false)))
-        return filename;
+        return std::string(filename);
     if (m_searchdirs.empty() || Filesystem::path_is_absolute(filename, true)) {
         // Don't bother with the searchpath_find call since it will do an
         // existence check that we don't need.
-        return filename;
+        return std::string(filename);
     }
-    std::string s = Filesystem::searchpath_find(filename, m_searchdirs, true);
-    return s.empty() ? filename : s;
+    std::string s = Filesystem::searchpath_find(std::string(filename),
+                                                m_searchdirs, true);
+    return s.empty() ? std::string(filename) : s;
 }
 
 
@@ -4703,6 +4704,14 @@ ustring
 ImageCache::filename_from_handle(ImageHandle* handle)
 {
     return m_impl->filename_from_handle(handle);
+}
+
+
+
+std::string
+ImageCache::resolve_filename(string_view filename) const
+{
+    return m_impl->resolve_filename(filename);
 }
 
 

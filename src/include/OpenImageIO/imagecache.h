@@ -597,7 +597,18 @@ public:
 
     /// Given possibly-relative `filename` (UTF-8 encoded), resolve it and use
     /// the true path to the file, with searchpath logic applied.
+    std::string resolve_filename(string_view filename) const;
+
+#ifdef OIIO_INTERNAL
+    // DEPRECATED(3.3): use the string_view version above. Only kept for ABI
+    // compatibility; will be removed in 4.0.
     std::string resolve_filename(const std::string& filename) const;
+    // Only needed to disambiguate while the std::string overload exists.
+    std::string resolve_filename(const char* filename) const
+    {
+        return resolve_filename(string_view(filename));
+    }
+#endif
 
     /// Get information or metadata about the named image and store it in
     /// `*data`.
