@@ -510,14 +510,8 @@ test_convert_pixel_values_float_variant()
         std::vector<float> dfloat(n, -1.0f);
         OIIO_CHECK_ASSERT(convert_pixel_values(floatcolor, src.data(),
                                                TypeFloat, dfloat.data(), n));
-        int bad16 = 0, badf = 0;
-        for (int i = 0; i < n; ++i) {
-            bad16 += d16[i] != d16ref[i];
-            badf += dfloat[i] != src[i];
-        }
-        OIIO_CHECK_EQUAL(bad16, 0);
-        OIIO_CHECK_EQUAL(badf, 0);
-    }
+        OIIO_CHECK_ASSERT(d16 == d16ref);
+        OIIO_CHECK_ASSERT(dfloat == src);    }
 }
 
 
