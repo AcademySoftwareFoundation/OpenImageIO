@@ -485,6 +485,174 @@ test_resolve_filename()
 
 
 
+static void
+test_get_image_info_span()
+{
+    Strutil::print("\nTesting span-based get_image_info\n");
+    auto ic              = ImageCache::create();
+    auto handle          = ic->get_image_handle(checkertex);
+    ustring u_res        = ustring("resolution");
+    TypeDesc int2        = TypeDesc(TypeDesc::INT, 2);
+    ustring missing      = ustring("noexist.exr");
+    const auto unwritten = std::byte(255);
+
+    {  // typed span, by name and by handle
+        int res[2] = { -1, -1 };
+        OIIO_CHECK_ASSERT(
+            ic->get_image_info(checkertex, 0, 0, u_res, int2, make_span(res)));
+        OIIO_CHECK_EQUAL(res[0], 256);
+        OIIO_CHECK_EQUAL(res[1], 256);
+        res[0] = res[1] = -1;
+        OIIO_CHECK_ASSERT(ic->get_image_info(handle, nullptr, 0, 0, u_res, int2,
+                                             make_span(res)));
+        OIIO_CHECK_EQUAL(res[0], 256);
+        OIIO_CHECK_EQUAL(res[1], 256);
+    }
+    {  // string query through a typed span
+        const char* format = nullptr;
+        OIIO_CHECK_ASSERT(ic->get_image_info(checkertex, 0, 0,
+                                             ustring("fileformat"), TypeString,
+                                             make_span(&format, 1)));
+        OIIO_CHECK_EQUAL(string_view(format), "openexr");
+    }
+    {  // "exists": 1 for a real file; 0 and no error for a missing one.
+        // Use a private cache: the shared one already marked the missing
+        // file broken, so the query would generate no error to clear.
+        auto pic   = ImageCache::create(false);
+        int exists = -1;
+        OIIO_CHECK_ASSERT(pic->get_image_info(checkertex, 0, 0,
+                                              ustring("exists"), TypeInt,
+                                              make_span(&exists, 1)));
+        OIIO_CHECK_EQUAL(exists, 1);
+        exists = -1;
+        OIIO_CHECK_ASSERT(pic->get_image_info(missing, 0, 0, ustring("exists"),
+                                              TypeInt, make_span(&exists, 1)));
+        OIIO_CHECK_EQUAL(exists, 0);
+        OIIO_CHECK_FALSE(pic->has_error());
+    }
+
+    {  // One byte larger than needed: succeeds, writes only datatype.size()
+        std::vector<std::byte> buf(int2.size() + 1, unwritten);
+        int res[2] = { -1, -1 };
+        OIIO_CHECK_ASSERT(
+            ic->get_image_info(checkertex, 0, 0, u_res, int2, make_span(buf)));
+        memcpy(res, buf.data(), sizeof(res));
+        OIIO_CHECK_EQUAL(res[0], 256);
+        OIIO_CHECK_EQUAL(res[1], 256);
+        OIIO_CHECK_ASSERT(buf.back() == unwritten);
+        std::fill(buf.begin(), buf.end(), unwritten);
+        OIIO_CHECK_ASSERT(ic->get_image_info(handle, nullptr, 0, 0, u_res, int2,
+                                             make_span(buf)));
+        memcpy(res, buf.data(), sizeof(res));
+        OIIO_CHECK_EQUAL(res[0], 256);
+        OIIO_CHECK_EQUAL(res[1], 256);
+        OIIO_CHECK_ASSERT(buf.back() == unwritten);
+    }
+
+#ifdef NDEBUG
+    // Too-small spans hit an OIIO_DASSERT, so only Release builds can test
+    // the error path.
+    {  // One byte too small: fails, writes nothing, error goes to the IC
+        std::vector<std::byte> buf(int2.size() - 1, unwritten);
+        const std::vector<std::byte> orig = buf;
+        OIIO::geterror();
+        OIIO_CHECK_FALSE(ic->has_error());
+        OIIO_CHECK_FALSE(
+            ic->get_image_info(checkertex, 0, 0, u_res, int2, make_span(buf)));
+        OIIO_CHECK_ASSERT(buf == orig);
+        OIIO_CHECK_ASSERT(ic->has_error());
+        OIIO_CHECK_FALSE(OIIO::has_error());
+        ic->geterror();
+
+        OIIO_CHECK_FALSE(ic->get_image_info(handle, nullptr, 0, 0, u_res, int2,
+                                            make_span(buf)));
+        OIIO_CHECK_ASSERT(buf == orig);
+        OIIO_CHECK_ASSERT(ic->has_error());
+        OIIO_CHECK_FALSE(OIIO::has_error());
+        ic->geterror();
+    }
+#endif
+}
+
+
+
+static void
+test_attribute_span_size()
+{
+    Strutil::print("\nTesting span-based attribute/getattribute sizes\n");
+    auto ic = ImageCache::create(false);
+    const string_view name("max_errors_per_file");
+    const auto unwritten = std::byte(255);
+
+    {  // Exactly TypeInt.size(): succeeds
+        int val = 5;
+        OIIO_CHECK_ASSERT(
+            ic->attribute(name, TypeInt, as_bytes(make_cspan(&val, 1))));
+        int got = -1;
+        OIIO_CHECK_ASSERT(
+            ic->getattribute(name, TypeInt,
+                             as_writable_bytes(make_span(&got, 1))));
+        OIIO_CHECK_EQUAL(got, 5);
+    }
+    {  // One byte larger than needed: succeeds, uses only TypeInt.size()
+        int val = 7;
+        std::vector<std::byte> in(TypeInt.size() + 1, unwritten);
+        memcpy(in.data(), &val, sizeof(val));
+        OIIO_CHECK_ASSERT(ic->attribute(name, TypeInt, cspan<std::byte>(in)));
+        int got = -1;
+        OIIO_CHECK_ASSERT(ic->getattribute(name, got));
+        OIIO_CHECK_EQUAL(got, 7);
+
+        std::vector<std::byte> out(TypeInt.size() + 1, unwritten);
+        OIIO_CHECK_ASSERT(ic->getattribute(name, TypeInt, make_span(out)));
+        memcpy(&got, out.data(), sizeof(got));
+        OIIO_CHECK_EQUAL(got, 7);
+        OIIO_CHECK_ASSERT(out.back() == unwritten);
+    }
+    {  // Typed span larger than needed
+        int vals[2] = { -1, -1 };
+        OIIO_CHECK_ASSERT(ic->getattribute(name, TypeInt, make_span(vals)));
+        OIIO_CHECK_EQUAL(vals[0], 7);
+        OIIO_CHECK_EQUAL(vals[1], -1);
+    }
+    {  // Typed span larger than needed for attribute()
+        int in[2] = { 8, -1 };
+        OIIO_CHECK_ASSERT(ic->attribute(name, TypeInt, make_span(in)));
+        int got = -1;
+        OIIO_CHECK_ASSERT(ic->getattribute(name, got));
+        OIIO_CHECK_EQUAL(got, 8);
+    }
+
+#ifdef NDEBUG
+    // Too-small spans hit an OIIO_DASSERT, so only Release builds can test
+    // the error path.
+    {  // One byte too small: both fail, value unchanged, error goes to the IC
+        int val = 9;
+        std::vector<std::byte> in(TypeInt.size() - 1, unwritten);
+        memcpy(in.data(), &val, in.size());
+        OIIO::geterror();
+        OIIO_CHECK_FALSE(ic->has_error());
+        OIIO_CHECK_FALSE(ic->attribute(name, TypeInt, cspan<std::byte>(in)));
+        OIIO_CHECK_ASSERT(ic->has_error());
+        OIIO_CHECK_FALSE(OIIO::has_error());
+        ic->geterror();
+        int got = -1;
+        OIIO_CHECK_ASSERT(ic->getattribute(name, got));
+        OIIO_CHECK_EQUAL(got, 8);
+
+        std::vector<std::byte> out(TypeInt.size() - 1, unwritten);
+        const std::vector<std::byte> orig = out;
+        OIIO_CHECK_FALSE(ic->getattribute(name, TypeInt, make_span(out)));
+        OIIO_CHECK_ASSERT(out == orig);
+        OIIO_CHECK_ASSERT(ic->has_error());
+        OIIO_CHECK_FALSE(OIIO::has_error());
+        ic->geterror();
+    }
+#endif
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -503,6 +671,8 @@ main(int /*argc*/, char* /*argv*/[])
     test_custom_threadinfo();
     test_imagespec();
     test_resolve_filename();
+    test_get_image_info_span();
+    test_attribute_span_size();
     test_get_cache_dimensions();
     test_autotile_chunks();
 
