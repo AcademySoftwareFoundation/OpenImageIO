@@ -333,6 +333,46 @@ ImageBuf_test_appbuffer_strided()
 
 
 
+// Wrapping a buffer span too small for the spec must fail cleanly
+void
+ImageBuf_test_appbuffer_too_small()
+{
+    Strutil::print("Testing undersized app buffers\n");
+    const int res = 8, nchans = 3;
+    std::vector<float> mem(res * res * nchans, 0.0f);
+    const float red[nchans] = { 1.0f, 0.0f, 0.0f };
+
+    // Spec claims more channels than the span holds
+    ImageBuf wide(ImageSpec(res, res, nchans + 1, TypeFloat), make_span(mem));
+    OIIO_CHECK_ASSERT(!wide.initialized());
+    OIIO_CHECK_ASSERT(wide.has_error());
+    OIIO_CHECK_ASSERT(!ImageBufAlgo::fill(wide, cspan<float>(red)));
+    (void)wide.geterror();
+
+    // Strides walk past the end of the span
+    ImageBuf strided(ImageSpec(res, res, nchans, TypeFloat), make_span(mem),
+                     nullptr, 2 * nchans * sizeof(float));
+    OIIO_CHECK_ASSERT(!strided.initialized());
+    OIIO_CHECK_ASSERT(strided.has_error());
+    (void)strided.geterror();
+
+    // Same checks via reset()
+    ImageBuf B;
+    B.reset(ImageSpec(res, res, nchans + 1, TypeFloat), make_span(mem));
+    OIIO_CHECK_ASSERT(!B.initialized());
+    OIIO_CHECK_ASSERT(B.has_error());
+    (void)B.geterror();
+
+    // An exactly-sized span is fine, and nothing outside it was touched
+    ImageBuf ok(ImageSpec(res, res - 1, nchans, TypeFloat),
+                make_span(mem.data(), res * (res - 1) * nchans));
+    OIIO_CHECK_ASSERT(ok.initialized());
+    OIIO_CHECK_ASSERT(ImageBufAlgo::fill(ok, cspan<float>(red)));
+    OIIO_CHECK_EQUAL(mem[res * (res - 1) * nchans], 0.0f);
+}
+
+
+
 void
 test_open_with_config()
 {
@@ -990,6 +1030,7 @@ main(int argc, char* argv[])
 
     ImageBuf_test_appbuffer();
     ImageBuf_test_appbuffer_strided();
+    ImageBuf_test_appbuffer_too_small();
     test_open_with_config();
     test_read_channel_subset();
 
