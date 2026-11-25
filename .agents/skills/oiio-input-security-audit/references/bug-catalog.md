@@ -221,7 +221,10 @@ Streams and rotated images can change geometry after the header.
   heif `irot` with `oiio:reorient=0` (spec swapped w/h, libheif returned the
   stored plane); raw returned channel count vs spec; tiff CMYK->RGB
   (`m_spec.nchannels`=3 while `m_inputchannels`=4: tile path unpacked 4
-  values into 3-channel buffer); jpeg2000 OpenJPH path assumed every
+  values into 3-channel buffer); tiff libtiff RGBA fallback (JPEG with
+  SamplesPerPixel != 3) kept header nchannels while the RGBA buffer holds
+  4 bytes/pixel, so spp > 4 over-read the heap (clamp to 4 and drop an
+  alpha index past the clamp); jpeg2000 OpenJPH path assumed every
   component full-res, so subsampled ones hung `codestream::pull()` and read
   `w` samples from shorter lines (now pulled per component at its own
   size and replicated). Fix: compare decoder-reported dims, channel

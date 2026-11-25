@@ -124,5 +124,9 @@ oiiotool ERROR: read : "src/shadow-many-channels.tif": 1100 channels exceeds "li
 If you're sure this is a valid file, raise the OIIO global attribute "limits:channels".
 Full command line was:
 > oiiotool --info --hash src/shadow-many-channels.tif
+nchannels=4
+avg=0.501961,0.501961,0.501961
+nchannels=4
+avg=0.501961,0.501961,0.501961
 Comparing "check1.tif" and "ref/check1.tif"
 PASS
