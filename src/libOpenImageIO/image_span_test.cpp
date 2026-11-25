@@ -511,7 +511,8 @@ test_convert_pixel_values_float_variant()
         OIIO_CHECK_ASSERT(convert_pixel_values(floatcolor, src.data(),
                                                TypeFloat, dfloat.data(), n));
         OIIO_CHECK_ASSERT(d16 == d16ref);
-        OIIO_CHECK_ASSERT(dfloat == src);    }
+        OIIO_CHECK_ASSERT(dfloat == src);
+    }
 }
 
 
