@@ -317,9 +317,10 @@ public:
     /// the image cache:
 
     /// Set a named attribute (i.e., a property or option) of the ImageCache.
-    /// The `value` span specifies the data to be copied. The data type and
-    /// total size of `value` must match the `type` (if not, an assertion will
-    /// be thrown for debug builds).
+    /// The `value` span specifies the data to be copied. The data type of
+    /// `value` must match the `type`, and its total size must be at least
+    /// `type.size()` bytes (if not, an assertion will be thrown for debug
+    /// builds).
     ///
     /// Example:
     ///
@@ -356,14 +357,14 @@ public:
     bool attribute(string_view name, TypeDesc type, span<T> value)
     {
         OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
-                     && type.size() == value.size_bytes());
+                     && type.size() <= value.size_bytes());
         return attribute(name, type, OIIO::as_bytes(value));
     }
 
     /// A version of `attribute()` that takes its value from a span of untyped
-    /// bytes. The total size of `value` must match the `type` (if not, an
-    /// assertion will be thrown for debug builds of OIIO, an error will be
-    /// printed for release builds).
+    /// bytes. `value` must be at least `type.size()` bytes, and only that
+    /// many are read. If it is smaller, debug builds assert and release
+    /// builds set an error and return `false`.
     ///
     /// @version 3.1
     bool attribute(string_view name, TypeDesc type, cspan<std::byte> value);
@@ -398,19 +399,22 @@ public:
         return attribute(name, TypeString, &s);
     }
 
-    /// Get the named attribute, store it in `*val`. All of the attributes
-    /// that may be set with the `attribute() call` may also be queried with
-    /// `getattribute()`.
+    /// Get the named attribute and store it in the `value` span. All of the
+    /// attributes that may be set with the `attribute()` call may also be
+    /// queried with `getattribute()`. The data type of `value` must match
+    /// the `type`, and its total size must be at least `type.size()` bytes
+    /// (if not, an assertion will be thrown for debug builds).
     ///
     /// Examples:
     ///
     ///     ImageCache *ic;
     ///     ...
     ///     int maxfiles;
-    ///     ic->getattribute ("max_open_files", TypeDesc::INT, &maxfiles);
+    ///     ic->getattribute ("max_open_files", TypeInt,
+    ///                       make_span(&maxfiles, 1));
     ///
     ///     const char *path;
-    ///     ic->getattribute ("searchpath", TypeDesc::STRING, &path);
+    ///     ic->getattribute ("searchpath", TypeString, make_span(&path, 1));
     ///
     ///     // There are specialized versions for retrieving a single int,
     ///     // float, or string without needing types or pointers:
@@ -427,7 +431,7 @@ public:
     ///
     /// @param  name    Name of the attribute to retrieve.
     /// @param  type    TypeDesc describing the type of the attribute.
-    /// @param  value   Pointer where the attribute value should be stored.
+    /// @param  value   Span where the attribute value should be stored.
     /// @returns        `true` if the name and type were recognized and the
     ///                 attribute was retrieved, or `false` upon failure
     ///                 (including it being an unrecognized attribute or not
@@ -436,14 +440,14 @@ public:
     bool getattribute(string_view name, TypeDesc type, span<T> value) const
     {
         OIIO_DASSERT(BaseTypeFromC<T>::value == type.basetype
-                     && type.size() == value.size_bytes());
+                     && type.size() <= value.size_bytes());
         return getattribute(name, type, OIIO::as_writable_bytes(value));
     }
 
     /// A version of `getattribute()` that stores the value in a span of
-    /// untyped bytes. The total size of `value` must match the `type` (if
-    /// not, an assertion will be thrown for debug OIIO builds, an error will
-    /// be printed for release builds).
+    /// untyped bytes. `value` must be at least `type.size()` bytes, and only
+    /// that many are written. If it is smaller, debug builds assert and
+    /// release builds set an error and return `false` without writing.
     ///
     /// @version 3.1
     bool getattribute(string_view name, TypeDesc type,
@@ -763,7 +767,9 @@ public:
     ///             Pointer to the caller-owned memory where the values
     ///             should be stored. It is the caller's responsibility to
     ///             ensure that `data` points to a large enough storage area
-    ///             to accommodate the `datatype` requested.
+    ///             to accommodate the `datatype` requested. The span-based
+    ///             versions of `get_image_info()` are preferred, since they
+    ///             check the size.
     ///
     /// @returns
     ///             `true` if `get_image_info()` is able to find the
@@ -781,6 +787,53 @@ public:
     bool get_image_info(ImageHandle* file, Perthread* thread_info, int subimage,
                         int miplevel, ustring dataname, TypeDesc datatype,
                         void* data);
+
+    /// A version of `get_image_info()` that stores the value in a span of
+    /// untyped bytes. `data` must be at least `datatype.size()` bytes, and
+    /// only that many are written. If it is smaller, debug builds assert and
+    /// release builds set an error and return `false` without writing.
+    ///
+    /// @version 3.3
+    bool get_image_info(ustring filename, int subimage, int miplevel,
+                        ustring dataname, TypeDesc datatype,
+                        span<std::byte> data);
+
+    /// A more efficient version of the byte-span `get_image_info()` that
+    /// takes an `ImageHandle*` (and optional `Perthread*`) instead of a
+    /// filename.
+    ///
+    /// @version 3.3
+    bool get_image_info(ImageHandle* file, Perthread* thread_info, int subimage,
+                        int miplevel, ustring dataname, TypeDesc datatype,
+                        span<std::byte> data);
+
+    /// A convenience version of `get_image_info()` taking a typed span. The
+    /// element type `T` must match the basetype of `datatype`.
+    ///
+    /// @version 3.3
+    template<typename T>
+    bool get_image_info(ustring filename, int subimage, int miplevel,
+                        ustring dataname, TypeDesc datatype, span<T> data)
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == datatype.basetype);
+        return get_image_info(filename, subimage, miplevel, dataname, datatype,
+                              OIIO::as_writable_bytes(data));
+    }
+
+    /// A convenience version of the `ImageHandle*` `get_image_info()` taking
+    /// a typed span. The element type `T` must match the basetype of
+    /// `datatype`.
+    ///
+    /// @version 3.3
+    template<typename T>
+    bool get_image_info(ImageHandle* file, Perthread* thread_info, int subimage,
+                        int miplevel, ustring dataname, TypeDesc datatype,
+                        span<T> data)
+    {
+        OIIO_DASSERT(BaseTypeFromC<T>::value == datatype.basetype);
+        return get_image_info(file, thread_info, subimage, miplevel, dataname,
+                              datatype, OIIO::as_writable_bytes(data));
+    }
 
     /// Copy the ImageSpec that describes the named image file.
     ///

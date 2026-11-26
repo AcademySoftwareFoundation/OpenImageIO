@@ -4607,11 +4607,11 @@ ImageCache::destroy(std::shared_ptr<ImageCache>& cache, bool teardown)
 bool
 ImageCache::attribute(string_view name, TypeDesc type, cspan<std::byte> value)
 {
-    if (value.size_bytes() != type.size()) {
-        errorfmt(
-            "ImageCache::attribute given a {}-byte span as data for a {}-byte attribute {} {}",
-            value.size(), type.size(), type, name);
-        OIIO_DASSERT(value.size_bytes() == type.size());
+    if (value.size_bytes() < type.size()) {
+        m_impl->error(
+            "ImageCache::attribute given a {}-byte span, too small for a {}-byte attribute {} {}",
+            value.size_bytes(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() >= type.size());
         return false;
     }
     return m_impl->attribute(name, type, value.data());
@@ -4631,11 +4631,11 @@ bool
 ImageCache::getattribute(string_view name, TypeDesc type,
                          span<std::byte> value) const
 {
-    if (value.size_bytes() != type.size()) {
-        errorfmt(
-            "ImageCache::getattribute given a {}-byte span as data for a {}-byte attribute {} {}",
-            value.size(), type.size(), type, name);
-        OIIO_DASSERT(value.size_bytes() == type.size());
+    if (value.size_bytes() < type.size()) {
+        m_impl->error(
+            "ImageCache::getattribute given a {}-byte span, too small for a {}-byte attribute {} {}",
+            value.size_bytes(), type.size(), type, name);
+        OIIO_DASSERT(value.size_bytes() >= type.size());
         return false;
     }
     return m_impl->getattribute(name, type, value.data());
@@ -4741,6 +4741,42 @@ ImageCache::get_image_info(ImageHandle* file, Perthread* thread_info,
 {
     return m_impl->get_image_info(file, thread_info, subimage, miplevel,
                                   dataname, datatype, data);
+}
+
+
+
+bool
+ImageCache::get_image_info(ustring filename, int subimage, int miplevel,
+                           ustring dataname, TypeDesc datatype,
+                           span<std::byte> data)
+{
+    if (data.size_bytes() < datatype.size()) {
+        m_impl->error(
+            "ImageCache::get_image_info given a {}-byte span, too small for a {}-byte attribute {} {}",
+            data.size_bytes(), datatype.size(), datatype, dataname);
+        OIIO_DASSERT(data.size_bytes() >= datatype.size());
+        return false;
+    }
+    return m_impl->get_image_info(filename, subimage, miplevel, dataname,
+                                  datatype, data.data());
+}
+
+
+
+bool
+ImageCache::get_image_info(ImageHandle* file, Perthread* thread_info,
+                           int subimage, int miplevel, ustring dataname,
+                           TypeDesc datatype, span<std::byte> data)
+{
+    if (data.size_bytes() < datatype.size()) {
+        m_impl->error(
+            "ImageCache::get_image_info given a {}-byte span, too small for a {}-byte attribute {} {}",
+            data.size_bytes(), datatype.size(), datatype, dataname);
+        OIIO_DASSERT(data.size_bytes() >= datatype.size());
+        return false;
+    }
+    return m_impl->get_image_info(file, thread_info, subimage, miplevel,
+                                  dataname, datatype, data.data());
 }
 
 
