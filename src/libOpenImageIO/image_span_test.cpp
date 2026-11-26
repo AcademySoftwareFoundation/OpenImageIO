@@ -489,6 +489,34 @@ benchmark_image_span_passing()
 
 
 
+// convert_pixel_values with a source type whose basetype is FLOAT but that
+// isn't exactly TypeFloat (here, carrying color semantics).
+void
+test_convert_pixel_values_float_variant()
+{
+    print("\ntest_convert_pixel_values_float_variant\n");
+    const TypeDesc floatcolor(TypeDesc::FLOAT, TypeDesc::SCALAR,
+                              TypeDesc::COLOR);
+    for (int n : { 4, 5000 }) {  // small (stack) and large (heap) temps
+        std::vector<float> src(n);
+        for (int i = 0; i < n; ++i)
+            src[i] = float(i % 101) / 100.0f;
+        // Expect the same result as with a plain TypeFloat source
+        std::vector<uint16_t> d16(n, 0), d16ref(n, 1);
+        OIIO_CHECK_ASSERT(convert_pixel_values(floatcolor, src.data(),
+                                               TypeUInt16, d16.data(), n));
+        OIIO_CHECK_ASSERT(convert_pixel_values(TypeFloat, src.data(),
+                                               TypeUInt16, d16ref.data(), n));
+        std::vector<float> dfloat(n, -1.0f);
+        OIIO_CHECK_ASSERT(convert_pixel_values(floatcolor, src.data(),
+                                               TypeFloat, dfloat.data(), n));
+        OIIO_CHECK_ASSERT(d16 == d16ref);
+        OIIO_CHECK_ASSERT(dfloat == src);
+    }
+}
+
+
+
 void
 test_image_span_within_span()
 {
@@ -629,6 +657,7 @@ main(int argc, char* argv[])
     test_image_span_convert_image<half, uint16_t>();
 
     test_image_span_within_span();
+    test_convert_pixel_values_float_variant();
 
     benchmark_image_span_passing();
 
