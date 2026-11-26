@@ -433,6 +433,58 @@ test_get_cache_dimensions()
 
 
 
+static void
+test_resolve_filename()
+{
+    Strutil::print("\nTesting resolve_filename\n");
+    const std::string dir      = "imagecache_test_searchdir";
+    const std::string name     = "resolve_me.exr";
+    const std::string fullname = dir + "/" + name;
+    OIIO_CHECK_ASSERT(Filesystem::create_directory(dir));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(fullname, "x"));
+
+    auto ic = ImageCache::create(false);
+    ic->attribute("searchpath", dir);
+
+    // Found paths use the OS separator, so compare them in generic form.
+    using Filesystem::generic_filepath;
+    OIIO_CHECK_EQUAL(generic_filepath(ic->resolve_filename(name)), fullname);
+    OIIO_CHECK_EQUAL(generic_filepath(ic->resolve_filename(name.c_str())),
+                     fullname);
+    OIIO_CHECK_EQUAL(generic_filepath(ic->resolve_filename(string_view(name))),
+                     fullname);
+
+    // A string_view need not be null-terminated at its end.
+    const std::string longer = name + "_trailing";
+    OIIO_CHECK_EQUAL(generic_filepath(ic->resolve_filename(
+                         string_view(longer.data(), name.size()))),
+                     fullname);
+
+    // Not found in the searchpath: returned unchanged.
+    OIIO_CHECK_EQUAL(ic->resolve_filename(string_view("noexist.exr")),
+                     "noexist.exr");
+
+    // Procedural names are returned unchanged even when a file of that name
+    // is in the searchpath. "null" is a procedural input format, matched
+    // here both by extension and by format name.
+    const std::string procext  = dir + "/procedural.null";
+    const std::string procname = dir + "/null";
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(procext, "x"));
+    OIIO_CHECK_ASSERT(Filesystem::write_text_file(procname, "x"));
+    OIIO_CHECK_EQUAL(ic->resolve_filename(string_view("procedural.null")),
+                     "procedural.null");
+    const std::string nullplus = "nullXYZ";
+    OIIO_CHECK_EQUAL(ic->resolve_filename(string_view(nullplus.data(), 4)),
+                     "null");
+
+    Filesystem::remove(procext);
+    Filesystem::remove(procname);
+    Filesystem::remove(fullname);
+    Filesystem::remove(dir);
+}
+
+
+
 int
 main(int /*argc*/, char* /*argv*/[])
 {
@@ -450,6 +502,7 @@ main(int /*argc*/, char* /*argv*/[])
     test_get_pixels_errors();
     test_custom_threadinfo();
     test_imagespec();
+    test_resolve_filename();
     test_get_cache_dimensions();
     test_autotile_chunks();
 

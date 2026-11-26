@@ -73,7 +73,7 @@ void catalog_all_plugins(std::string searchpath);
 
 // Inexpensive check if a file extension or format name corresponds to a
 // procedural input plugin.
-bool is_procedural_plugin(const std::string& name);
+bool is_procedural_plugin(string_view name);
 
 /// Given the format, set the default quantization range.
 void get_default_quantize(TypeDesc format, long long& quant_min,

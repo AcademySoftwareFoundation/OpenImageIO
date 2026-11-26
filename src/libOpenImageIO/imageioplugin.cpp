@@ -45,8 +45,10 @@ static std::map<std::string, std::string> extension_to_format_map;
 // This should be guarded by imageio_mutex.
 static std::vector<ustring> format_list_vector;
 
-// Which format names and extensions are procedural (not reading from files)
-static std::set<std::string> procedural_plugins;
+// Which format names and extensions are procedural (not reading from files).
+// std::less<> allows lookups by string_view without first copying it into a
+// std::string.
+static std::set<std::string, std::less<>> procedural_plugins;
 
 static std::string pattern = Strutil::fmt::format(".imageio.{}",
                                                   Plugin::plugin_extension());
@@ -509,7 +511,7 @@ pvt::catalog_all_plugins(std::string searchpath)
 
 
 bool
-pvt::is_procedural_plugin(const std::string& name)
+pvt::is_procedural_plugin(string_view name)
 {
     std::unique_lock<std::recursive_mutex> lock(imageio_mutex);
 

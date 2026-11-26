@@ -1021,7 +1021,7 @@ public:
     void get_commontoworld(Imath::M44f& result) const { result = m_Mc2w; }
     int max_errors_per_file() const { return m_max_errors_per_file; }
 
-    std::string resolve_filename(const std::string& filename) const;
+    std::string resolve_filename(string_view filename) const;
 
     // Set m_max_open_files, with logic to try to clamp reasonably.
     void set_max_open_files(int m);
