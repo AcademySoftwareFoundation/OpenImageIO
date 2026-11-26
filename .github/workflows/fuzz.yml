@@ -100,13 +100,16 @@ jobs:
       fuzz_max_time: ${{ matrix.max_total_time }}
       # PNG is built locally because the container's system libpng is 1.6.37,
       # which leaks in png_handle_eXIf (fixed upstream in 1.6.40).
+      # openjph is built locally because the container's 0.32.0 has a heap
+      # overflow in NLT marker parsing (fixed in 0.33.0); OpenEXR too, so it
+      # links the same openjph.
       setenvs: export SANITIZE=address,undefined
                       USE_PYTHON=0
                       OIIO_BUILD_FUZZ_TARGETS=ON
                       INSTALL_DOCS=OFF
                       OIIO_BUILD_TOOLS=OFF
                       OIIO_BUILD_TESTS=OFF
-                      OpenImageIO_BUILD_LOCAL_DEPS="TIFF,libdeflate,PNG"
+                      OpenImageIO_BUILD_LOCAL_DEPS="TIFF,libdeflate,PNG,openjph,OpenEXR"
 
   #
   # Verify every format reported by oiio_fuzz_image --list-formats has a corpus

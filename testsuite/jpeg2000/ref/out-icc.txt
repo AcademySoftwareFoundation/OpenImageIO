@@ -19,6 +19,9 @@ PASS
     Constant: Yes
     Constant Color: 128.00 (of 255)
     Monochrome: Yes
+oiiotool ERROR: read : "src/bomb-tiles.j2c": jpeg2000 header's tile layout needs at least 349440 bytes, but the file is only 171 bytes; probably a corrupt or malicious header
+Full command line was:
+> oiiotool --info -v src/bomb-tiles.j2c
 ICCProfile of tahoe-icc.jp2
     ICCProfile: 0, 0, 2, 48, 65, 68, 66, 69, 2, 16, 0, 0, 109, 110, 116, 114, ... [560 x uint8]
     ICCProfile:attributes: "Reflective, Glossy, Positive, Color"

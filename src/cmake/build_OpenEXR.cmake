@@ -3,12 +3,12 @@
 # https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
-set_cache (OpenEXR_BUILD_VERSION 3.5.2 "OpenEXR version for local builds")
+set_cache (OpenEXR_BUILD_VERSION 3.5.5 "OpenEXR version for local builds")
 set_cache (OpenEXR_GIT_REPOSITORY "https://github.com/AcademySoftwareFoundation/OpenEXR"
            "Repo to use" ADVANCED)
 set_cache (OpenEXR_GIT_TAG "v${OpenEXR_BUILD_VERSION}"
            "Specific git tag to build" ADVANCED)
-set_cache (OpenEXR_GIT_COMMIT "69b2604fc76e370615438bdc8d2cd95b9349c12e"
+set_cache (OpenEXR_GIT_COMMIT "486e238dd28ba6fed22528005b05f9f15bef0cc0"
            "Expected git commit hash corresponding to the tag" ADVANCED)
 set_cache (OpenEXR_BUILD_SHARED_LIBS ${LOCAL_BUILD_SHARED_LIBS_DEFAULT}
            "Should a local OpenEXR build, if necessary, build shared libraries" ADVANCED)
@@ -31,7 +31,13 @@ if (OpenEXR_BUILD_VERSION VERSION_GREATER_EQUAL 3.4)
     checked_find_package (openjph VERSION_MIN 0.21.2
                           NO_FP_RANGE_CHECK)
     if (openjph_FOUND AND openjph_DIR)
-        list (APPEND MORE_OpenEXR_CMAKE_ARGS -D openjph_DIR=${openjph_DIR})
+        # OpenEXR 3.5.4+ retries its search for a newer openjph without
+        # openjph_DIR, so also hand it the install prefix as openjph_ROOT.
+        cmake_path (GET openjph_DIR PARENT_PATH _openjph_root)
+        cmake_path (GET _openjph_root PARENT_PATH _openjph_root)
+        cmake_path (GET _openjph_root PARENT_PATH _openjph_root)
+        list (APPEND MORE_OpenEXR_CMAKE_ARGS -D openjph_DIR=${openjph_DIR}
+                                             -D openjph_ROOT=${_openjph_root})
     endif ()
 endif ()
 

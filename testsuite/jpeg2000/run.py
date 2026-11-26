@@ -22,6 +22,7 @@ command += diff_command("../common/tahoe-tiny.tif", "tiled.jp2")
 
 # sYCC colr box on a 1-channel image must not run the 3-channel conversion
 command += oiiotool("src/sycc-1chan.jp2 --printstats")
+command += oiiotool("--info -v src/bomb-tiles.j2c")
 
 # Try to parse library_list to find the OpenJPEG version. If found, return it as
 # a single number, e.g. 2.5.3 -> 20503. Return -1 if not found.
