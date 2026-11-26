@@ -70,13 +70,13 @@ namespace cineon
 		const int numberOfComponents = dpxHeader.NumberOfElements();
 
 		// end of line padding
-		int eolnPad = dpxHeader.EndOfLinePadding();
+		const int64_t eolnPad = dpxHeader.EndOfLinePadding();
 
 		// number of datums in one row
-		int datums = dpxHeader.Width() * numberOfComponents;
+		const int64_t datums = int64_t(dpxHeader.Width()) * numberOfComponents;
 
 		// Line length in bytes rounded to 32 bits boundary
-		int lineLength = ((datums - 1) / 3 + 1) * 4;
+		const int64_t lineLength = ((datums - 1) / 3 + 1) * 4;
 
 		// read in each line at a time directly into the user memory space
 		for (int line = 0; line < height; line++)
@@ -88,16 +88,15 @@ namespace cineon
 			int64_t offset = int64_t(actline) * lineLength;
 
 			// add in eoln padding
-			offset += int64_t(line) * eolnPad;
+			offset += int64_t(actline) * eolnPad;
 
 			// add in offset within the current line, rounding down so to catch any components within the word
 			offset += int64_t(block.x1) * numberOfComponents / 3 * 4;
 
 
 			// get the read count in bytes, round to the 32-bit boundary
-			int readSize = (block.x2 - block.x1 + 1) * numberOfComponents;
-			readSize += readSize % 3;
-			readSize = readSize / 3 * 4;
+			int64_t readSize = int64_t(block.x2 - block.x1 + 1) * numberOfComponents;
+			readSize = (readSize + 2) / 3 * 4;
 
 			// determine buffer offset
 			int64_t bufoff = int64_t(line) * datums;
@@ -199,7 +198,7 @@ namespace cineon
 		const int numberOfComponents = dpxHeader.NumberOfElements();
 
 		// end of line padding
-		int eolnPad = dpxHeader.EndOfLinePadding();
+		const int64_t eolnPad = dpxHeader.EndOfLinePadding();
 
 		// data size in bits
 		// FIXME!!!
@@ -213,7 +212,7 @@ namespace cineon
 		{
 			// determine offset into image element
 			int64_t offset = (line + block.y1) * (lineSize * sizeof(U32)) +
-						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + (line * eolnPad);
+						(int64_t(block.x1) * numberOfComponents * dataSize / 32 * sizeof(U32)) + ((line + block.y1) * eolnPad);
 
 			// calculate read size
 			int64_t readSize = (int64_t(block.x2 - block.x1 + 1) * numberOfComponents * dataSize);
@@ -264,29 +263,27 @@ namespace cineon
 		const int height = block.y2 - block.y1 + 1;
 
 		// end of line padding
-		int eolnPad = dpxHeader.EndOfLinePadding();
-		if (eolnPad == ~0)
-			eolnPad = 0;
+		const int64_t eolnPad = dpxHeader.EndOfLinePadding();
 
 		// image width
-		const int imageWidth = dpxHeader.Width();
+		const int64_t imageWidth = dpxHeader.Width();
 
 		// read in each line at a time directly into the user memory space
-		for (int line = 0; line < height; line++)
+		for (int64_t line = 0; line < height; line++)
 		{
 
 			// determine offset into image element
 			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * bytes +
-						int64_t(block.x1) * numberOfComponents * bytes + int64_t(line) * eolnPad;
+						int64_t(block.x1) * numberOfComponents * bytes + int64_t(line + block.y1) * eolnPad;
 
 			if (BUFTYPE == SRCTYPE)
 			{
-				if (!fd->ReadDirect(dpxHeader, offset, reinterpret_cast<unsigned char *>(data + int64_t(width)*line), int64_t(width)*bytes))
+				if (!fd->ReadDirect(dpxHeader, offset, reinterpret_cast<unsigned char *>(data + int64_t(width)*line), size_t(width)*bytes))
 					return false;
 			}
 			else
 			{
-				if (!fd->Read(dpxHeader, offset, readBuf, int64_t(width)*bytes))
+				if (!fd->Read(dpxHeader, offset, readBuf, size_t(width)*bytes))
 					return false;
 
 				// convert data
@@ -323,7 +320,7 @@ namespace cineon
 		{
 			// determine offset into image element
 			int64_t offset = int64_t(line + block.y1) * imageWidth * numberOfComponents * 2 +
-						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line) * eolnPad;
+						int64_t(block.x1) * numberOfComponents * 2 + int64_t(line + block.y1) * eolnPad;
 
 			if (!fd->Read(dpxHeader, offset, readBuf, int64_t(width)*2))
 				return false;

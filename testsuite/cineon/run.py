@@ -27,5 +27,21 @@ command += oiiotool ("--testread src/truncated-10bit-filled.cin", failureok=True
 command += oiiotool ("--testread src/truncated-8bit-eolpad.cin", failureok=True)
 # Regression test: user data running past the end of the file is an error.
 command += info_command ("src/bad-usersize.cin", verbose=False, failureok=True)
+# Regression test: header text fields filling their whole width, with no
+# NUL terminator, must not read past the field.
+command += info_command ("src/bad-strings.cin")
+# Regression test: channels with differing bit depths are rejected.
+command += info_command ("src/mixed-bitdepth.cin", verbose=False, failureok=True)
+# Regression test: pixel data truncated mid-image must fail to read.
+command += info_command ("src/truncated.cin", verbose=False, failureok=True)
+# Regression test: 10-bit row whose sample count is 1 mod 3 decodes its
+# last sample.
+command += info_command ("src/width4-10bit.cin", extraargs="--dumpdata",
+                         verbose=False)
+# Regression test: 10-bit rows separated by end-of-line padding.
+command += info_command ("src/eolpad-10bit.cin", extraargs="--dumpdata",
+                         verbose=False)
+# Regression test: end-of-line padding too large for an int is rejected.
+command += info_command ("src/bad-eolpad.cin", verbose=False, failureok=True)
 
 outputs = [ "out.txt" ]

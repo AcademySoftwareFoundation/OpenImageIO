@@ -51,8 +51,8 @@ namespace cineon
 
 		virtual void Reset();
 
-		virtual bool Read(const cineon::Header &, const long offset, void * buf, const size_t size);
-		virtual bool ReadDirect(const cineon::Header &, const long offset, void * buf, const size_t size);
+		virtual bool Read(const cineon::Header &, const int64_t offset, void * buf, const size_t size);
+		virtual bool ReadDirect(const cineon::Header &, const int64_t offset, void * buf, const size_t size);
 
 	protected:
 		void EndianDataCheck(const cineon::Header &, void *, const size_t size);
