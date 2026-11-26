@@ -117,6 +117,25 @@ public API with a rectangle-sized buffer.
 - Seen: exr (#5295); tiff serial and parallel-decompress paths.
 
 
+### A10. Full decode in open(); library working memory outside the limits
+A reader that decodes all pixels inside `open()` makes header-only callers
+(`iinfo`, ImageCache spec queries) pay full time and memory, and a small valid
+file with a large flat image becomes a cheap DoS. Separately, a decoder
+library's internal working memory can be several times the output buffer, so
+`limits:imagesize_MB` (checked by `check_open` on the spec) understates peak
+use. Neither is a ratio-guard problem when the format legitimately reaches
+extreme ratios (C2 N/A).
+- Find: `open()` loops that run to a full-image/success event, or allocate the
+  pixel buffer; library decoders that accept a custom allocator but get none.
+- Fix: `open()` decodes headers only and releases the decoder; decode lazily
+  on first pixel read, under the ImageInput lock, freeing the decoder after.
+  Hand the library a counting allocator capped at a measured multiple of
+  `limits:imagesize_MB` (the limit promises the decoded size, not peak
+  decode memory); on refusal, report which limit to raise. The cap counts
+  requested bytes, which can exceed touched (RSS) bytes, so measure the
+  library's worst valid case before picking the multiple.
+- Seen: jpegxl (`JxlMemoryManager`, lazy decode).
+
 ## B. Integer arithmetic
 
 ### B1. 32-bit product feeding a 64-bit use

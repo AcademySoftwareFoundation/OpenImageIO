@@ -13,8 +13,14 @@
 // https://bugs.chromium.org/p/chromium/issues/detail?id=1451807
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
+#include <new>
 
 #include <OpenImageIO/color.h>
 #include <OpenImageIO/filesystem.h>
@@ -30,6 +36,21 @@
 OIIO_PLUGIN_NAMESPACE_BEGIN
 
 #define DBG if (0)
+
+// Cap on libjxl working memory: a multiple of "limits:imagesize_MB" plus a
+// floor for fixed overhead. libjxl 0.13 requests up to ~4.2x the output size
+// (uint8 output) plus ~15 MB.
+static constexpr size_t jxl_working_mem_factor   = 5;
+static constexpr size_t jxl_working_mem_floor_MB = 64;
+
+// Allocation tracker handed to libjxl as a JxlMemoryManager.
+struct JxlMemTracker {
+    std::atomic<size_t> used { 0 };
+    size_t limit = 0;  // 0 means unlimited
+    std::atomic<bool> exceeded { false };
+};
+
+
 
 class JxlInput final : public ImageInput {
 public:
@@ -53,13 +74,20 @@ public:
 
 private:
     std::string m_filename;
-    int m_next_scanline;  // Which scanline is the next to read?
     uint32_t m_channels;
+    JxlPixelFormat m_format;
+    JxlMemTracker m_memtracker;  // must outlive m_decoder
+    JxlMemoryManager m_memmgr;
     JxlDecoderPtr m_decoder;
     JxlResizableParallelRunnerPtr m_runner;
     std::unique_ptr<ImageSpec> m_config;  // Saved copy of configuration spec
     std::vector<uint8_t> m_icc_profile;
     std::unique_ptr<uint8_t[]> m_buffer;
+    std::vector<uint8_t> m_input;  // Pending input bytes (file proxy only)
+    size_t m_input_offset;         // File offset of the next unread byte
+    size_t m_input_chunk;          // Size of the next file read
+    bool m_input_set;              // Has input been given to m_decoder?
+    bool m_decode_failed;          // Pixel decode attempted and failed
 
     void init()
     {
@@ -68,10 +96,78 @@ private:
         m_decoder = nullptr;
         m_runner  = nullptr;
         m_buffer  = nullptr;
+        m_icc_profile.clear();
+        release_input();
+        m_decode_failed = false;
     }
+
+    void release_input()
+    {
+        m_input.clear();
+        m_input.shrink_to_fit();
+        m_input_offset = 0;
+        m_input_chunk  = 0;
+        m_input_set    = false;
+    }
+
+    // Free the decoder, its worker threads, and its input.
+    void release_decoder()
+    {
+        m_decoder.reset();
+        m_runner.reset();
+        release_input();
+    }
+
+    // Create m_decoder (with the memory cap and parallel runner) and
+    // subscribe it to `events`, ready to be fed from the beginning.
+    bool start_decoder(int events);
+    // Give the decoder more input. Return false if there is none left.
+    bool feed_input();
+    // Decode the full image into m_buffer, if not already done.
+    bool decode_pixels();
+    void report_decoder_error();
 
     void close_file() { init(); }
 };
+
+
+
+static void*
+jxl_tracked_alloc(void* opaque, size_t size)
+{
+    constexpr size_t header = alignof(std::max_align_t);
+    auto tracker            = static_cast<JxlMemTracker*>(opaque);
+    if (size > std::numeric_limits<size_t>::max() - header)
+        return nullptr;
+    size_t used = tracker->used.fetch_add(size) + size;
+    if (tracker->limit && used > tracker->limit) {
+        tracker->used.fetch_sub(size);
+        tracker->exceeded = true;
+        return nullptr;
+    }
+    auto p = static_cast<char*>(malloc(size + header));
+    if (!p) {
+        tracker->used.fetch_sub(size);
+        return nullptr;
+    }
+    memcpy(p, &size, sizeof(size));
+    return p + header;
+}
+
+
+
+static void
+jxl_tracked_free(void* opaque, void* address)
+{
+    constexpr size_t header = alignof(std::max_align_t);
+    if (!address)
+        return;
+    auto p = static_cast<char*>(address) - header;
+    size_t size;
+    memcpy(&size, p, sizeof(size));
+    static_cast<JxlMemTracker*>(opaque)->used.fetch_sub(size);
+    free(p);
+}
 
 
 
@@ -144,6 +240,95 @@ JxlInput::open(const std::string& name, ImageSpec& newspec,
 
 
 bool
+JxlInput::start_decoder(int events)
+{
+    m_decoder.reset();
+    release_input();
+    m_memtracker.exceeded = false;
+    size_t limit_MB = std::max(0,
+                               OIIO::get_int_attribute("limits:imagesize_MB"));
+    m_memtracker.limit
+        = limit_MB
+              ? (limit_MB * jxl_working_mem_factor + jxl_working_mem_floor_MB)
+                    << 20
+              : 0;
+    m_memmgr.opaque = &m_memtracker;
+    m_memmgr.alloc  = jxl_tracked_alloc;
+    m_memmgr.free   = jxl_tracked_free;
+
+    m_decoder = JxlDecoderMake(&m_memmgr);
+    if (!m_decoder) {
+        errorfmt("Could not create JPEG XL decoder");
+        return false;
+    }
+    if (!m_runner) {
+        m_runner = JxlResizableParallelRunnerMake(nullptr);
+        if (!m_runner) {
+            errorfmt("Could not create JPEG XL parallel runner");
+            return false;
+        }
+    }
+    if (JxlDecoderSetParallelRunner(m_decoder.get(), JxlResizableParallelRunner,
+                                    m_runner.get())
+            != JXL_DEC_SUCCESS
+        || JxlDecoderSubscribeEvents(m_decoder.get(), events)
+               != JXL_DEC_SUCCESS) {
+        errorfmt("Could not initialize JPEG XL decoder");
+        return false;
+    }
+    return true;
+}
+
+
+
+bool
+JxlInput::feed_input()
+{
+    Filesystem::IOProxy* io = ioproxy();
+    if (string_view(io->proxytype()) == "memreader") {
+        if (m_input_set)
+            return false;
+        auto buffer = static_cast<Filesystem::IOMemReader*>(io)->buffer();
+        if (JxlDecoderSetInput(m_decoder.get(), buffer.data(), buffer.size())
+            != JXL_DEC_SUCCESS)
+            return false;
+        JxlDecoderCloseInput(m_decoder.get());
+        m_input_set = true;
+        return true;
+    }
+
+    // File proxy: read in growing chunks so that a header-only open reads
+    // little more than the header.
+    size_t filesize = io->size();
+    if (m_input_offset >= filesize)
+        return false;
+    size_t remaining = m_input_set ? JxlDecoderReleaseInput(m_decoder.get())
+                                   : 0;
+    remaining        = std::min(remaining, m_input.size());
+    m_input_chunk    = std::min(std::max(m_input_chunk * 2, size_t(65536)),
+                                size_t(16) << 20);
+    size_t chunk     = std::min(m_input_chunk, filesize - m_input_offset);
+    if (remaining)
+        memmove(m_input.data(), m_input.data() + m_input.size() - remaining,
+                remaining);
+    m_input.resize(remaining + chunk);
+    if (io->pread(m_input.data() + remaining, chunk, m_input_offset) != chunk) {
+        errorfmt("Failed to read {} bytes from \"{}\"", chunk, m_filename);
+        return false;
+    }
+    m_input_offset += chunk;
+    if (JxlDecoderSetInput(m_decoder.get(), m_input.data(), m_input.size())
+        != JXL_DEC_SUCCESS)
+        return false;
+    if (m_input_offset >= filesize)
+        JxlDecoderCloseInput(m_decoder.get());
+    m_input_set = true;
+    return true;
+}
+
+
+
+bool
 JxlInput::open(const std::string& name, ImageSpec& newspec)
 {
     DBG std::cout << "JxlInput::open(name, newspec)\n";
@@ -173,96 +358,38 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    m_decoder = JxlDecoderMake(nullptr);
-    if (m_decoder == nullptr) {
-        DBG std::cout << "JxlDecoderMake failed\n";
+    // Only decode the headers here. Pixels are decoded on first read.
+    if (!start_decoder(JXL_DEC_BASIC_INFO | JXL_DEC_COLOR_ENCODING)) {
         close();
         return false;
-    }
-
-    m_runner = JxlResizableParallelRunnerMake(nullptr);
-    if (m_runner == nullptr) {
-        DBG std::cout << "JxlThreadParallelRunnerMake failed\n";
-        close();
-        return false;
-    }
-
-    JxlDecoderStatus status = JxlDecoderSetParallelRunner(
-        m_decoder.get(), JxlResizableParallelRunner, m_runner.get());
-    if (status != JXL_DEC_SUCCESS) {
-        DBG std::cout << "JxlDecoderSetParallelRunner failed\n";
-        close();
-        return false;
-    }
-
-    status
-        = JxlDecoderSubscribeEvents(m_decoder.get(),
-                                    JXL_DEC_BASIC_INFO | JXL_DEC_COLOR_ENCODING
-                                        | JXL_DEC_FRAME | JXL_DEC_FULL_IMAGE);
-    if (status != JXL_DEC_SUCCESS) {
-        DBG std::cout << "JxlDecoderSubscribeEvents failed\n";
-        close();
-        return false;
-    }
-
-    std::unique_ptr<uint8_t[]> jxl;
-
-    DBG std::cout << "proxytype = " << proxytype << "\n";
-    if (proxytype == "file") {
-        size_t size = m_io->size();
-        DBG std::cout << "size = " << size << "\n";
-        jxl.reset(new uint8_t[size]);
-        size_t result = m_io->read(jxl.get(), size);
-        DBG std::cout << "result = " << result << "\n";
-        if (result != size) {
-            errorfmt("Failed to read {} bytes from \"{}\"", size, m_filename);
-            return false;
-        }
-
-        status = JxlDecoderSetInput(m_decoder.get(), jxl.get(), size);
-        if (status != JXL_DEC_SUCCESS) {
-            DBG std::cout << "JxlDecoderSetInput() returned " << status << "\n";
-            close();
-            return false;
-        }
-        JxlDecoderCloseInput(m_decoder.get());
-
-    } else {
-        auto buffer = reinterpret_cast<Filesystem::IOMemReader*>(m_io)->buffer();
-        status = JxlDecoderSetInput(m_decoder.get(),
-                                    const_cast<unsigned char*>(buffer.data()),
-                                    buffer.size());
-        if (status != JXL_DEC_SUCCESS) {
-            close();
-            return false;
-        }
     }
 
     JxlBasicInfo info;
-    JxlPixelFormat format;
     JxlDataType jxl_data_type;
     TypeDesc m_data_type;
-    uint32_t bits = 0;
     JxlColorEncoding color_encoding {};
     bool have_color_encoding = false;
     bool got_basic_info      = false;
+    bool got_color_encoding  = false;
 
-    for (;;) {
+    while (!got_color_encoding) {
         JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
         DBG std::cout << "JxlDecoderProcessInput() returned " << status << "\n";
 
         if (status == JXL_DEC_ERROR) {
             DBG std::cout << "JXL_DEC_ERROR\n";
-
-            errorfmt("JPEG XL decoder error");
+            report_decoder_error();
             close();
             return false;
         } else if (status == JXL_DEC_NEED_MORE_INPUT) {
             DBG std::cout << "JXL_DEC_NEED_MORE_INPUT\n";
-
-            errorfmt("JPEG XL decoder error, already provided all input\n");
-            close();
-            return false;
+            if (!feed_input()) {
+                if (!has_error())
+                    errorfmt("Possible corrupt file, JPEG XL header is "
+                             "truncated\n");
+                close();
+                return false;
+            }
         } else if (status == JXL_DEC_BASIC_INFO) {
             DBG std::cout << "JXL_DEC_BASIC_INFO\n";
 
@@ -280,26 +407,20 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
             if (info.bits_per_sample <= 8) {
                 jxl_data_type = JXL_TYPE_UINT8;
                 m_data_type   = TypeDesc::UINT8;
-                bits          = 8;
             } else if (info.bits_per_sample <= 16) {
                 jxl_data_type = is_float ? JXL_TYPE_FLOAT16 : JXL_TYPE_UINT16;
                 m_data_type   = is_float ? TypeDesc::HALF : TypeDesc::UINT16;
-                bits          = 16;
             } else if (info.bits_per_sample <= 32) {
                 jxl_data_type = JXL_TYPE_FLOAT;
                 m_data_type   = TypeDesc::FLOAT;
-                bits          = 32;
             } else {
                 errorfmt("Unsupported bits per sample\n");
                 close();
                 return false;
             }
 
-            format = { m_channels, jxl_data_type, JXL_NATIVE_ENDIAN, 0 };
-
-            format.num_channels = info.num_color_channels
-                                  + info.num_extra_channels;
             m_channels = info.num_color_channels + info.num_extra_channels;
+            m_format   = { m_channels, jxl_data_type, JXL_NATIVE_ENDIAN, 0 };
 
             // Validate dimensions/channel count before the decoder proceeds
             // further and may attempt huge allocations on corrupt inputs.
@@ -310,11 +431,6 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                 return false;
             }
             got_basic_info = true;
-
-            JxlResizableParallelRunnerSetThreads(
-                m_runner.get(),
-                JxlResizableParallelRunnerSuggestThreads(info.xsize,
-                                                         info.ysize));
         } else if (status == JXL_DEC_COLOR_ENCODING) {
             DBG std::cout << "JXL_DEC_COLOR_ENCODING\n";
 
@@ -349,49 +465,9 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
                     &color_encoding)) {
                 have_color_encoding = true;
             }
-        } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
-            DBG std::cout << "JXL_DEC_NEED_IMAGE_OUT_BUFFER\n";
-
-            size_t buffer_size;
-            if (JXL_DEC_SUCCESS
-                != JxlDecoderImageOutBufferSize(m_decoder.get(), &format,
-                                                &buffer_size)) {
-                errorfmt("JxlDecoderImageOutBufferSize failed\n");
-                close();
-                return false;
-            }
-            size_t expected_size = size_t(info.xsize) * info.ysize * m_channels
-                                   * bits / 8;
-            if (buffer_size != expected_size) {
-                errorfmt("Invalid out buffer size {} {}\n", buffer_size,
-                         expected_size);
-                close();
-                return false;
-            }
-
-            m_buffer.reset(new uint8_t[buffer_size]);
-
-            if (JXL_DEC_SUCCESS
-                != JxlDecoderSetImageOutBuffer(m_decoder.get(), &format,
-                                               m_buffer.get(), buffer_size)) {
-                errorfmt("JxlDecoderSetImageOutBuffer failed\n");
-                close();
-                return false;
-            }
-        } else if (status == JXL_DEC_FULL_IMAGE) {
-            DBG std::cout << "JXL_DEC_FULL_IMAGE\n";
-
-            // Nothing to do. Do not yet return. If the image is an animation, more
-            // full frames may be decoded. This example only keeps the last one.
-        } else if (status == JXL_DEC_FRAME) {
-            DBG std::cout << "JXL_DEC_FRAME\n";
-
+            got_color_encoding = true;
         } else if (status == JXL_DEC_SUCCESS) {
             DBG std::cout << "JXL_DEC_SUCCESS\n";
-
-            // All decoding successfully finished.
-            // It's not required to call JxlDecoderReleaseInput(m_decoder.get()) here since
-            // the decoder will be destroyed.
             break;
         } else {
             errorfmt("Unknown decoder status\n");
@@ -406,14 +482,8 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
         return false;
     }
 
-    // A valid image always triggers JXL_DEC_NEED_IMAGE_OUT_BUFFER and allocates
-    // m_buffer during the decode loop above. If it didn't, the file provided
-    // basic info but no decodable pixels; fail rather than let a later
-    // read_native_scanline() dereference a null buffer.
-    if (!m_buffer) {
-        errorfmt("Possible corrupt file, no JPEG XL image data decoded\n");
-        return false;
-    }
+    // Release the header decoder and its input until pixels are needed.
+    release_decoder();
 
     // Read ICC profile
     if (m_icc_profile.size() && m_icc_profile.data()) {
@@ -461,21 +531,122 @@ JxlInput::open(const std::string& name, ImageSpec& newspec)
 
 
 
+void
+JxlInput::report_decoder_error()
+{
+    if (m_memtracker.exceeded)
+        errorfmt(
+            "JPEG XL decoder exceeded its {} MB working memory limit (derived from \"limits:imagesize_MB\").\n"
+            "If this is a valid file, raise the OIIO attribute \"limits:imagesize_MB\".",
+            m_memtracker.limit >> 20);
+    else
+        errorfmt("JPEG XL decoder error");
+}
+
+
+
+bool
+JxlInput::decode_pixels()
+{
+    if (m_buffer)
+        return true;
+    if (m_decode_failed) {
+        errorfmt("JPEG XL pixel decode previously failed");
+        return false;
+    }
+
+    auto fail = [&]() {
+        release_decoder();
+        m_buffer.reset();
+        m_decode_failed = true;
+        return false;
+    };
+
+    if (!start_decoder(JXL_DEC_FULL_IMAGE))
+        return fail();
+    JxlResizableParallelRunnerSetThreads(
+        m_runner.get(),
+        JxlResizableParallelRunnerSuggestThreads(m_spec.width, m_spec.height));
+
+    for (;;) {
+        JxlDecoderStatus status = JxlDecoderProcessInput(m_decoder.get());
+        if (status == JXL_DEC_ERROR) {
+            report_decoder_error();
+            return fail();
+        } else if (status == JXL_DEC_NEED_MORE_INPUT) {
+            if (!feed_input()) {
+                if (!has_error())
+                    errorfmt("Possible corrupt file, JPEG XL image data is "
+                             "truncated");
+                return fail();
+            }
+        } else if (status == JXL_DEC_NEED_IMAGE_OUT_BUFFER) {
+            size_t buffer_size;
+            if (JXL_DEC_SUCCESS
+                != JxlDecoderImageOutBufferSize(m_decoder.get(), &m_format,
+                                                &buffer_size)) {
+                errorfmt("JxlDecoderImageOutBufferSize failed\n");
+                return fail();
+            }
+            size_t expected_size = m_spec.image_bytes(true);
+            if (buffer_size != expected_size) {
+                errorfmt("Invalid out buffer size {} {}\n", buffer_size,
+                         expected_size);
+                return fail();
+            }
+            // Animations re-request a buffer per frame; keep the last frame.
+            if (!m_buffer)
+                m_buffer.reset(new (std::nothrow) uint8_t[buffer_size]);
+            if (!m_buffer) {
+                errorfmt("Could not allocate {} bytes for JPEG XL image",
+                         buffer_size);
+                return fail();
+            }
+            if (JXL_DEC_SUCCESS
+                != JxlDecoderSetImageOutBuffer(m_decoder.get(), &m_format,
+                                               m_buffer.get(), buffer_size)) {
+                errorfmt("JxlDecoderSetImageOutBuffer failed\n");
+                return fail();
+            }
+        } else if (status == JXL_DEC_FULL_IMAGE) {
+            // More frames may follow for an animation.
+        } else if (status == JXL_DEC_SUCCESS) {
+            break;
+        } else {
+            errorfmt("Unknown decoder status\n");
+            return fail();
+        }
+    }
+
+    if (!m_buffer) {
+        errorfmt("Possible corrupt file, no JPEG XL image data decoded\n");
+        return fail();
+    }
+
+    // Free the decoder's working memory, threads, and input now that pixels
+    // are ready.
+    release_decoder();
+    return true;
+}
+
+
+
 bool
 JxlInput::read_native_scanline(int subimage, int miplevel, int y, int /*z*/,
                                void* data)
 {
     DBG std::cout << "JxlInput::read_native_scanline(, , " << y << ")\n";
-    size_t scanline_size = m_spec.width * m_channels * m_spec.channel_bytes();
-    // size_t scanline_size = m_spec.width * m_channels * sizeof(uint8_t);
+    size_t scanline_size = m_spec.scanline_bytes(true);
 
     lock_guard lock(*this);
     if (!seek_subimage(subimage, miplevel))
         return false;
     if (y < 0 || y >= m_spec.height)  // out of range scanline
         return false;
+    if (!decode_pixels())
+        return false;
 
-    memcpy(data, (void*)(m_buffer.get() + y * scanline_size), scanline_size);
+    memcpy(data, m_buffer.get() + y * scanline_size, scanline_size);
 
     return true;
 }
