@@ -554,11 +554,11 @@ JxlInput::decode_pixels()
         errorfmt("JPEG XL pixel decode previously failed");
         return false;
     }
-    m_decode_failed = true;  // cleared on success
 
     auto fail = [&]() {
         release_decoder();
         m_buffer.reset();
+        m_decode_failed = true;
         return false;
     };
 
@@ -626,7 +626,6 @@ JxlInput::decode_pixels()
     // Free the decoder's working memory, threads, and input now that pixels
     // are ready.
     release_decoder();
-    m_decode_failed = false;
     return true;
 }
 
