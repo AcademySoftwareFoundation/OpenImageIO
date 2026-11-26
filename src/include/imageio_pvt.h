@@ -302,6 +302,28 @@ OIIO_API bool test_read_image(ImageInput& inp, int subimage, int miplevel,
 /// Read all subimage and MIP levels of the open file.
 OIIO_API bool test_read_all_images(ImageInput& inp,
                                    TypeDesc format = TypeUInt8);
+
+/// Return the sorted, unique, non-NaN set of all depths in `z` and `zback`,
+/// i.e., every depth at which a deep pixel with those samples must be split.
+std::vector<float> deep_split_depths(cspan<float> z, cspan<float> zback);
+
+/// For each of the sorted `depths` (as returned by deep_split_depths), return
+/// the index of the first depth that can split what remains behind a split at
+/// that depth. That is usually just the next one, but may skip some if storing
+/// the remainder's front in a Z channel of type `ztype` rounds it up.
+std::vector<size_t> deep_split_next(cspan<float> depths, TypeDesc ztype);
+
+/// Return the number of samples that a deep pixel with the given sample
+/// `z` and `zback` values will have after splitting at the `depths`, where
+/// `next` is as returned by deep_split_next. Counting may stop early once the
+/// total exceeds `maxsamples`.
+int64_t deep_split_count(cspan<float> depths, cspan<size_t> next,
+                         cspan<float> z, cspan<float> zback,
+                         int64_t maxsamples);
+
+/// Maximum number of samples, each of `samplesize` bytes, that splitting may
+/// produce in one deep pixel.
+int64_t deep_split_limit(size_t samplesize);
 }  // namespace pvt
 OIIO_NAMESPACE_3_1_END
 

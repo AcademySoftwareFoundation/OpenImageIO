@@ -3,9 +3,12 @@
 // https://github.com/AcademySoftwareFoundation/OpenImageIO
 
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
+#include <vector>
 
 #include <OpenImageIO/half.h>
 
@@ -258,76 +261,65 @@ ImageBufAlgo::deep_merge(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
     }
 
     // First, set the capacity of the dst image to reserve enough space for
-    // the segments of both source images, including any splits that may
-    // occur.
+    // the segments of both source images, including all splits expected to
+    // occur, so that pixels need not be reallocated as they are merged.
     DeepData& dstdd(*dst.deepdata());
     const DeepData& Add(*A.deepdata());
     const DeepData& Bdd(*B.deepdata());
-    int Azchan     = Add.Z_channel();
-    int Azbackchan = Add.Zback_channel();
-    int Bzchan     = Bdd.Z_channel();
-    int Bzbackchan = Bdd.Zback_channel();
+    int zchan     = dstdd.Z_channel();
+    int zbackchan = dstdd.Zback_channel();
+    // Samples can only be split if they are extended
+    bool splittable    = (zchan >= 0 && zbackchan >= 0 && zchan != zbackchan);
+    int64_t maxsamples = pvt::deep_split_limit(dstdd.samplesize());
+    std::vector<float> zs, zbacks;
+    // Retrieve all of a pixel's values of a depth channel, as they will be
+    // once converted to dst's type for that channel.
+    DeepData scratch;
+    auto get_depths = [&](const DeepData& dd, int pixel, int chan,
+                          std::vector<float>& vals) {
+        bool convert = (dd.channeltype(chan) != dstdd.channeltype(chan));
+        if (convert) {
+            scratch.init(1, 1, dstdd.channeltype(chan), std::string("Z"));
+            scratch.set_samples(0, 1);
+        }
+        for (int s = 0, n = dd.samples(pixel); s < n; ++s) {
+            float v = dd.deep_value(pixel, chan, s);
+            if (convert) {
+                scratch.set_deep_value(0, 0, 0, v);
+                v = scratch.deep_value(0, 0, 0);
+            }
+            vals.push_back(v);
+        }
+    };
     for (int z = roi.zbegin; z < roi.zend; ++z)
         for (int y = roi.ybegin; y < roi.yend; ++y)
             for (int x = roi.xbegin; x < roi.xend; ++x) {
-                int dstpixel            = dst.pixelindex(x, y, z, true);
-                int Apixel              = A.pixelindex(x, y, z, true);
-                int Bpixel              = B.pixelindex(x, y, z, true);
-                int Asamps              = Add.samples(Apixel);
-                int Bsamps              = Bdd.samples(Bpixel);
-                int nsplits             = 0;
-                int self_overlap_splits = 0;
-                for (int s = 0; s < Asamps; ++s) {
-                    float src_z     = Add.deep_value(Apixel, Azchan, s);
-                    float src_zback = Add.deep_value(Apixel, Azbackchan, s);
-                    for (int d = 0; d < Bsamps; ++d) {
-                        float dst_z     = Bdd.deep_value(Bpixel, Bzchan, d);
-                        float dst_zback = Bdd.deep_value(Bpixel, Bzbackchan, d);
-                        if (src_z > dst_z && src_z < dst_zback)
-                            ++nsplits;
-                        if (src_zback > dst_z && src_zback < dst_zback)
-                            ++nsplits;
-                        if (dst_z > src_z && dst_z < src_zback)
-                            ++nsplits;
-                        if (dst_zback > src_z && dst_zback < src_zback)
-                            ++nsplits;
-                    }
-                    // Check for splits src vs src -- in case they overlap!
-                    for (int ss = s; ss < Asamps; ++ss) {
-                        float src_z2     = Add.deep_value(Apixel, Azchan, ss);
-                        float src_zback2 = Add.deep_value(Apixel, Azbackchan,
-                                                          ss);
-                        if (src_z2 > src_z && src_z2 < src_zback)
-                            ++self_overlap_splits;
-                        if (src_zback2 > src_z && src_zback2 < src_zback)
-                            ++self_overlap_splits;
-                        if (src_z > src_z2 && src_z < src_zback2)
-                            ++self_overlap_splits;
-                        if (src_zback > src_z2 && src_zback < src_zback2)
-                            ++self_overlap_splits;
-                    }
+                int dstpixel  = dst.pixelindex(x, y, z, true);
+                int Apixel    = A.pixelindex(x, y, z, true);
+                int Bpixel    = B.pixelindex(x, y, z, true);
+                int Asamps    = Add.samples(Apixel);
+                int Bsamps    = Bdd.samples(Bpixel);
+                int64_t total = int64_t(Asamps) + int64_t(Bsamps);
+                // If either pixel is empty, the other is merely copied
+                if (Asamps && Bsamps && splittable) {
+                    zs.clear();
+                    zbacks.clear();
+                    get_depths(Add, Apixel, zchan, zs);
+                    get_depths(Bdd, Bpixel, zchan, zs);
+                    get_depths(Add, Apixel, zbackchan, zbacks);
+                    get_depths(Bdd, Bpixel, zbackchan, zbacks);
+                    auto depths = pvt::deep_split_depths(zs, zbacks);
+                    auto next = pvt::deep_split_next(depths,
+                                                     dstdd.channeltype(zchan));
+                    total     = pvt::deep_split_count(depths, next, zs, zbacks,
+                                                      maxsamples);
                 }
-                // Check for splits dst vs dst -- in case they overlap!
-                for (int d = 0; d < Bsamps; ++d) {
-                    float dst_z     = Bdd.deep_value(Bpixel, Bzchan, d);
-                    float dst_zback = Bdd.deep_value(Bpixel, Bzbackchan, d);
-                    for (int dd = d; dd < Bsamps; ++dd) {
-                        float dst_z2     = Bdd.deep_value(Bpixel, Bzchan, dd);
-                        float dst_zback2 = Bdd.deep_value(Bpixel, Bzbackchan,
-                                                          dd);
-                        if (dst_z2 > dst_z && dst_z2 < dst_zback)
-                            ++self_overlap_splits;
-                        if (dst_zback2 > dst_z && dst_zback2 < dst_zback)
-                            ++self_overlap_splits;
-                        if (dst_z > dst_z2 && dst_z < dst_zback2)
-                            ++self_overlap_splits;
-                        if (dst_zback > dst_z2 && dst_zback < dst_zback2)
-                            ++self_overlap_splits;
-                    }
-                }
-
-                dstdd.set_capacity(dstpixel, Asamps + Bsamps + nsplits
-                                                 + self_overlap_splits);
+                // This is only an estimate; merge_deep_pixels has the final
+                // say on what exceeds the limit, so don't reserve for those.
+                if (total > maxsamples)
+                    total = std::min(int64_t(Asamps) + int64_t(Bsamps),
+                                     int64_t(std::numeric_limits<int>::max()));
+                dstdd.set_capacity(dstpixel, int(total));
             }
 
     if (!ImageBufAlgo::copy(dst, A, TypeDesc::UNKNOWN, roi, nthreads))
@@ -345,8 +337,15 @@ ImageBufAlgo::deep_merge(ImageBuf& dst, const ImageBuf& A, const ImageBuf& B,
                 // not the DEPRECATED(3.2) void one.
                 bool ok_dd = dstdd.merge_deep_pixels(int64_t(dstpixel), Bdd,
                                                      int64_t(Bpixel));
-                if (!ok_dd)
+                if (!ok_dd) {
+                    dst.errorfmt(
+                        "deep_merge: pixel ({}, {}, {}) could not be merged, "
+                        "or would need more than {} samples after splitting. "
+                        "If this is a valid image, raise the OIIO attribute "
+                        "\"limits:imagesize_MB\".",
+                        x, y, z, maxsamples);
                     return false;
+                }
                 // OIIO_DASSERT (oldcap == dstdd.capacity(dstpixel) &&
                 //          "Broken: we did not preallocate enough capacity");
                 if (occlusion_cull)

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import random
 import OpenImageIO as oiio
 
 test_xres = 3
@@ -188,6 +189,166 @@ def test_merge_deep_pixels () :
     print_deep_image (Add, "After merge_deep_pixels,")
 
 
+def test_merge_mixed_depth_types () :
+    print ("\nTesting merge_deep_pixels with half Z, float Zback...")
+    # Splitting [1,2] at 1.0006 rounds the remainder's front past 1.0007, so
+    # it must not then be split at 1.0007.
+    types = (oiio.FLOAT, oiio.HALF, oiio.FLOAT)
+    names = ("A", "Z", "Zback")
+    dds = []
+    for zbacks in ((2.0,), (1.0006, 1.0007)) :
+        dd = oiio.DeepData ()
+        dd.init (1, 3, types, names)
+        dd.set_samples (0, len(zbacks))
+        for s, zback in enumerate(zbacks) :
+            dd.set_deep_value (0, 0, s, 0.5)
+            dd.set_deep_value (0, 1, s, 1.0)
+            dd.set_deep_value (0, 2, s, zback)
+        dds.append (dd)
+    dds[0].merge_deep_pixels (0, dds[1], 0)
+    print ("nsamples =", dds[0].samples(0))
+    for s in range(dds[0].samples(0)) :
+        print ("  A={:.6f} Z={:.6f} Zback={:.6f}".format(
+               *[dds[0].deep_value(0, c, s) for c in range(3)]))
+
+
+def make_nested (zfront, zback, nsamples, fmt) :
+    # One-pixel deep image with nsamples nested samples
+    spec = oiio.ImageSpec (1, 1, 3, fmt)
+    spec.channelnames = ("A", "Z", "Zback")
+    spec.deep = True
+    buf = oiio.ImageBuf (spec)
+    buf.set_deep_samples (0, 0, 0, nsamples)
+    eps = 0.5 * (zback - zfront) / (nsamples + 1)
+    for s in range(nsamples) :
+        buf.set_deep_value (0, 0, 0, 0, s, 0.5)
+        buf.set_deep_value (0, 0, 0, 1, s, zfront + s * eps)
+        buf.set_deep_value (0, 0, 0, 2, s, zback - s * eps)
+    return buf
+
+
+def test_deep_merge_limit () :
+    print ("\nTesting deep_merge size limit...")
+    oldlimit = oiio.get_int_attribute ("limits:imagesize_MB")
+    oiio.attribute ("limits:imagesize_MB", 1)
+    cascade = make_nested (0.0, 1.0, 300, "float")
+    empty = make_nested (0.0, 1.0, 0, "float")
+    for (label, A, B) in (("empty B", cascade, empty),
+                          ("empty A", empty, cascade)) :
+        dst = oiio.ImageBufAlgo.deep_merge (A, B)
+        print (label, ":", dst.has_error, dst.deep_samples(0, 0, 0))
+    # All depths become 1.0 when converted to half
+    narrow = make_nested (1.0, 1.0004, 300, "float")
+    dst = make_nested (0.0, 1.0, 0, "half")
+    ok = oiio.ImageBufAlgo.deep_merge (dst, narrow, narrow)
+    print ("float to half :", ok, dst.deep_samples(0, 0, 0))
+    # ... but without conversion, it really is too big
+    dst = oiio.ImageBufAlgo.deep_merge (narrow, narrow)
+    print ("float to float : error", dst.has_error, dst.geterror()[:40])
+    # Just under and just over the limit: n nested samples merged with
+    # themselves make 2*n*n samples of 12 bytes each.
+    for n in (209, 210) :
+        A = make_nested (0.0, 1.0, n, "float")
+        dst = oiio.ImageBufAlgo.deep_merge (A, A)
+        print (n, "nested : error", dst.has_error)
+        dst.geterror()
+    # With a channel subset that excludes depth, A's depths are not copied
+    A = make_nested (0.0, 1.0, 210, "float")
+    dst = make_nested (0.0, 1.0, 0, "float")
+    ok = oiio.ImageBufAlgo.deep_merge (dst, A, A,
+                                       roi=oiio.ROI(0, 1, 0, 1, 0, 1, 0, 1))
+    print ("channel subset :", ok, dst.geterror()[:40])
+    oiio.attribute ("limits:imagesize_MB", oldlimit)
+
+
+def make_random_deep (types, samples) :
+    # One-pixel deep image with the given (alpha, z, zback) samples
+    spec = oiio.ImageSpec (1, 1, 4, "float")
+    spec.channelnames = ("R", "A", "Z", "Zback")
+    spec.channelformats = types
+    spec.deep = True
+    buf = oiio.ImageBuf (spec)
+    buf.set_deep_samples (0, 0, 0, len(samples))
+    for s, (a, z, zback) in enumerate(samples) :
+        for c, val in enumerate((0.5 * a, a, z, zback)) :
+            buf.set_deep_value (0, 0, 0, c, s, val)
+    return buf
+
+
+def random_samples (rng, base, width) :
+    samples = []
+    for s in range(rng.choice((0, 1, 2, 5, 12))) :
+        a = rng.choice((0.0, 0.1, 0.5, 1.0))
+        z, zback = sorted((base + width * rng.random(),
+                           base + width * rng.random()))
+        kind = rng.randrange(5)
+        if kind == 0 :               # zero thickness
+            zback = z
+        elif kind == 1 and samples : # same extent as another sample
+            z, zback = samples[-1][1:]
+        samples.append ((a, z, zback))
+    return samples
+
+
+def check_random_merge (rng, srctypes, dsttypes) :
+    # Merge two random pixels, return a list of any problems found.
+    base = rng.choice((0.25, 0.5))
+    width = rng.choice((0.0002, 0.001, 0.01, 0.4))
+    Asamps = random_samples (rng, base, width)
+    Bsamps = random_samples (rng, base, width)
+    A = make_random_deep (srctypes, Asamps)
+    B = make_random_deep (srctypes, Bsamps)
+    dst = make_random_deep (dsttypes, [])
+    if not oiio.ImageBufAlgo.deep_merge (dst, A, B, occlusion_cull=False) :
+        return ["failed: " + dst.geterror()]
+    problems = []
+    expected = 1.0
+    for samp in Asamps + Bsamps :
+        expected *= 1.0 - samp[0]
+    transmittance = 1.0
+    for s in range(dst.deep_samples(0, 0, 0)) :
+        r = dst.deep_value (0, 0, 0, 0, s)
+        a = dst.deep_value (0, 0, 0, 1, s)
+        if not (0.0 <= a <= 1.0) :
+            problems.append ("alpha {}".format(a))
+        if not abs(r - 0.5 * a) < 1.0e-4 :
+            problems.append ("color {} for alpha {}".format(r, a))
+        transmittance *= 1.0 - a
+    if not abs(transmittance - expected) < 1.0e-4 :
+        problems.append ("transmittance {} vs {}".format(transmittance,
+                                                         expected))
+    # deep_merge's capacity estimate must match what the merge really needs.
+    if Asamps and Bsamps :
+        direct = oiio.DeepData ()
+        direct.init (1, 4, dsttypes, ("R", "A", "Z", "Zback"))
+        direct.copy_deep_pixel (0, A.deepdata(), 0)
+        direct.merge_deep_pixels (0, B.deepdata(), 0)
+        needed = direct.capacity(0)
+    else :
+        needed = len(Asamps) + len(Bsamps)
+    if dst.deepdata().capacity(0) != needed :
+        problems.append ("capacity {} vs {}".format(dst.deepdata().capacity(0),
+                                                    needed))
+    return problems
+
+
+def test_deep_merge_random () :
+    print ("\nTesting deep_merge of random pixels...")
+    rng = random.Random (1)
+    F, H, U = oiio.FLOAT, oiio.HALF, oiio.UINT16
+    nproblems = 0
+    for zt in (F, H, U) :
+        for zbt in (F, H, U) :
+            dsttypes = (F, F, zt, zbt)
+            for srctypes in (dsttypes, (F, F, F, F)) :
+                for i in range(100) :
+                    for p in check_random_merge (rng, srctypes, dsttypes) :
+                        nproblems += 1
+                        if nproblems <= 10 :
+                            print ("  ", srctypes, "->", dsttypes, ":", p)
+    print ("problems:", nproblems)
+
+
 def test_occlusion_cull () :
     print ("\nTesting occlusion_cull...")
     dd = oiio.DeepData ()
@@ -322,6 +483,9 @@ try:
     test_sample_sort ()
     test_merge_overlaps ()
     test_merge_deep_pixels ()
+    test_merge_mixed_depth_types ()
+    test_deep_merge_limit ()
+    test_deep_merge_random ()
     test_occlusion_cull ()
     test_opaque_z ()
 
